@@ -152,7 +152,7 @@ class _TabletVideoLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
         children: [
-          Expanded(flex: 7, child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))))),
+          Expanded(flex: 7, child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))))),
           const VerticalDivider(width: 1),
           Expanded(flex: 3, child: _VideoTabsView(video: video, scrollBehavior: scrollBehavior, showPlayer: false)),
         ],
@@ -271,7 +271,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
         if (widget.showPlayer)
           ValueListenableBuilder<double>(
             valueListenable: _playerCollapse,
-            child: RepaintBoundary(child: VideoPlayerPanel(key: ValueKey(widget.video.id), video: widget.video, onBack: () => Navigator.maybePop(context), onNext: () => _playNext(context, widget.video), onEpisodeSelected: (episode) => _playEpisode(context, episode), onPlayingChanged: _setPlaying)),
+            child: RepaintBoundary(child: VideoPlayerPanel(key: ValueKey(widget.video.id), video: widget.video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, widget.video), onEpisodeSelected: (episode) => _playEpisode(context, episode), onPlayingChanged: _setPlaying)),
             builder: (context, collapse, player) => Column(children: [ClipRect(child: Align(heightFactor: 1 - collapse, alignment: Alignment.topCenter, child: player)), if (collapse >= .99) SizedBox(height: 40, width: double.infinity, child: TextButton.icon(onPressed: () => _playerCollapse.value = 0, icon: const Icon(Icons.play_arrow), label: Text(l10n.play)))]),
           ),
         Padding(

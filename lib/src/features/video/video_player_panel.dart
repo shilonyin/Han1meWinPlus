@@ -22,9 +22,10 @@ import 'video_player_controls.dart';
 import 'video_player_surface.dart';
 
 class VideoPlayerPanel extends ConsumerStatefulWidget {
-  const VideoPlayerPanel({super.key, required this.video, required this.onBack, this.onNext, this.onEpisodeSelected, this.onPlayingChanged});
+  const VideoPlayerPanel({super.key, required this.video, required this.onBack, this.onHome, this.onNext, this.onEpisodeSelected, this.onPlayingChanged});
   final VideoDetail video;
   final VoidCallback onBack;
+  final VoidCallback? onHome;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
   final ValueChanged<bool>? onPlayingChanged;
@@ -478,14 +479,14 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
                       ],
                     ),
             ),
-            Positioned(top: 8, left: 8, child: BackButton(color: Colors.white, onPressed: widget.onBack)),
+            Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack, onHome: widget.onHome)),
           ],
         ),
       );
     }
     return _PlayerFrame(
       aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected),
+       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected),
     );
   }
 }

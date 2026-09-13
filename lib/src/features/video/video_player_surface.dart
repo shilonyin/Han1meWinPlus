@@ -17,7 +17,7 @@ import '../settings/settings_controller.dart';
 import 'video_player_controls.dart';
 
 class VideoPlayerSurface extends ConsumerStatefulWidget {
-  const VideoPlayerSurface({required this.controller, required this.quality, required this.video, required this.fullscreen, required this.onFullscreen, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onBack, this.onNext, this.onEpisodeSelected, this.keyframes = const [], this.onKeyframes, this.onAddKeyframe, super.key});
+  const VideoPlayerSurface({required this.controller, required this.quality, required this.video, required this.fullscreen, required this.onFullscreen, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onBack, this.onHome, this.onNext, this.onEpisodeSelected, this.keyframes = const [], this.onKeyframes, this.onAddKeyframe, super.key});
   final ValueListenable<VideoPlayerController?> controller;
   final ValueListenable<String?> quality;
   final VideoDetail video;
@@ -26,6 +26,7 @@ class VideoPlayerSurface extends ConsumerStatefulWidget {
   final ValueChanged<VideoSource> onQualitySelected;
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
   final VoidCallback? onBack;
+  final VoidCallback? onHome;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
   final List<int> keyframes;
@@ -180,7 +181,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
             ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
             ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
             if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
-            if (_showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: BackButton(color: Colors.white, onPressed: widget.onBack)),
+            // 窗口模式常驻导航：播放中控制栏会自动隐藏，导航按钮若跟着隐藏就没法中途退出
+            if (!widget.fullscreen && widget.onBack != null) Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack!, onHome: widget.onHome)),
+            if (widget.fullscreen && _showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: BackButton(color: Colors.white, onPressed: widget.onBack)),
             if (_showControls && widget.fullscreen && !_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.lockControls, onPressed: () => setState(() => _locked = true), icon: const Icon(Icons.lock_open_outlined))),
             if (widget.fullscreen && widget.keyframes.isNotEmpty) _KeyframeCountdown(controller: controller, keyframes: widget.keyframes),
             if (_showControls && widget.fullscreen && !_locked) Positioned(top: 8, left: 48, right: 212, child: _MarqueeTitle(title: widget.video.title)),
@@ -226,6 +229,46 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
       },
     );
   }
+}
+
+/// 窗口模式（非全屏）下常驻在播放器左上角的导航按钮：返回上一级 + 回到主页。
+///
+/// 播放中控制栏会自动隐藏，若导航按钮跟着一起隐藏，用户就没法中途退出播放页，
+/// 所以窗口模式下始终显示；全屏模式仍沿用「跟随控制栏」的原有行为。
+class PlayerNavCapsule extends StatelessWidget {
+  const PlayerNavCapsule({required this.onBack, this.onHome, super.key});
+
+  final VoidCallback onBack;
+  final VoidCallback? onHome;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.black.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(999),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              color: Colors.white,
+              visualDensity: VisualDensity.compact,
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back),
+            ),
+            if (onHome != null) ...[
+              SizedBox(height: 18, child: VerticalDivider(width: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.24))),
+              IconButton(
+                color: Colors.white,
+                visualDensity: VisualDensity.compact,
+                tooltip: AppLocalizations.of(context)!.home,
+                onPressed: onHome,
+                icon: const Icon(Icons.home_outlined),
+              ),
+            ],
+          ],
+        ),
+      );
 }
 
 class _VideoViewport extends ConsumerWidget {
