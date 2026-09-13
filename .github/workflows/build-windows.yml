@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 生成更新日志需要历史提交和已有 tag
+          fetch-depth: 0
 
       # 版本号以 .fvmrc 为唯一来源，避免 CI 与本地 Flutter 版本漂移
       - name: Read pinned Flutter version
@@ -112,8 +115,31 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          RUNNER_TEMP_DIR: ${{ runner.temp }}
         run: |
+          # 与上一个 tag 之间的提交作为更新日志
+          $previous = git describe --tags --abbrev=0 "$env:TAG^" 2>$null
+          if ([string]::IsNullOrWhiteSpace($previous) -or $LASTEXITCODE -ne 0) {
+            $range = $env:TAG
+            $compare = ''
+          }
+          else {
+            $previous = $previous.Trim()
+            $range = "$previous..$env:TAG"
+            $compare = "**完整对比**: https://github.com/$env:REPO/compare/$previous...$env:TAG"
+          }
+          $changes = (git log $range --no-merges --pretty=format:'- %s (`%h`)') -join "`n"
+          if ([string]::IsNullOrWhiteSpace($changes)) { $changes = '- 仅版本号变更' }
+
           $notes = @"
+          ## 更新内容
+
+          $changes
+
+          $compare
+
           ## 下载
 
           - 安装版：``Han1meWinPlus-Setup.exe``
@@ -124,9 +150,14 @@ jobs:
           基于上游 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 Windows 专修分支。
           未做代码签名，首次运行可能出现「未知发布者」提示。
           "@
-          gh release create $env:GITHUB_REF_NAME `
+
+          $notesPath = Join-Path $env:RUNNER_TEMP_DIR 'release-notes.md'
+          [System.IO.File]::WriteAllText($notesPath, $notes)
+          Write-Host $notes
+
+          gh release create $env:TAG `
             build/Han1meWinPlus-Setup.exe `
             build/Han1meWinPlus-windows-x64.zip `
-            --title "Han1meWinPlus $env:GITHUB_REF_NAME" `
-            --notes $notes `
+            --title "Han1meWinPlus $env:TAG" `
+            --notes-file $notesPath `
             --verify-tag
