@@ -1468,10 +1468,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unlock => '解锁';
 
   @override
-  String get homeCategoryTabs => '首页使用 Tab 栏分类';
+  String get homeCategoryTabs => '首页使用收起式分类';
 
   @override
-  String get homeCategoryTabsDescription => '以可滑动 Tab 展示首页分类，并展开影片卡片';
+  String get homeCategoryTabsDescription => '分类收进标题下拉菜单，影片以多列瀑布流展示';
 
   @override
   String get recommendationFilters => '推荐流设置';
@@ -3203,10 +3203,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get unlock => '解鎖';
 
   @override
-  String get homeCategoryTabs => '首頁使用 Tab 分類';
+  String get homeCategoryTabs => '首頁使用收合式分類';
 
   @override
-  String get homeCategoryTabsDescription => '以可滑動 Tab 顯示首頁分類，並展開影片卡片';
+  String get homeCategoryTabsDescription => '分類收進標題下拉選單，影片以多欄瀑布流呈現';
 
   @override
   String get recommendationFilters => '推薦流設定';

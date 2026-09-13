@@ -1512,11 +1512,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlock => 'Unlock';
 
   @override
-  String get homeCategoryTabs => 'Use Home Category Tabs';
+  String get homeCategoryTabs => 'Use Collapsed Home Categories';
 
   @override
   String get homeCategoryTabsDescription =>
-      'Show home categories as swipeable tabs and expand their video cards';
+      'Pick the home category from a dropdown next to the title; videos are shown as a multi column waterfall';
 
   @override
   String get recommendationFilters => 'Recommendation Filters';

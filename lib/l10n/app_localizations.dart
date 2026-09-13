@@ -2819,13 +2819,13 @@ abstract class AppLocalizations {
   /// No description provided for @homeCategoryTabs.
   ///
   /// In en, this message translates to:
-  /// **'Use Home Category Tabs'**
+  /// **'Use Collapsed Home Categories'**
   String get homeCategoryTabs;
 
   /// No description provided for @homeCategoryTabsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Show home categories as swipeable tabs and expand their video cards'**
+  /// **'Pick the home category from a dropdown next to the title; videos are shown as a multi column waterfall'**
   String get homeCategoryTabsDescription;
 
   /// No description provided for @recommendationFilters.
