@@ -54,6 +54,26 @@ iscc windows/installer.iss
 
 > 上游通过 fvm 锁定 Flutter 版本（见 `.fvmrc`），建议使用相同版本构建。
 
+## 发布新版本
+
+发布由 GitHub Actions 自动完成（[`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)），不需要本地打包。
+
+1. 更新 `pubspec.yaml` 里的 `version:`（例如 `1.1.9+20`），提交并推送到 `win` 分支
+2. 打 tag 并推送，tag 必须和 `pubspec.yaml` 的版本号一致：
+
+   ```bash
+   git tag v1.1.9
+   git push origin v1.1.9
+   ```
+
+3. Actions 会用 `.fvmrc` 锁定的 Flutter 版本编译，再用 Inno Setup 打包，最后把 `Han1meWinPlus-Setup.exe` 和免安装 zip 发到 Releases
+
+> [!IMPORTANT]
+> tag 必须是 `v` + 数字版本开头（`v1.1.9`、`v1.1.9-win.1` 都可以）。应用内「检查更新」只解析 tag 的前三段数字，写成 `win-v1.1.9` 会被当成 `0.0.0`，永远检测不到更新。tag 与 `pubspec.yaml` 版本不一致时 CI 会直接失败，避免发出对不上号的包。
+
+> [!NOTE]
+> 安装包未做代码签名，Windows 首次运行可能提示「未知发布者」，属正常现象。
+
 ## 如何贡献
 
 > [!Important]
