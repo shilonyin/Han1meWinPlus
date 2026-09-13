@@ -19,6 +19,10 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
     colorScheme: scheme,
     scaffoldBackgroundColor: amoled ? Colors.black : null,
     canvasColor: amoled ? Colors.black : null,
+    // M3 tints the app bar with the primary colour once content scrolls under
+    // it, which stands out badly against the flat/AMOLED surfaces this app uses.
+    // Keep the bar the same colour as the page.
+    appBarTheme: AppBarTheme(backgroundColor: scheme.surface, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
     sliderTheme: const SliderThemeData(year2023: false),
   );
 }

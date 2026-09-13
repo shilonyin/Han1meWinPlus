@@ -36,24 +36,40 @@ int homeWaterfallColumns(double width) {
 
 double homeWaterfallCardWidth(double width, int columns) => (width - _gridPadding * 2 - _gridSpacing * (columns - 1)) / columns;
 
-class ExplorePage extends ConsumerWidget {
+class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sections = ref.watch(homeSectionsProvider);
-    final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
+  ConsumerState<ExplorePage> createState() => _ExplorePageState();
+}
+
+class _ExplorePageState extends ConsumerState<ExplorePage> {
+  var _sectionIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final feed = ref.watch(homeSectionsProvider);
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final drawerMode = settings?.useNavigationDrawer ?? false;
     final l10n = AppLocalizations.of(context)!;
+    final tabs = settings?.useHomeCategoryTabs == true;
+    final sections = feed.valueOrNull == null ? const <HomeSection>[] : _feedSections(feed.value!);
+    final index = sections.isEmpty ? 0 : _sectionIndex.clamp(0, sections.length - 1).toInt();
+    final showPicker = tabs && sections.isNotEmpty;
     return Scaffold(
       appBar: AppBar(
         leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
+        // The category picker shares the bar with the actions so it lines up with
+        // them instead of taking a row of its own.
+        title: showPicker ? _CategorySelector(sections: sections, index: index, onSelected: (value) => setState(() => _sectionIndex = value)) : null,
+        titleSpacing: showPicker ? 8 : null,
         actions: [
           IconButton(onPressed: () => context.push('/search', extra: SearchRouteRequest()), icon: const Icon(Icons.search)),
           IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
           IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
         ],
       ),
-      body: sections.when(
+      body: feed.when(
         skipLoadingOnReload: true,
         skipLoadingOnRefresh: true,
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
@@ -68,30 +84,17 @@ class ExplorePage extends ConsumerWidget {
             }
           },
         ),
-        data: (feed) => _HomeFeedBody(feed: feed),
+        data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
       ),
     );
   }
-}
 
-class _HomeFeedBody extends ConsumerStatefulWidget {
-  const _HomeFeedBody({required this.feed});
-  final HomeFeed feed;
-
-  @override
-  ConsumerState<_HomeFeedBody> createState() => _HomeFeedBodyState();
-}
-
-class _HomeFeedBodyState extends ConsumerState<_HomeFeedBody> {
-  var _sectionIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  List<HomeSection> _feedSections(HomeFeed feed) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final locale = searchOptionLocaleKey(Localizations.localeOf(context));
     final subscribed = ref.watch(libraryProvider).valueOrNull?.artists.map((artist) => artist.name.toLowerCase()).toSet() ?? <String>{};
-    final sections = widget.feed.sections
+    return feed.sections
         .map((section) => HomeSection(
               title: _localizedSectionTitle(section, catalog, locale),
               videos: section.videos.where((video) => _visible(video, settings, subscribed)).toList(),
@@ -100,21 +103,28 @@ class _HomeFeedBodyState extends ConsumerState<_HomeFeedBody> {
             ))
         .where((section) => section.videos.isNotEmpty)
         .toList();
-    Future<void> refresh() => ref.read(homeSectionsProvider.notifier).refresh();
-    if (settings?.useHomeCategoryTabs != true || sections.isEmpty) return M3EPullToRefreshIndicator(onRefresh: refresh, child: _HomeScroll(featured: widget.feed.featured, sections: sections));
-    // Categories are picked from a title + chevron menu instead of a tab strip,
-    // so only the selected section is built and the grid gets the full height.
-    final index = _sectionIndex.clamp(0, sections.length - 1).toInt();
-    return Column(children: [
-      _CategorySelector(sections: sections, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
-      Expanded(
-        child: M3EPullToRefreshIndicator(
-          onRefresh: refresh,
-          child: _HomeScroll(featured: widget.feed.featured, sections: [sections[index]], showHeader: false),
-        ),
-      ),
-    ]);
   }
+}
+
+class _HomeFeedBody extends ConsumerWidget {
+  const _HomeFeedBody({required this.featured, required this.sections, required this.index, required this.single});
+
+  final VideoCard? featured;
+  final List<HomeSection> sections;
+  final int index;
+
+  /// Category tabs are off: every section is stacked with its own header.
+  final bool single;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => M3EPullToRefreshIndicator(
+        onRefresh: () => ref.read(homeSectionsProvider.notifier).refresh(),
+        child: _HomeScroll(
+          featured: featured,
+          sections: single && sections.isNotEmpty ? [sections[index]] : sections,
+          showHeader: !single,
+        ),
+      );
 }
 
 /// Collapsed category picker: the current section name plus a chevron that
@@ -136,41 +146,34 @@ class _CategorySelectorState extends State<_CategorySelector> {
   @override
   Widget build(BuildContext context) {
     final section = widget.sections[widget.index];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
-      child: Row(
-        children: [
-          MenuAnchor(
-            controller: _controller,
-            alignmentOffset: const Offset(0, 6),
-            menuChildren: [
-              for (var index = 0; index < widget.sections.length; index++)
-                MenuItemButton(
-                  onPressed: () {
-                    _controller.close();
-                    if (index != widget.index) widget.onSelected(index);
-                  },
-                  leadingIcon: Icon(index == widget.index ? Icons.check : Icons.label_outline, size: 18),
-                  child: Text(widget.sections[index].title),
-                ),
-            ],
-            builder: (context, controller, child) => InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => controller.isOpen ? controller.close() : controller.open(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down),
-                  ],
-                ),
-              ),
-            ),
+    return MenuAnchor(
+      controller: _controller,
+      alignmentOffset: const Offset(0, 6),
+      menuChildren: [
+        for (var index = 0; index < widget.sections.length; index++)
+          MenuItemButton(
+            onPressed: () {
+              _controller.close();
+              if (index != widget.index) widget.onSelected(index);
+            },
+            leadingIcon: Icon(index == widget.index ? Icons.check : Icons.label_outline, size: 18),
+            child: Text(widget.sections[index].title),
           ),
-        ],
+      ],
+      builder: (context, controller, child) => InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => controller.isOpen ? controller.close() : controller.open(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down),
+            ],
+          ),
+        ),
       ),
     );
   }
