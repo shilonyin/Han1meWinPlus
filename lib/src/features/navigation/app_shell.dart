@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
@@ -23,19 +22,16 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderStateMixin {
-  late final AnimationController _pageTransitionController;
+class _AppShellState extends ConsumerState<AppShell> {
   late int _currentIndex;
   late final List<int> _branchHistory;
   var _isBackNavigation = false;
-  var _pageTransitionOffset = Offset.zero;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.navigationShell.currentIndex;
     _branchHistory = <int>[widget.navigationShell.currentIndex];
-    _pageTransitionController = AnimationController(vsync: this, duration: const Duration(milliseconds: 260), value: 1);
   }
 
   @override
@@ -43,7 +39,6 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
     super.didUpdateWidget(oldWidget);
     final nextIndex = widget.navigationShell.currentIndex;
     if (nextIndex == _currentIndex) return;
-    _pageTransitionOffset = Offset(nextIndex > _currentIndex ? 1 : -1, 0);
     if (_isBackNavigation) {
       if (_branchHistory.isNotEmpty) _branchHistory.removeLast();
       _isBackNavigation = false;
@@ -54,12 +49,10 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
       if (_branchHistory.length > 4) _branchHistory.removeAt(0);
     }
     _currentIndex = nextIndex;
-    _pageTransitionController.forward(from: 0);
   }
 
   @override
   void dispose() {
-    _pageTransitionController.dispose();
     super.dispose();
   }
 
@@ -71,7 +64,6 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
     final largeScreen = MediaQuery.sizeOf(context).shortestSide >= 600;
     final permanentDrawer = drawerMode && largeScreen;
     final useRail = !drawerMode && largeScreen;
-    final useLiquidGlassBottomBar = !drawerMode && !useRail && (settings?.useLiquidGlassBottomBar ?? true);
     final destinations = [
       (icon: Icons.explore_outlined, selectedIcon: Icons.explore, label: AppLocalizations.of(context)!.explore),
       (icon: Icons.bookmark_outline, selectedIcon: Icons.bookmark, label: AppLocalizations.of(context)!.library),
@@ -87,18 +79,7 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
             _ => widget.navigationShell,
           }
         : widget.navigationShell;
-    final animatedContent = useLiquidGlassBottomBar
-        ? RepaintBoundary(
-            child: SlideTransition(
-              position: Tween(begin: _pageTransitionOffset, end: Offset.zero).chain(CurveTween(curve: Curves.easeOutCubic)).animate(_pageTransitionController),
-              child: content,
-            ),
-          )
-        : content;
     final mediaQuery = MediaQuery.of(context);
-    final contentMediaQuery = useLiquidGlassBottomBar
-        ? mediaQuery.copyWith(padding: mediaQuery.padding.copyWith(bottom: mediaQuery.padding.bottom + 104))
-        : mediaQuery;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -107,7 +88,6 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
       },
       child: Scaffold(
         key: drawerMode ? appShellScaffoldKey : null,
-        extendBody: useLiquidGlassBottomBar,
         drawer: drawerMode && !permanentDrawer ? _AppDrawer(navigationShell: widget.navigationShell) : null,
         body: permanentDrawer
             ? Row(
@@ -130,20 +110,14 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
                       Expanded(child: content),
                     ],
                   )
-                : MediaQuery(data: contentMediaQuery, child: animatedContent),
+                : MediaQuery(data: mediaQuery, child: content),
         bottomNavigationBar: drawerMode || useRail
             ? null
-            : useLiquidGlassBottomBar
-                ? GlassTabBar.bottom(
-                    selectedIndex: widget.navigationShell.currentIndex,
-                    onTabSelected: select,
-                    tabs: destinations.map((destination) => GlassTab(icon: Icon(destination.icon), activeIcon: Icon(destination.selectedIcon), label: destination.label)).toList(),
-                  )
-                : NavigationBar(
-                    selectedIndex: widget.navigationShell.currentIndex,
-                    onDestinationSelected: select,
-                    destinations: destinations.map((destination) => NavigationDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: destination.label)).toList(),
-                  ),
+            : NavigationBar(
+                selectedIndex: widget.navigationShell.currentIndex,
+                onDestinationSelected: select,
+                destinations: destinations.map((destination) => NavigationDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: destination.label)).toList(),
+              ),
       ),
     );
   }

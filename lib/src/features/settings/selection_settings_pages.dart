@@ -1,6 +1,4 @@
-import 'package:card_settings_ui/list/settings_list.dart';
-import 'package:card_settings_ui/section/settings_section.dart';
-import 'package:card_settings_ui/tile/settings_tile.dart';
+import 'settings_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

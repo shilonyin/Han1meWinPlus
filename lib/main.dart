@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import 'src/app.dart';
 import 'src/core/media_player_initializer.dart';
@@ -15,25 +14,27 @@ import 'src/data/local/update_installer.dart';
 import 'src/features/settings/settings_controller.dart';
 
 Future<void> main() async {
+  final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
   final loadedSettings = await SettingsStore(JsonStore()).load();
-  // 玻璃包的着色器预热在 Windows(Skia) 上是运行时编译，驱动着色器缓存未命中时
-  // 可耗时数十秒。绝不能 await 它再 runApp：否则这段时间窗口一片空白、首帧完全
-  // 出不来，看起来就像网络卡死。桌面宽度走 NavigationRail、并不渲染玻璃组件，
-  // 首帧不需要它；组件自身也会按需懒加载，所以放到后台预热即可。
-  unawaited(LiquidGlassWidgets.initialize().catchError((Object _) {}));
+  debugPrint('[startup] engine+settings: ${startupWatch.elapsedMilliseconds}ms');
   await PlaybackSpeedPolicy.initialize();
   final settings = PlaybackSpeedPolicy.isHarmonyOs && loadedSettings.playerEngine != PlayerEngine.libMpv
       ? loadedSettings.copyWith(playerEngine: PlayerEngine.libMpv)
       : loadedSettings;
   if (!identical(settings, loadedSettings)) await SettingsStore(JsonStore()).save(settings);
-  MediaPlayerInitializer.bootstrap(settings);
+  // mpv 的 libmpv-2.dll 会在 MediaKit.ensureInitialized() 里被同步 LoadLibrary 加载，
+  // 冷启动（磁盘读取 + 杀软扫描）可能耗数百毫秒。首屏 ExplorePage 用不到播放器，
+  // 所以把播放器初始化整体挪到首帧之后再执行，缩短启动图停留时间。
+  // 真正打开视频时才创建 Player()，那时 DLL 早已加载完毕，不存在竞态。
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    debugPrint('[startup] first-frame done: ${startupWatch.elapsedMilliseconds}ms');
+    MediaPlayerInitializer.bootstrap(settings);
+  });
   runApp(
-    LiquidGlassWidgets.wrap(
-      child: ProviderScope(
-        overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
-        child: const Han1meApp(),
-      ),
+    ProviderScope(
+      overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
+      child: const Han1meApp(),
     ),
   );
   unawaited(_postLaunch());

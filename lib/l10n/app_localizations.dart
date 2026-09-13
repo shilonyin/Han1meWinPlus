@@ -2422,18 +2422,6 @@ abstract class AppLocalizations {
   /// **'Use a drawer instead of the bottom navigation bar'**
   String get navigationDrawerDescription;
 
-  /// No description provided for @liquidGlassBottomBar.
-  ///
-  /// In en, this message translates to:
-  /// **'Liquid Glass Bottom Bar'**
-  String get liquidGlassBottomBar;
-
-  /// No description provided for @liquidGlassBottomBarDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Use a floating Liquid Glass bottom navigation bar'**
-  String get liquidGlassBottomBarDescription;
-
   /// No description provided for @home.
   ///
   /// In en, this message translates to:

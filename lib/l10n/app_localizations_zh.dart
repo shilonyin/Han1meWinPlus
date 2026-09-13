@@ -1255,12 +1255,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navigationDrawerDescription => '使用抽屉替代底部导航栏';
 
   @override
-  String get liquidGlassBottomBar => '悬浮液态玻璃底栏';
-
-  @override
-  String get liquidGlassBottomBarDescription => '使用悬浮的液态玻璃底部导航栏';
-
-  @override
   String get home => '主页';
 
   @override
@@ -2908,12 +2902,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get navigationDrawerDescription => '使用抽屜取代底部導覽列';
-
-  @override
-  String get liquidGlassBottomBar => '懸浮液態玻璃底欄';
-
-  @override
-  String get liquidGlassBottomBarDescription => '使用懸浮的液態玻璃底部導覽列';
 
   @override
   String get home => '首頁';

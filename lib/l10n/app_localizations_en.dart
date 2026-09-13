@@ -1292,13 +1292,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use a drawer instead of the bottom navigation bar';
 
   @override
-  String get liquidGlassBottomBar => 'Liquid Glass Bottom Bar';
-
-  @override
-  String get liquidGlassBottomBarDescription =>
-      'Use a floating Liquid Glass bottom navigation bar';
-
-  @override
   String get home => 'Home';
 
   @override

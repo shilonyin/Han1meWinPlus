@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:card_settings_ui/list/settings_list.dart';
-import 'package:card_settings_ui/section/settings_section.dart';
-import 'package:card_settings_ui/tile/settings_tile.dart';
+
+import 'settings_list.dart';
 
 class SettingsCardList extends StatelessWidget {
   const SettingsCardList({super.key, required this.children, this.title, this.padding = EdgeInsets.zero});
@@ -103,14 +102,18 @@ class SettingsSliderItem extends SettingsCardItem {
   SettingsTile get tile => SettingsTile(
         leading: leading,
         title: Text(title),
-        description: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (subtitle != null) Text(subtitle!),
-            Slider(value: value, min: min, max: max, divisions: divisions, label: label, onChanged: onChanged),
-          ],
+        description: subtitle == null ? null : Text(subtitle!),
+        value: Builder(
+          builder: (context) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+              child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colorScheme.onSecondaryContainer)),
+            );
+          },
         ),
-        trailing: Text(label),
+        bottom: Slider(value: value, min: min, max: max, divisions: divisions, label: label, onChanged: onChanged),
       );
 }
 

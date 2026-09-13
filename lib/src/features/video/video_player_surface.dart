@@ -181,8 +181,8 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
             ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
             ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
             if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
-            // 窗口模式常驻导航：播放中控制栏会自动隐藏，导航按钮若跟着隐藏就没法中途退出
-            if (!widget.fullscreen && widget.onBack != null) Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack!, onHome: widget.onHome)),
+            // 窗口模式导航胶囊和控制栏同进同出：点击画面显示，超时自动隐藏
+            if (!widget.fullscreen && _showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack!, onHome: widget.onHome)),
             if (widget.fullscreen && _showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: BackButton(color: Colors.white, onPressed: widget.onBack)),
             if (_showControls && widget.fullscreen && !_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.lockControls, onPressed: () => setState(() => _locked = true), icon: const Icon(Icons.lock_open_outlined))),
             if (widget.fullscreen && widget.keyframes.isNotEmpty) _KeyframeCountdown(controller: controller, keyframes: widget.keyframes),
