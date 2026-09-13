@@ -119,6 +119,9 @@ jobs:
           REPO: ${{ github.repository }}
           RUNNER_TEMP_DIR: ${{ runner.temp }}
         run: |
+          # git 输出是 UTF-8，PowerShell 默认按本地代码页解码会把中文提交信息变成乱码
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
           # 与上一个 tag 之间的提交作为更新日志
           $previous = git describe --tags --abbrev=0 "$env:TAG^" 2>$null
           if ([string]::IsNullOrWhiteSpace($previous) -or $LASTEXITCODE -ne 0) {
