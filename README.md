@@ -52,7 +52,7 @@ flutter build windows --release
 iscc windows/installer.iss
 ```
 
-> 上游通过 fvm 锁定 Flutter 版本（见 `.fvmrc`），建议使用相同版本构建。
+> 本分支的依赖要求 **Flutter ≥ 3.47.0**（`m3e_core: ^1.1.1` 的约束），`.fvmrc` 已锁定为 `3.47.4`，建议使用相同版本构建。Flutter 版本偏低时 `flutter pub get` 会直接解析失败，与业务代码无关。
 
 ## 发布新版本
 

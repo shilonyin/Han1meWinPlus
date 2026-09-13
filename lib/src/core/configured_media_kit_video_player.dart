@@ -7,6 +7,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
+import '../data/remote/windows_http_overrides.dart';
+import '../data/remote/windows_proxy.dart';
 import 'settings.dart';
 import 'shader_assets.dart';
 import 'shader_service.dart';
@@ -21,6 +23,28 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   final _streamControllers = HashMap<int, StreamController<VideoEvent>>();
   final _streamSubscriptions = HashMap<int, List<StreamSubscription>>();
   int _nextTextureId = 0;
+
+  /// mpv 使用的 HTTP 代理（取自系统代理）。
+  ///
+  /// mpv/libmpv **不会**读取系统代理，必须显式通过 `http-proxy` 传入；否则在
+  /// 直连被阻断的网络里，界面、评论都正常（它们走 Dart 的 HttpClient），
+  /// 但视频会一直停留在缓冲状态。null 表示不使用代理。
+  static String? httpProxy;
+  static Future<void>? _httpProxyLookup;
+
+  /// 重新读取系统代理。启动时调用一次即可，系统代理变化后可再次调用。
+  static Future<void> refreshHttpProxy() => _httpProxyLookup = _resolveHttpProxy();
+
+  /// 保证系统代理只解析一次。
+  static Future<void> ensureHttpProxy() => _httpProxyLookup ?? refreshHttpProxy();
+
+  static Future<void> _resolveHttpProxy() async {
+    try {
+      httpProxy = WindowsProxy.mpvUrl(await WindowsHttpOverrides.systemProxy());
+    } catch (_) {
+      httpProxy = null;
+    }
+  }
 
   static void registerWith() {
     VideoPlayerPlatform.instance = _instance;
@@ -73,6 +97,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     try {
       final native = player.platform as NativePlayer;
       await native.waitForPlayerInitialization;
+      await ensureHttpProxy();
+      await _applyHttpProxy(native);
       await _applyCustomParameters(native, settings);
       final videoController = VideoController(
         player,
@@ -114,6 +140,18 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       }
       rethrow;
     }
+  }
+
+  /// 把系统代理交给 mpv。
+  ///
+  /// 故意放在 [_applyCustomParameters] 之前：用户在「自定义参数」里显式写了
+  /// `http-proxy=...` 时，以自己的设置为准。
+  Future<void> _applyHttpProxy(NativePlayer native) async {
+    final proxy = httpProxy;
+    if (proxy == null || proxy.isEmpty) return;
+    try {
+      await native.setProperty('http-proxy', proxy);
+    } catch (_) {}
   }
 
   Future<void> _applyCustomParameters(NativePlayer native, AppSettings settings) async {

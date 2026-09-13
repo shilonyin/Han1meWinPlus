@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -20,6 +21,8 @@ class MediaPlayerInitializer {
     if (kIsWeb) return;
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       _useMediaKit();
+      // mpv 不会自己读系统代理，提前解析好，第一次打开视频就不用等
+      unawaited(ConfiguredMediaKitVideoPlayer.refreshHttpProxy());
       return;
     }
     _native ??= VideoPlayerPlatform.instance;
