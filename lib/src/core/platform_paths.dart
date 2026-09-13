@@ -7,10 +7,27 @@ const androidDefaultDownloadPath = '/storage/emulated/0/Android/data/com.liar.ha
 
 bool isAndroidDownloadPath(String path) => path.startsWith('/storage/emulated/0/');
 
+/// Folder under %APPDATA% that holds settings, history and downloads.
+///
+/// Windows used to resolve this through `getApplicationSupportDirectory`, which
+/// builds the path out of the executable's CompanyName/ProductName version
+/// resource. Adding a VERSIONINFO block therefore silently moved the folder and
+/// orphaned every existing setting, account and watch history. The name is
+/// pinned here instead so it cannot move again.
+const _windowsStorageFolder = 'han1me_win_plus';
+
 Future<Directory> appStorageDirectory() async {
-  final directory = await getApplicationSupportDirectory();
+  final directory = await _storageDirectory();
   await directory.create(recursive: true);
   return directory;
+}
+
+Future<Directory> _storageDirectory() async {
+  if (Platform.isWindows) {
+    final appData = Platform.environment['APPDATA'];
+    if (appData != null && appData.isNotEmpty) return Directory(path.join(appData, _windowsStorageFolder));
+  }
+  return getApplicationSupportDirectory();
 }
 
 Future<Directory> downloadStorageDirectory() async {

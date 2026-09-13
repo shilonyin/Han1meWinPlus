@@ -188,26 +188,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dohTimeoutSecondsDescription => 'Range from 1 to 60 seconds';
 
   @override
-  String get useEch => 'Enable ECH';
-
-  @override
-  String get useEchDescription =>
-      'Encrypt the domain name in the TLS ClientHello for Hanime sites';
-
-  @override
-  String get echLogs => 'ECH Logs';
-
-  @override
-  String get echLogsDescription =>
-      'View ECH configuration and connection status';
-
-  @override
-  String get clearEchLogs => 'Clear Logs';
-
-  @override
-  String get noEchLogs => 'No ECH logs';
-
-  @override
   String get customMirrorSite => 'Custom Mirror Site';
 
   @override
@@ -629,6 +609,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failed => 'Failed';
 
   @override
+  String downloadSpeed(Object speed) {
+    return '$speed/s';
+  }
+
+  @override
+  String downloadProgressFull(Object speed, Object downloaded, Object total) {
+    return '$speed · $downloaded / $total';
+  }
+
+  @override
+  String downloadProgressPartial(Object speed, Object downloaded) {
+    return '$speed · $downloaded';
+  }
+
+  @override
   String commentsTitle(Object title) {
     return '$title Comments';
   }
@@ -1036,9 +1031,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String accountSummary(
-      Object id, int subscriberCount, int videoCount, Object joined) {
+    Object id,
+    int subscriberCount,
+    int videoCount,
+    Object joined,
+  ) {
     return '@$id\n$subscriberCount subscribers · $videoCount videos\n$joined';
   }
+
+  @override
+  String subscriberVideoCount(int subscriberCount, int videoCount) {
+    return '$subscriberCount subscribers · $videoCount videos';
+  }
+
+  @override
+  String joinedDate(Object date) {
+    return 'Joined $date';
+  }
+
+  @override
+  String get mine => 'My Page';
 
   @override
   String get tapToLogin => 'Tap to Log In';
@@ -1292,6 +1304,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use a drawer instead of the bottom navigation bar';
 
   @override
+  String get colorScheme => 'Color scheme';
+
+  @override
+  String get colorRose => 'Rose';
+
+  @override
+  String get colorBlue => 'Blue';
+
+  @override
+  String get colorTeal => 'Teal';
+
+  @override
+  String get colorAmber => 'Amber';
+
+  @override
+  String get colorGreen => 'Green';
+
+  @override
+  String get colorOrange => 'Orange';
+
+  @override
+  String get colorIndigo => 'Indigo';
+
+  @override
+  String get colorPink => 'Pink';
+
+  @override
+  String get colorPurple => 'Purple';
+
+  @override
+  String get colorCustom => 'Custom';
+
+  @override
+  String get dynamicColor => 'Dynamic color';
+
+  @override
+  String get dynamicColorFootnote =>
+      'Dynamic color is only available on Android 12+ and desktop';
+
+  @override
+  String get display => 'Display';
+
+  @override
+  String get window => 'Window';
+
+  @override
+  String get useSystemFont => 'Use system font';
+
+  @override
+  String get useSystemFontDescription => 'Turn off to use the bundled font';
+
+  @override
+  String get useSystemTitleBar => 'Use system title bar';
+
+  @override
+  String get useSystemTitleBarDescription =>
+      'Turn off to use the title bar built into the app';
+
+  @override
+  String get minimizeWindow => 'Minimize';
+
+  @override
+  String get maximizeWindow => 'Maximize';
+
+  @override
+  String get restoreWindow => 'Restore';
+
+  @override
   String get home => 'Home';
 
   @override
@@ -1511,6 +1591,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get autoPlayNextDescription =>
       'Play the next episode after the current video finishes';
+
+  @override
+  String get loopPlayback => 'Loop Playback';
+
+  @override
+  String get loopPlaybackDescription =>
+      'Restart the current video automatically after it finishes';
 
   @override
   String get autoPictureInPicture => 'Auto Picture-in-Picture';

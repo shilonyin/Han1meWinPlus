@@ -63,7 +63,7 @@ import 'app_localizations_zh.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,17 +86,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('zh'),
-    Locale('zh', 'TW')
+    Locale('zh', 'TW'),
   ];
 
   /// No description provided for @appTitle.
@@ -440,42 +440,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Range from 1 to 60 seconds'**
   String get dohTimeoutSecondsDescription;
-
-  /// No description provided for @useEch.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable ECH'**
-  String get useEch;
-
-  /// No description provided for @useEchDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypt the domain name in the TLS ClientHello for Hanime sites'**
-  String get useEchDescription;
-
-  /// No description provided for @echLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'ECH Logs'**
-  String get echLogs;
-
-  /// No description provided for @echLogsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View ECH configuration and connection status'**
-  String get echLogsDescription;
-
-  /// No description provided for @clearEchLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear Logs'**
-  String get clearEchLogs;
-
-  /// No description provided for @noEchLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'No ECH logs'**
-  String get noEchLogs;
 
   /// No description provided for @customMirrorSite.
   ///
@@ -1208,6 +1172,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed'**
   String get failed;
+
+  /// No description provided for @downloadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed}/s'**
+  String downloadSpeed(Object speed);
+
+  /// No description provided for @downloadProgressFull.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed} · {downloaded} / {total}'**
+  String downloadProgressFull(Object speed, Object downloaded, Object total);
+
+  /// No description provided for @downloadProgressPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed} · {downloaded}'**
+  String downloadProgressPartial(Object speed, Object downloaded);
 
   /// No description provided for @commentsTitle.
   ///
@@ -1952,7 +1934,29 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'@{id}\n{subscriberCount} subscribers · {videoCount} videos\n{joined}'**
   String accountSummary(
-      Object id, int subscriberCount, int videoCount, Object joined);
+    Object id,
+    int subscriberCount,
+    int videoCount,
+    Object joined,
+  );
+
+  /// No description provided for @subscriberVideoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{subscriberCount} subscribers · {videoCount} videos'**
+  String subscriberVideoCount(int subscriberCount, int videoCount);
+
+  /// No description provided for @joinedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined {date}'**
+  String joinedDate(Object date);
+
+  /// No description provided for @mine.
+  ///
+  /// In en, this message translates to:
+  /// **'My Page'**
+  String get mine;
 
   /// No description provided for @tapToLogin.
   ///
@@ -2422,6 +2426,138 @@ abstract class AppLocalizations {
   /// **'Use a drawer instead of the bottom navigation bar'**
   String get navigationDrawerDescription;
 
+  /// No description provided for @colorScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Color scheme'**
+  String get colorScheme;
+
+  /// No description provided for @colorRose.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose'**
+  String get colorRose;
+
+  /// No description provided for @colorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorBlue;
+
+  /// No description provided for @colorTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get colorTeal;
+
+  /// No description provided for @colorAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Amber'**
+  String get colorAmber;
+
+  /// No description provided for @colorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorGreen;
+
+  /// No description provided for @colorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorOrange;
+
+  /// No description provided for @colorIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get colorIndigo;
+
+  /// No description provided for @colorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get colorPink;
+
+  /// No description provided for @colorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorPurple;
+
+  /// No description provided for @colorCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get colorCustom;
+
+  /// No description provided for @dynamicColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic color'**
+  String get dynamicColor;
+
+  /// No description provided for @dynamicColorFootnote.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic color is only available on Android 12+ and desktop'**
+  String get dynamicColorFootnote;
+
+  /// No description provided for @display.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get display;
+
+  /// No description provided for @window.
+  ///
+  /// In en, this message translates to:
+  /// **'Window'**
+  String get window;
+
+  /// No description provided for @useSystemFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Use system font'**
+  String get useSystemFont;
+
+  /// No description provided for @useSystemFontDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to use the bundled font'**
+  String get useSystemFontDescription;
+
+  /// No description provided for @useSystemTitleBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Use system title bar'**
+  String get useSystemTitleBar;
+
+  /// No description provided for @useSystemTitleBarDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to use the title bar built into the app'**
+  String get useSystemTitleBarDescription;
+
+  /// No description provided for @minimizeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get minimizeWindow;
+
+  /// No description provided for @maximizeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximize'**
+  String get maximizeWindow;
+
+  /// No description provided for @restoreWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreWindow;
+
   /// No description provided for @home.
   ///
   /// In en, this message translates to:
@@ -2830,6 +2966,18 @@ abstract class AppLocalizations {
   /// **'Play the next episode after the current video finishes'**
   String get autoPlayNextDescription;
 
+  /// No description provided for @loopPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Loop Playback'**
+  String get loopPlayback;
+
+  /// No description provided for @loopPlaybackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart the current video automatically after it finishes'**
+  String get loopPlaybackDescription;
+
   /// No description provided for @autoPictureInPicture.
   ///
   /// In en, this message translates to:
@@ -3236,8 +3384,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

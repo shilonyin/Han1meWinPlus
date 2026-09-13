@@ -183,24 +183,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dohTimeoutSecondsDescription => '范围为 1 至 60 秒';
 
   @override
-  String get useEch => '启用 ECH';
-
-  @override
-  String get useEchDescription => '为 Hanime 站点加密 TLS ClientHello 中的域名信息';
-
-  @override
-  String get echLogs => 'ECH 日志';
-
-  @override
-  String get echLogsDescription => '查看 ECH 配置与连接状态';
-
-  @override
-  String get clearEchLogs => '清空日志';
-
-  @override
-  String get noEchLogs => '暂无 ECH 日志';
-
-  @override
   String get customMirrorSite => '自定义镜像站';
 
   @override
@@ -611,6 +593,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failed => '失败';
 
   @override
+  String downloadSpeed(Object speed) {
+    return '$speed/s';
+  }
+
+  @override
+  String downloadProgressFull(Object speed, Object downloaded, Object total) {
+    return '$speed · $downloaded / $total';
+  }
+
+  @override
+  String downloadProgressPartial(Object speed, Object downloaded) {
+    return '$speed · $downloaded';
+  }
+
+  @override
   String commentsTitle(Object title) {
     return '$title 评论';
   }
@@ -1010,9 +1007,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String accountSummary(
-      Object id, int subscriberCount, int videoCount, Object joined) {
+    Object id,
+    int subscriberCount,
+    int videoCount,
+    Object joined,
+  ) {
     return '@$id\n$subscriberCount 位订阅者 · $videoCount 部影片\n$joined';
   }
+
+  @override
+  String subscriberVideoCount(int subscriberCount, int videoCount) {
+    return '$subscriberCount 位订阅者 · $videoCount 部影片';
+  }
+
+  @override
+  String joinedDate(Object date) {
+    return '加入于 $date';
+  }
+
+  @override
+  String get mine => '我的';
 
   @override
   String get tapToLogin => '点击前往登录';
@@ -1255,6 +1269,72 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navigationDrawerDescription => '使用抽屉替代底部导航栏';
 
   @override
+  String get colorScheme => '配色方案';
+
+  @override
+  String get colorRose => '玫瑰红';
+
+  @override
+  String get colorBlue => '蓝色';
+
+  @override
+  String get colorTeal => '青色';
+
+  @override
+  String get colorAmber => '琥珀色';
+
+  @override
+  String get colorGreen => '绿色';
+
+  @override
+  String get colorOrange => '橙色';
+
+  @override
+  String get colorIndigo => '靛蓝色';
+
+  @override
+  String get colorPink => '粉红色';
+
+  @override
+  String get colorPurple => '紫色';
+
+  @override
+  String get colorCustom => '自定义';
+
+  @override
+  String get dynamicColor => '动态配色';
+
+  @override
+  String get dynamicColorFootnote => '动态配色仅支持安卓12及以上和桌面平台';
+
+  @override
+  String get display => '显示';
+
+  @override
+  String get window => '窗口';
+
+  @override
+  String get useSystemFont => '使用系统字体';
+
+  @override
+  String get useSystemFontDescription => '关闭后使用应用内置字体';
+
+  @override
+  String get useSystemTitleBar => '使用系统标题栏';
+
+  @override
+  String get useSystemTitleBarDescription => '关闭后改用应用内标题栏';
+
+  @override
+  String get minimizeWindow => '最小化';
+
+  @override
+  String get maximizeWindow => '最大化';
+
+  @override
+  String get restoreWindow => '向下还原';
+
+  @override
   String get home => '主页';
 
   @override
@@ -1461,6 +1541,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get autoPlayNextDescription => '当前视频播放完成后自动播放下一集';
+
+  @override
+  String get loopPlayback => '单片循环播放';
+
+  @override
+  String get loopPlaybackDescription => '当前视频播放完成后自动重新播放';
 
   @override
   String get autoPictureInPicture => '自动切入画中画';
@@ -1830,24 +1916,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get dohTimeoutSecondsDescription => '範圍為 1 至 60 秒';
-
-  @override
-  String get useEch => '啟用 ECH';
-
-  @override
-  String get useEchDescription => '為 Hanime 網站加密 TLS ClientHello 中的網域資訊';
-
-  @override
-  String get echLogs => 'ECH 日誌';
-
-  @override
-  String get echLogsDescription => '查看 ECH 設定與連線狀態';
-
-  @override
-  String get clearEchLogs => '清除日誌';
-
-  @override
-  String get noEchLogs => '尚無 ECH 日誌';
 
   @override
   String get customMirrorSite => '自訂鏡像站';
@@ -2260,6 +2328,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failed => '失敗';
 
   @override
+  String downloadSpeed(Object speed) {
+    return '$speed/s';
+  }
+
+  @override
+  String downloadProgressFull(Object speed, Object downloaded, Object total) {
+    return '$speed · $downloaded / $total';
+  }
+
+  @override
+  String downloadProgressPartial(Object speed, Object downloaded) {
+    return '$speed · $downloaded';
+  }
+
+  @override
   String commentsTitle(Object title) {
     return '$title 評論';
   }
@@ -2659,9 +2742,26 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String accountSummary(
-      Object id, int subscriberCount, int videoCount, Object joined) {
+    Object id,
+    int subscriberCount,
+    int videoCount,
+    Object joined,
+  ) {
     return '@$id\n$subscriberCount 位訂閱者 · $videoCount 部影片\n$joined';
   }
+
+  @override
+  String subscriberVideoCount(int subscriberCount, int videoCount) {
+    return '$subscriberCount 位訂閱者 · $videoCount 部影片';
+  }
+
+  @override
+  String joinedDate(Object date) {
+    return '加入於 $date';
+  }
+
+  @override
+  String get mine => '我的';
 
   @override
   String get tapToLogin => '點擊前往登入';
@@ -2904,6 +3004,72 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get navigationDrawerDescription => '使用抽屜取代底部導覽列';
 
   @override
+  String get colorScheme => '配色方案';
+
+  @override
+  String get colorRose => '玫瑰紅';
+
+  @override
+  String get colorBlue => '藍色';
+
+  @override
+  String get colorTeal => '青色';
+
+  @override
+  String get colorAmber => '琥珀色';
+
+  @override
+  String get colorGreen => '綠色';
+
+  @override
+  String get colorOrange => '橙色';
+
+  @override
+  String get colorIndigo => '靛藍色';
+
+  @override
+  String get colorPink => '粉紅色';
+
+  @override
+  String get colorPurple => '紫色';
+
+  @override
+  String get colorCustom => '自訂';
+
+  @override
+  String get dynamicColor => '動態配色';
+
+  @override
+  String get dynamicColorFootnote => '動態配色僅支援安卓12及以上和桌面平台';
+
+  @override
+  String get display => '顯示';
+
+  @override
+  String get window => '視窗';
+
+  @override
+  String get useSystemFont => '使用系統字型';
+
+  @override
+  String get useSystemFontDescription => '關閉後使用應用內建字型';
+
+  @override
+  String get useSystemTitleBar => '使用系統標題列';
+
+  @override
+  String get useSystemTitleBarDescription => '關閉後改用應用內標題列';
+
+  @override
+  String get minimizeWindow => '最小化';
+
+  @override
+  String get maximizeWindow => '最大化';
+
+  @override
+  String get restoreWindow => '向下還原';
+
+  @override
   String get home => '首頁';
 
   @override
@@ -3110,6 +3276,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get autoPlayNextDescription => '目前影片播放完成後自動播放下一集';
+
+  @override
+  String get loopPlayback => '單片循環播放';
+
+  @override
+  String get loopPlaybackDescription => '目前影片播放完成後自動重新播放';
 
   @override
   String get autoPictureInPicture => '自動切入子母畫面';

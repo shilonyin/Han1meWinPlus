@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/media_player_initializer.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
+import '../../core/window_chrome.dart';
 import '../../data/local/json_store.dart';
 import '../../data/remote/han1me_http_client.dart';
 
@@ -33,6 +34,7 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     await ref.read(settingsStoreProvider).save(next);
     MediaPlayerInitializer.update(next);
     if (current.playerEngine != next.playerEngine) MediaPlayerInitializer.apply(next);
+    if (current.useSystemTitleBar != next.useSystemTitleBar) await WindowChrome.setUseSystemTitleBar(next.useSystemTitleBar);
     if (_networkSettingsChanged(current, next)) await _syncNetworkSettings(next);
   }
 
@@ -44,6 +46,7 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     await ref.read(settingsStoreProvider).save(next);
     MediaPlayerInitializer.update(next);
     MediaPlayerInitializer.apply(next);
+    await WindowChrome.setUseSystemTitleBar(next.useSystemTitleBar);
     await _syncNetworkSettings(next);
   }
 

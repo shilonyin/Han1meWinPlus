@@ -93,6 +93,8 @@ class AppSettings {
     this.useCompactSearchCards = true,
     this.expandHomeVideoCards = false,
     this.useNavigationDrawer = false,
+    this.useSystemFont = true,
+    this.useSystemTitleBar = true,
     this.useHomeCategoryTabs = false,
     this.blockedVideoTitleKeywords = const [],
     this.blockedAuthors = const [],
@@ -164,6 +166,8 @@ class AppSettings {
   final bool useCompactSearchCards;
   final bool expandHomeVideoCards;
   final bool useNavigationDrawer;
+  final bool useSystemFont;
+  final bool useSystemTitleBar;
   final bool useHomeCategoryTabs;
   final List<String> blockedVideoTitleKeywords;
   final List<String> blockedAuthors;
@@ -255,6 +259,8 @@ class AppSettings {
         'useCompactSearchCards': useCompactSearchCards,
         'expandHomeVideoCards': expandHomeVideoCards,
         'useNavigationDrawer': useNavigationDrawer,
+        'useSystemFont': useSystemFont,
+        'useSystemTitleBar': useSystemTitleBar,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
         'blockedAuthors': blockedAuthors,
@@ -327,6 +333,8 @@ class AppSettings {
         useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
         expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
         useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? false,
+        useSystemFont: json['useSystemFont'] as bool? ?? true,
+        useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
         blockedAuthors: (json['blockedAuthors'] as List? ?? const []).whereType<String>().toList(),
@@ -444,6 +452,8 @@ class AppSettings {
     bool? useCompactSearchCards,
     bool? expandHomeVideoCards,
     bool? useNavigationDrawer,
+    bool? useSystemFont,
+    bool? useSystemTitleBar,
     bool? useHomeCategoryTabs,
     List<String>? blockedVideoTitleKeywords,
     List<String>? blockedAuthors,
@@ -515,6 +525,8 @@ class AppSettings {
         useCompactSearchCards: useCompactSearchCards ?? this.useCompactSearchCards,
         expandHomeVideoCards: expandHomeVideoCards ?? this.expandHomeVideoCards,
         useNavigationDrawer: useNavigationDrawer ?? this.useNavigationDrawer,
+        useSystemFont: useSystemFont ?? this.useSystemFont,
+        useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,
         blockedAuthors: blockedAuthors ?? this.blockedAuthors,

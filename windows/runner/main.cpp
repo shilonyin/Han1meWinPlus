@@ -146,6 +146,15 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
     InvalidateRect(window, nullptr, FALSE);
     if (app->controller == nullptr) UpdateWindow(window);
   }
+  if (message == WM_GETMINMAXINFO) {
+    // window_manager (registered as a plugin window proc delegate) claims this
+    // message and returns 0 for it, so the switch below never sees it. Apply the
+    // minimum size first, before the message is forwarded to the plugins.
+    auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+    const auto dpi = GetDpiForWindow(window);
+    info->ptMinTrackSize.x = DpiScale(720, dpi);
+    info->ptMinTrackSize.y = DpiScale(540, dpi);
+  }
   if (app != nullptr && app->controller != nullptr) {
     const auto result = app->controller->HandleTopLevelWindowProc(window, message, wparam, lparam);
     if (result.has_value()) return result.value();
@@ -167,13 +176,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
         DrawStartupIcon(dc, client, app->instance, app->splash_dpi);
       }
       EndPaint(window, &state);
-      return 0;
-    }
-    case WM_GETMINMAXINFO: {
-      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
-      const auto dpi = GetDpiForWindow(window);
-      info->ptMinTrackSize.x = DpiScale(720, dpi);
-      info->ptMinTrackSize.y = DpiScale(540, dpi);
       return 0;
     }
     case WM_SIZE: {

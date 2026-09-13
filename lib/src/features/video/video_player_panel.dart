@@ -13,6 +13,7 @@ import '../../core/platform_service.dart';
 import '../../core/route_observer.dart';
 import '../../core/settings.dart';
 import '../../core/video_player_shutdown.dart';
+import '../../core/window_chrome.dart';
 import '../../data/local/keyframe_repository.dart';
 import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
@@ -507,7 +508,7 @@ class _NoVideoSource {
   const _NoVideoSource();
 }
 
-class _FullscreenPlayer extends ConsumerWidget {
+class _FullscreenPlayer extends ConsumerStatefulWidget {
   const _FullscreenPlayer({required this.controller, required this.quality, required this.video, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onEpisodeSelected, this.onNext});
   final ValueListenable<VideoPlayerController?> controller;
   final ValueListenable<String?> quality;
@@ -518,18 +519,37 @@ class _FullscreenPlayer extends ConsumerWidget {
   final VoidCallback? onNext;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final keyframes = ref.watch(keyframesProvider(video.id)).valueOrNull ?? const <int>[];
+  ConsumerState<_FullscreenPlayer> createState() => _FullscreenPlayerState();
+}
+
+class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
+  @override
+  void initState() {
+    super.initState();
+    // The player wants the whole window, so the in-app title bar has to get out
+    // of the way while this route is on screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) => WindowChrome.visible.value = false);
+  }
+
+  @override
+  void dispose() {
+    WindowChrome.visible.value = true;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyframes = ref.watch(keyframesProvider(widget.video.id)).valueOrNull ?? const <int>[];
     final enabled = ref.watch(settingsProvider).valueOrNull?.keyframesEnabled ?? true;
     return Scaffold(
       backgroundColor: Colors.black,
-      endDrawer: VideoKeyframeDrawer(video: video, controller: controller),
-       body: SafeArea(child: Builder(builder: (scaffoldContext) => VideoPlayerSurface(controller: controller, quality: quality, video: video, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected, fullscreen: true, onFullscreen: () async => Navigator.of(context).pop(), onBack: () => Navigator.of(context).pop(), onEpisodeSelected: onEpisodeSelected, onNext: onNext, keyframes: enabled ? keyframes : const [], onKeyframes: enabled ? () => Scaffold.of(scaffoldContext).openEndDrawer() : null, onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null))),
+      endDrawer: VideoKeyframeDrawer(video: widget.video, controller: widget.controller),
+       body: SafeArea(child: Builder(builder: (scaffoldContext) => VideoPlayerSurface(controller: widget.controller, quality: widget.quality, video: widget.video, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, fullscreen: true, onFullscreen: () async => Navigator.of(context).pop(), onBack: () => Navigator.of(context).pop(), onEpisodeSelected: widget.onEpisodeSelected, onNext: widget.onNext, keyframes: enabled ? keyframes : const [], onKeyframes: enabled ? () => Scaffold.of(scaffoldContext).openEndDrawer() : null, onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null))),
     );
   }
 
   Future<void> _addKeyframe(BuildContext context, WidgetRef ref) async {
-    final controller = this.controller.value;
+    final controller = widget.controller.value;
     if (controller == null) return;
     final l10n = AppLocalizations.of(context)!;
     if (controller.value.isPlaying) {
@@ -549,7 +569,7 @@ class _FullscreenPlayer extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    final added = await ref.read(keyframesProvider(video.id).notifier).add(position, title: video.title);
+    final added = await ref.read(keyframesProvider(widget.video.id).notifier).add(position, title: widget.video.title);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(added ? l10n.keyframeAdded : l10n.keyframeTooClose)));
   }

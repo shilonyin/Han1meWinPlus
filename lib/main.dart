@@ -9,6 +9,7 @@ import 'src/core/media_player_initializer.dart';
 import 'src/core/playback_speed_policy.dart';
 import 'src/core/settings.dart';
 import 'src/core/shader_service.dart';
+import 'src/core/window_chrome.dart';
 import 'src/data/local/json_store.dart';
 import 'src/data/local/update_installer.dart';
 import 'src/features/settings/settings_controller.dart';
@@ -17,6 +18,11 @@ Future<void> main() async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
   final loadedSettings = await SettingsStore(JsonStore()).load();
+  // The runner shows the window before the engine is up, so the title bar style
+  // has to be applied from here. Doing it before runApp keeps the change on the
+  // splash screen instead of on the first painted frame.
+  debugPrint('[startup] system title bar: ${loadedSettings.useSystemTitleBar}');
+  await WindowChrome.setUseSystemTitleBar(loadedSettings.useSystemTitleBar);
   debugPrint('[startup] engine+settings: ${startupWatch.elapsedMilliseconds}ms');
   await PlaybackSpeedPolicy.initialize();
   final settings = PlaybackSpeedPolicy.isHarmonyOs && loadedSettings.playerEngine != PlayerEngine.libMpv

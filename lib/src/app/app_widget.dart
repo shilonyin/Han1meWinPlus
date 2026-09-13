@@ -9,6 +9,7 @@ import '../core/settings.dart';
 import '../features/auth/app_lock_gate.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
+import '../features/window/app_title_bar.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
 import 'startup_effects.dart';
@@ -46,12 +47,14 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         debugShowCheckedModeBanner: false,
         routerConfig: _appRouter.router,
         builder: (context, child) => M3EThemeBridge(
-          child: AppStartupEffects(
-            navigatorKey: _appRouter.navigatorKey,
-            exitCoordinator: _exitCoordinator,
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-              child: AppLockGate(child: child ?? const SizedBox.shrink()),
+          child: AppWindowFrame(
+            child: AppStartupEffects(
+              navigatorKey: _appRouter.navigatorKey,
+              exitCoordinator: _exitCoordinator,
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                child: AppLockGate(child: child ?? const SizedBox.shrink()),
+              ),
             ),
           ),
         ),
