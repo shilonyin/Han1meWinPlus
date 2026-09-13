@@ -18,9 +18,8 @@ const String upstreamRepoUrl = 'https://github.com/$upstreamRepoOwner/$upstreamR
 
 /// 本 fork 的 GitHub 仓库。
 ///
-/// TODO: 把 [repoOwner] 改成你自己的 GitHub 用户名，否则「检查更新」与
-/// 「关于」页面里的链接会指向一个不存在的仓库。
-const String repoOwner = 'YOUR_GITHUB_NAME';
+/// 改名 / 换源只需要改这里，关于页、检查更新、下载更新都会跟着走。
+const String repoOwner = 'hcl-vp';
 const String repoName = 'Han1meWinPlus';
 const String repoUrl = 'https://github.com/$repoOwner/$repoName';
 const String repoDisplayUrl = 'github.com/$repoOwner/$repoName';
