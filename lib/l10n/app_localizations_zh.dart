@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'Han1me+';
+  String get appTitle => 'Han1meWinPlus';
 
   @override
   String get settings => '设置';
@@ -297,7 +297,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyframeManagement => '关键 H 帧管理';
 
   @override
-  String get about => '关于 Han1me+';
+  String get about => '关于 Han1meWinPlus';
 
   @override
   String get aboutDescription => '版本与开源信息';
@@ -1114,7 +1114,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openAppLinkSettings => '管理网页链接';
 
   @override
-  String get openAppLinkSettingsDescription => '在系统设置中允许 Han1me+ 打开支持的链接';
+  String get openAppLinkSettingsDescription => '在系统设置中允许 Han1meWinPlus 打开支持的链接';
 
   @override
   String get playbackSpeed => '播放倍数';
@@ -1664,7 +1664,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   AppLocalizationsZhTw() : super('zh_TW');
 
   @override
-  String get appTitle => 'Han1me+';
+  String get appTitle => 'Han1meWinPlus';
 
   @override
   String get settings => '設定';
@@ -1952,7 +1952,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get keyframeManagement => '關鍵 H 幀管理';
 
   @override
-  String get about => '關於 Han1me+';
+  String get about => '關於 Han1meWinPlus';
 
   @override
   String get aboutDescription => '版本與開源資訊';
@@ -2769,7 +2769,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get openAppLinkSettings => '管理網頁連結';
 
   @override
-  String get openAppLinkSettingsDescription => '在系統設定中允許 Han1me+ 開啟支援的連結';
+  String get openAppLinkSettingsDescription => '在系統設定中允許 Han1meWinPlus 開啟支援的連結';
 
   @override
   String get playbackSpeed => '播放倍數';

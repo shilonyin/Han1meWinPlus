@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Han1me+';
+  String get appTitle => 'Han1meWinPlus';
 
   @override
   String get settings => 'Settings';
@@ -308,7 +308,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keyframeManagement => 'Key H-Frame Management';
 
   @override
-  String get about => 'About Han1me+';
+  String get about => 'About Han1meWinPlus';
 
   @override
   String get aboutDescription => 'Version and open-source info';
@@ -1148,7 +1148,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openAppLinkSettingsDescription =>
-      'Allow Han1me+ to open supported links in system settings';
+      'Allow Han1meWinPlus to open supported links in system settings';
 
   @override
   String get playbackSpeed => 'Playback Speed';

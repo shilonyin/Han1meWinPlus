@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_identity.dart';
 import '../../core/app_info.dart';
 import '../../data/remote/update_checker.dart';
 import '../../data/local/update_installer.dart';
@@ -24,15 +25,16 @@ class AboutPage extends ConsumerWidget {
           children: [
             Center(child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.asset('assets/logo.png', width: 72, height: 72))),
             const SizedBox(height: 12),
-            Center(child: Text('Han1me+', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700))),
+            Center(child: Text(appName, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700))),
             Center(child: Text(AppLocalizations.of(context)!.thirdPartyClient, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.outline))),
             const SizedBox(height: 28),
              SettingsCardList(children: [
                SettingsCardItem(title: AppLocalizations.of(context)!.version, subtitle: version, leading: const Icon(Icons.code_outlined)),
                SettingsCardItem(title: AppLocalizations.of(context)!.dataSource, subtitle: AppLocalizations.of(context)!.dataSourceDescription, leading: const Icon(Icons.language_outlined)),
-               SettingsCardItem(title: AppLocalizations.of(context)!.githubRepository, subtitle: 'github.com/1wc10086/Han1mePlus', leading: const Icon(Icons.code_outlined), trailing: const Icon(Icons.open_in_new), onTap: () => launchUrl(Uri.parse('https://github.com/1wc10086/Han1mePlus'), mode: LaunchMode.externalApplication)),
-               SettingsCardItem(title: AppLocalizations.of(context)!.reportIssue, subtitle: AppLocalizations.of(context)!.submitGitHubIssue, leading: const Icon(Icons.bug_report_outlined), trailing: const Icon(Icons.open_in_new), onTap: () => launchUrl(Uri.parse('https://github.com/1wc10086/Han1mePlus/issues/new/choose'), mode: LaunchMode.externalApplication)),
-               SettingsCardItem(title: AppLocalizations.of(context)!.openSourceLicense, leading: const Icon(Icons.gavel_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => showLicensePage(context: context, applicationName: 'Han1me+', applicationVersion: version)),
+               SettingsCardItem(title: AppLocalizations.of(context)!.githubRepository, subtitle: repoDisplayUrl, leading: const Icon(Icons.code_outlined), trailing: const Icon(Icons.open_in_new), onTap: () => launchUrl(Uri.parse(repoUrl), mode: LaunchMode.externalApplication)),
+               SettingsCardItem(title: 'Upstream · $upstreamRepoName', subtitle: 'github.com/$upstreamRepoOwner/$upstreamRepoName', leading: const Icon(Icons.account_tree_outlined), trailing: const Icon(Icons.open_in_new), onTap: () => launchUrl(Uri.parse(upstreamRepoUrl), mode: LaunchMode.externalApplication)),
+               SettingsCardItem(title: AppLocalizations.of(context)!.reportIssue, subtitle: AppLocalizations.of(context)!.submitGitHubIssue, leading: const Icon(Icons.bug_report_outlined), trailing: const Icon(Icons.open_in_new), onTap: () => launchUrl(Uri.parse('$repoUrl/issues/new/choose'), mode: LaunchMode.externalApplication)),
+               SettingsCardItem(title: AppLocalizations.of(context)!.openSourceLicense, leading: const Icon(Icons.gavel_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => showLicensePage(context: context, applicationName: appName, applicationVersion: version)),
              ]),
              const SizedBox(height: 20),
              SettingsCardList(children: [

@@ -43,7 +43,7 @@ Future<String> normalizeDownloadPath(String value) async {
 }
 
 String platformDownloadPathHint(String fallbackHint) {
-  if (Platform.isWindows) return r'%APPDATA%\han1me_plus\Download';
+  if (Platform.isWindows) return r'%APPDATA%\han1me_win_plus\Download';
   if (Platform.isMacOS) return '~/Library/Application Support/han1me_plus/Download';
   if (Platform.isLinux) return '~/.local/share/han1me_plus/Download';
   if (Platform.isIOS) return '~/Documents/Download';

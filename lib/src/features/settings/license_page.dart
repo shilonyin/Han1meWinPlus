@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_identity.dart';
 import '../../core/app_info.dart';
 
 class AppLicensePage extends ConsumerWidget {
@@ -9,6 +10,6 @@ class AppLicensePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final version = ref.watch(packageInfoProvider).valueOrNull?.version ?? '';
-    return LicensePage(applicationName: 'Han1me+', applicationVersion: version);
+    return LicensePage(applicationName: appName, applicationVersion: version);
   }
 }

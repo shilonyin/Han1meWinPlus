@@ -7,6 +7,8 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/app_identity.dart';
+
 class UpdateInstaller {
   UpdateInstaller(this._dio);
   final Dio _dio;
@@ -24,7 +26,7 @@ class UpdateInstaller {
     final supportedAsset = Platform.isAndroid && path.extension(uri?.path ?? '').toLowerCase() == '.apk' ||
         Platform.isWindows && path.extension(uri?.path ?? '').toLowerCase() == '.exe';
     if (!supportedAsset) {
-      final target = Uri.parse(url.trim().isEmpty ? 'https://github.com/1wc10086/Han1mePlus/releases/latest' : url);
+      final target = Uri.parse(url.trim().isEmpty ? '$repoUrl/releases/latest' : url);
       if (!await launchUrl(target, mode: LaunchMode.externalApplication)) {
         throw StateError('Unable to open update URL');
       }
@@ -66,6 +68,6 @@ class UpdateInstaller {
       return File(path.join(directory.path, 'updates', 'han1me-plus-update.apk'));
     }
     final directory = await getTemporaryDirectory();
-    return File(path.join(directory.path, 'Han1mePlus', 'updates', 'Han1mePlus-Setup.exe'));
+    return File(path.join(directory.path, appName, 'updates', '$installerBaseName.exe'));
   }
 }

@@ -43,7 +43,7 @@ void ConfigureWebViewUserDataFolder() {
   std::wstring local_app_data(length, L'\0');
   GetEnvironmentVariableW(L"LOCALAPPDATA", local_app_data.data(), length);
   local_app_data.resize(length - 1);
-  const auto user_data_folder = std::filesystem::path(local_app_data) / L"Han1mePlus" / L"webview2";
+  const auto user_data_folder = std::filesystem::path(local_app_data) / L"Han1meWinPlus" / L"webview2";
   std::error_code error;
   std::filesystem::create_directories(user_data_folder, error);
   if (!error) SetEnvironmentVariableW(L"WEBVIEW2_USER_DATA_FOLDER", user_data_folder.c_str());
@@ -84,7 +84,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   ApplyPerMonitorDpiAwareness();
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   ConfigureWebViewUserDataFolder();
-  const wchar_t class_name[] = L"Han1mePlusWindow";
+  const wchar_t class_name[] = L"Han1meWinPlusWindow";
   WNDCLASS window_class{};
   window_class.hInstance = instance;
   window_class.hCursor = LoadCursor(nullptr, IDC_ARROW);
@@ -97,7 +97,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   const auto dpi = SystemDpi();
   const auto width = DpiScale(1280, dpi);
   const auto height = DpiScale(720, dpi);
-  const auto window = CreateWindow(class_name, L"Han1me+", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
+  const auto window = CreateWindow(class_name, L"Han1meWinPlus", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
 
   RECT bounds{};

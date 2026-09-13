@@ -189,7 +189,7 @@ class DownloadController extends AsyncNotifier<DownloadState> {
     if (!Platform.isAndroid) return false;
     final destination = await PlatformService.selectDirectory();
     if (destination == null) return false;
-    final temporary = await Directory.systemTemp.createTemp('han1me_plus_export_');
+    final temporary = await Directory.systemTemp.createTemp('han1me_win_plus_export_');
     try {
       await exportCompleted(temporary.path);
       await PlatformService.exportDirectory(temporary.path, destination);

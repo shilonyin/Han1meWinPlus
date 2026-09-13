@@ -102,7 +102,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Han1me+'**
+  /// **'Han1meWinPlus'**
   String get appTitle;
 
   /// No description provided for @settings.
@@ -648,7 +648,7 @@ abstract class AppLocalizations {
   /// No description provided for @about.
   ///
   /// In en, this message translates to:
-  /// **'About Han1me+'**
+  /// **'About Han1meWinPlus'**
   String get about;
 
   /// No description provided for @aboutDescription.
@@ -2155,7 +2155,7 @@ abstract class AppLocalizations {
   /// No description provided for @openAppLinkSettingsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Allow Han1me+ to open supported links in system settings'**
+  /// **'Allow Han1meWinPlus to open supported links in system settings'**
   String get openAppLinkSettingsDescription;
 
   /// No description provided for @playbackSpeed.

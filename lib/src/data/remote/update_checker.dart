@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../core/app_identity.dart';
 import '../../core/platform_service.dart';
 
 class UpdateInfo {
@@ -32,7 +33,7 @@ class UpdateChecker {
     try {
       final installedVersion = currentVersion ?? (await PackageInfo.fromPlatform()).version;
       final response = await _dio.get<Map<String, dynamic>>(
-        'https://api.github.com/repos/1wc10086/Han1mePlus/releases/latest',
+        'https://api.github.com/repos/$repoOwner/$repoName/releases/latest',
         options: Options(
           responseType: ResponseType.json,
           headers: {
@@ -47,7 +48,7 @@ class UpdateChecker {
       final assets = (data['assets'] as List? ?? const []).whereType<Map>().cast<Map>();
       final asset = await _selectAsset(assets);
       final downloadUrl = Platform.isMacOS
-          ? 'https://github.com/1wc10086/Han1mePlus/releases/latest'
+          ? '$repoUrl/releases/latest'
           : '${asset?['browser_download_url'] ?? ''}'.trim();
       final htmlUrl = '${data['html_url'] ?? ''}'.trim();
       if (tag.isEmpty || !_newer(tag, installedVersion)) return null;

@@ -12,7 +12,7 @@ class WebDavSyncService {
   final Dio _dio;
 
   Future<WatchState> syncWatchState(AppSettings settings, WatchState local) async {
-    final url = _fileUrl(settings.webDavUrl, 'han1meplus-watch-history.json');
+    final url = _fileUrl(settings.webDavUrl, 'han1me_win_plus-watch-history.json');
     final options = _options(settings);
     WatchState remote = const WatchState();
     try {
@@ -29,7 +29,7 @@ class WebDavSyncService {
   }
 
   Future<List<FollowingVideo>> syncFavorites(AppSettings settings, List<FollowingVideo> local) async {
-    final url = _fileUrl(settings.webDavUrl, 'han1meplus-favorites.json');
+    final url = _fileUrl(settings.webDavUrl, 'han1me_win_plus-favorites.json');
     final options = _options(settings);
     var remote = const <FollowingVideo>[];
     try {

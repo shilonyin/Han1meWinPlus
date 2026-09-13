@@ -1,17 +1,14 @@
-# Han1mePlus
+# Han1meWinPlus
 
 <p align="center">
-  <img src="assets/logo.png" alt="Han1mePlus Logo" width="160">
+  <img src="assets/logo.png" alt="Han1meWinPlus Logo" width="160">
 </p>
 
-基于 Material Design 3 设计语言，使用 Dart & Flutter 构建的 Hanime1 第三方客户端
+基于 Material Design 3 设计语言，使用 Dart & Flutter 构建的 Hanime1 第三方客户端 —— **Windows 专修分支**
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/1wc10086/Han1mePlus?include_prereleases&label=%E7%89%88%E6%9C%AC&style=for-the-badge&color=6750A4" alt="Release">
+  <img src="https://img.shields.io/badge/Windows-10%2B-0078D6?style=for-the-badge&logo=windows11&logoColor=white" alt="Windows">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-4CAF50?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/github/stars/1wc10086/Han1mePlus?color=FFB300&style=for-the-badge" alt="Stars">
-  <img src="https://img.shields.io/github/issues/1wc10086/Han1mePlus?color=F4511E&style=for-the-badge" alt="Issues">
-  <img src="https://img.shields.io/badge/Android-8.1%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
   <img src="https://img.shields.io/badge/Dart-3.0%2B-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
   <img src="https://img.shields.io/badge/Flutter-3.0%2B-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
   <img src="https://img.shields.io/badge/Material_Design-3-6750A4?style=for-the-badge&logo=materialdesign&logoColor=white" alt="Material Design 3">
@@ -20,21 +17,42 @@
 
 ## 简介
 
-Han1mePlus 是一个基于 Flutter 开发的 Hanime1 第三方客户端，采用 Material Design 3 设计规范，致力于提供现代化、极度流畅的观看体验。
+Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Windows 专修分支（fork）**，基于 Flutter 开发，采用 Material Design 3 设计规范。
+
+本分支只维护 Windows 平台，专注于 Windows 端的窗口、播放器、安装包与更新流程。`android` / `ios` / `macos` / `linux` 目录仅保留上游代码以便同步上游改动，不在本分支的维护范围内，也不保证可用。
 
 > 本项目为与 Hanime1 官方无任何关联。
 
+## 与上游的关系
+
+- 上游仓库：[1wc10086/Han1mePlus](https://github.com/1wc10086/Han1mePlus)（AGPL-3.0）
+- 本仓库为其派生作品，同样遵循 AGPL v3.0
+- 同步上游：`git fetch upstream && git merge upstream/main`
+- 上游通用问题请反馈到上游仓库；仅 Windows 相关的问题请提到本仓库的 Issue
+
 ## 平台支持
 
-- `Android`
-- `Windows`
-- `Ios`
-- `Macos`
-- `Linux`
+- `Windows` ✅ 本分支维护中
+- ~~`Android`~~ / ~~`iOS`~~ / ~~`macOS`~~ / ~~`Linux`~~ 不维护
 
 ## 下载
 
-前往 [Releases](https://github.com/1wc10086/Han1mePlus/releases/latest) 页面下载最新版。
+前往 [Releases](../../releases/latest) 页面下载最新版（Windows 安装包为 `Han1meWinPlus-Setup.exe`）。
+
+## 从源码构建
+
+```bash
+flutter pub get
+flutter build windows --release
+```
+
+打包 Windows 安装程序（需先安装 [Inno Setup](https://jrsoftware.org/isinfo.php)）：
+
+```bash
+iscc windows/installer.iss
+```
+
+> 上游通过 fvm 锁定 Flutter 版本（见 `.fvmrc`），建议使用相同版本构建。
 
 ## 如何贡献
 
@@ -52,7 +70,9 @@ Han1mePlus 是一个基于 Flutter 开发的 Hanime1 第三方客户端，采用
 
 ## 开源协议
 
-本项目遵循 [AGPL v3.0](https://github.com/1wc10086/Han1mePlus/blob/main/LICENSE) 协议，使用者必须严格遵守该协议的相关条款。
+本项目遵循 [AGPL v3.0](LICENSE) 协议，使用者必须严格遵守该协议的相关条款。
+
+本仓库是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的修改版本：依据 AGPL-3.0 保留原作者署名、公开全部修改后的源代码，且不提供任何额外授权。分发本仓库（含编译后的二进制）时必须一并提供对应源码。
 
 本应用为非官方客户端。使用者须自负合规审查责任，确保自身行为符合所访问平台的服务条款及适用法律。
 
@@ -61,6 +81,10 @@ Han1mePlus 是一个基于 Flutter 开发的 Hanime1 第三方客户端，采用
 本项目按“现状（As-Is）”提供，开发者不保证程序运行的连续性、稳定性或安全性。开发者不对因使用本项目而导致的任何形式的损失、损害、账号异常或法律纠纷承担任何法律责任。下载、安装或运行本项目即视为您已阅读、理解并完全同意本免责声明的所有条款。
 
 ## 鸣谢
+
+[Han1mePlus](https://github.com/1wc10086/Han1mePlus)
+
+本分支的上游项目，Windows 专修分支的全部基础代码均来源于此。
 
 [Han1meViewer](https://github.com/misaka10032w/Han1meViewer)
 

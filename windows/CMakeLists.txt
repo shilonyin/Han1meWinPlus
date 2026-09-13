@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-project(han1me_plus LANGUAGES CXX)
+project(han1me_win_plus LANGUAGES CXX)
 
-set(BINARY_NAME "han1me_plus")
+set(BINARY_NAME "han1me_win_plus")
 
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
