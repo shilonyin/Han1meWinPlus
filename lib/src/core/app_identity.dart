@@ -19,7 +19,7 @@ const String upstreamRepoUrl = 'https://github.com/$upstreamRepoOwner/$upstreamR
 /// 本 fork 的 GitHub 仓库。
 ///
 /// 改名 / 换源只需要改这里，关于页、检查更新、下载更新都会跟着走。
-const String repoOwner = 'hcl-vp';
+const String repoOwner = 'shilonyin';
 const String repoName = 'Han1meWinPlus';
 const String repoUrl = 'https://github.com/$repoOwner/$repoName';
 const String repoDisplayUrl = 'github.com/$repoOwner/$repoName';
