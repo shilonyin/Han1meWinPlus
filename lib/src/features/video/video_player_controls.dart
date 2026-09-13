@@ -13,6 +13,16 @@ import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import 'android_cast_button.dart';
 
+/// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
+const double _progressBarHeight = 48;
+/// 音量面板的固定尺寸（大约是半尺寸，不要占满播放器）与和进度条之间的间距。
+const double _volumePanelWidth = 40;
+const double _volumePanelHeight = 100;
+const double _volumePanelGap = 8;
+/// 竖排滑杆的长度与宽度（旋转 270° 后长度就是面板里的竖向轨道）。
+const double _volumeSliderLength = 70;
+const double _volumeSliderThickness = 30;
+
 class VideoPlayerControls extends StatelessWidget {
   const VideoPlayerControls({required this.controller, required this.fullscreen, required this.onFullscreen, required this.onInteraction, required this.video, required this.quality, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onNext, this.onEpisodeSelected, super.key});
   final VideoPlayerController controller;
@@ -28,30 +38,135 @@ class VideoPlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: 0,
-    right: 0,
-    bottom: 0,
-    child: Container(
-      color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: ValueListenableBuilder<VideoPlayerValue>(
-        valueListenable: controller,
-        builder: (context, value, _) {
-          final l10n = AppLocalizations.of(context)!;
-          final progress = value.duration == Duration.zero ? 0.0 : value.position.inMilliseconds / value.duration.inMilliseconds;
-          if (!fullscreen) return SizedBox(height: 48, child: Row(children: [IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow)), Expanded(child: SliderTheme(data: const SliderThemeData(year2023: true), child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }))), SizedBox(width: 112, child: Text('${_formatDuration(value.position)}/${_formatDuration(value.duration)}', maxLines: 1, textAlign: TextAlign.end, style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]))), IconButton(color: Colors.white, tooltip: l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: const Icon(Icons.fullscreen))]));
-          return Column(mainAxisSize: MainAxisSize.min, children: [
-            Row(children: [SizedBox(width: 48, child: Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]))), Expanded(child: SliderTheme(data: const SliderThemeData(year2023: true), child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }))), SizedBox(width: 48, child: Text(_formatDuration(value.duration), textAlign: TextAlign.end, style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()])))]),
-            SizedBox(height: 40, child: Row(children: [IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow)), if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Icons.skip_next)), const Spacer(), _AspectMenu(), if (onEpisodeSelected != null && video.playlist.isNotEmpty) _EpisodeMenu(video: video, onSelected: onEpisodeSelected!), _Anime4KMenu(onSelected: onSuperResolutionSelected), if (video.sources.isNotEmpty) _QualityMenu(sources: video.sources, quality: quality, onSelected: onQualitySelected), _SpeedMenu(controller: controller, onInteraction: onInteraction), AndroidCastButton(sources: video.sources, quality: quality), IconButton(color: Colors.white, tooltip: l10n.exitFullscreen, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: const Icon(Icons.fullscreen_exit))])),
-          ]);
-        },
-      ),
-    ),
-  );
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
+          child: ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              final l10n = AppLocalizations.of(context)!;
+              final progress = value.duration == Duration.zero ? 0.0 : value.position.inMilliseconds / value.duration.inMilliseconds;
+              return Column(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(
+                  height: _progressBarHeight,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: const RoundSliderOverlayShape(overlayRadius: 14), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white24, thumbColor: Colors.white, year2023: true),
+                    child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
+                    final roomy = constraints.maxWidth >= 620;
+                    return Row(children: [
+                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow)),
+                      if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Icons.skip_next)),
+                      // 快进按钮：从顶部条移到左下角控制行
+                      VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),
+                      VideoPlayerVolumeButton(controller: controller, onInteraction: onInteraction),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('${_formatDuration(value.position)} / ${_formatDuration(value.duration)}', style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()])),
+                      ),
+                      const Spacer(),
+                      if (roomy) ...[
+                        _AspectMenu(),
+                        if (onEpisodeSelected != null && video.playlist.isNotEmpty) _EpisodeMenu(video: video, onSelected: onEpisodeSelected!),
+                        _Anime4KMenu(onSelected: onSuperResolutionSelected),
+                        if (video.sources.isNotEmpty) _QualityMenu(sources: video.sources, quality: quality, onSelected: onQualitySelected),
+                        _SpeedMenu(controller: controller, onInteraction: onInteraction),
+                        AndroidCastButton(sources: video.sources, quality: quality),
+                      ] else
+                        VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
+                      IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Icons.fullscreen_exit : Icons.fullscreen)),
+                    ]);
+                  }),
+                ),
+              ]);
+            },
+          ),
+        ),
+      );
 }
 
-class VideoPlayerSkipButton extends ConsumerWidget {
-  const VideoPlayerSkipButton({required this.controller, required this.onInteraction, super.key});
+/// 左下角的音量入口：点开后用竖排滑杆调音量（桌面端调的是播放器音量）。
+class VideoPlayerVolumeButton extends StatelessWidget {
+  const VideoPlayerVolumeButton({required this.controller, required this.onInteraction, super.key});
+  final VideoPlayerController controller;
+  final VoidCallback onInteraction;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
+        valueListenable: controller,
+        builder: (context, value, _) => MenuAnchor(
+          // 控制条贴在播放器底部，音量面板固定弹在按钮正上方（对齐按钮左上角）
+          // 半透明圆角面板，压在进度条上方而不是盖住它
+          style: const MenuStyle(
+            alignment: Alignment.topLeft,
+            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+            backgroundColor: WidgetStatePropertyAll(Color(0x99000000)),
+            surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+            elevation: WidgetStatePropertyAll(0),
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12)))),
+          ),
+          menuChildren: [
+            SizedBox(
+              width: _volumePanelWidth,
+              height: _volumePanelHeight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(5, 6, 5, 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SizedBox(
+                      height: _volumeSliderLength,
+                      // 旋转 270° 让滑杆变成下小上大的竖条
+                      child: RotatedBox(
+                        quarterTurns: 3,
+                        child: SizedBox(
+                          width: _volumeSliderLength,
+                          height: _volumeSliderThickness,
+                          child: ValueListenableBuilder<VideoPlayerValue>(
+                            valueListenable: controller,
+                            builder: (context, current, _) => SliderTheme(
+                              data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5), overlayShape: const RoundSliderOverlayShape(overlayRadius: 10), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white30, thumbColor: Colors.white),
+                              child: Slider(
+                                value: current.volume.clamp(0.0, 1.0).toDouble(),
+                                onChanged: (next) {
+                                  controller.setVolume(next);
+                                  onInteraction();
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    ValueListenableBuilder<VideoPlayerValue>(
+                      valueListenable: controller,
+                      builder: (context, current, _) => Text('${(current.volume.clamp(0.0, 1.0) * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 10, fontFeatures: [FontFeature.tabularFigures()])),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          builder: (context, menu, child) => IconButton(
+            color: Colors.white,
+            visualDensity: VisualDensity.compact,
+            tooltip: AppLocalizations.of(context)!.volume,
+            // 用 position 直接指定弹层位置：面板顶边 = 按钮顶边 - (面板高度 + 进度条高度 + 间距)，也就是让它停在进度条上方
+            onPressed: () => menu.isOpen ? menu.close() : menu.open(position: const Offset((40 - _volumePanelWidth) / 2, -(_volumePanelHeight + _progressBarHeight + _volumePanelGap))),
+            icon: Icon(value.volume <= 0 ? Icons.volume_off : (value.volume < .5 ? Icons.volume_down : Icons.volume_up)),
+          ),
+        ),
+      );
+}
+
+class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButton({required this.controller, required this.onInteraction, super.key});
   final VideoPlayerController controller;
   final VoidCallback onInteraction;
 

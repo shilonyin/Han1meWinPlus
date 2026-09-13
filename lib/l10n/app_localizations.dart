@@ -645,6 +645,18 @@ abstract class AppLocalizations {
   /// **'See More'**
   String get more;
 
+  /// No description provided for @previousPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get previousPage;
+
+  /// No description provided for @nextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get nextPage;
+
   /// No description provided for @featured.
   ///
   /// In en, this message translates to:
@@ -1430,6 +1442,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse'**
   String get collapse;
+
+  /// No description provided for @collapseSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse sidebar'**
+  String get collapseSidebar;
+
+  /// No description provided for @expandSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand sidebar'**
+  String get expandSidebar;
 
   /// No description provided for @expand.
   ///

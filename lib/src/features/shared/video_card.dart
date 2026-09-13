@@ -40,11 +40,13 @@ VideoCardMetrics videoCardMetrics({
 }
 
 class VideoCardTile extends StatelessWidget {
-  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.onTap, this.onLongPress, this.coverImage});
+  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.onTap, this.onLongPress, this.coverImage});
 
   final VideoCard video;
   final bool horizontal;
   final bool selected;
+  /// 小卡片（侧栏「系列影片」）用：字号、间距、角标都缩小一号
+  final bool dense;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final ImageProvider? coverImage;
@@ -86,8 +88,12 @@ class VideoCardTile extends StatelessWidget {
   Widget _horizontalContent(ThemeData theme, int cacheWidth) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
-          const SizedBox(height: 8),
+          // 小卡片（侧栏系列影片）让封面吃掉剩余高度，图片尽量大；普通卡片固定 16:9
+          if (dense)
+            Expanded(child: _cover(theme, cacheWidth))
+          else
+            AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
+          SizedBox(height: dense ? 4 : 8),
           _details(theme),
         ],
       );
@@ -115,12 +121,12 @@ class VideoCardTile extends StatelessWidget {
                     child: const Center(child: Icon(Icons.broken_image_outlined)),
                   ),
                 ),
-              if (video.duration != null) Positioned(right: 6, bottom: 6, child: _OverlayText(text: video.duration!)),
+              if (video.duration != null) Positioned(right: dense ? 3 : 6, bottom: dense ? 3 : 6, child: _OverlayText(text: video.duration!, dense: dense)),
               if (video.views != null)
                 Positioned(
-                  left: 6,
-                  bottom: 6,
-                  child: _OverlayText(icon: Icons.visibility_outlined, text: video.views!),
+                  left: dense ? 3 : 6,
+                  bottom: dense ? 3 : 6,
+                  child: _OverlayText(icon: Icons.visibility_outlined, text: video.views!, dense: dense),
                 ),
             ],
           ),
@@ -131,25 +137,29 @@ class VideoCardTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: 40,
-            child: Text(
-              video.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+          if (dense)
+            // 小卡片只留一行标题：短标题时不会在标题和作者名之间空一大截
+            Text(video.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 11, fontWeight: FontWeight.w600))
+          else
+            SizedBox(
+              height: 40,
+              child: Text(
+                video.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 2),
+          SizedBox(height: dense ? 2 : 2),
           if (video.artist != null)
-            Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-          const SizedBox(height: 2),
+            Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
+          SizedBox(height: dense ? 2 : 2),
           Row(
             children: [
-              Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: 14, color: theme.colorScheme.outline), const SizedBox(width: 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)))])),
-              if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+              Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: dense ? 11 : 14, color: theme.colorScheme.outline), SizedBox(width: dense ? 3 : 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)))])),
+              if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
             ],
           ),
         ],
@@ -195,19 +205,20 @@ class VideoCardGrid extends ConsumerWidget {
 }
 
 class _OverlayText extends StatelessWidget {
-  const _OverlayText({this.icon, required this.text});
+  const _OverlayText({this.icon, required this.text, this.dense = false});
   final IconData? icon;
   final String text;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 12, color: Colors.white),
-              const SizedBox(width: 3),
+              Icon(icon, size: dense ? 10 : 12, color: Colors.white),
+              SizedBox(width: dense ? 2 : 3),
             ],
-            Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(text, style: TextStyle(color: Colors.white, fontSize: dense ? 9 : 11, fontWeight: FontWeight.w600)),
           ],
         );
 }

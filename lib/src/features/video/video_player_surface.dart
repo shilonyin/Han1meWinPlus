@@ -49,6 +49,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   _Adjustment? _adjustment;
   Timer? _hideTimer;
   double? _speedBeforeLongPress;
+  /// 鼠标是否停在播放区域里（含底部控制按钮所在的区域）。
+  /// 桌面端只要鼠标在画面里就保持控制条显示，移到窗口外才按超时隐藏。
+  bool _pointerInside = false;
 
   @override
   void initState() {
@@ -71,9 +74,27 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
 
   void _restartTimer() {
     _hideTimer?.cancel();
-    if (!_showControls || _locked) return;
+    // 鼠标还在画面上（包括停在控制按钮附近）时不安排隐藏，避免刚要去点按钮就消失
+    if (!_showControls || _locked || _pointerInside) return;
     final seconds = ref.read(settingsProvider).valueOrNull?.playerControlsTimeoutSeconds ?? 4;
     _hideTimer = Timer(Duration(seconds: seconds), () { if (mounted) setState(() => _showControls = false); });
+  }
+
+  /// 鼠标进入/离开播放区域：进入时立即恢复控制条并暂停隐藏计时，离开后重新开始计时。
+  void _setPointerInside(bool inside) {
+    if (_pointerInside == inside) return;
+    _pointerInside = inside;
+    if (inside) {
+      _holdControls();
+      return;
+    }
+    _restartTimer();
+  }
+
+  /// 鼠标在画面上移动（或停在控制按钮附近）时保持控制条显示，已隐藏则重新显示。
+  void _holdControls() {
+    _hideTimer?.cancel();
+    if (!_showControls && !_locked) setState(() => _showControls = true);
   }
 
   void _toggleControls() { if (_locked) return; setState(() => _showControls = !_showControls); _restartTimer(); }
@@ -144,7 +165,22 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
     }
     final value = (startX < size.width / 2 ? _brightness : _volume) - details.delta.dy / size.height;
     if (startX < size.width / 2) { _brightness = value.clamp(0.01, 1).toDouble(); PlatformService.setScreenBrightness(_brightness); setState(() => _adjustment = _Adjustment.brightness(_brightness)); }
-    else { _volume = value.clamp(0, 1).toDouble(); PlatformService.setVolume(_volume); setState(() => _adjustment = _Adjustment.volume(_volume)); }
+    else {
+      _volume = value.clamp(0, 1).toDouble();
+      // 桌面端的平台音量接口是空实现，直接改播放器音量才有效
+      if (Platform.isAndroid || Platform.isIOS) {
+        PlatformService.setVolume(_volume);
+      } else {
+        unawaited(_applyVolume(controller, _volume));
+      }
+      setState(() => _adjustment = _Adjustment.volume(_volume));
+    }
+  }
+
+  Future<void> _applyVolume(VideoPlayerController controller, double volume) async {
+    try {
+      if ((controller.value.volume - volume).abs() > .001) await controller.setVolume(volume);
+    } catch (_) {}
   }
   void _dragEnd(DragEndDetails details) { _dragStartX = null; _dragStartY = null; _dragDirection = null; _seekStartPosition = null; Future<void>.delayed(const Duration(milliseconds: 700), () { if (mounted) setState(() => _adjustment = null); }); }
 
@@ -166,67 +202,110 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
         if (controller == null || !controller.value.isInitialized) {
           return const Center(child: M3ELoadingIndicator(color: Colors.white));
         }
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _toggleControls,
-          onDoubleTap: _togglePlayback,
-          onLongPressStart: (_) => _longPress(true),
-          onLongPressEnd: (_) => _longPress(false),
-          onPanStart: _dragStart,
-          onPanUpdate: _dragUpdate,
-          onPanEnd: _dragEnd,
-          child: Stack(fit: StackFit.expand, children: [
-            const ColoredBox(color: Colors.black),
-            _VideoViewport(controller: controller),
-            ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
-            ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
-            if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
-            // 窗口模式导航胶囊和控制栏同进同出：点击画面显示，超时自动隐藏
-            if (!widget.fullscreen && _showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack!, onHome: widget.onHome)),
-            if (widget.fullscreen && _showControls && !_locked && widget.onBack != null) Positioned(top: 8, left: 8, child: BackButton(color: Colors.white, onPressed: widget.onBack)),
-            if (_showControls && widget.fullscreen && !_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.lockControls, onPressed: () => setState(() => _locked = true), icon: const Icon(Icons.lock_open_outlined))),
-            if (widget.fullscreen && widget.keyframes.isNotEmpty) _KeyframeCountdown(controller: controller, keyframes: widget.keyframes),
-            if (_showControls && widget.fullscreen && !_locked) Positioned(top: 8, left: 48, right: 212, child: _MarqueeTitle(title: widget.video.title)),
-            if (_showControls && !_locked)
-              Positioned(
-                top: 4,
-                right: widget.fullscreen && widget.onKeyframes != null ? 56 : 4,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    VideoPlayerSkipButton(controller: controller, onInteraction: _restartTimer),
-                    if (Platform.isAndroid) IconButton(color: Colors.white, tooltip: l10n.pictureInPicture, visualDensity: VisualDensity.compact, onPressed: () => _enterPictureInPicture(controller), icon: const Icon(Icons.picture_in_picture_alt_outlined)),
-                    widget.fullscreen
-                        ? VideoPlayerFullscreenMoreMenu(sources: widget.video.sources, quality: widget.quality)
-                        : VideoPlayerPortraitMoreMenu(controller: controller, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected),
-                  ],
-                ),
-              ),
-            if (_showControls && widget.fullscreen && !_locked && widget.onKeyframes != null)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Tooltip(
-                  message: l10n.longPressAddKeyframe,
-                  child: GestureDetector(
-                    onTap: widget.onKeyframes,
-                    onLongPress: widget.onAddKeyframe,
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text('🥵', style: TextStyle(fontSize: 24)),
-                    ),
+        return MouseRegion(
+          // 悬停在画面（包括底部控制条、顶部操作条）上时保持显示，移出去才重新计时
+          onEnter: (_) => _setPointerInside(true),
+          onHover: (_) => _holdControls(),
+          onExit: (_) => _setPointerInside(false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggleControls,
+            onDoubleTap: _togglePlayback,
+            onLongPressStart: (_) => _longPress(true),
+            onLongPressEnd: (_) => _longPress(false),
+            onPanStart: _dragStart,
+            onPanUpdate: _dragUpdate,
+            onPanEnd: _dragEnd,
+            child: Stack(fit: StackFit.expand, children: [
+              const ColoredBox(color: Colors.black),
+              _VideoViewport(controller: controller),
+              ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
+              ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
+              if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
+              // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致
+              if (_showControls && !_locked)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _PlayerTopBar(
+                    controller: controller,
+                    video: widget.video,
+                    quality: widget.quality,
+                    fullscreen: widget.fullscreen,
+                    onInteraction: _restartTimer,
+                    onBack: widget.onBack,
+                    onHome: widget.fullscreen ? null : widget.onHome,
+                    onQualitySelected: widget.onQualitySelected,
+                    onSuperResolutionSelected: widget.onSuperResolutionSelected,
+                    onPictureInPicture: () => _enterPictureInPicture(controller),
+                    onKeyframes: widget.fullscreen ? widget.onKeyframes : null,
+                    onAddKeyframe: widget.fullscreen ? widget.onAddKeyframe : null,
                   ),
                 ),
-              ),
-            if (_adjustment != null)
-              switch (_adjustment!.kind) {
-                _AdjustmentKind.brightness => Positioned(top: 24, left: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
-                _AdjustmentKind.volume => Positioned(top: 24, right: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
-                _ => Positioned(top: 24, left: 0, right: 0, child: Center(child: _AdjustmentHud(adjustment: _adjustment!))),
-              },
-          ]),
+              if (_showControls && widget.fullscreen && !_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.lockControls, onPressed: () => setState(() => _locked = true), icon: const Icon(Icons.lock_open_outlined))),
+              if (widget.fullscreen && widget.keyframes.isNotEmpty) _KeyframeCountdown(controller: controller, keyframes: widget.keyframes),
+              if (_adjustment != null)
+                switch (_adjustment!.kind) {
+                  _AdjustmentKind.brightness => Positioned(top: 72, left: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
+                  _AdjustmentKind.volume => Positioned(top: 72, right: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
+                  _ => Positioned(top: 72, left: 0, right: 0, child: Center(child: _AdjustmentHud(adjustment: _adjustment!))),
+                },
+            ]),
+          ),
         );
       },
+    );
+  }
+}
+
+/// 播放器顶部操作条：返回 / 回主页、标题跑马灯，以及跳转、画中画、更多等次要入口。
+class _PlayerTopBar extends StatelessWidget {
+  const _PlayerTopBar({required this.controller, required this.video, required this.quality, required this.fullscreen, required this.onInteraction, required this.onQualitySelected, required this.onSuperResolutionSelected, required this.onPictureInPicture, this.onBack, this.onHome, this.onKeyframes, this.onAddKeyframe});
+
+  final VideoPlayerController controller;
+  final VideoDetail video;
+  final ValueListenable<String?> quality;
+  final bool fullscreen;
+  final VoidCallback onInteraction;
+  final ValueChanged<VideoSource> onQualitySelected;
+  final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
+  final VoidCallback onPictureInPicture;
+  final VoidCallback? onBack;
+  final VoidCallback? onHome;
+  final VoidCallback? onKeyframes;
+  final VoidCallback? onAddKeyframe;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent])),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+        child: Row(
+          children: [
+            if (onBack != null) IconButton(color: Colors.white, visualDensity: VisualDensity.compact, tooltip: MaterialLocalizations.of(context).backButtonTooltip, onPressed: onBack, icon: const Icon(Icons.arrow_back)),
+            if (onHome != null) IconButton(color: Colors.white, visualDensity: VisualDensity.compact, tooltip: l10n.home, onPressed: onHome, icon: const Icon(Icons.home_outlined)),
+            const SizedBox(width: 6),
+            Expanded(child: _MarqueeTitle(title: video.title)),
+            if (Platform.isAndroid) IconButton(color: Colors.white, visualDensity: VisualDensity.compact, tooltip: l10n.pictureInPicture, onPressed: onPictureInPicture, icon: const Icon(Icons.picture_in_picture_alt_outlined)),
+            if (onKeyframes != null)
+              Tooltip(
+                message: l10n.longPressAddKeyframe,
+                child: GestureDetector(
+                  onTap: onKeyframes,
+                  onLongPress: onAddKeyframe,
+                  child: const Padding(padding: EdgeInsets.all(12), child: Text('🥵', style: TextStyle(fontSize: 22))),
+                ),
+              ),
+            if (fullscreen)
+              VideoPlayerFullscreenMoreMenu(sources: video.sources, quality: quality)
+            else
+              VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +9,6 @@ import '../../data/local/library_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
-import 'video_actions.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
@@ -96,6 +96,18 @@ class _DetailBody extends ConsumerStatefulWidget {
 
 class _DetailBodyState extends ConsumerState<_DetailBody> {
   late final M3EFloatingToolbarScrollBehavior _scrollBehavior = M3EFloatingToolbarScrollBehavior.exitAlways(exitDirection: M3EFloatingToolbarExitDirection.bottom);
+  /// 桌面宽度下右侧内容栏是否收起（收起后播放器占满宽度）
+  var _sidebarCollapsed = false;
+  /// 鼠标是否在播放器上 / 侧栏把手上（把手只在鼠标靠近时出现）
+  var _pointerOnPlayer = false;
+  var _pointerOnHandle = false;
+
+  /// 触屏等没有悬停的设备上把手常驻，否则收起来就找不回来了
+  bool get _hoverSupported => switch (defaultTargetPlatform) { TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux || TargetPlatform.fuchsia => true, _ => false };
+  bool get _showSidebarHandle => !_hoverSupported || _pointerOnPlayer || _pointerOnHandle;
+
+  void _setPointerOnPlayer(bool value) { if (_pointerOnPlayer != value) setState(() => _pointerOnPlayer = value); }
+  void _setPointerOnHandle(bool value) { if (_pointerOnHandle != value) setState(() => _pointerOnHandle = value); }
 
   @override
   void initState() {
@@ -117,7 +129,18 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       bottom: false,
       child: Stack(
         children: [
-          if (isTablet) _TabletVideoLayout(video: video, scrollBehavior: _scrollBehavior) else _CompactVideoLayout(video: video, scrollBehavior: _scrollBehavior),
+          if (isTablet)
+            _TabletVideoLayout(
+              video: video,
+              scrollBehavior: _scrollBehavior,
+              sidebarCollapsed: _sidebarCollapsed,
+              showHandle: _showSidebarHandle,
+              onToggleSidebar: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+              onPlayerHover: _setPointerOnPlayer,
+              onHandleHover: _setPointerOnHandle,
+            )
+          else
+            _CompactVideoLayout(video: video, scrollBehavior: _scrollBehavior),
           Positioned(
             left: isTablet ? null : 0,
             right: isTablet ? 16 : 0,
@@ -143,20 +166,93 @@ class _CompactVideoLayout extends StatelessWidget {
       );
 }
 
+/// 播放器 / 内容栏的宽度比例（与 Row 的 flex 一致），以及手把尺寸
+const int _playerFlex = 3;
+const int _sidebarFlex = 1;
+const double _sidebarHandleWidth = 36;
+
 class _TabletVideoLayout extends StatelessWidget {
-  const _TabletVideoLayout({required this.video, required this.scrollBehavior});
+  const _TabletVideoLayout({required this.video, required this.scrollBehavior, required this.sidebarCollapsed, required this.showHandle, required this.onToggleSidebar, required this.onPlayerHover, required this.onHandleHover});
 
   final VideoDetail video;
   final M3EFloatingToolbarScrollBehavior scrollBehavior;
+  final bool sidebarCollapsed;
+  final bool showHandle;
+  final VoidCallback onToggleSidebar;
+  final ValueChanged<bool> onPlayerHover;
+  final ValueChanged<bool> onHandleHover;
 
   @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(flex: 7, child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))))),
-          const VerticalDivider(width: 1),
-          Expanded(flex: 3, child: _VideoTabsView(video: video, scrollBehavior: scrollBehavior, showPlayer: false)),
-        ],
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          // 手把骑在视频右缘上，所以要放在整页的 Stack 里（侧栏自己的 Stack 会把手把挡在裁剪外）
+          final videoWidth = (constraints.maxWidth - 1) * _playerFlex / (_playerFlex + _sidebarFlex);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: sidebarCollapsed ? 1 : _playerFlex,
+                      child: MouseRegion(
+                        onEnter: (_) => onPlayerHover(true),
+                        onExit: (_) => onPlayerHover(false),
+                        child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode)))),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    if (!sidebarCollapsed) Expanded(flex: _sidebarFlex, child: _VideoTabsView(video: video, scrollBehavior: scrollBehavior, showPlayer: false)),
+                  ],
+                ),
+              ),
+              Positioned(
+                // 展开时骑在视频右缘；收起后贴窗口右缘、直接叠在画面上（不再留窄栏）
+                left: sidebarCollapsed ? null : videoWidth - _sidebarHandleWidth / 2,
+                right: sidebarCollapsed ? 8 : null,
+                top: 0,
+                bottom: 0,
+                child: Center(child: _SidebarHandle(collapsed: sidebarCollapsed, visible: showHandle, onPressed: onToggleSidebar, onHover: onHandleHover)),
+              ),
+            ],
+          );
+        },
       );
+}
+
+/// 侧栏收起/展开手把：半透明圆角，贴在视频右缘、竖向居中，鼠标靠近才出现
+class _SidebarHandle extends StatelessWidget {
+  const _SidebarHandle({required this.collapsed, required this.visible, required this.onPressed, required this.onHover});
+
+  final bool collapsed;
+  final bool visible;
+  final VoidCallback onPressed;
+  final ValueChanged<bool> onHover;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 180),
+      child: MouseRegion(
+        onEnter: (_) => onHover(true),
+        onExit: (_) => onHover(false),
+        child: Tooltip(
+          message: collapsed ? l10n.expandSidebar : l10n.collapseSidebar,
+          child: Material(
+            color: const Color(0x73000000),
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onPressed,
+              child: SizedBox(width: _sidebarHandleWidth, height: 64, child: Icon(collapsed ? Icons.chevron_left : Icons.chevron_right, size: 24, color: Colors.white)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _FloatingControls extends ConsumerWidget {
@@ -176,7 +272,6 @@ class _FloatingControls extends ConsumerWidget {
           FloatingActionButton(onPressed: () => writeSelectedVideoComment(context, ref, video.id), child: const Icon(Icons.add_comment_outlined)),
           const SizedBox(height: 8),
         ],
-        VideoActionBar(video: video, vertical: vertical),
       ],
     );
     return ListenableBuilder(
@@ -213,6 +308,8 @@ class _VideoTabsView extends ConsumerStatefulWidget {
 }
 
 class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTickerProviderStateMixin {
+  /// 侧栏只有简介 / 评论两个页签（相关推荐已并进简介）
+  static const _tabCount = 2;
   late final TabController _controller;
   final _playerCollapse = ValueNotifier(0.0);
   var _isPlaying = false;
@@ -220,7 +317,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
   @override
   void initState() {
     super.initState();
-    _controller = TabController(length: 3, vsync: this, initialIndex: ref.read(videoTabProvider(widget.video.id)));
+    _controller = TabController(length: _tabCount, vsync: this, initialIndex: _initialIndex());
     _controller.addListener(_syncTab);
   }
 
@@ -228,11 +325,13 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
   void didUpdateWidget(_VideoTabsView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.video.id != widget.video.id) {
-      _controller.index = ref.read(videoTabProvider(widget.video.id));
+      _controller.index = _initialIndex();
       _playerCollapse.value = 0;
       _isPlaying = false;
     }
   }
+
+  int _initialIndex() => ref.read(videoTabProvider(widget.video.id)).clamp(0, _tabCount - 1);
 
   void _syncTab() {
     if (_controller.indexIsChanging) return;
@@ -264,7 +363,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
   @override
   Widget build(BuildContext context) {
     final selected = ref.watch(videoTabProvider(widget.video.id));
-    if (_controller.index != selected && !_controller.indexIsChanging) _controller.index = selected;
+    if (_controller.index != selected && !_controller.indexIsChanging) _controller.index = selected.clamp(0, _tabCount - 1);
     final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
@@ -283,7 +382,6 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
             tabs: [
               Tab(text: l10n.description),
               Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [Text(l10n.comments), if (widget.video.commentCount case final count?) ...[const SizedBox(width: 5), Badge(label: Text('$count'))]])),
-              Tab(text: l10n.relatedVideos),
             ],
           ),
         ),
@@ -295,7 +393,6 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
               children: [
                 M3EFloatingToolbarScrollWrapper(behavior: widget.scrollBehavior, child: VideoDescriptionView(video: widget.video)),
                 M3EFloatingToolbarScrollWrapper(behavior: widget.scrollBehavior, child: VideoCommentsView(video: widget.video)),
-                M3EFloatingToolbarScrollWrapper(behavior: widget.scrollBehavior, child: RelatedVideosView(videos: widget.video.related)),
               ],
             ),
           ),

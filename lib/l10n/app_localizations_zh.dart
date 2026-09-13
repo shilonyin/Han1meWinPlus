@@ -297,6 +297,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get more => '查看更多';
 
   @override
+  String get previousPage => '上一页';
+
+  @override
+  String get nextPage => '下一页';
+
+  @override
   String get featured => '首页推荐';
 
   @override
@@ -734,6 +740,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get collapse => '收起';
+
+  @override
+  String get collapseSidebar => '收起侧边栏';
+
+  @override
+  String get expandSidebar => '展开侧边栏';
 
   @override
   String get expand => '展开';
@@ -2032,6 +2044,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get more => '查看更多';
 
   @override
+  String get previousPage => '上一頁';
+
+  @override
+  String get nextPage => '下一頁';
+
+  @override
   String get featured => '首頁推薦';
 
   @override
@@ -2469,6 +2487,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get collapse => '收起';
+
+  @override
+  String get collapseSidebar => '收起側邊欄';
+
+  @override
+  String get expandSidebar => '展開側邊欄';
 
   @override
   String get expand => '展開';

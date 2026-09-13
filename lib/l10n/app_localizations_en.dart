@@ -306,6 +306,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get more => 'See More';
 
   @override
+  String get previousPage => 'Previous page';
+
+  @override
+  String get nextPage => 'Next page';
+
+  @override
   String get featured => 'Featured';
 
   @override
@@ -755,6 +761,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collapse => 'Collapse';
+
+  @override
+  String get collapseSidebar => 'Collapse sidebar';
+
+  @override
+  String get expandSidebar => 'Expand sidebar';
 
   @override
   String get expand => 'Expand';
