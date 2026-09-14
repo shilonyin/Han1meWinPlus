@@ -117,92 +117,102 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
     final screenWidth = MediaQuery.sizeOf(context).width;
     final idleSearchWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 180.0 : 132.0);
+    final showDrawerButton = drawerMode && !permanentNavigationDrawer(context);
     return Scaffold(
       appBar: AppBar(
-        leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
-        // The category picker shares the bar with the search field so it lines up with
-        // them instead of taking a row of its own; the six shortcuts sit next to it.
-        title: LayoutBuilder(
-          builder: (context, constraints) {
-            final full = constraints.maxWidth;
-            final width = (_searchFocused ? 520.0 : idleSearchWidth).clamp(120.0, full);
-            final left = (_searchFocused ? (full - width) / 2 : full - width).clamp(0.0, double.infinity);
-            return Stack(
-              children: [
-                // 左侧标题（分类下拉 + 快捷分类）：聚焦搜索时淡出并让位。
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  right: width + 8,
-                  child: IgnorePointer(
-                    ignoring: _searchFocused,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 160),
-                      opacity: _searchFocused ? 0 : 1,
-                      child: showPicker
-                          ? Row(
-                              children: [
-                                if (pickerIndexes.isNotEmpty) _CategorySelector(sections: sections, indexes: pickerIndexes, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
-                                if (pickerIndexes.isNotEmpty && quick.isNotEmpty) ...[
-                                  const SizedBox(width: 8),
-                                  const SizedBox(height: 22, child: VerticalDivider(width: 1)),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (quick.isNotEmpty)
-                                  Expanded(
-                                    child: UnderlineTabStrip(
-                                      labels: [for (final item in quick) item.label],
-                                      index: quick.indexWhere((item) => item.index == index),
-                                      onSelected: (value) => setState(() => _sectionIndex = quick[value].index),
-                                    ),
-                                  ),
-                              ],
-                            )
-                          : null,
+        automaticallyImplyLeading: false,
+        title: null,
+        // 顶栏内容全部自己排：左侧标题、搜索框、右侧图标，方便做「搜索框滑到中间」的过渡。
+        flexibleSpace: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))),
+              Expanded(
+                child: Stack(
+                  children: [
+                    // 左侧标题（分类下拉 + 快捷分类）：聚焦搜索时淡出并让位。
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      right: idleSearchWidth + 8 + 100,
+                      child: IgnorePointer(
+                        ignoring: _searchFocused,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 160),
+                          opacity: _searchFocused ? 0 : 1,
+                          child: showPicker
+                              ? Row(
+                                  children: [
+                                    if (pickerIndexes.isNotEmpty) _CategorySelector(sections: sections, indexes: pickerIndexes, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
+                                    if (pickerIndexes.isNotEmpty && quick.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      const SizedBox(height: 22, child: VerticalDivider(width: 1)),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    if (quick.isNotEmpty)
+                                      Expanded(
+                                        child: UnderlineTabStrip(
+                                          labels: [for (final item in quick) item.label],
+                                          index: quick.indexWhere((item) => item.index == index),
+                                          onSelected: (value) => setState(() => _sectionIndex = quick[value].index),
+                                        ),
+                                      ),
+                                  ],
+                                )
+                              : null,
+                        ),
+                      ),
                     ),
-                  ),
+                    // 搜索框 + 右侧图标：平时贴右边，聚焦后搜索框滑到中间并变宽。
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      alignment: _searchFocused ? Alignment.center : Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TweenAnimationBuilder<double>(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            tween: Tween<double>(begin: idleSearchWidth, end: _searchFocused ? 520 : idleSearchWidth),
+                            builder: (context, width, child) => SizedBox(width: width, height: 56, child: child),
+                            child: _HomeSearchField(
+                              controller: _searchController,
+                              focusNode: _searchFocus,
+                              focused: _searchFocused,
+                              onTap: _openSearch,
+                              onSubmitted: _submitSearch,
+                              onClear: () {
+                                _searchController.clear();
+                                _closeSearch();
+                              },
+                            ),
+                          ),
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 160),
+                            opacity: _searchFocused ? 0 : 1,
+                            child: IgnorePointer(
+                              ignoring: _searchFocused,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
+                                  IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  left: left,
-                  top: 0,
-                  bottom: 0,
-                  width: width,
-                  child: _HomeSearchField(
-                    controller: _searchController,
-                    focusNode: _searchFocus,
-                    focused: _searchFocused,
-                    onTap: _openSearch,
-                    onSubmitted: _submitSearch,
-                    onClear: () {
-                      _searchController.clear();
-                      _closeSearch();
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        titleSpacing: 8,
-        actions: [
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 160),
-            opacity: _searchFocused ? 0 : 1,
-            child: IgnorePointer(
-              ignoring: _searchFocused,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
-                  IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
-                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [
