@@ -26,3 +26,6 @@ const String repoDisplayUrl = 'github.com/$repoOwner/$repoName';
 
 /// 更新包（Windows 安装器）文件名前缀，需与 `windows/installer.iss` 保持一致。
 const String installerBaseName = 'Han1meWinPlus-Setup';
+
+/// 内容来源站点。
+const String dataSourceUrl = 'https://hanime1.com';
