@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
@@ -25,6 +24,10 @@ import 'explore_controller.dart';
 const _maxContentWidth = 1440.0;
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
+
+/// 卡片封面下方（标题/作者/评分）预留的高度。用固定高度而不是瀑布流，
+/// 否则长短不一的标题会让每一列越往下错得越多。
+const _cardMetaHeight = 120.0;
 
 /// Column count of the home waterfall. Cards end up roughly 240-320 logical
 /// pixels wide, which is the density the reference app's poster wall uses.
@@ -648,6 +651,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
       _schedulePrefetch();
     }
     final hasMore = _hasMore;
+    final cardWidth = homeWaterfallCardWidth(width, columns);
     return SliverMainAxisGroup(
       slivers: [
         if (widget.showHeader) SliverToBoxAdapter(child: _MaxWidth(child: _SectionHeader(section: widget.section))),
@@ -655,14 +659,19 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
           maxExtent: _maxContentWidth,
           sliver: SliverPadding(
             padding: const EdgeInsets.fromLTRB(_gridPadding, 0, _gridPadding, 20),
-            sliver: SliverMasonryGrid.count(
-              crossAxisCount: columns,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: _gridSpacing,
-              childCount: _videos.length,
-              itemBuilder: (context, index) => index == _videos.length - 1 && hasMore
-                  ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true))
-                  : VideoCardTile(video: _videos[index], horizontal: true),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: _gridSpacing,
+                mainAxisExtent: cardWidth * 9 / 16 + _cardMetaHeight,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => index == _videos.length - 1 && hasMore
+                    ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true))
+                    : VideoCardTile(video: _videos[index], horizontal: true),
+                childCount: _videos.length,
+              ),
             ),
           ),
         ),

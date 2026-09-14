@@ -94,7 +94,8 @@ class VideoCardTile extends StatelessWidget {
           else
             AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
           SizedBox(height: dense ? 4 : 8),
-          _details(theme),
+          // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
+          Flexible(child: ClipRect(child: _details(theme))),
         ],
       );
 
@@ -153,14 +154,17 @@ class VideoCardTile extends StatelessWidget {
               ),
             ),
           SizedBox(height: dense ? 2 : 2),
-          if (video.artist != null)
-            Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
+          // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
+          Text(video.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
           SizedBox(height: dense ? 2 : 2),
-          Row(
-            children: [
-              Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: dense ? 11 : 14, color: theme.colorScheme.outline), SizedBox(width: dense ? 3 : 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)))])),
-              if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
-            ],
+          SizedBox(
+            height: dense ? 14 : 16,
+            child: Row(
+              children: [
+                Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: dense ? 11 : 14, color: theme.colorScheme.outline), SizedBox(width: dense ? 3 : 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)))])),
+                if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
+              ],
+            ),
           ),
         ],
       );
