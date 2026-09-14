@@ -25,7 +25,8 @@ class PlayerSettingsPage extends ConsumerWidget {
         children: [
           SettingsCardList(children: [
             SettingsCardItem(title: l10n.hardwareDecode, subtitle: l10n.hardwareDecodeDescription, leading: const Icon(Icons.settings_input_hdmi_outlined), trailing: Switch(value: settings.hardwareAcceleration, onChanged: libmpv ? (value) => controller.saveChanges((current) => current.copyWith(hardwareAcceleration: value)) : null)),
-            _OptionTile(icon: Icons.memory_outlined, title: l10n.decoder, value: _engineLabel(l10n, settings.playerEngine), enabled: true, onTap: () => context.push('/settings/player/decoder')),
+            _OptionTile(icon: Icons.memory_outlined, title: l10n.hardwareDecoder, description: l10n.hardwareDecoderDescription, value: settings.hardwareDecoder, enabled: libmpv && settings.hardwareAcceleration, onTap: libmpv && settings.hardwareAcceleration ? () => context.push('/settings/player/hardware-decoder') : null),
+            _OptionTile(icon: Icons.developer_board_outlined, title: l10n.decoder, value: _engineLabel(l10n, settings.playerEngine), enabled: true, onTap: () => context.push('/settings/player/decoder')),
             _OptionTile(icon: Icons.video_settings_outlined, title: l10n.videoRenderer, value: _rendererLabel(l10n, settings.videoRenderer), enabled: libmpv, onTap: libmpv ? () => context.push('/settings/player/renderer') : null),
             _ViewMenuTile(icon: Icons.layers_outlined, title: l10n.viewSettings, value: settings.videoView, enabled: libmpv, label: (value) => _viewLabel(l10n, value), onSelected: (value) => controller.saveChanges((current) => current.copyWith(videoView: value))),
             _OptionTile(icon: Icons.tune_outlined, title: l10n.customParameters, value: settings.customParameters.isEmpty ? l10n.none : '${settings.customParameters.length}', enabled: libmpv, onTap: libmpv ? () => _editCustomParameters(context, ref, settings) : null),
@@ -114,8 +115,8 @@ class _CustomParametersDialogState extends State<_CustomParametersDialog> {
 }
 
 class _OptionTile extends SettingsCardItem {
-  _OptionTile({required IconData icon, required String title, required String value, required bool enabled, required VoidCallback? onTap, Widget? trailing})
-      : super(title: title, subtitle: value, leading: Icon(icon), trailing: trailing ?? const Icon(Icons.chevron_right), onTap: onTap, enabled: enabled);
+  _OptionTile({required IconData icon, required String title, required String value, required bool enabled, required VoidCallback? onTap, String? description, Widget? trailing})
+      : super(title: title, subtitle: description == null ? value : '$description · $value', leading: Icon(icon), trailing: trailing ?? const Icon(Icons.chevron_right), onTap: onTap, enabled: enabled);
 }
 
 class _ViewMenuTile extends SettingsMenuItem<VideoView> {

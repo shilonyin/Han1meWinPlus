@@ -125,6 +125,7 @@ class AppRouter {
         GoRoute(path: '/settings/site', builder: (context, state) => const SiteSettingsPage()),
         GoRoute(path: '/settings/player/decoder', builder: (context, state) => const DecoderSettingsPage()),
         GoRoute(path: '/settings/player/renderer', builder: (context, state) => const RendererSettingsPage()),
+        GoRoute(path: '/settings/player/hardware-decoder', builder: (context, state) => const HardwareDecoderSettingsPage()),
         GoRoute(path: '/settings/player/super-resolution', builder: (context, state) => const SuperResolutionSettingsPage()),
         GoRoute(path: '/cloudflare', builder: (context, state) => CloudflarePage(initialUrl: state.extra as String?)),
         GoRoute(path: '/previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),

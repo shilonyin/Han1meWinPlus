@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
+import '../../core/video_decoders.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
 import 'settings_controller.dart';
@@ -78,6 +79,39 @@ class RendererSettingsPage extends ConsumerWidget {
       options: VideoRenderer.values,
       label: (value) => switch (value) { VideoRenderer.auto => l10n.rendererAuto, VideoRenderer.gpu => l10n.rendererGpu, VideoRenderer.gpuNext => l10n.rendererGpuNext, VideoRenderer.mediacodecEmbed => l10n.rendererMediacodecEmbed },
       onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoRenderer: value)),
+    );
+  }
+}
+
+class HardwareDecoderSettingsPage extends ConsumerWidget {
+  const HardwareDecoderSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final current = knownHardwareDecoder(ref.watch(settingsProvider).valueOrNull?.hardwareDecoder);
+    final decoders = hardwareDecodersFor(Localizations.localeOf(context));
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.hardwareDecoder)),
+      body: SettingsList(
+        sections: [
+          SettingsSection(
+            title: Text(l10n.hardwareDecoderHint, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            tiles: [
+              for (final decoder in decoders.entries)
+                SettingsTile<String>.radioTile(
+                  radioValue: decoder.key,
+                  groupValue: current,
+                  title: Text(decoder.key),
+                  description: Text(decoder.value),
+                  onChanged: (value) {
+                    if (value != null) ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(hardwareDecoder: value));
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

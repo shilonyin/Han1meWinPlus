@@ -192,7 +192,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     return VideoControllerConfiguration(
       vo: settings.videoRenderer.mpvValue,
       enableHardwareAcceleration: acceleration,
-      hwdec: embed ? 'mediacodec' : acceleration ? 'auto' : 'no',
+      hwdec: embed ? 'mediacodec' : acceleration ? settings.hardwareDecoder : 'no',
     );
   }
 
