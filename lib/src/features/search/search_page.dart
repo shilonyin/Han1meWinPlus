@@ -9,15 +9,10 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show SearchResult;
 import '../../domain/models/search_query.dart';
-import '../settings/settings_controller.dart';
-import '../shared/compact_video_card.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'search_controller.dart';
 
-const _compactSearchGenres = {'裏番', '泡麵番'};
-
-/// 搜索结果网格：每行四个，封面保持与主页一致的 16:9 比例。
 const _searchColumns = 4;
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -61,8 +56,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final notifier = ref.read(searchQueryProvider(request).notifier);
     final options = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final l10n = AppLocalizations.of(context)!;
-    final useCompactCards = (ref.watch(settingsProvider).valueOrNull?.useCompactSearchCards ?? true) &&
-        _compactSearchGenres.contains(options?.genres.canonical(query.genre) ?? query.genre);
     ref.listen<SearchQuery>(searchQueryProvider(request), (previous, next) {
       if (previous != next && next.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(next));
       if (_textController.text != next.text) _textController.value = _textController.value.copyWith(text: next.text, selection: TextSelection.collapsed(offset: next.text.length));
@@ -103,24 +96,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               error: (error, stackTrace) => _ErrorView(error: error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
               data: (page) => page.items.isEmpty
                   ? _EmptyState(message: l10n.noSearchResults)
-                  : useCompactCards
-                      ? CompactVideoCardGrid(
-                          videos: page.items,
-                          cardsPerRow: _searchColumns,
-                          itemBuilder: (context, index, video) => CompactVideoCard(
-                            video: video,
-                            onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
-                          ),
-                        )
-                      : VideoCardGrid(
-                          videos: page.items,
-                          cardsPerRow: _searchColumns,
-                          itemBuilder: (context, index, video, horizontal) => VideoCardTile(
-                            video: video,
-                            horizontal: horizontal,
-                            onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
-                          ),
-                        ),
+                  : VideoCardGrid(
+                      videos: page.items,
+                      cardsPerRow: _searchColumns,
+                      horizontal: true,
+                      itemBuilder: (context, index, video, _) => VideoCardTile(
+                        video: video,
+                        horizontal: true,
+                        onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
+                      ),
+                    ),
             ),
           ),
           _PaginationBar(

@@ -173,7 +173,7 @@ class VideoCardTile extends StatelessWidget {
 }
 
 class VideoCardGrid extends ConsumerWidget {
-  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen});
+  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen, this.horizontal});
 
   final List<VideoCard> videos;
   final Widget Function(BuildContext context, int index, VideoCard video, bool horizontal)? itemBuilder;
@@ -184,10 +184,13 @@ class VideoCardGrid extends ConsumerWidget {
   /// 指定一屏显示几行（固定高度网格，卡片高度按可用高度反推）。
   final int? rowsPerScreen;
 
+  /// 指定卡片方向（为空时用设置里的值）。
+  final bool? horizontal;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final horizontal = settings?.useHorizontalSearchCards ?? true;
+    final horizontal = this.horizontal ?? settings?.useHorizontalSearchCards ?? true;
     final cardsPerRow = this.cardsPerRow ?? settings?.searchCardsPerRow ?? 2;
     return LayoutBuilder(
       builder: (context, constraints) {
