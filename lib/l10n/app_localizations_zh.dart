@@ -1894,6 +1894,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeQuickCategoriesNeedsNetwork => '需要先加载出首页分类（当前只能看到已保存的分类）';
+
+  @override
+  String get clearSearchHistory => '清空';
+
+  @override
+  String get searchPopularTags => '热门标签';
+
+  @override
+  String get searchSortGeneral => '综合排序';
+
+  @override
+  String get searchMoreFilters => '更多筛选';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3786,4 +3798,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get homeQuickCategoriesNeedsNetwork => '需要先載入首頁分類（目前只能看到已儲存的分類）';
+
+  @override
+  String get clearSearchHistory => '清空';
+
+  @override
+  String get searchPopularTags => '熱門標籤';
+
+  @override
+  String get searchSortGeneral => '綜合排序';
+
+  @override
+  String get searchMoreFilters => '更多篩選';
 }

@@ -1954,4 +1954,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeQuickCategoriesNeedsNetwork =>
       'Load the home page first to list all categories (only saved ones are shown now)';
+
+  @override
+  String get clearSearchHistory => 'Clear';
+
+  @override
+  String get searchPopularTags => 'Popular tags';
+
+  @override
+  String get searchSortGeneral => 'General';
+
+  @override
+  String get searchMoreFilters => 'More filters';
 }

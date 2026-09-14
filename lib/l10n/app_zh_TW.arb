@@ -638,5 +638,9 @@
   "homeQuickCategoriesAvailable": "可選分類",
   "homeQuickCategoriesFull": "已達上限（{max} 個）",
   "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
-  "homeQuickCategoriesNeedsNetwork": "需要先載入首頁分類（目前只能看到已儲存的分類）"
+  "homeQuickCategoriesNeedsNetwork": "需要先載入首頁分類（目前只能看到已儲存的分類）",
+  "clearSearchHistory": "清空",
+  "searchPopularTags": "熱門標籤",
+  "searchSortGeneral": "綜合排序",
+  "searchMoreFilters": "更多篩選"
 }

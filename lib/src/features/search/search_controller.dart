@@ -12,7 +12,7 @@ import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
 
 final searchQueryProvider = StateNotifierProvider.family<SearchQueryNotifier, SearchQuery, SearchRouteRequest>(
-  (_, request) => SearchQueryNotifier(SearchQuery.fromUri(request.initialUrl)),
+  (_, request) => SearchQueryNotifier(request.initialQuery?.copyWith(page: 1) ?? SearchQuery.fromUri(request.initialUrl)),
 );
 
 final searchHistoryProvider = AsyncNotifierProvider<SearchHistoryController, List<SearchQuery>>(SearchHistoryController.new);
@@ -59,6 +59,12 @@ class SearchHistoryController extends AsyncNotifier<List<SearchQuery>> {
     final next = current.where((item) => item != query).toList(growable: false);
     state = AsyncData(next);
     _write = _write.catchError((_) {}).then((_) => _repository.save(next));
+    await _write;
+  }
+
+  Future<void> clear() async {
+    state = const AsyncData([]);
+    _write = _write.catchError((_) {}).then((_) => _repository.save(const []));
     await _write;
   }
 }

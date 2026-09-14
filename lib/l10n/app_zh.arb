@@ -639,5 +639,9 @@
   "homeQuickCategoriesAvailable": "可选分类",
   "homeQuickCategoriesFull": "已达上限（{max} 个）",
   "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
-  "homeQuickCategoriesNeedsNetwork": "需要先加载出首页分类（当前只能看到已保存的分类）"
+  "homeQuickCategoriesNeedsNetwork": "需要先加载出首页分类（当前只能看到已保存的分类）",
+  "clearSearchHistory": "清空",
+  "searchPopularTags": "热门标签",
+  "searchSortGeneral": "综合排序",
+  "searchMoreFilters": "更多筛选"
 }

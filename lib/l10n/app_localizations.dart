@@ -3643,6 +3643,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Load the home page first to list all categories (only saved ones are shown now)'**
   String get homeQuickCategoriesNeedsNetwork;
+
+  /// No description provided for @clearSearchHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearSearchHistory;
+
+  /// No description provided for @searchPopularTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular tags'**
+  String get searchPopularTags;
+
+  /// No description provided for @searchSortGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get searchSortGeneral;
+
+  /// No description provided for @searchMoreFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get searchMoreFilters;
 }
 
 class _AppLocalizationsDelegate

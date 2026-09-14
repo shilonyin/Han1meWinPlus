@@ -17,6 +17,8 @@ import '../../domain/models/video.dart';
 import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
+import '../search/search_suggestions.dart';
+import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'explore_controller.dart';
 
@@ -45,6 +47,7 @@ class ExplorePage extends ConsumerStatefulWidget {
 
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   var _sectionIndex = 0;
+  var _searchPanelOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +65,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     // 已经作为快捷分类显示在右侧的分类，不再重复出现在左侧下拉菜单里。
     final quickIndexes = <int>{for (final item in quick) item.index};
     final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final searchFieldWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 176.0 : 0.0);
     return Scaffold(
       appBar: AppBar(
         leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
@@ -76,33 +81,75 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     const SizedBox(height: 22, child: VerticalDivider(width: 1)),
                     const SizedBox(width: 8),
                   ],
-                  if (quick.isNotEmpty) Expanded(child: _QuickCategoryTabs(items: quick, index: index, onSelected: (value) => setState(() => _sectionIndex = value))),
+                  if (quick.isNotEmpty)
+                    Expanded(
+                      child: UnderlineTabStrip(
+                        labels: [for (final item in quick) item.label],
+                        index: quick.indexWhere((item) => item.index == index),
+                        onSelected: (value) => setState(() => _sectionIndex = quick[value].index),
+                      ),
+                    ),
                 ],
               )
             : null,
         titleSpacing: showPicker ? 8 : null,
         actions: [
-          IconButton(onPressed: () => context.push('/search', extra: SearchRouteRequest()), icon: const Icon(Icons.search)),
+          // 宽度够时直接用内嵌搜索框（参考实现的顶栏），窄窗退回搜索图标。
+          if (searchFieldWidth > 0)
+            _HomeSearchBox(width: searchFieldWidth, open: _searchPanelOpen, onTap: () => setState(() => _searchPanelOpen = !_searchPanelOpen))
+          else
+            IconButton(onPressed: () => context.push('/search', extra: SearchRouteRequest()), icon: const Icon(Icons.search)),
           IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
           IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
         ],
       ),
-      body: feed.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => _ErrorView(
-          error: error,
-          onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
-          onCloudflareVerified: () async {
-            final url = error is CloudflareChallengeException ? error.url : null;
-            if (await context.push<bool>('/cloudflare', extra: url) == true) {
-              await Future<void>.delayed(const Duration(milliseconds: 250));
-              await ref.read(homeSectionsProvider.notifier).refresh();
-            }
-          },
-        ),
-        data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
+      body: Stack(
+        children: [
+          feed.when(
+            skipLoadingOnReload: true,
+            skipLoadingOnRefresh: true,
+            loading: () => const Center(child: M3EContainedLoadingIndicator()),
+            error: (error, _) => _ErrorView(
+              error: error,
+              onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
+              onCloudflareVerified: () async {
+                final url = error is CloudflareChallengeException ? error.url : null;
+                if (await context.push<bool>('/cloudflare', extra: url) == true) {
+                  await Future<void>.delayed(const Duration(milliseconds: 250));
+                  await ref.read(homeSectionsProvider.notifier).refresh();
+                }
+              },
+            ),
+            data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
+          ),
+          // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点头一条建议都会收起。
+          if (_searchPanelOpen) ...[
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _searchPanelOpen = false),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            Positioned(
+              top: 6,
+              right: 16,
+              child: Material(
+                elevation: 12,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
+                child: SearchSuggestions(
+                  width: (screenWidth - 64).clamp(280.0, 560.0),
+                  onSelected: (query) {
+                    setState(() => _searchPanelOpen = false);
+                    context.push('/search', extra: SearchRouteRequest(initialQuery: query));
+                  },
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -170,6 +217,45 @@ class _HomeFeedBody extends ConsumerWidget {
       );
 }
 
+/// 顶栏里的搜索框：点击展开「搜索历史 + 热门标签」浮层（浮层由首页 body 渲染）。
+class _HomeSearchBox extends StatelessWidget {
+  const _HomeSearchBox({required this.width, required this.open, required this.onTap});
+
+  final double width;
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          width: width,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: open ? theme.colorScheme.surfaceContainerHigh : theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: open ? theme.colorScheme.primary.withValues(alpha: .7) : Colors.transparent),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: Text(l10n.searchHint, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+              const SizedBox(width: 6),
+              Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Collapsed category picker: the current section name plus a chevron that
 /// opens the full list, mirroring the reference app's header.
 class _CategorySelector extends StatefulWidget {
@@ -217,65 +303,6 @@ class _CategorySelectorState extends State<_CategorySelector> {
               Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(width: 4),
               const Icon(Icons.keyboard_arrow_down),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 顶栏右侧的一排快捷分类（参考实现的样式）：文字 + 选中主题色 + 下方短下划线。
-class _QuickCategoryTabs extends StatelessWidget {
-  const _QuickCategoryTabs({required this.items, required this.index, required this.onSelected});
-
-  final List<({int index, String label})> items;
-  final int index;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [for (final item in items) _QuickCategoryTab(label: item.label, selected: item.index == index, onTap: () => onSelected(item.index))]),
-      );
-}
-
-class _QuickCategoryTab extends StatefulWidget {
-  const _QuickCategoryTab({required this.label, required this.selected, required this.onTap});
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  State<_QuickCategoryTab> createState() => _QuickCategoryTabState();
-}
-
-class _QuickCategoryTabState extends State<_QuickCategoryTab> {
-  var _hovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final highlighted = widget.selected || _hovering;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      child: InkWell(
-        hoverColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: highlighted ? scheme.primary : scheme.onSurfaceVariant, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
-              const SizedBox(height: 2),
-              Container(height: 2, width: 18, decoration: BoxDecoration(color: widget.selected ? scheme.primary : Colors.transparent, borderRadius: BorderRadius.circular(1))),
             ],
           ),
         ),

@@ -1,10 +1,13 @@
 class SearchRouteRequest {
-  SearchRouteRequest({this.initialUrl}) : sessionId = _nextId();
+  SearchRouteRequest({this.initialUrl, this.initialQuery}) : sessionId = _nextId();
 
-  const SearchRouteRequest.fromRoute(this.sessionId, {this.initialUrl});
+  const SearchRouteRequest.fromRoute(this.sessionId, {this.initialUrl, this.initialQuery});
 
   final String sessionId;
   final String? initialUrl;
+
+  /// 直接携带查询条件进入搜索页（如点搜索建议里的历史或热门标签）。
+  final SearchQuery? initialQuery;
 
   static var _sequence = 0;
 

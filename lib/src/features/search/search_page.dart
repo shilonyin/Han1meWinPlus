@@ -11,9 +11,9 @@ import '../../data/remote/han1me_api.dart' show SearchResult;
 import '../../domain/models/search_query.dart';
 import '../settings/settings_controller.dart';
 import '../shared/compact_video_card.dart';
+import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'search_controller.dart';
-import 'search_history_sheet.dart';
 
 const _compactSearchGenres = {'裏番', '泡麵番'};
 
@@ -50,14 +50,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.dispose();
   }
 
-  Future<void> _showHistory(BuildContext context, WidgetRef ref, SearchQueryNotifier notifier) async {
-    final selected = await showSearchHistorySheet(context, ref);
-    if (selected == null || !mounted) return;
-    notifier.replace(selected);
-    _textController.value = _textController.value.copyWith(text: selected.text, selection: TextSelection.collapsed(offset: selected.text.length));
-    unawaited(ref.read(searchHistoryProvider.notifier).record(selected));
-  }
-
   @override
   Widget build(BuildContext context) {
     final request = widget.request;
@@ -72,48 +64,31 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       if (previous != next && next.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(next));
       if (_textController.text != next.text) _textController.value = _textController.value.copyWith(text: next.text, selection: TextSelection.collapsed(offset: next.text.length));
     });
+    void submit(String value) {
+      notifier.text(value.trim());
+      unawaited(ref.read(searchHistoryProvider.notifier).record(ref.read(searchQueryProvider(request))));
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back)),
-        title: Text(l10n.searchHint),
+        titleSpacing: 0,
+        title: _SearchInput(
+          controller: _textController,
+          hintText: l10n.searchHint,
+          autoFocus: request.initialUrl == null && request.initialQuery == null,
+          onSubmitted: submit,
+          onClear: () {
+            _textController.clear();
+            notifier.text('');
+          },
+        ),
+        actions: const [SizedBox(width: 12)],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: SearchBar(
-              controller: _textController,
-              autoFocus: request.initialUrl == null,
-              hintText: l10n.searchHint,
-              leading: const Icon(Icons.search),
-              trailing: [
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _textController,
-                  builder: (context, value, _) => value.text.isEmpty
-                      ? const SizedBox.shrink()
-                      : IconButton(
-                          tooltip: l10n.clear,
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _textController.clear();
-                            notifier.text('');
-                          },
-                        ),
-                ),
-                IconButton(
-                  tooltip: l10n.searchHistory,
-                  icon: const Icon(Icons.history),
-                  onPressed: () => _showHistory(context, ref, notifier),
-                ),
-              ],
-              onSubmitted: (value) {
-                notifier.text(value.trim());
-                final next = ref.read(searchQueryProvider(request));
-                unawaited(ref.read(searchHistoryProvider.notifier).record(next));
-              },
-            ),
-          ),
-          _Filters(options: options, query: query, notifier: notifier),
+          _GenreTabs(options: options, query: query, notifier: notifier),
+          _SortRow(options: options, query: query, notifier: notifier),
           Expanded(
             child: result.when(
               loading: () => const Center(child: M3EContainedLoadingIndicator()),
@@ -148,8 +123,55 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 }
 
-class _Filters extends StatelessWidget {
-  const _Filters({required this.options, required this.query, required this.notifier});
+/// 搜索页顶部输入框：圆角填充、右侧「清除 + 搜索」，样式对齐主流视频站点。
+class _SearchInput extends StatelessWidget {
+  const _SearchInput({required this.controller, required this.hintText, required this.autoFocus, required this.onSubmitted, required this.onClear});
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool autoFocus;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return TextField(
+      controller: controller,
+      autofocus: autoFocus,
+      textInputAction: TextInputAction.search,
+      onSubmitted: onSubmitted,
+      style: theme.textTheme.bodyMedium,
+      decoration: InputDecoration(
+        hintText: hintText,
+        isDense: true,
+        filled: true,
+        fillColor: theme.colorScheme.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: .6))),
+        suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => value.text.isEmpty
+                  ? const SizedBox.shrink()
+                  : IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: onClear, icon: const Icon(Icons.close)),
+            ),
+            IconButton(visualDensity: VisualDensity.compact, onPressed: () => onSubmitted(controller.text), icon: const Icon(Icons.search, size: 20)),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 第一行：内容分类页签（全部 / 各分类），选中项染色 + 下划线。
+class _GenreTabs extends StatelessWidget {
+  const _GenreTabs({required this.options, required this.query, required this.notifier});
 
   final SearchOptionCatalog? options;
   final SearchQuery query;
@@ -157,101 +179,149 @@ class _Filters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final catalog = options;
+    if (catalog == null) return const SizedBox(height: 44);
     final l10n = AppLocalizations.of(context)!;
-    if (options == null) return const SizedBox(height: 56);
     final locale = searchOptionLocaleKey(Localizations.localeOf(context));
-    final genres = options!.genres;
-    final sorts = options!.sorts;
-    final durations = options!.durations;
+    final items = catalog.genres.options;
     return SizedBox(
-      height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [
-          _MenuFilterButton(
-            label: l10n.category(query.genre.isEmpty ? l10n.all : genres.localize(query.genre, locale) ?? query.genre),
-            icon: Icons.category_outlined,
-            values: genres.options.map((item) => item.searchKey ?? '').toList(),
-            onSelected: notifier.genre,
-            formatter: (value) => value.isEmpty ? l10n.all : genres.localize(value, locale) ?? value,
-          ),
-          _MenuFilterButton(
-            label: l10n.sort(query.sort.isEmpty ? l10n.defaultValue : sorts.localize(query.sort, locale) ?? query.sort),
-            icon: Icons.sort,
-            values: sorts.options.map((item) => item.searchKey ?? '').toList(),
-            onSelected: notifier.sort,
-            formatter: (value) => value.isEmpty ? l10n.defaultValue : sorts.localize(value, locale) ?? value,
-          ),
-          _ActionFilterButton(
-            label: l10n.releaseDate(query.date.isEmpty ? l10n.all : options!.releaseDates.localize(query.date, locale) ?? query.date),
-            icon: Icons.calendar_month_outlined,
-            onPressed: () async {
-              final date = await _showDateFilter(context, query.date, options!.releaseDates.options, locale);
-              if (date != null) notifier.date(date);
-            },
-          ),
-          _ActionFilterButton(
-            label: query.tags.isEmpty ? l10n.tags : l10n.tagsSelected(query.tags.length),
-            icon: Icons.sell_outlined,
-            onPressed: () async {
-              final selection = await _showTagFilter(context, query.tags, query.broad, options!, locale);
-              if (selection != null) notifier.tags(selection.tags, selection.broad);
-            },
-          ),
-          _MenuFilterButton(
-            label: l10n.duration(query.duration.isEmpty ? l10n.all : durations.localize(query.duration, locale) ?? query.duration),
-            icon: Icons.schedule_outlined,
-            values: durations.options.map((item) => item.searchKey ?? '').toList(),
-            onSelected: notifier.duration,
-            formatter: (value) => value.isEmpty ? l10n.all : durations.localize(value, locale) ?? value,
-          ),
-          _ActionFilterButton(
-            label: l10n.searchAuthors,
-            icon: Icons.person_search_outlined,
-            selected: query.type == 'artist',
-            onPressed: () => notifier.type(query.type == 'artist' ? '' : 'artist'),
-          ),
-        ].map((child) => Padding(padding: const EdgeInsets.only(right: 8), child: child)).toList(),
+      height: 44,
+      child: UnderlineTabStrip(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        labels: [for (final item in items) item.searchKey == null ? l10n.all : item.labelFor(locale)],
+        index: items.indexWhere((item) => (item.searchKey ?? '') == query.genre),
+        onSelected: (value) => notifier.genre(items[value].searchKey ?? ''),
       ),
     );
   }
 }
 
-class _MenuFilterButton extends StatelessWidget {
-  const _MenuFilterButton({required this.label, required this.icon, required this.values, required this.onSelected, required this.formatter});
+/// 第二行：排序方式（文本胶囊）+ 右侧「更多筛选」。
+class _SortRow extends StatelessWidget {
+  const _SortRow({required this.options, required this.query, required this.notifier});
 
-  final String label;
-  final IconData icon;
-  final List<String> values;
-  final ValueChanged<String> onSelected;
-  final String Function(String) formatter;
+  final SearchOptionCatalog? options;
+  final SearchQuery query;
+  final SearchQueryNotifier notifier;
 
   @override
-  Widget build(BuildContext context) => MenuAnchor(
-        menuChildren: values
-            .map((value) => MenuItemButton(onPressed: () => onSelected(value), child: Text(formatter(value))))
-            .toList(growable: false),
-        builder: (context, controller, child) => FilledButton.tonalIcon(
-          onPressed: controller.open,
-          icon: Icon(icon, size: 18),
-          label: Text(label),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final catalog = options;
+    final l10n = AppLocalizations.of(context)!;
+    if (catalog == null) return const SizedBox(height: 46);
+    final locale = searchOptionLocaleKey(Localizations.localeOf(context));
+    return SizedBox(
+      height: 46,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              children: [
+                for (final item in catalog.sorts.options)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _SortChip(
+                      label: item.searchKey == null ? l10n.searchSortGeneral : item.labelFor(locale),
+                      selected: (item.searchKey ?? '') == query.sort,
+                      onTap: () => notifier.sort(item.searchKey ?? ''),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _MoreFiltersMenu(options: catalog, query: query, notifier: notifier),
+          const SizedBox(width: 12),
+        ],
+      ),
+    );
+  }
 }
 
-class _ActionFilterButton extends StatelessWidget {
-  const _ActionFilterButton({required this.label, required this.icon, required this.onPressed, this.selected = false});
+class _SortChip extends StatelessWidget {
+  const _SortChip({required this.label, required this.selected, required this.onTap});
 
   final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
   final bool selected;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => selected
-      ? FilledButton.icon(onPressed: onPressed, icon: Icon(icon, size: 18), label: Text(label))
-      : FilledButton.tonalIcon(onPressed: onPressed, icon: Icon(icon, size: 18), label: Text(label));
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(color: selected ? scheme.primary : scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        child: Text(label, maxLines: 1, style: TextStyle(fontSize: 12.5, color: selected ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+      ),
+    );
+  }
+}
+
+/// 「更多筛选」：把发布日期、时长、标签、作者收进一个菜单，菜单项直接显示当前取值。
+class _MoreFiltersMenu extends StatelessWidget {
+  const _MoreFiltersMenu({required this.options, required this.query, required this.notifier});
+
+  final SearchOptionCatalog options;
+  final SearchQuery query;
+  final SearchQueryNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = searchOptionLocaleKey(Localizations.localeOf(context));
+    final dates = options.releaseDates;
+    final durations = options.durations;
+    return MenuAnchor(
+      menuChildren: [
+        SubmenuButton(
+          leadingIcon: const Icon(Icons.calendar_month_outlined, size: 18),
+          menuChildren: [
+            for (final item in dates.options)
+              MenuItemButton(onPressed: () => notifier.date(item.searchKey ?? ''), child: Text((item.searchKey ?? '').isEmpty ? l10n.all : item.labelFor(locale))),
+            const Divider(height: 8),
+            MenuItemButton(
+              onPressed: () async {
+                final date = await _showDateFilter(context, query.date, dates.options, locale);
+                if (date != null) notifier.date(date);
+              },
+              child: Text(l10n.specificYearMonth),
+            ),
+          ],
+          child: Text(l10n.releaseDate(query.date.isEmpty ? l10n.all : dates.localize(query.date, locale) ?? query.date)),
+        ),
+        SubmenuButton(
+          leadingIcon: const Icon(Icons.schedule_outlined, size: 18),
+          menuChildren: [
+            for (final item in durations.options)
+              MenuItemButton(onPressed: () => notifier.duration(item.searchKey ?? ''), child: Text((item.searchKey ?? '').isEmpty ? l10n.all : item.labelFor(locale))),
+          ],
+          child: Text(l10n.duration(query.duration.isEmpty ? l10n.all : durations.localize(query.duration, locale) ?? query.duration)),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.sell_outlined, size: 18),
+          onPressed: () async {
+            final selection = await _showTagFilter(context, query.tags, query.broad, options, locale);
+            if (selection != null) notifier.tags(selection.tags, selection.broad);
+          },
+          child: Text(query.tags.isEmpty ? l10n.tags : l10n.tagsSelected(query.tags.length)),
+        ),
+        MenuItemButton(
+          leadingIcon: Icon(query.type == 'artist' ? Icons.check : Icons.person_search_outlined, size: 18),
+          onPressed: () => notifier.type(query.type == 'artist' ? '' : 'artist'),
+          child: Text(l10n.searchAuthors),
+        ),
+      ],
+      builder: (context, controller, child) => TextButton.icon(
+        onPressed: controller.open,
+        icon: const Icon(Icons.tune, size: 18),
+        label: Text(l10n.searchMoreFilters),
+      ),
+    );
+  }
 }
 
 enum _DateMode { range, month }

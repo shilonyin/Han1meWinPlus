@@ -639,5 +639,9 @@
   "homeQuickCategoriesAvailable": "Available",
   "homeQuickCategoriesFull": "Limit reached ({max})",
   "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
-  "homeQuickCategoriesNeedsNetwork": "Load the home page first to list all categories (only saved ones are shown now)"
+  "homeQuickCategoriesNeedsNetwork": "Load the home page first to list all categories (only saved ones are shown now)",
+  "clearSearchHistory": "Clear",
+  "searchPopularTags": "Popular tags",
+  "searchSortGeneral": "General",
+  "searchMoreFilters": "More filters"
 }
