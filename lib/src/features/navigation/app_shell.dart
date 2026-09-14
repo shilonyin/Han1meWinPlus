@@ -320,8 +320,8 @@ class _CompactNavigationRail extends ConsumerWidget {
   }
 }
 
-/// 单个窄栏条目：鼠标靠近时图标与文字转为主题色（b 站那种高亮），
-/// 不再弹出 tooltip —— 完整名称在宽抽屉与页面标题里都能看到。
+/// 单个窄栏条目：悬停或选中时**只有图标与文字**转为主题色（b 站那种），
+/// 不画底色块 —— 底色块会显得比图标本身还抢眼。
 class _CompactRailItem extends StatefulWidget {
   const _CompactRailItem({required this.item, required this.selected, required this.extent, required this.onTap});
 
@@ -346,7 +346,6 @@ class _CompactRailItemState extends State<_CompactRailItem> {
     final item = widget.item;
     final highlighted = selected || _hovering;
     final color = highlighted ? scheme.primary : scheme.onSurfaceVariant;
-    final background = selected ? scheme.primary.withValues(alpha: 0.12) : _hovering ? scheme.primary.withValues(alpha: 0.08) : null;
     final label = item.shortLabel ?? item.label;
     final extent = widget.extent;
     final iconSize = (extent * 0.42).clamp(14.0, 24.0);
@@ -359,19 +358,17 @@ class _CompactRailItemState extends State<_CompactRailItem> {
       child: SizedBox(
         height: extent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
           hoverColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
           onTap: widget.onTap,
-          child: Container(
-            decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
-                SizedBox(height: gap),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
-              ],
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
+              SizedBox(height: gap),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
+            ],
           ),
         ),
       ),
