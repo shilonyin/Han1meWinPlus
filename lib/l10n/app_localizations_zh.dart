@@ -1906,6 +1906,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchMoreFilters => '更多筛选';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get backToTop => '顶部';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3810,4 +3816,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get searchMoreFilters => '更多篩選';
+
+  @override
+  String get refresh => '重新整理';
+
+  @override
+  String get backToTop => '頂部';
 }

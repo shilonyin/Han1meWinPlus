@@ -643,5 +643,7 @@
   "clearSearchHistory": "Clear",
   "searchPopularTags": "Popular tags",
   "searchSortGeneral": "General",
-  "searchMoreFilters": "More filters"
+  "searchMoreFilters": "More filters",
+  "refresh": "Refresh",
+  "backToTop": "Top"
 }

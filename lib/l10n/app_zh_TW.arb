@@ -642,5 +642,7 @@
   "clearSearchHistory": "清空",
   "searchPopularTags": "熱門標籤",
   "searchSortGeneral": "綜合排序",
-  "searchMoreFilters": "更多篩選"
+  "searchMoreFilters": "更多篩選",
+  "refresh": "重新整理",
+  "backToTop": "頂部"
 }

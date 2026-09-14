@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show SearchResult;
 import '../../domain/models/search_query.dart';
+import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'search_controller.dart';
@@ -26,6 +27,7 @@ class SearchPage extends ConsumerStatefulWidget {
 
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textController = TextEditingController();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void dispose() {
     _textController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -91,21 +94,31 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           _GenreTabs(options: options, query: query, notifier: notifier),
           _SortRow(options: options, query: query, notifier: notifier),
           Expanded(
-            child: result.when(
-              loading: () => const Center(child: M3EContainedLoadingIndicator()),
-              error: (error, stackTrace) => _ErrorView(error: error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
-              data: (page) => page.items.isEmpty
-                  ? _EmptyState(message: l10n.noSearchResults)
-                  : VideoCardGrid(
-                      videos: page.items,
-                      cardsPerRow: _searchColumns,
-                      horizontal: true,
-                      itemBuilder: (context, index, video, _) => VideoCardTile(
-                        video: video,
-                        horizontal: true,
-                        onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
-                      ),
-                    ),
+            child: Stack(
+              children: [
+                result.when(
+                  loading: () => const Center(child: M3EContainedLoadingIndicator()),
+                  error: (error, stackTrace) => _ErrorView(error: error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
+                  data: (page) => page.items.isEmpty
+                      ? _EmptyState(message: l10n.noSearchResults)
+                      : VideoCardGrid(
+                          videos: page.items,
+                          cardsPerRow: _searchColumns,
+                          horizontal: true,
+                          controller: _scrollController,
+                          itemBuilder: (context, index, video, _) => VideoCardTile(
+                            video: video,
+                            horizontal: true,
+                            onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
+                          ),
+                        ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: ScrollActions(controller: _scrollController, onRefresh: () => ref.refresh(searchResultsProvider(request).future)),
+                ),
+              ],
             ),
           ),
           _PaginationBar(

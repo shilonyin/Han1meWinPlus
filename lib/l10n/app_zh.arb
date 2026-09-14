@@ -643,5 +643,7 @@
   "clearSearchHistory": "清空",
   "searchPopularTags": "热门标签",
   "searchSortGeneral": "综合排序",
-  "searchMoreFilters": "更多筛选"
+  "searchMoreFilters": "更多筛选",
+  "refresh": "刷新",
+  "backToTop": "顶部"
 }

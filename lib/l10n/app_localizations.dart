@@ -3667,6 +3667,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More filters'**
   String get searchMoreFilters;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @backToTop.
+  ///
+  /// In en, this message translates to:
+  /// **'Top'**
+  String get backToTop;
 }
 
 class _AppLocalizationsDelegate

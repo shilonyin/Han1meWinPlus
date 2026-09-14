@@ -173,7 +173,7 @@ class VideoCardTile extends StatelessWidget {
 }
 
 class VideoCardGrid extends ConsumerWidget {
-  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen, this.horizontal});
+  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen, this.horizontal, this.controller});
 
   final List<VideoCard> videos;
   final Widget Function(BuildContext context, int index, VideoCard video, bool horizontal)? itemBuilder;
@@ -186,6 +186,9 @@ class VideoCardGrid extends ConsumerWidget {
 
   /// 指定卡片方向（为空时用设置里的值）。
   final bool? horizontal;
+
+  /// 外部控制器（用于「回到顶部」这类滚动控制）。
+  final ScrollController? controller;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -205,6 +208,7 @@ class VideoCardGrid extends ConsumerWidget {
             ? ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 420.0)
             : (horizontal ? cardWidth * 9 / 16 + _horizontalCardMetaHeight : cardWidth / .58);
         return GridView.builder(
+          controller: controller,
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
           cacheExtent: 720,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

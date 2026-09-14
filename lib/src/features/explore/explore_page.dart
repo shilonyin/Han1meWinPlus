@@ -17,6 +17,7 @@ import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
+import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'explore_controller.dart';
@@ -509,18 +510,41 @@ bool _visible(VideoCard video, AppSettings? settings, Set<String> subscribed) {
 int _durationSeconds(String? text) => (text?.split(':').map(int.tryParse).toList() ?? const <int?>[]).fold<int>(0, (total, unit) => unit == null ? total : total * 60 + unit);
 int _viewsCount(String? text) => int.tryParse(RegExp(r'[\d,.]+').firstMatch(text ?? '')?.group(0)?.replaceAll(',', '') ?? '') ?? 0;
 
-class _HomeScroll extends StatelessWidget {
+class _HomeScroll extends ConsumerStatefulWidget {
   const _HomeScroll({this.featured, required this.sections, this.showHeader = true});
   final VideoCard? featured;
   final List<HomeSection> sections;
   final bool showHeader;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(physics: const AlwaysScrollableScrollPhysics(), cacheExtent: 720, slivers: [
-    if (featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _MaxWidth(child: _FeaturedVideo(video: featured!)))),
-    for (final section in sections) _HomeSection(section: section, showHeader: showHeader),
-    SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
-  ]);
+  ConsumerState<_HomeScroll> createState() => _HomeScrollState();
+}
+
+class _HomeScrollState extends ConsumerState<_HomeScroll> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        children: [
+          CustomScrollView(
+            controller: _controller,
+            physics: const AlwaysScrollableScrollPhysics(),
+            cacheExtent: 720,
+            slivers: [
+              if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _MaxWidth(child: _FeaturedVideo(video: widget.featured!)))),
+              for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
+              SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
+            ],
+          ),
+          Positioned(right: 0, bottom: 0, child: ScrollActions(controller: _controller, onRefresh: () => ref.read(homeSectionsProvider.notifier).refresh())),
+        ],
+      );
 }
 
 class _HomeSection extends ConsumerStatefulWidget {

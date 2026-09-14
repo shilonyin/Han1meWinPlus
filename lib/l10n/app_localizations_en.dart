@@ -1966,4 +1966,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchMoreFilters => 'More filters';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get backToTop => 'Top';
 }
