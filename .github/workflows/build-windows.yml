@@ -25,8 +25,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # 只在发布时拉取完整历史（生成更新日志需要），平时拉取最新提交即可
-          fetch-depth: ${{ startsWith(github.ref, 'refs/tags/') && 0 || 1 }}
+          # 发布（tag）时要完整历史与已有 tag 才能生成更新日志，平时只取最新提交即可。
+          # 注意：不能写成 `... && 0 || 1` —— GitHub 表达式里 0 是假值，会被 `||` 兜成 1，
+          # 于是发布构建也变成浅克隆：git describe 拿不到父提交，更新日志只剩最后一个提交。
+          # 用字符串 '0' / '1'（非空字符串为真）才可靠。
+          fetch-depth: ${{ startsWith(github.ref, 'refs/tags/') && '0' || '1' }}
 
       # 版本号以 .fvmrc 为唯一来源，避免 CI 与本地 Flutter 版本漂移
       - name: Read pinned Flutter version
