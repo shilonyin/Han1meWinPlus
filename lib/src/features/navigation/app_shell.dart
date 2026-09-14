@@ -270,32 +270,50 @@ class _CompactNavigationRail extends ConsumerWidget {
     final path = GoRouterState.of(context).uri.path;
     final loggedIn = account != null;
     final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
+    final items = _drawerDestinations(sections);
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: railWidth,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: colorScheme.surfaceContainerLow,
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          children: [
-            Center(
-              child: Tooltip(
-                message: hasAvatar ? account!.name ?? '' : loggedIn ? AppLocalizations.of(context)!.signedIn : AppLocalizations.of(context)!.signedOut,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => context.push('/mine'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: CircleAvatar(radius: 18, backgroundImage: hasAvatar ? NetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 20)),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 不用 ListView（桌面端会带滚动条）：按可用高度把每个条目的高度算出来，
+            // 图标、文字、间距跟着一起缩，所以调整窗口大小时侧栏始终完整显示、不滚动。
+            const avatarBlock = 50.0;
+            const dividerBlock = 14.0;
+            final fixed = avatarBlock + (sections.length - 1) * dividerBlock;
+            final extent = ((constraints.maxHeight - fixed - 8) / items.length).clamp(32.0, 60.0);
+            final content = Column(
+              children: [
+                SizedBox(
+                  height: avatarBlock,
+                  child: Center(
+                    child: Tooltip(
+                      message: hasAvatar ? account!.name ?? '' : loggedIn ? AppLocalizations.of(context)!.signedIn : AppLocalizations.of(context)!.signedOut,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => context.push('/mine'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: CircleAvatar(radius: 17, backgroundImage: hasAvatar ? NetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 19)),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (var i = 0; i < sections.length; i++) ...[
-              if (i > 0) const Divider(height: 18, indent: 12, endIndent: 12),
-              for (final item in sections[i].items) _CompactRailItem(item: item, selected: item.location == path, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
-            ],
-          ],
+                for (var i = 0; i < sections.length; i++) ...[
+                  if (i > 0) const SizedBox(height: dividerBlock, child: Divider(height: dividerBlock, indent: 12, endIndent: 12)),
+                  for (final item in sections[i].items) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
+                ],
+              ],
+            );
+            // 极端尺寸的兜底：允许滚动但隐藏滚动条（正常尺寸下根本不会滚）。
+            return ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+              child: SingleChildScrollView(padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6), child: content),
+            );
+          },
         ),
       ),
     );
@@ -303,10 +321,13 @@ class _CompactNavigationRail extends ConsumerWidget {
 }
 
 class _CompactRailItem extends StatelessWidget {
-  const _CompactRailItem({required this.item, required this.selected, required this.onTap});
+  const _CompactRailItem({required this.item, required this.selected, required this.extent, required this.onTap});
 
   final _DrawerItem item;
   final bool selected;
+
+  /// 由侧栏可用高度算出：窗口变矮时图标 / 文字 / 间距一起缩，保证不出现滚动。
+  final double extent;
   final VoidCallback onTap;
 
   @override
@@ -314,21 +335,24 @@ class _CompactRailItem extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final color = selected ? scheme.primary : scheme.onSurfaceVariant;
     final label = item.shortLabel ?? item.label;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+    final iconSize = (extent * 0.42).clamp(14.0, 24.0);
+    final labelSize = (extent * 0.2).clamp(9.0, 11.5);
+    final gap = ((extent - iconSize - labelSize - 4) / 2).clamp(1.0, 5.0);
+    return SizedBox(
+      height: extent,
       child: Tooltip(
         message: item.label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-            decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(12)),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(selected ? item.selectedIcon : item.icon, size: 22, color: color),
-                const SizedBox(height: 4),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, height: 1.1, color: color, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+                Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
+                SizedBox(height: gap),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
               ],
             ),
           ),
