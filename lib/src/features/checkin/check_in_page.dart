@@ -4,7 +4,6 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
-import '../settings/settings_list.dart';
 import 'check_in_controller.dart';
 
 /// 类型对应的表情（与类型 id 一一对应，便于在日历/明细里一眼区分）。
@@ -31,21 +30,27 @@ class CheckInPage extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) => Center(child: Text(l10n.loadFailed('$error'))),
-        data: (state) => Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: settingsListMaxWidth),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+        data: (state) => LayoutBuilder(
+          builder: (context, constraints) {
+            // 默认窗口高度有限：日历吃掉剩余空间（每格高度按行数动态算），保证一屏放得下；
+            // 窗口极矮时退化成可滚动，不会溢出。
+            final scrollable = constraints.maxHeight < 420;
+            final content = Column(
               children: [
                 _TodayCard(state: state),
-                const SizedBox(height: 16),
-                _MonthCalendar(state: state),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                if (scrollable) _MonthCalendar(state: state, cellExtent: 46) else Expanded(child: _MonthCalendar(state: state)),
+                const SizedBox(height: 10),
                 _StatsRow(state: state),
-                const SizedBox(height: 24),
               ],
-            ),
-          ),
+            );
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: scrollable ? SingleChildScrollView(padding: const EdgeInsets.all(12), child: content) : Padding(padding: const EdgeInsets.all(12), child: content),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -68,7 +73,7 @@ class _TodayCard extends ConsumerWidget {
     return Card(
       color: count > 0 ? scheme.primaryContainer : scheme.surfaceContainerHigh,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
         child: Row(
           children: [
             Expanded(
@@ -101,10 +106,14 @@ class _TodayCard extends ConsumerWidget {
 }
 
 /// 月历热力图：可翻月，每格显示当天次数，颜色随次数加深。
+///
+/// 默认（[cellExtent] 为空）会填满父级给的剩余高度并据此反推每格高度，
+/// 这样在默认窗口尺寸下日历与统计一屏就能放下；传入 [cellExtent] 时按固定高度使用。
 class _MonthCalendar extends ConsumerWidget {
-  const _MonthCalendar({required this.state});
+  const _MonthCalendar({required this.state, this.cellExtent});
 
   final CheckInState state;
+  final double? cellExtent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -116,52 +125,60 @@ class _MonthCalendar extends ConsumerWidget {
     final firstDayOfWeek = material.firstDayOfWeekIndex;
     // DateTime.weekday 是 1..7（周一..周日），换算成「周日=0」的下标后再按语言的一周起始偏移。
     final leading = (firstDay.weekday % 7 - firstDayOfWeek + 7) % 7;
+    final rows = ((leading + daysInMonth) / 7).ceil();
     final todayKey = checkInDateKey(DateTime.now());
+
+    Widget grid(double extent) {
+      final small = extent < 44;
+      return GridView.builder(
+        padding: EdgeInsets.zero,
+        shrinkWrap: cellExtent != null,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, mainAxisExtent: extent, mainAxisSpacing: 4, crossAxisSpacing: 4),
+        itemCount: leading + daysInMonth,
+        itemBuilder: (context, index) {
+          if (index < leading) return const SizedBox.shrink();
+          final day = DateTime(month.year, month.month, index - leading + 1);
+          final count = state.countFor(checkInDateKey(day));
+          final isToday = checkInDateKey(day) == todayKey;
+          return InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _openDay(context, ref, day),
+            child: Container(
+              decoration: BoxDecoration(
+                color: count == 0 ? scheme.surfaceContainerHighest.withValues(alpha: 0.4) : scheme.primaryContainer.withValues(alpha: (0.3 + 0.18 * count).clamp(0.3, 0.95)),
+                borderRadius: BorderRadius.circular(8),
+                border: isToday ? Border.all(color: scheme.primary, width: 1.5) : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('${day.day}', style: TextStyle(fontSize: small ? 11 : 13, height: 1.1, fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+                  if (count > 0) Text('x$count', style: TextStyle(fontSize: small ? 9 : 11, height: 1.1, color: scheme.onPrimaryContainer)),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     return Card(
       color: scheme.surfaceContainerLow,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
         child: Column(
           children: [
             Row(
               children: [
-                Expanded(child: Text('${month.year} / ${month.month}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), icon: const Icon(Icons.chevron_left)),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), icon: const Icon(Icons.chevron_right)),
+                Expanded(child: Text('${month.year} / ${month.month}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
+                IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Icons.chevron_left)),
+                IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Icons.chevron_right)),
               ],
             ),
             Row(children: [for (var i = 0; i < 7; i++) Expanded(child: Center(child: Text(material.narrowWeekdays[(firstDayOfWeek + i) % 7], style: Theme.of(context).textTheme.labelSmall)))]),
-            const SizedBox(height: 6),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.6, mainAxisSpacing: 4, crossAxisSpacing: 4),
-              itemCount: leading + daysInMonth,
-              itemBuilder: (context, index) {
-                if (index < leading) return const SizedBox.shrink();
-                final day = DateTime(month.year, month.month, index - leading + 1);
-                final count = state.countFor(checkInDateKey(day));
-                final isToday = checkInDateKey(day) == todayKey;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => _openDay(context, ref, day),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: count == 0 ? scheme.surfaceContainerHighest.withValues(alpha: 0.4) : scheme.primaryContainer.withValues(alpha: (0.3 + 0.18 * count).clamp(0.3, 0.95)),
-                      borderRadius: BorderRadius.circular(10),
-                      border: isToday ? Border.all(color: scheme.primary, width: 1.5) : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('${day.day}', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
-                        if (count > 0) Text('x$count', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onPrimaryContainer)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            const SizedBox(height: 4),
+            if (cellExtent case final extent?) grid(extent) else Expanded(child: LayoutBuilder(builder: (context, cell) => grid(((cell.maxHeight - 4 * (rows - 1)) / rows).clamp(24.0, 64.0)))),
           ],
         ),
       ),
@@ -201,14 +218,14 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(
             children: [
-              Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(height: 8),
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 6),
+              Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall),
+              Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall),
             ],
           ),
         ),
