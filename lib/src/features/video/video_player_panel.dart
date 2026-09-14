@@ -526,14 +526,14 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
   @override
   void initState() {
     super.initState();
-    // The player wants the whole window, so the in-app title bar has to get out
-    // of the way while this route is on screen.
-    WidgetsBinding.instance.addPostFrameCallback((_) => WindowChrome.visible.value = false);
+    // The player wants the whole screen: hide the in-app title bar and switch the
+    // window itself to full screen (hiding the title bar alone only fills the window).
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(WindowChrome.setFullscreen(true)));
   }
 
   @override
   void dispose() {
-    WindowChrome.visible.value = true;
+    unawaited(WindowChrome.setFullscreen(false));
     super.dispose();
   }
 

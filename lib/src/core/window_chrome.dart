@@ -44,6 +44,15 @@ class WindowChrome {
 
   static Future<void> minimize() => _run((manager) => manager.minimize());
 
+  /// 视频全屏：让窗口真正全屏（覆盖任务栏），同时收起应用内标题栏。
+  ///
+  /// 只用 [visible] 隐藏标题栏的话，画面只是“铺满这个窗口”，窗口本身还在，
+  /// 所以在桌面上必须再调 setFullScreen。
+  static Future<void> setFullscreen(bool value) async {
+    visible.value = !value;
+    await _run((manager) => manager.setFullScreen(value));
+  }
+
   static Future<void> close() => _run((manager) => manager.close());
 
   static Future<void> startDragging() => _run((manager) => manager.startDragging());
