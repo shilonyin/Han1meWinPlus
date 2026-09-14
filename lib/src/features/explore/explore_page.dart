@@ -51,6 +51,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   var _searchFocused = false;
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  final _searchFieldKey = GlobalKey();
+  final _topBarKey = GlobalKey();
+  final _bodyStackKey = GlobalKey();
 
   @override
   void initState() {
@@ -119,18 +122,26 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final idleSearchWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 180.0 : 132.0);
     final showDrawerButton = drawerMode && !permanentNavigationDrawer(context);
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: null,
-        // 顶栏内容全部自己排：左侧标题、搜索框、右侧图标，方便做「搜索框滑到中间」的过渡。
-        flexibleSpace: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
+      // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
+      // 处在同一个坐标系里，面板能跟搜索框严格对齐。
+      body: Stack(
+        key: _bodyStackKey,
+        children: [
+          Column(
             children: [
-              if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))),
-              Expanded(
-                child: Stack(
-                  children: [
+              Material(
+                color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+                child: SizedBox(
+                  height: 56,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      children: [
+                        if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))),
+                        Expanded(
+                          child: Stack(
+                            key: _topBarKey,
+                            children: [
                     // 左侧标题（分类下拉 + 快捷分类）：聚焦搜索时淡出并让位。
                     Positioned(
                       left: 0,
@@ -177,7 +188,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                             duration: const Duration(milliseconds: 220),
                             curve: Curves.easeOutCubic,
                             tween: Tween<double>(begin: idleSearchWidth, end: _searchFocused ? 520 : idleSearchWidth),
-                            builder: (context, width, child) => SizedBox(width: width, height: 56, child: child),
+                            builder: (context, width, child) => SizedBox(key: _searchFieldKey, width: width, height: 56, child: child),
                             child: _HomeSearchField(
                               controller: _searchController,
                               focusNode: _searchFocus,
@@ -190,17 +201,26 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                               },
                             ),
                           ),
-                          AnimatedOpacity(
-                            duration: const Duration(milliseconds: 160),
-                            opacity: _searchFocused ? 0 : 1,
-                            child: IgnorePointer(
-                              ignoring: _searchFocused,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
-                                  IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
-                                ],
+                          // 聚焦时右侧图标淡出并收窄为 0，搜索框才能真正落在正中间。
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.centerRight,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 160),
+                              opacity: _searchFocused ? 0 : 1,
+                              child: IgnorePointer(
+                                ignoring: _searchFocused,
+                                child: SizedBox(
+                                  width: _searchFocused ? 0 : null,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
+                                      IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -214,25 +234,28 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          feed.when(
-            skipLoadingOnReload: true,
-            skipLoadingOnRefresh: true,
-            loading: () => const Center(child: M3EContainedLoadingIndicator()),
-            error: (error, _) => _ErrorView(
-              error: error,
-              onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
-              onCloudflareVerified: () async {
-                final url = error is CloudflareChallengeException ? error.url : null;
-                if (await context.push<bool>('/cloudflare', extra: url) == true) {
-                  await Future<void>.delayed(const Duration(milliseconds: 250));
-                  await ref.read(homeSectionsProvider.notifier).refresh();
-                }
-              },
-            ),
-            data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
-          ),
+    ),
+    Expanded(
+      child: feed.when(
+        skipLoadingOnReload: true,
+        skipLoadingOnRefresh: true,
+        loading: () => const Center(child: M3EContainedLoadingIndicator()),
+        error: (error, _) => _ErrorView(
+          error: error,
+          onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
+          onCloudflareVerified: () async {
+            final url = error is CloudflareChallengeException ? error.url : null;
+            if (await context.push<bool>('/cloudflare', extra: url) == true) {
+              await Future<void>.delayed(const Duration(milliseconds: 250));
+              await ref.read(homeSectionsProvider.notifier).refresh();
+            }
+          },
+        ),
+        data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
+      ),
+    ),
+  ],
+),
           // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
           IgnorePointer(
             ignoring: !_searchPanelOpen,
@@ -246,39 +269,55 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
             ),
           ),
-          IgnorePointer(
-            ignoring: !_searchPanelOpen,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                offset: _searchPanelOpen ? Offset.zero : const Offset(0, -0.03),
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 170),
-                  opacity: _searchPanelOpen ? 1 : 0,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
-                      ),
-                      child: SearchSuggestions(
-                        width: (screenWidth - 64).clamp(280.0, 520.0),
-                        onSelected: (query) {
-                          _closeSearch();
-                          context.push('/search', extra: SearchRouteRequest(initialQuery: query));
-                        },
-                      ),
-                    ),
-                  ),
-                ),
+          _buildSearchPanel(context),
+        ],
+      ),
+    );
+  }
+
+  /// 建议面板按搜索框的实际位置摆放（宽度、水平位置都与搜索框一致），
+  /// 这样不管左侧是否有侧栏、窗口多宽，面板都和上方的搜索框对齐。
+  Widget _buildSearchPanel(BuildContext context) {
+    final barBox = _topBarKey.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox = _bodyStackKey.currentContext?.findRenderObject() as RenderBox?;
+    // 搜索框是顶栏内居中的，顶栏宽度在动画期间不变，所以用顶栏几何来定位面板最稳。
+    var width = (MediaQuery.sizeOf(context).width - 64).clamp(280.0, 520.0);
+    var left = 0.0;
+    if (barBox != null && barBox.hasSize && stackBox != null && stackBox.hasSize) {
+      width = width.clamp(240.0, barBox.size.width);
+      final barLeft = barBox.localToGlobal(Offset.zero).dx;
+      final stackLeft = stackBox.localToGlobal(Offset.zero).dx;
+      left = (barLeft - stackLeft + (barBox.size.width - width) / 2).clamp(0.0, (stackBox.size.width - width).clamp(0.0, double.infinity));
+    }
+    return Positioned(
+      left: left,
+      top: 62,
+      width: width,
+      child: IgnorePointer(
+        ignoring: !_searchPanelOpen,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          offset: _searchPanelOpen ? Offset.zero : const Offset(0, -0.03),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 170),
+            opacity: _searchPanelOpen ? 1 : 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
+              ),
+              child: SearchSuggestions(
+                width: width,
+                onSelected: (query) {
+                  _closeSearch();
+                  context.push('/search', extra: SearchRouteRequest(initialQuery: query));
+                },
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
