@@ -1804,6 +1804,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get invalidCookies => '请输入有效的 Cookies';
+
+  @override
+  String get myListSection => '我的清单';
+
+  @override
+  String get videoSection => '影片';
+
+  @override
+  String get checkIn => '冲了么';
+
+  @override
+  String get checkInToday => '今日打卡';
+
+  @override
+  String get checkInNotYet => '今天还没打卡';
+
+  @override
+  String checkInTimes(int count) {
+    return '已打卡 $count 次';
+  }
+
+  @override
+  String get checkInNow => '打卡';
+
+  @override
+  String get checkInType => '类型';
+
+  @override
+  String get checkInTypeMasturbation => '自慰';
+
+  @override
+  String get checkInTypeWetDream => '湿梦';
+
+  @override
+  String get checkInTypeSex => '做爱';
+
+  @override
+  String get checkInTypeOral => '口交';
+
+  @override
+  String get checkInMonthDays => '本月打卡天数';
+
+  @override
+  String get checkInMonthTotal => '本月总次数';
+
+  @override
+  String get checkInBestStreak => '最佳连续';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3606,4 +3653,51 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get invalidCookies => '請輸入有效的 Cookies';
+
+  @override
+  String get myListSection => '我的清單';
+
+  @override
+  String get videoSection => '影片';
+
+  @override
+  String get checkIn => '衝了麼';
+
+  @override
+  String get checkInToday => '今日打卡';
+
+  @override
+  String get checkInNotYet => '今天還沒打卡';
+
+  @override
+  String checkInTimes(int count) {
+    return '已打卡 $count 次';
+  }
+
+  @override
+  String get checkInNow => '打卡';
+
+  @override
+  String get checkInType => '類型';
+
+  @override
+  String get checkInTypeMasturbation => '自慰';
+
+  @override
+  String get checkInTypeWetDream => '濕夢';
+
+  @override
+  String get checkInTypeSex => '做愛';
+
+  @override
+  String get checkInTypeOral => '口交';
+
+  @override
+  String get checkInMonthDays => '本月打卡天數';
+
+  @override
+  String get checkInMonthTotal => '本月總次數';
+
+  @override
+  String get checkInBestStreak => '最佳連續';
 }

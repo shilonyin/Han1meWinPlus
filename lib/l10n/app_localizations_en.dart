@@ -1862,4 +1862,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidCookies => 'Enter valid cookies';
+
+  @override
+  String get myListSection => 'My Lists';
+
+  @override
+  String get videoSection => 'Videos';
+
+  @override
+  String get checkIn => 'Check-in';
+
+  @override
+  String get checkInToday => 'Today\'s check-ins';
+
+  @override
+  String get checkInNotYet => 'No check-ins today yet';
+
+  @override
+  String checkInTimes(int count) {
+    return 'Checked in $count times';
+  }
+
+  @override
+  String get checkInNow => 'Check in';
+
+  @override
+  String get checkInType => 'Type';
+
+  @override
+  String get checkInTypeMasturbation => 'Masturbation';
+
+  @override
+  String get checkInTypeWetDream => 'Wet dream';
+
+  @override
+  String get checkInTypeSex => 'Sex';
+
+  @override
+  String get checkInTypeOral => 'Oral';
+
+  @override
+  String get checkInMonthDays => 'Days this month';
+
+  @override
+  String get checkInMonthTotal => 'Times this month';
+
+  @override
+  String get checkInBestStreak => 'Best streak';
 }

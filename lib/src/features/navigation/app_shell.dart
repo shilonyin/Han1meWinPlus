@@ -149,21 +149,62 @@ int _libraryTab(String? tab) => switch (tab) {
       _ => 0,
     };
 
-List<_DrawerItem> _drawerItems(BuildContext context, {bool comicMode = false}) {
+/// 抽屉里的一个分组：标题为空表示顶部的「主项」区（不显示标题）。
+class _DrawerSection {
+  const _DrawerSection({this.title, required this.items});
+
+  final String? title;
+  final List<_DrawerItem> items;
+}
+
+/// 侧边栏结构（参考移动端分支的分组）：主项 → 我的清单 → 影片。
+List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = false}) {
   final l10n = AppLocalizations.of(context)!;
-  final items = [
-    _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
-    _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings'),
-    _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, location: '/library/watch-later'),
-    _DrawerItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: l10n.favoriteVideos, location: '/library/favorites'),
-    if (!comicMode) ...[
-      _DrawerItem(icon: Icons.playlist_play_outlined, selectedIcon: Icons.playlist_play, label: l10n.playlists, location: '/library/playlists'),
-      _DrawerItem(icon: Icons.subscriptions_outlined, selectedIcon: Icons.subscriptions, label: l10n.subscriptions, location: '/library/subscriptions'),
-      _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, location: '/library/history'),
-    ],
-    _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache'),
+  final now = DateTime.now();
+  final month = '${now.year.toString().padLeft(4, '0')}${now.month.toString().padLeft(2, '0')}';
+  return [
+    _DrawerSection(items: [
+      _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
+      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, location: '/previews/$month'),
+      _DrawerItem(icon: Icons.thumb_up_alt_outlined, selectedIcon: Icons.thumb_up_alt, label: l10n.checkIn, location: '/check-in'),
+      _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings'),
+    ]),
+    _DrawerSection(title: l10n.myListSection, items: [
+      _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, location: '/library/watch-later'),
+      _DrawerItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: l10n.favoriteVideos, location: '/library/favorites'),
+      if (!comicMode) ...[
+        _DrawerItem(icon: Icons.playlist_play_outlined, selectedIcon: Icons.playlist_play, label: l10n.playlists, location: '/library/playlists'),
+        _DrawerItem(icon: Icons.subscriptions_outlined, selectedIcon: Icons.subscriptions, label: l10n.subscriptions, location: '/library/subscriptions'),
+      ],
+    ]),
+    _DrawerSection(title: l10n.videoSection, items: [
+      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, location: '/library/history'),
+      _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache'),
+    ]),
   ];
-  return items;
+}
+
+/// 所有目的地（把分组压平，供选中下标与点击使用）。
+List<_DrawerItem> _drawerDestinations(List<_DrawerSection> sections) => [for (final section in sections) ...section.items];
+
+/// 分组标题（与设置页列表的标题保持一致的视觉）。
+Widget _drawerSectionTitle(BuildContext context, String title) => Padding(
+      padding: const EdgeInsets.fromLTRB(28, 12, 28, 8),
+      child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+    );
+
+/// 打开抽屉项对应的页面（分支页切分支，其余 push）。
+void _openDrawerLocation(BuildContext context, StatefulNavigationShell navigationShell, String location) {
+  switch (location) {
+    case '/':
+      navigationShell.goBranch(0, initialLocation: navigationShell.currentIndex == 0);
+    case '/settings':
+      navigationShell.goBranch(3, initialLocation: navigationShell.currentIndex == 3);
+    case '/cache':
+      navigationShell.goBranch(2, initialLocation: navigationShell.currentIndex == 2);
+    default:
+      context.push(location);
+  }
 }
 
 int _selectedDrawerIndex(BuildContext context, List<_DrawerItem> items) {
@@ -180,7 +221,8 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider).valueOrNull;
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
-    final destinations = _drawerItems(context, comicMode: comicMode);
+    final sections = _drawerSections(context, comicMode: comicMode);
+    final destinations = _drawerDestinations(sections);
     final selectedIndex = _selectedDrawerIndex(context, destinations);
     return NavigationDrawer(
       selectedIndex: selectedIndex < 0 ? null : selectedIndex,
@@ -191,27 +233,20 @@ class _AppDrawer extends ConsumerWidget {
           context.push('/mine');
         }),
         const SizedBox(height: 12),
-        for (final destination in destinations) NavigationDrawerDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label)),
+        for (final section in sections) ...[
+          if (section.title != null) _drawerSectionTitle(context, section.title!),
+          for (final item in section.items) NavigationDrawerDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon), label: Text(item.label)),
+        ],
+        const SizedBox(height: 12),
       ],
     );
   }
 
   void _go(BuildContext context, String location) {
-    if (GoRouterState.of(context).uri.path == location) {
-      Navigator.pop(context);
-      return;
-    }
+    final current = GoRouterState.of(context).uri.path;
     Navigator.pop(context);
-    switch (location) {
-      case '/':
-        navigationShell.goBranch(0, initialLocation: navigationShell.currentIndex == 0);
-      case '/settings':
-        navigationShell.goBranch(3, initialLocation: navigationShell.currentIndex == 3);
-      case '/cache':
-        navigationShell.goBranch(2, initialLocation: navigationShell.currentIndex == 2);
-      default:
-        context.push(location);
-    }
+    if (current == location) return;
+    _openDrawerLocation(context, navigationShell, location);
   }
 }
 
@@ -224,30 +259,23 @@ class _PermanentNavigationDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider).valueOrNull;
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
-    final destinations = _drawerItems(context, comicMode: comicMode);
+    final sections = _drawerSections(context, comicMode: comicMode);
+    final destinations = _drawerDestinations(sections);
     final selectedIndex = _selectedDrawerIndex(context, destinations);
     return SizedBox(
       width: 320,
       child: SafeArea(
         child: NavigationDrawer(
           selectedIndex: selectedIndex < 0 ? null : selectedIndex,
-          onDestinationSelected: (index) {
-            final location = destinations[index].location;
-            switch (location) {
-              case '/':
-                navigationShell.goBranch(0, initialLocation: navigationShell.currentIndex == 0);
-              case '/settings':
-                navigationShell.goBranch(3, initialLocation: navigationShell.currentIndex == 3);
-              case '/cache':
-                navigationShell.goBranch(2, initialLocation: navigationShell.currentIndex == 2);
-              default:
-                context.push(location);
-            }
-          },
+          onDestinationSelected: (index) => _openDrawerLocation(context, navigationShell, destinations[index].location),
           children: [
             _DrawerAccountCard(account: account, onTap: () => context.push('/mine')),
             const SizedBox(height: 12),
-            for (final destination in destinations) NavigationDrawerDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label)),
+            for (final section in sections) ...[
+              if (section.title != null) _drawerSectionTitle(context, section.title!),
+              for (final item in section.items) NavigationDrawerDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon), label: Text(item.label)),
+            ],
+            const SizedBox(height: 12),
           ],
         ),
       ),

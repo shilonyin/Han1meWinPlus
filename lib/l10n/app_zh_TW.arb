@@ -607,5 +607,21 @@
   "chooseFolder": "選擇資料夾",
   "manualCookieLogin": "手動輸入 Cookies",
   "cookies": "Cookies",
-  "invalidCookies": "請輸入有效的 Cookies"
+  "invalidCookies": "請輸入有效的 Cookies",
+  "myListSection": "我的清單",
+  "videoSection": "影片",
+  "checkIn": "衝了麼",
+  "checkInToday": "今日打卡",
+  "checkInNotYet": "今天還沒打卡",
+  "checkInTimes": "已打卡 {count} 次",
+  "@checkInTimes": {"placeholders": {"count": {"type": "int"}}},
+  "checkInNow": "打卡",
+  "checkInType": "類型",
+  "checkInTypeMasturbation": "自慰",
+  "checkInTypeWetDream": "濕夢",
+  "checkInTypeSex": "做愛",
+  "checkInTypeOral": "口交",
+  "checkInMonthDays": "本月打卡天數",
+  "checkInMonthTotal": "本月總次數",
+  "checkInBestStreak": "最佳連續"
 }

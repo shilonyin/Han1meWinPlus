@@ -20,6 +20,7 @@ import '../features/navigation/exit_coordinator.dart';
 import '../features/previews/getchu_preview_detail_page.dart';
 import '../features/previews/getchu_preview_page.dart';
 import '../features/previews/previews_page.dart';
+import '../features/checkin/check_in_page.dart';
 import '../features/search/search_page.dart';
 import '../features/settings/about_page.dart';
 import '../features/settings/application_settings_page.dart';
@@ -133,6 +134,7 @@ class AppRouter {
         GoRoute(path: '/previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
         GoRoute(path: '/comments/:type/:id', builder: (context, state) => CommentsPage(id: state.pathParameters['id']!, type: state.pathParameters['type']!, title: state.extra as String? ?? '')),
         GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
+        GoRoute(path: '/check-in', builder: (context, state) => const CheckInPage()),
         GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
         GoRoute(path: '/video/:id', builder: (context, state) => VideoPage(id: state.pathParameters['id']!, localVideo: state.extra as VideoDetail?)),
         GoRoute(path: '/comics/browse', builder: (context, state) => ComicBrowsePage(target: state.extra as ComicBrowseTarget? ?? const ComicBrowseTarget('/comics'))),

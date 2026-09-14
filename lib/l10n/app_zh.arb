@@ -608,5 +608,21 @@
   "chooseFolder": "选择文件夹",
   "manualCookieLogin": "手动录入 Cookies",
   "cookies": "Cookies",
-  "invalidCookies": "请输入有效的 Cookies"
+  "invalidCookies": "请输入有效的 Cookies",
+  "myListSection": "我的清单",
+  "videoSection": "影片",
+  "checkIn": "冲了么",
+  "checkInToday": "今日打卡",
+  "checkInNotYet": "今天还没打卡",
+  "checkInTimes": "已打卡 {count} 次",
+  "@checkInTimes": {"placeholders": {"count": {"type": "int"}}},
+  "checkInNow": "打卡",
+  "checkInType": "类型",
+  "checkInTypeMasturbation": "自慰",
+  "checkInTypeWetDream": "湿梦",
+  "checkInTypeSex": "做爱",
+  "checkInTypeOral": "口交",
+  "checkInMonthDays": "本月打卡天数",
+  "checkInMonthTotal": "本月总次数",
+  "checkInBestStreak": "最佳连续"
 }

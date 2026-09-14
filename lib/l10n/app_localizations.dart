@@ -3475,6 +3475,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter valid cookies'**
   String get invalidCookies;
+
+  /// No description provided for @myListSection.
+  ///
+  /// In en, this message translates to:
+  /// **'My Lists'**
+  String get myListSection;
+
+  /// No description provided for @videoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get videoSection;
+
+  /// No description provided for @checkIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in'**
+  String get checkIn;
+
+  /// No description provided for @checkInToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s check-ins'**
+  String get checkInToday;
+
+  /// No description provided for @checkInNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No check-ins today yet'**
+  String get checkInNotYet;
+
+  /// No description provided for @checkInTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked in {count} times'**
+  String checkInTimes(int count);
+
+  /// No description provided for @checkInNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in'**
+  String get checkInNow;
+
+  /// No description provided for @checkInType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get checkInType;
+
+  /// No description provided for @checkInTypeMasturbation.
+  ///
+  /// In en, this message translates to:
+  /// **'Masturbation'**
+  String get checkInTypeMasturbation;
+
+  /// No description provided for @checkInTypeWetDream.
+  ///
+  /// In en, this message translates to:
+  /// **'Wet dream'**
+  String get checkInTypeWetDream;
+
+  /// No description provided for @checkInTypeSex.
+  ///
+  /// In en, this message translates to:
+  /// **'Sex'**
+  String get checkInTypeSex;
+
+  /// No description provided for @checkInTypeOral.
+  ///
+  /// In en, this message translates to:
+  /// **'Oral'**
+  String get checkInTypeOral;
+
+  /// No description provided for @checkInMonthDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days this month'**
+  String get checkInMonthDays;
+
+  /// No description provided for @checkInMonthTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Times this month'**
+  String get checkInMonthTotal;
+
+  /// No description provided for @checkInBestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get checkInBestStreak;
 }
 
 class _AppLocalizationsDelegate

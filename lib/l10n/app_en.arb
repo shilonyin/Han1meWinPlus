@@ -608,5 +608,21 @@
   "chooseFolder": "Choose Folder",
   "manualCookieLogin": "Enter Cookies Manually",
   "cookies": "Cookies",
-  "invalidCookies": "Enter valid cookies"
+  "invalidCookies": "Enter valid cookies",
+  "myListSection": "My Lists",
+  "videoSection": "Videos",
+  "checkIn": "Check-in",
+  "checkInToday": "Today's check-ins",
+  "checkInNotYet": "No check-ins today yet",
+  "checkInTimes": "Checked in {count} times",
+  "@checkInTimes": {"placeholders": {"count": {"type": "int"}}},
+  "checkInNow": "Check in",
+  "checkInType": "Type",
+  "checkInTypeMasturbation": "Masturbation",
+  "checkInTypeWetDream": "Wet dream",
+  "checkInTypeSex": "Sex",
+  "checkInTypeOral": "Oral",
+  "checkInMonthDays": "Days this month",
+  "checkInMonthTotal": "Times this month",
+  "checkInBestStreak": "Best streak"
 }
