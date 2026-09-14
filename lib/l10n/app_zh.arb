@@ -630,5 +630,14 @@
   "railFavorites": "喜欢",
   "railPlaylists": "清单",
   "railSubscriptions": "订阅",
-  "railHistory": "历史"
+  "railHistory": "历史",
+  "homeQuickCategories": "首页快捷分类",
+  "homeQuickCategoriesDescription": "顶栏显示的六个常用分类，可自定义内容与顺序",
+  "homeQuickCategoriesSelected": "已选分类（拖动排序）",
+  "homeQuickCategoriesHint": "最多 {max} 个，点右侧 ✕ 移除",
+  "@homeQuickCategoriesHint": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesAvailable": "可选分类",
+  "homeQuickCategoriesFull": "已达上限（{max} 个）",
+  "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesNeedsNetwork": "需要先加载出首页分类（当前只能看到已保存的分类）"
 }

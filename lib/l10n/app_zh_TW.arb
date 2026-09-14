@@ -629,5 +629,14 @@
   "railFavorites": "喜歡",
   "railPlaylists": "清單",
   "railSubscriptions": "訂閱",
-  "railHistory": "歷史"
+  "railHistory": "歷史",
+  "homeQuickCategories": "首頁快捷分類",
+  "homeQuickCategoriesDescription": "頂欄顯示的六個常用分類，可自訂內容與順序",
+  "homeQuickCategoriesSelected": "已選分類（拖動排序）",
+  "homeQuickCategoriesHint": "最多 {max} 個，點右側 ✕ 移除",
+  "@homeQuickCategoriesHint": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesAvailable": "可選分類",
+  "homeQuickCategoriesFull": "已達上限（{max} 個）",
+  "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesNeedsNetwork": "需要先載入首頁分類（目前只能看到已儲存的分類）"
 }

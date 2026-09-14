@@ -28,6 +28,7 @@ import '../features/settings/backup_settings_page.dart';
 import '../features/settings/cloudflare_page.dart';
 import '../features/settings/comment_settings_page.dart';
 import '../features/settings/deep_link_settings_page.dart';
+import '../features/settings/home_categories_page.dart';
 import '../features/settings/keyframes_page.dart';
 import '../features/settings/language_settings_page.dart';
 import '../features/settings/layout_settings_page.dart';
@@ -127,6 +128,7 @@ class AppRouter {
         GoRoute(path: '/settings/deep-links', builder: (context, state) => const DeepLinkSettingsPage()),
         GoRoute(path: '/settings/theme', builder: (context, state) => const ThemeSettingsPage()),
         GoRoute(path: '/settings/layout', builder: (context, state) => const LayoutSettingsPage()),
+        GoRoute(path: '/settings/layout/home-categories', builder: (context, state) => const HomeCategoriesPage()),
         GoRoute(path: '/settings/network', builder: (context, state) => const NetworkSettingsPage()),
         GoRoute(path: '/settings/recommendations', builder: (context, state) => const RecommendationSettingsPage()),
         GoRoute(path: '/settings/recommendations/titles', builder: (context, state) => const VideoTitleFilterPage()),

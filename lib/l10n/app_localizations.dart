@@ -3601,6 +3601,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get railHistory;
+
+  /// No description provided for @homeQuickCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Home Shortcuts'**
+  String get homeQuickCategories;
+
+  /// No description provided for @homeQuickCategoriesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The six shortcuts shown in the home header; content and order are customizable'**
+  String get homeQuickCategoriesDescription;
+
+  /// No description provided for @homeQuickCategoriesSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected (drag to reorder)'**
+  String get homeQuickCategoriesSelected;
+
+  /// No description provided for @homeQuickCategoriesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {max}, tap ✕ to remove'**
+  String homeQuickCategoriesHint(int max);
+
+  /// No description provided for @homeQuickCategoriesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get homeQuickCategoriesAvailable;
+
+  /// No description provided for @homeQuickCategoriesFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit reached ({max})'**
+  String homeQuickCategoriesFull(int max);
+
+  /// No description provided for @homeQuickCategoriesNeedsNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Load the home page first to list all categories (only saved ones are shown now)'**
+  String get homeQuickCategoriesNeedsNetwork;
 }
 
 class _AppLocalizationsDelegate

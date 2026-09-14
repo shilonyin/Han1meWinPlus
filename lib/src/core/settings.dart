@@ -98,6 +98,7 @@ class AppSettings {
     this.useSystemFont = false,
     this.useSystemTitleBar = true,
     this.useHomeCategoryTabs = false,
+    this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
     this.blockedAuthors = const [],
     this.minimumVideoDurationSeconds = 0,
@@ -173,6 +174,10 @@ class AppSettings {
   final bool useSystemFont;
   final bool useSystemTitleBar;
   final bool useHomeCategoryTabs;
+
+  /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
+  /// 显示时再本地化。为空表示默认取首页前 6 个分类。
+  final List<String> homeQuickCategories;
   final List<String> blockedVideoTitleKeywords;
   final List<String> blockedAuthors;
   final int minimumVideoDurationSeconds;
@@ -267,6 +272,7 @@ class AppSettings {
         'useSystemFont': useSystemFont,
         'useSystemTitleBar': useSystemTitleBar,
         'useHomeCategoryTabs': useHomeCategoryTabs,
+        'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
         'blockedAuthors': blockedAuthors,
         'minimumVideoDurationSeconds': minimumVideoDurationSeconds,
@@ -342,6 +348,7 @@ class AppSettings {
         useSystemFont: json['useSystemFont'] as bool? ?? false,
         useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
+        homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
         blockedAuthors: (json['blockedAuthors'] as List? ?? const []).whereType<String>().toList(),
         minimumVideoDurationSeconds: (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400) as int,
@@ -462,6 +469,7 @@ class AppSettings {
     bool? useSystemFont,
     bool? useSystemTitleBar,
     bool? useHomeCategoryTabs,
+    List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
     List<String>? blockedAuthors,
     int? minimumVideoDurationSeconds,
@@ -536,6 +544,7 @@ class AppSettings {
         useSystemFont: useSystemFont ?? this.useSystemFont,
         useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
+        homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,
         blockedAuthors: blockedAuthors ?? this.blockedAuthors,
         minimumVideoDurationSeconds: minimumVideoDurationSeconds ?? this.minimumVideoDurationSeconds,

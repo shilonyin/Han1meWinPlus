@@ -1869,6 +1869,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get railHistory => '历史';
+
+  @override
+  String get homeQuickCategories => '首页快捷分类';
+
+  @override
+  String get homeQuickCategoriesDescription => '顶栏显示的六个常用分类，可自定义内容与顺序';
+
+  @override
+  String get homeQuickCategoriesSelected => '已选分类（拖动排序）';
+
+  @override
+  String homeQuickCategoriesHint(int max) {
+    return '最多 $max 个，点右侧 ✕ 移除';
+  }
+
+  @override
+  String get homeQuickCategoriesAvailable => '可选分类';
+
+  @override
+  String homeQuickCategoriesFull(int max) {
+    return '已达上限（$max 个）';
+  }
+
+  @override
+  String get homeQuickCategoriesNeedsNetwork => '需要先加载出首页分类（当前只能看到已保存的分类）';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3736,4 +3761,29 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get railHistory => '歷史';
+
+  @override
+  String get homeQuickCategories => '首頁快捷分類';
+
+  @override
+  String get homeQuickCategoriesDescription => '頂欄顯示的六個常用分類，可自訂內容與順序';
+
+  @override
+  String get homeQuickCategoriesSelected => '已選分類（拖動排序）';
+
+  @override
+  String homeQuickCategoriesHint(int max) {
+    return '最多 $max 個，點右側 ✕ 移除';
+  }
+
+  @override
+  String get homeQuickCategoriesAvailable => '可選分類';
+
+  @override
+  String homeQuickCategoriesFull(int max) {
+    return '已達上限（$max 個）';
+  }
+
+  @override
+  String get homeQuickCategoriesNeedsNetwork => '需要先載入首頁分類（目前只能看到已儲存的分類）';
 }

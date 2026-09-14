@@ -1927,4 +1927,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get railHistory => 'History';
+
+  @override
+  String get homeQuickCategories => 'Home Shortcuts';
+
+  @override
+  String get homeQuickCategoriesDescription =>
+      'The six shortcuts shown in the home header; content and order are customizable';
+
+  @override
+  String get homeQuickCategoriesSelected => 'Selected (drag to reorder)';
+
+  @override
+  String homeQuickCategoriesHint(int max) {
+    return 'Up to $max, tap ✕ to remove';
+  }
+
+  @override
+  String get homeQuickCategoriesAvailable => 'Available';
+
+  @override
+  String homeQuickCategoriesFull(int max) {
+    return 'Limit reached ($max)';
+  }
+
+  @override
+  String get homeQuickCategoriesNeedsNetwork =>
+      'Load the home page first to list all categories (only saved ones are shown now)';
 }

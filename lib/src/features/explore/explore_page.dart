@@ -53,15 +53,30 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final drawerMode = settings?.useNavigationDrawer ?? false;
     final l10n = AppLocalizations.of(context)!;
     final tabs = settings?.useHomeCategoryTabs == true;
-    final sections = feed.valueOrNull == null ? const <HomeSection>[] : _feedSections(feed.value!);
+    final categories = feed.valueOrNull == null ? const <_FeedCategory>[] : _feedCategories(feed.value!);
+    final sections = [for (final category in categories) category.section];
     final index = sections.isEmpty ? 0 : _sectionIndex.clamp(0, sections.length - 1).toInt();
     final showPicker = tabs && sections.isNotEmpty;
+    // 顶栏右侧的快捷分类（在「界面布局 → 首页快捷分类」里自定义内容与排序）。
+    final quick = tabs ? _quickCategories(categories, settings?.homeQuickCategories ?? const <String>[]) : const <({int index, String label})>[];
     return Scaffold(
       appBar: AppBar(
         leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
         // The category picker shares the bar with the actions so it lines up with
-        // them instead of taking a row of its own.
-        title: showPicker ? _CategorySelector(sections: sections, index: index, onSelected: (value) => setState(() => _sectionIndex = value)) : null,
+        // them instead of taking a row of its own; the six shortcuts sit next to it.
+        title: showPicker
+            ? Row(
+                children: [
+                  _CategorySelector(sections: sections, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
+                  if (quick.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    const SizedBox(height: 22, child: VerticalDivider(width: 1)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _QuickCategoryTabs(items: quick, index: index, onSelected: (value) => setState(() => _sectionIndex = value))),
+                  ],
+                ],
+              )
+            : null,
         titleSpacing: showPicker ? 8 : null,
         actions: [
           IconButton(onPressed: () => context.push('/search', extra: SearchRouteRequest()), icon: const Icon(Icons.search)),
@@ -89,21 +104,46 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  List<HomeSection> _feedSections(HomeFeed feed) {
+  List<_FeedCategory> _feedCategories(HomeFeed feed) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final locale = searchOptionLocaleKey(Localizations.localeOf(context));
     final subscribed = ref.watch(libraryProvider).valueOrNull?.artists.map((artist) => artist.name.toLowerCase()).toSet() ?? <String>{};
     return feed.sections
-        .map((section) => HomeSection(
-              title: _localizedSectionTitle(section, catalog, locale),
-              videos: section.videos.where((video) => _visible(video, settings, subscribed)).toList(),
-              moreUrl: section.moreUrl,
-              isFeatured: section.isFeatured,
+        .map((section) => _FeedCategory(
+              rawTitle: section.title,
+              section: HomeSection(
+                title: localizedHomeSectionTitle(section, catalog, locale),
+                videos: section.videos.where((video) => _visible(video, settings, subscribed)).toList(),
+                moreUrl: section.moreUrl,
+                isFeatured: section.isFeatured,
+              ),
             ))
-        .where((section) => section.videos.isNotEmpty)
+        .where((category) => category.section.videos.isNotEmpty)
         .toList();
   }
+
+  /// 顶栏快捷分类：优先按设置里保存的顺序（存的是站点原始分类名），未设置时取前 6 个。
+  List<({int index, String label})> _quickCategories(List<_FeedCategory> categories, List<String> configured) {
+    if (categories.isEmpty) return const [];
+    if (configured.isEmpty) {
+      return [for (var i = 0; i < categories.length && i < 6; i++) (index: i, label: categories[i].section.title)];
+    }
+    final result = <({int index, String label})>[];
+    for (final raw in configured) {
+      final index = categories.indexWhere((category) => category.rawTitle == raw);
+      if (index >= 0 && !result.any((item) => item.index == index)) result.add((index: index, label: categories[index].section.title));
+    }
+    return result;
+  }
+}
+
+/// 首页分类：`rawTitle` 是站点原始名（用于持久化与本地化查找），`section` 是本地化后的展示数据。
+class _FeedCategory {
+  const _FeedCategory({required this.rawTitle, required this.section});
+
+  final String rawTitle;
+  final HomeSection section;
 }
 
 class _HomeFeedBody extends ConsumerWidget {
@@ -179,7 +219,68 @@ class _CategorySelectorState extends State<_CategorySelector> {
   }
 }
 
-String _localizedSectionTitle(HomeSection section, SearchOptionCatalog? catalog, String locale) {
+/// 顶栏右侧的一排快捷分类（参考实现的样式）：文字 + 选中主题色 + 下方短下划线。
+class _QuickCategoryTabs extends StatelessWidget {
+  const _QuickCategoryTabs({required this.items, required this.index, required this.onSelected});
+
+  final List<({int index, String label})> items;
+  final int index;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [for (final item in items) _QuickCategoryTab(label: item.label, selected: item.index == index, onTap: () => onSelected(item.index))]),
+      );
+}
+
+class _QuickCategoryTab extends StatefulWidget {
+  const _QuickCategoryTab({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_QuickCategoryTab> createState() => _QuickCategoryTabState();
+}
+
+class _QuickCategoryTabState extends State<_QuickCategoryTab> {
+  var _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final highlighted = widget.selected || _hovering;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: InkWell(
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: highlighted ? scheme.primary : scheme.onSurfaceVariant, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
+              const SizedBox(height: 2),
+              Container(height: 2, width: 18, decoration: BoxDecoration(color: widget.selected ? scheme.primary : Colors.transparent, borderRadius: BorderRadius.circular(1))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 把站点的分类名换成当前语言下的名字（找不到就用原名）。首页顶栏与「首页快捷分类」
+/// 设置页都用它，保证两处显示一致。
+String localizedHomeSectionTitle(HomeSection section, SearchOptionCatalog? catalog, String locale) {
   if (catalog == null) return section.title;
   final uri = Uri.tryParse(section.moreUrl ?? '');
   final genre = uri?.queryParameters['genre'];

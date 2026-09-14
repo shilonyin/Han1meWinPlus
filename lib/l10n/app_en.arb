@@ -630,5 +630,14 @@
   "railFavorites": "Liked",
   "railPlaylists": "Lists",
   "railSubscriptions": "Subs",
-  "railHistory": "History"
+  "railHistory": "History",
+  "homeQuickCategories": "Home Shortcuts",
+  "homeQuickCategoriesDescription": "The six shortcuts shown in the home header; content and order are customizable",
+  "homeQuickCategoriesSelected": "Selected (drag to reorder)",
+  "homeQuickCategoriesHint": "Up to {max}, tap ✕ to remove",
+  "@homeQuickCategoriesHint": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesAvailable": "Available",
+  "homeQuickCategoriesFull": "Limit reached ({max})",
+  "@homeQuickCategoriesFull": {"placeholders": {"max": {"type": "int"}}},
+  "homeQuickCategoriesNeedsNetwork": "Load the home page first to list all categories (only saved ones are shown now)"
 }
