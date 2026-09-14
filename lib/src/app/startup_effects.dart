@@ -78,7 +78,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   }
 
   Future<void> _checkForUpdate(bool useUpdateMirror) async {
-    final update = await UpdateChecker(Dio()).check();
+    final update = await ref.read(updateCheckerProvider).check();
     if (!mounted || update == null) return;
     final context = widget.navigatorKey.currentContext;
     if (context == null) return;
