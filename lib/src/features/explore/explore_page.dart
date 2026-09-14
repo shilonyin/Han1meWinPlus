@@ -137,7 +137,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 child: SizedBox(
                   height: 56,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
                     child: Row(
                       children: [
                         if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))),
