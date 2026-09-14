@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// 首页顶栏的快捷分类与搜索页的分类页签都用它，保证两处视觉一致；[index] 传 -1 表示
 /// 当前没有任何一项处于选中状态（例如首页选中的分类不在快捷分类里）。
 class UnderlineTabStrip extends StatelessWidget {
-  const UnderlineTabStrip({super.key, required this.labels, required this.index, required this.onSelected, this.spacing = 0, this.padding});
+  const UnderlineTabStrip({super.key, required this.labels, required this.index, required this.onSelected, this.spacing = 0, this.padding, this.center = false});
 
   final List<String> labels;
   final int index;
@@ -15,19 +15,31 @@ class UnderlineTabStrip extends StatelessWidget {
   final double spacing;
   final EdgeInsetsGeometry? padding;
 
+  /// 内容比可用宽度窄时是否居中（超出时仍可横向滚动）。
+  final bool center;
+
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
+  Widget build(BuildContext context) {
+    final row = <Widget>[
+      for (var i = 0; i < labels.length; i++) ...[
+        if (i > 0 && spacing > 0) SizedBox(width: spacing),
+        UnderlineTab(label: labels[i], selected: i == index, onTap: () => onSelected(i)),
+      ],
+    ];
+    if (!center) {
+      return SingleChildScrollView(scrollDirection: Axis.horizontal, padding: padding, child: Row(children: row));
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: padding,
-        child: Row(
-          children: [
-            for (var i = 0; i < labels.length; i++) ...[
-              if (i > 0 && spacing > 0) SizedBox(width: spacing),
-              UnderlineTab(label: labels[i], selected: i == index, onTap: () => onSelected(i)),
-            ],
-          ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: IntrinsicWidth(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: row)),
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// [UnderlineTabStrip] 的单项，也可以单独使用。

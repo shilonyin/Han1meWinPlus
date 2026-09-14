@@ -73,17 +73,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       appBar: AppBar(
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back)),
         titleSpacing: 0,
-        title: _SearchInput(
-          controller: _textController,
-          hintText: l10n.searchHint,
-          autoFocus: request.initialUrl == null && request.initialQuery == null,
-          onSubmitted: submit,
-          onClear: () {
-            _textController.clear();
-            notifier.text('');
-          },
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: _SearchInput(
+              controller: _textController,
+              hintText: l10n.searchHint,
+              autoFocus: request.initialUrl == null && request.initialQuery == null,
+              onSubmitted: submit,
+              onClear: () {
+                _textController.clear();
+                notifier.text('');
+              },
+            ),
+          ),
         ),
-        actions: const [SizedBox(width: 12)],
+        actions: const [SizedBox(width: 56)],
       ),
       body: Column(
         children: [
@@ -187,7 +192,7 @@ class _GenreTabs extends StatelessWidget {
     return SizedBox(
       height: 44,
       child: UnderlineTabStrip(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        center: true,
         labels: [for (final item in items) item.searchKey == null ? l10n.all : item.labelFor(locale)],
         index: items.indexWhere((item) => (item.searchKey ?? '') == query.genre),
         onSelected: (value) => notifier.genre(items[value].searchKey ?? ''),
@@ -212,27 +217,32 @@ class _SortRow extends StatelessWidget {
     final locale = searchOptionLocaleKey(Localizations.localeOf(context));
     return SizedBox(
       height: 46,
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: ListView(
+          // 排序胶囊居中；两侧留出「更多筛选」的宽度，窄窗时内容仍可横向滚动。
+          Center(
+            child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              children: [
-                for (final item in catalog.sorts.options)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _SortChip(
-                      label: item.searchKey == null ? l10n.searchSortGeneral : item.labelFor(locale),
-                      selected: (item.searchKey ?? '') == query.sort,
-                      onTap: () => notifier.sort(item.searchKey ?? ''),
+              padding: const EdgeInsets.symmetric(horizontal: 112),
+              child: Row(
+                children: [
+                  for (final item in catalog.sorts.options)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _SortChip(
+                        label: item.searchKey == null ? l10n.searchSortGeneral : item.labelFor(locale),
+                        selected: (item.searchKey ?? '') == query.sort,
+                        onTap: () => notifier.sort(item.searchKey ?? ''),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
-          _MoreFiltersMenu(options: catalog, query: query, notifier: notifier),
-          const SizedBox(width: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(padding: const EdgeInsets.only(right: 12), child: _MoreFiltersMenu(options: catalog, query: query, notifier: notifier)),
+          ),
         ],
       ),
     );

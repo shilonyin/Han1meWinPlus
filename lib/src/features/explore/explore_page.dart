@@ -131,20 +131,25 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 child: const SizedBox.expand(),
               ),
             ),
-            Positioned(
-              top: 6,
-              right: 16,
-              child: Material(
-                elevation: 12,
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(14),
-                clipBehavior: Clip.antiAlias,
-                child: SearchSuggestions(
-                  width: (screenWidth - 64).clamp(280.0, 560.0),
-                  onSelected: (query) {
-                    setState(() => _searchPanelOpen = false);
-                    context.push('/search', extra: SearchRouteRequest(initialQuery: query));
-                  },
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6, right: 16),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
+                    ),
+                    child: SearchSuggestions(
+                      width: (screenWidth - 64).clamp(280.0, 560.0),
+                      onSelected: (query) {
+                        setState(() => _searchPanelOpen = false);
+                        context.push('/search', extra: SearchRouteRequest(initialQuery: query));
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
