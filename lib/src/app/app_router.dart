@@ -56,7 +56,20 @@ class AppRouter {
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell, exitCoordinator: exitCoordinator),
           branches: [
-            StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => const ExplorePage())]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const ExplorePage(),
+                // 这些页面挂在本分支下，使其在侧栏内侧展开（常驻侧栏不会消失）。
+                // 子路径与父路径拼接后仍是 /check-in、/previews/... ，URL 不变。
+                routes: [
+                  GoRoute(path: 'check-in', builder: (context, state) => const CheckInPage()),
+                  GoRoute(path: 'previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),
+                  GoRoute(path: 'previews/getchu/:month', builder: (context, state) => GetchuPreviewPage(month: state.pathParameters['month']!)),
+                  GoRoute(path: 'previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
+                ],
+              ),
+            ]),
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -129,12 +142,8 @@ class AppRouter {
         GoRoute(path: '/settings/player/hardware-decoder', builder: (context, state) => const HardwareDecoderSettingsPage()),
         GoRoute(path: '/settings/player/super-resolution', builder: (context, state) => const SuperResolutionSettingsPage()),
         GoRoute(path: '/cloudflare', builder: (context, state) => CloudflarePage(initialUrl: state.extra as String?)),
-        GoRoute(path: '/previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),
-        GoRoute(path: '/previews/getchu/:month', builder: (context, state) => GetchuPreviewPage(month: state.pathParameters['month']!)),
-        GoRoute(path: '/previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
         GoRoute(path: '/comments/:type/:id', builder: (context, state) => CommentsPage(id: state.pathParameters['id']!, type: state.pathParameters['type']!, title: state.extra as String? ?? '')),
         GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
-        GoRoute(path: '/check-in', builder: (context, state) => const CheckInPage()),
         GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
         GoRoute(path: '/video/:id', builder: (context, state) => VideoPage(id: state.pathParameters['id']!, localVideo: state.extra as VideoDetail?)),
         GoRoute(path: '/comics/browse', builder: (context, state) => ComicBrowsePage(target: state.extra as ComicBrowseTarget? ?? const ComicBrowseTarget('/comics'))),
