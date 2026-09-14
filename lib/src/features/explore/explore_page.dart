@@ -310,6 +310,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
               child: SearchSuggestions(
                 width: width,
+                maxHeight: (MediaQuery.sizeOf(context).height - 100).clamp(240.0, 640.0),
                 onSelected: (query) {
                   _closeSearch();
                   context.push('/search', extra: SearchRouteRequest(initialQuery: query));

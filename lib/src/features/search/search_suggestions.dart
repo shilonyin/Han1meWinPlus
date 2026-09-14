@@ -11,13 +11,19 @@ import 'search_controller.dart';
 /// 面板本身不关心「点了以后去哪」——[onSelected] 由调用方决定：首页跳到搜索页，
 /// 搜索页则就地替换当前的查询条件。
 class SearchSuggestions extends ConsumerStatefulWidget {
-  const SearchSuggestions({super.key, required this.onSelected, this.width = 560, this.historyLimit = 8});
+  const SearchSuggestions({super.key, required this.onSelected, this.width = 560, this.historyLimit = 8, this.maxHeight = 460});
 
   final ValueChanged<SearchQuery> onSelected;
   final double width;
 
-  /// 未展开时最多显示几条搜索历史。
+  /// 未展开时最多显示几条搜索历史（默认四列两行）。
   final int historyLimit;
+
+  /// 面板最大高度，超出时内部滚动（历史条目多或窗口矮时用）。
+  final double maxHeight;
+
+  /// 历史与热门标签的列数。
+  static const columns = 4;
 
   @override
   ConsumerState<SearchSuggestions> createState() => _SearchSuggestionsState();
@@ -37,12 +43,15 @@ class _SearchSuggestionsState extends ConsumerState<SearchSuggestions> {
     final popular = _popularTags(catalog, locale);
     return SizedBox(
       width: widget.width,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: widget.maxHeight),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             Row(
               children: [
                 Text(l10n.searchHistory, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
@@ -58,22 +67,35 @@ class _SearchSuggestionsState extends ConsumerState<SearchSuggestions> {
             const SizedBox(height: 6),
             if (history.isEmpty)
               Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(l10n.searchHistoryEmpty, style: theme.textTheme.bodySmall))
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final query in visible) _SuggestionChip(label: _historyLabel(query, catalog, locale, l10n), onTap: () => widget.onSelected(query)),
-                  if (!_expanded && history.length > widget.historyLimit) _MoreChip(label: l10n.expand, onTap: () => setState(() => _expanded = true)),
-                ],
-              ),
+            else ...[
+              for (var row = 0; row * SearchSuggestions.columns < visible.length; row++)
+                Padding(
+                  padding: EdgeInsets.only(bottom: (row + 1) * SearchSuggestions.columns < visible.length ? 8 : 0),
+                  child: Row(
+                    children: [
+                      for (var column = 0; column < SearchSuggestions.columns; column++) ...[
+                        if (column > 0) const SizedBox(width: 8),
+                        Expanded(
+                          child: row * SearchSuggestions.columns + column < visible.length
+                              ? _SuggestionChip(label: _historyLabel(visible[row * SearchSuggestions.columns + column], catalog, locale, l10n), onTap: () => widget.onSelected(visible[row * SearchSuggestions.columns + column]))
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              if (!_expanded && history.length > widget.historyLimit)
+                Align(alignment: Alignment.center, child: _MoreChip(label: l10n.expand, onTap: () => setState(() => _expanded = true))),
+            ],
             if (popular.isNotEmpty) ...[
               Divider(height: 26, color: theme.colorScheme.outlineVariant.withValues(alpha: .5)),
               Text(l10n.searchPopularTags, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               _PopularTagList(items: popular, onSelected: widget.onSelected),
             ],
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -111,16 +133,21 @@ class _PopularTagList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = (items.length + 1) ~/ 2;
+    final rows = (items.length + SearchSuggestions.columns - 1) ~/ SearchSuggestions.columns;
     return Column(
       children: [
         for (var row = 0; row < rows; row++)
           Row(
             children: [
-              for (var column = 0; column < 2; column++)
+              for (var column = 0; column < SearchSuggestions.columns; column++)
                 Expanded(
-                  child: row * 2 + column < items.length
-                      ? _PopularTagTile(index: row * 2 + column, label: items[row * 2 + column].label, hot: row * 2 + column < 3, onTap: () => onSelected(SearchQuery(tags: [items[row * 2 + column].key])))
+                  child: row * SearchSuggestions.columns + column < items.length
+                      ? _PopularTagTile(
+                          index: row * SearchSuggestions.columns + column,
+                          label: items[row * SearchSuggestions.columns + column].label,
+                          hot: row * SearchSuggestions.columns + column < 3,
+                          onTap: () => onSelected(SearchQuery(tags: [items[row * SearchSuggestions.columns + column].key])),
+                        )
                       : const SizedBox.shrink(),
                 ),
             ],
@@ -175,8 +202,8 @@ class _SuggestionChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 168),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
         child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5)),
       ),
     );
