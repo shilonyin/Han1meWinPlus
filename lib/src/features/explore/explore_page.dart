@@ -59,6 +59,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final showPicker = tabs && sections.isNotEmpty;
     // 顶栏右侧的快捷分类（在「界面布局 → 首页快捷分类」里自定义内容与排序）。
     final quick = tabs ? _quickCategories(categories, settings?.homeQuickCategories ?? const <String>[]) : const <({int index, String label})>[];
+    // 已经作为快捷分类显示在右侧的分类，不再重复出现在左侧下拉菜单里。
+    final quickIndexes = <int>{for (final item in quick) item.index};
+    final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
     return Scaffold(
       appBar: AppBar(
         leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
@@ -67,13 +70,13 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         title: showPicker
             ? Row(
                 children: [
-                  _CategorySelector(sections: sections, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
-                  if (quick.isNotEmpty) ...[
+                  if (pickerIndexes.isNotEmpty) _CategorySelector(sections: sections, indexes: pickerIndexes, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
+                  if (pickerIndexes.isNotEmpty && quick.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     const SizedBox(height: 22, child: VerticalDivider(width: 1)),
                     const SizedBox(width: 8),
-                    Expanded(child: _QuickCategoryTabs(items: quick, index: index, onSelected: (value) => setState(() => _sectionIndex = value))),
                   ],
+                  if (quick.isNotEmpty) Expanded(child: _QuickCategoryTabs(items: quick, index: index, onSelected: (value) => setState(() => _sectionIndex = value))),
                 ],
               )
             : null,
@@ -170,9 +173,12 @@ class _HomeFeedBody extends ConsumerWidget {
 /// Collapsed category picker: the current section name plus a chevron that
 /// opens the full list, mirroring the reference app's header.
 class _CategorySelector extends StatefulWidget {
-  const _CategorySelector({required this.sections, required this.index, required this.onSelected});
+  const _CategorySelector({required this.sections, required this.indexes, required this.index, required this.onSelected});
 
   final List<HomeSection> sections;
+
+  /// 下拉菜单里可选的分类下标（已作为快捷分类显示在右侧的会被排除）。
+  final List<int> indexes;
   final int index;
   final ValueChanged<int> onSelected;
 
@@ -190,7 +196,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
       controller: _controller,
       alignmentOffset: const Offset(0, 6),
       menuChildren: [
-        for (var index = 0; index < widget.sections.length; index++)
+        for (final index in widget.indexes)
           MenuItemButton(
             onPressed: () {
               _controller.close();
