@@ -25,8 +25,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # 生成更新日志需要历史提交和已有 tag
-          fetch-depth: 0
+          # 只在发布时拉取完整历史（生成更新日志需要），平时拉取最新提交即可
+          fetch-depth: ${{ startsWith(github.ref, 'refs/tags/') && 0 || 1 }}
 
       # 版本号以 .fvmrc 为唯一来源，避免 CI 与本地 Flutter 版本漂移
       - name: Read pinned Flutter version
