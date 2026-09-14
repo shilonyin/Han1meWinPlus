@@ -3565,6 +3565,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Best streak'**
   String get checkInBestStreak;
+
+  /// No description provided for @railPreviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Previews'**
+  String get railPreviews;
+
+  /// No description provided for @railWatchLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get railWatchLater;
+
+  /// No description provided for @railFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked'**
+  String get railFavorites;
+
+  /// No description provided for @railPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Lists'**
+  String get railPlaylists;
+
+  /// No description provided for @railSubscriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Subs'**
+  String get railSubscriptions;
+
+  /// No description provided for @railHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get railHistory;
 }
 
 class _AppLocalizationsDelegate

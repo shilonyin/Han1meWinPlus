@@ -624,5 +624,11 @@
   "checkInTypeOral": "口交",
   "checkInMonthDays": "本月打卡天数",
   "checkInMonthTotal": "本月总次数",
-  "checkInBestStreak": "最佳连续"
+  "checkInBestStreak": "最佳连续",
+  "railPreviews": "新番",
+  "railWatchLater": "稍后",
+  "railFavorites": "喜欢",
+  "railPlaylists": "清单",
+  "railSubscriptions": "订阅",
+  "railHistory": "历史"
 }

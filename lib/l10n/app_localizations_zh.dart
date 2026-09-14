@@ -1851,6 +1851,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get checkInBestStreak => '最佳连续';
+
+  @override
+  String get railPreviews => '新番';
+
+  @override
+  String get railWatchLater => '稍后';
+
+  @override
+  String get railFavorites => '喜欢';
+
+  @override
+  String get railPlaylists => '清单';
+
+  @override
+  String get railSubscriptions => '订阅';
+
+  @override
+  String get railHistory => '历史';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3700,4 +3718,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get checkInBestStreak => '最佳連續';
+
+  @override
+  String get railPreviews => '新番';
+
+  @override
+  String get railWatchLater => '稍後';
+
+  @override
+  String get railFavorites => '喜歡';
+
+  @override
+  String get railPlaylists => '清單';
+
+  @override
+  String get railSubscriptions => '訂閱';
+
+  @override
+  String get railHistory => '歷史';
 }

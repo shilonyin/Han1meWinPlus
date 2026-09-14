@@ -624,5 +624,11 @@
   "checkInTypeOral": "Oral",
   "checkInMonthDays": "Days this month",
   "checkInMonthTotal": "Times this month",
-  "checkInBestStreak": "Best streak"
+  "checkInBestStreak": "Best streak",
+  "railPreviews": "Previews",
+  "railWatchLater": "Later",
+  "railFavorites": "Liked",
+  "railPlaylists": "Lists",
+  "railSubscriptions": "Subs",
+  "railHistory": "History"
 }

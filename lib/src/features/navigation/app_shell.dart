@@ -92,7 +92,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         body: permanentDrawer
             ? Row(
                 children: [
-                  _PermanentNavigationDrawer(navigationShell: widget.navigationShell),
+                  _CompactNavigationRail(navigationShell: widget.navigationShell),
                   const VerticalDivider(width: 1),
                   Expanded(child: content),
                 ],
@@ -165,20 +165,20 @@ List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = fal
   return [
     _DrawerSection(items: [
       _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
-      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, location: '/previews/$month'),
+      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, shortLabel: l10n.railPreviews, location: '/previews/$month'),
       _DrawerItem(icon: Icons.thumb_up_alt_outlined, selectedIcon: Icons.thumb_up_alt, label: l10n.checkIn, location: '/check-in'),
       _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings'),
     ]),
     _DrawerSection(title: l10n.myListSection, items: [
-      _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, location: '/library/watch-later'),
-      _DrawerItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: l10n.favoriteVideos, location: '/library/favorites'),
+      _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, shortLabel: l10n.railWatchLater, location: '/library/watch-later'),
+      _DrawerItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: l10n.favoriteVideos, shortLabel: l10n.railFavorites, location: '/library/favorites'),
       if (!comicMode) ...[
-        _DrawerItem(icon: Icons.playlist_play_outlined, selectedIcon: Icons.playlist_play, label: l10n.playlists, location: '/library/playlists'),
-        _DrawerItem(icon: Icons.subscriptions_outlined, selectedIcon: Icons.subscriptions, label: l10n.subscriptions, location: '/library/subscriptions'),
+        _DrawerItem(icon: Icons.playlist_play_outlined, selectedIcon: Icons.playlist_play, label: l10n.playlists, shortLabel: l10n.railPlaylists, location: '/library/playlists'),
+        _DrawerItem(icon: Icons.subscriptions_outlined, selectedIcon: Icons.subscriptions, label: l10n.subscriptions, shortLabel: l10n.railSubscriptions, location: '/library/subscriptions'),
       ],
     ]),
     _DrawerSection(title: l10n.videoSection, items: [
-      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, location: '/library/history'),
+      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history'),
       _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache'),
     ]),
   ];
@@ -250,32 +250,51 @@ class _AppDrawer extends ConsumerWidget {
   }
 }
 
-class _PermanentNavigationDrawer extends ConsumerWidget {
-  const _PermanentNavigationDrawer({required this.navigationShell});
+/// 桌面端的常驻窄侧栏（b 站风格）：宽度固定 88，图标 + 短标签上下排，分组之间用分隔线。
+///
+/// 用自绘而不是 [NavigationDrawer]，是因为抽屉的展开宽度（320）在桌面上太占地方，
+/// 而 [NavigationRail] 又不支持分组与“非分支页面”的选中态。
+class _CompactNavigationRail extends ConsumerWidget {
+  const _CompactNavigationRail({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
+
+  /// 图标 + 两三个汉字宽度，恰好放得下精简后的标签。
+  static const double railWidth = 88;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider).valueOrNull;
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
     final sections = _drawerSections(context, comicMode: comicMode);
-    final destinations = _drawerDestinations(sections);
-    final selectedIndex = _selectedDrawerIndex(context, destinations);
-    return SizedBox(
-      width: 320,
+    final path = GoRouterState.of(context).uri.path;
+    final loggedIn = account != null;
+    final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
+    return Container(
+      width: railWidth,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: SafeArea(
-        child: NavigationDrawer(
-          selectedIndex: selectedIndex < 0 ? null : selectedIndex,
-          onDestinationSelected: (index) => _openDrawerLocation(context, navigationShell, destinations[index].location),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
           children: [
-            _DrawerAccountCard(account: account, onTap: () => context.push('/mine')),
-            const SizedBox(height: 12),
-            for (final section in sections) ...[
-              if (section.title != null) _drawerSectionTitle(context, section.title!),
-              for (final item in section.items) NavigationDrawerDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon), label: Text(item.label)),
+            Center(
+              child: Tooltip(
+                message: hasAvatar ? account!.name ?? '' : loggedIn ? AppLocalizations.of(context)!.signedIn : AppLocalizations.of(context)!.signedOut,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => context.push('/mine'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: CircleAvatar(radius: 18, backgroundImage: hasAvatar ? NetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 20)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < sections.length; i++) ...[
+              if (i > 0) const Divider(height: 18, indent: 12, endIndent: 12),
+              for (final item in sections[i].items) _CompactRailItem(item: item, selected: item.location == path, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
             ],
-            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -283,12 +302,54 @@ class _PermanentNavigationDrawer extends ConsumerWidget {
   }
 }
 
+class _CompactRailItem extends StatelessWidget {
+  const _CompactRailItem({required this.item, required this.selected, required this.onTap});
+
+  final _DrawerItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final label = item.shortLabel ?? item.label;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Tooltip(
+        message: item.label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(14)),
+            child: Column(
+              children: [
+                Icon(selected ? item.selectedIcon : item.icon, size: 22, color: color),
+                const SizedBox(height: 4),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, height: 1.1, color: color, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DrawerItem {
-  const _DrawerItem({required this.icon, required this.selectedIcon, required this.label, required this.location});
+  const _DrawerItem({required this.icon, required this.selectedIcon, required this.label, this.shortLabel, required this.location});
 
   final IconData icon;
   final IconData selectedIcon;
+
+  /// 宽抽屉/抽屉模式下的完整文案。
   final String label;
+
+  /// 窄侧栏（图标 + 文字上下排）用的精简文案；为空时用 [label]。
+  final String? shortLabel;
+
   final String location;
 }
 

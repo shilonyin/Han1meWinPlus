@@ -1909,4 +1909,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkInBestStreak => 'Best streak';
+
+  @override
+  String get railPreviews => 'Previews';
+
+  @override
+  String get railWatchLater => 'Later';
+
+  @override
+  String get railFavorites => 'Liked';
+
+  @override
+  String get railPlaylists => 'Lists';
+
+  @override
+  String get railSubscriptions => 'Subs';
+
+  @override
+  String get railHistory => 'History';
 }
