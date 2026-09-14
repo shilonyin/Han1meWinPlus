@@ -289,8 +289,8 @@ class _CompactNavigationRail extends ConsumerWidget {
                 SizedBox(
                   height: avatarBlock,
                   child: Center(
-                    child: Tooltip(
-                      message: hasAvatar ? account!.name ?? '' : loggedIn ? AppLocalizations.of(context)!.signedIn : AppLocalizations.of(context)!.signedOut,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
                         onTap: () => context.push('/mine'),
@@ -320,7 +320,9 @@ class _CompactNavigationRail extends ConsumerWidget {
   }
 }
 
-class _CompactRailItem extends StatelessWidget {
+/// 单个窄栏条目：鼠标靠近时图标与文字转为主题色（b 站那种高亮），
+/// 不再弹出 tooltip —— 完整名称在宽抽屉与页面标题里都能看到。
+class _CompactRailItem extends StatefulWidget {
   const _CompactRailItem({required this.item, required this.selected, required this.extent, required this.onTap});
 
   final _DrawerItem item;
@@ -331,28 +333,43 @@ class _CompactRailItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_CompactRailItem> createState() => _CompactRailItemState();
+}
+
+class _CompactRailItemState extends State<_CompactRailItem> {
+  var _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final selected = widget.selected;
+    final item = widget.item;
+    final highlighted = selected || _hovering;
+    final color = highlighted ? scheme.primary : scheme.onSurfaceVariant;
+    final background = selected ? scheme.primary.withValues(alpha: 0.12) : _hovering ? scheme.primary.withValues(alpha: 0.08) : null;
     final label = item.shortLabel ?? item.label;
+    final extent = widget.extent;
     final iconSize = (extent * 0.42).clamp(14.0, 24.0);
     final labelSize = (extent * 0.2).clamp(9.0, 11.5);
     final gap = ((extent - iconSize - labelSize - 4) / 2).clamp(1.0, 5.0);
-    return SizedBox(
-      height: extent,
-      child: Tooltip(
-        message: item.label,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: SizedBox(
+        height: extent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
+          hoverColor: Colors.transparent,
+          onTap: widget.onTap,
           child: Container(
-            decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
                 SizedBox(height: gap),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
               ],
             ),
           ),
