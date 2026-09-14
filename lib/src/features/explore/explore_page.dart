@@ -110,7 +110,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final feed = ref.watch(homeSectionsProvider);
     final settings = ref.watch(settingsProvider).valueOrNull;
     final drawerMode = settings?.useNavigationDrawer ?? false;
-    final l10n = AppLocalizations.of(context)!;
     final tabs = settings?.useHomeCategoryTabs == true;
     final categories = feed.valueOrNull == null ? const <_FeedCategory>[] : _feedCategories(feed.value!);
     final sections = [for (final category in categories) category.section];
@@ -122,7 +121,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final quickIndexes = <int>{for (final item in quick) item.index};
     final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final idleSearchWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 180.0 : 132.0);
+    // 顶栏右侧不再放图标（直播/我的都在侧栏里有入口），把空间让给搜索框。
+    final idleSearchWidth = screenWidth >= 1180 ? 380.0 : (screenWidth >= 940 ? 280.0 : 172.0);
     final showDrawerButton = drawerMode && !permanentNavigationDrawer(context);
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
@@ -150,7 +150,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                       left: 0,
                       top: 0,
                       bottom: 0,
-                      right: idleSearchWidth + 8 + 100,
+                      right: idleSearchWidth + 8,
                       child: IgnorePointer(
                         ignoring: _searchFocused,
                         child: AnimatedOpacity(
@@ -202,29 +202,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                                 _searchController.clear();
                                 _closeSearch();
                               },
-                            ),
-                          ),
-                          // 聚焦时右侧图标淡出并收窄为 0，搜索框才能真正落在正中间。
-                          AnimatedSize(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutCubic,
-                            alignment: Alignment.centerRight,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 160),
-                              opacity: _searchFocused ? 0 : 1,
-                              child: IgnorePointer(
-                                ignoring: _searchFocused,
-                                child: SizedBox(
-                                  width: _searchFocused ? 0 : null,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
-                                      IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
-                                    ],
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
                         ],
@@ -734,11 +711,6 @@ class _SectionHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
       );
-}
-
-String _currentPreviewMonth() {
-  final now = DateTime.now();
-  return '${now.year}${now.month.toString().padLeft(2, '0')}';
 }
 
 class _FeaturedVideo extends StatelessWidget {
