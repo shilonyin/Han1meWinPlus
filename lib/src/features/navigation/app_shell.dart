@@ -167,7 +167,6 @@ List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = fal
       _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
       _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, shortLabel: l10n.railPreviews, location: '/previews/$month'),
       _DrawerItem(icon: Icons.thumb_up_alt_outlined, selectedIcon: Icons.thumb_up_alt, label: l10n.checkIn, location: '/check-in'),
-      _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings'),
     ]),
     _DrawerSection(title: l10n.myListSection, items: [
       _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, shortLabel: l10n.railWatchLater, location: '/library/watch-later'),
@@ -178,8 +177,9 @@ List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = fal
       ],
     ]),
     _DrawerSection(title: l10n.videoSection, items: [
-      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history'),
-      _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache'),
+      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history', iconOnly: true),
+      _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache', iconOnly: true),
+      _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings', iconOnly: true),
     ]),
   ];
 }
@@ -366,8 +366,10 @@ class _CompactRailItemState extends State<_CompactRailItem> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
-              SizedBox(height: gap),
-              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
+              if (!item.iconOnly) ...[
+                SizedBox(height: gap),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
+              ],
             ],
           ),
         ),
@@ -377,7 +379,7 @@ class _CompactRailItemState extends State<_CompactRailItem> {
 }
 
 class _DrawerItem {
-  const _DrawerItem({required this.icon, required this.selectedIcon, required this.label, this.shortLabel, required this.location});
+  const _DrawerItem({required this.icon, required this.selectedIcon, required this.label, this.shortLabel, required this.location, this.iconOnly = false});
 
   final IconData icon;
   final IconData selectedIcon;
@@ -387,6 +389,9 @@ class _DrawerItem {
 
   /// 窄侧栏（图标 + 文字上下排）用的精简文案；为空时用 [label]。
   final String? shortLabel;
+
+  /// 窄侧栏里只显示图标、不显示文字（底部的历史/下载/设置用）。
+  final bool iconOnly;
 
   final String location;
 }
