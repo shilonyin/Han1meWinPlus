@@ -17,6 +17,10 @@ import 'search_controller.dart';
 
 const _compactSearchGenres = {'裏番', '泡麵番'};
 
+/// 搜索结果网格：每行四个、一屏三行。
+const _searchColumns = 4;
+const _searchRows = 3;
+
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key, required this.request});
 
@@ -103,6 +107,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   : useCompactCards
                       ? CompactVideoCardGrid(
                           videos: page.items,
+                          cardsPerRow: _searchColumns,
+                          rowsPerScreen: _searchRows,
                           itemBuilder: (context, index, video) => CompactVideoCard(
                             video: video,
                             onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
@@ -110,9 +116,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         )
                       : VideoCardGrid(
                           videos: page.items,
+                          cardsPerRow: _searchColumns,
+                          rowsPerScreen: _searchRows,
                           itemBuilder: (context, index, video, horizontal) => VideoCardTile(
                             video: video,
                             horizontal: horizontal,
+                            fillCover: true,
                             onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
                           ),
                         ),

@@ -28,10 +28,8 @@ class CompactVideoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: _cover(theme, cacheWidth),
-                ),
+                // 网格给的是固定高度，封面吃掉剩余空间（图片裁切而不是溢出）
+                Expanded(child: _cover(theme, cacheWidth)),
                 const SizedBox(height: 6),
                 SizedBox(
                   height: 40,
@@ -77,10 +75,16 @@ class CompactVideoCard extends StatelessWidget {
 }
 
 class CompactVideoCardGrid extends StatelessWidget {
-  const CompactVideoCardGrid({super.key, required this.videos, this.itemBuilder});
+  const CompactVideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen});
 
   final List<VideoCard> videos;
   final Widget Function(BuildContext context, int index, VideoCard video)? itemBuilder;
+
+  /// 指定每行几个（为空时用默认值）。
+  final int? cardsPerRow;
+
+  /// 指定一屏显示几行（卡片高度按可用高度反推）。
+  final int? rowsPerScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -89,13 +93,17 @@ class CompactVideoCardGrid extends StatelessWidget {
         const horizontalPadding = 24.0;
         const crossAxisSpacing = 10.0;
         const mainAxisSpacing = 12.0;
-        final cardWidth = (constraints.maxWidth - horizontalPadding - crossAxisSpacing * (compactVideoCardsPerRow - 1)) / compactVideoCardsPerRow;
-        final cardHeight = cardWidth * 4 / 3 + 46;
+        final perRow = cardsPerRow ?? compactVideoCardsPerRow;
+        final cardWidth = (constraints.maxWidth - horizontalPadding - crossAxisSpacing * (perRow - 1)) / perRow;
+        final rows = rowsPerScreen;
+        final cardHeight = rows != null && constraints.hasBoundedHeight
+            ? ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 460.0)
+            : cardWidth * 4 / 3 + 46;
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
           cacheExtent: 720,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: compactVideoCardsPerRow,
+            crossAxisCount: perRow,
             mainAxisSpacing: mainAxisSpacing,
             crossAxisSpacing: crossAxisSpacing,
             mainAxisExtent: cardHeight,

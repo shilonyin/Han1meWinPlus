@@ -40,13 +40,15 @@ VideoCardMetrics videoCardMetrics({
 }
 
 class VideoCardTile extends StatelessWidget {
-  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.onTap, this.onLongPress, this.coverImage});
+  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.fillCover = false, this.onTap, this.onLongPress, this.coverImage});
 
   final VideoCard video;
   final bool horizontal;
   final bool selected;
   /// 小卡片（侧栏「系列影片」）用：字号、间距、角标都缩小一号
   final bool dense;
+  /// 固定高度的网格里让封面吃掉剩余高度（高度不够时裁切图片，而不是撑破卡片）
+  final bool fillCover;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final ImageProvider? coverImage;
@@ -88,8 +90,8 @@ class VideoCardTile extends StatelessWidget {
   Widget _horizontalContent(ThemeData theme, int cacheWidth) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 小卡片（侧栏系列影片）让封面吃掉剩余高度，图片尽量大；普通卡片固定 16:9
-          if (dense)
+          // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大
+          if (dense || fillCover)
             Expanded(child: _cover(theme, cacheWidth))
           else
             AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
@@ -171,26 +173,34 @@ class VideoCardTile extends StatelessWidget {
 }
 
 class VideoCardGrid extends ConsumerWidget {
-  const VideoCardGrid({super.key, required this.videos, this.itemBuilder});
+  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen});
 
   final List<VideoCard> videos;
   final Widget Function(BuildContext context, int index, VideoCard video, bool horizontal)? itemBuilder;
+
+  /// 指定每行几个（为空时用设置里的值，宽屏会自动加宽）。
+  final int? cardsPerRow;
+
+  /// 指定一屏显示几行（固定高度网格，卡片高度按可用高度反推）。
+  final int? rowsPerScreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final horizontal = settings?.useHorizontalSearchCards ?? true;
-    final cardsPerRow = settings?.searchCardsPerRow ?? 2;
+    final cardsPerRow = this.cardsPerRow ?? settings?.searchCardsPerRow ?? 2;
     return LayoutBuilder(
       builder: (context, constraints) {
         const horizontalPadding = 24.0;
         const crossAxisSpacing = 10.0;
         const mainAxisSpacing = 12.0;
-        final effectiveCardsPerRow = constraints.maxWidth >= 1200
-            ? (constraints.maxWidth / 300).floor().clamp(cardsPerRow, 6).toInt()
-            : cardsPerRow;
+        final autoWiden = this.cardsPerRow == null && constraints.maxWidth >= 1200;
+        final effectiveCardsPerRow = autoWiden ? (constraints.maxWidth / 300).floor().clamp(cardsPerRow, 6).toInt() : cardsPerRow;
         final cardWidth = (constraints.maxWidth - horizontalPadding - crossAxisSpacing * (effectiveCardsPerRow - 1)) / effectiveCardsPerRow;
-        final cardHeight = horizontal ? cardWidth * 9 / 16 + _horizontalCardMetaHeight : cardWidth / .58;
+        final rows = rowsPerScreen;
+        final cardHeight = rows != null && constraints.hasBoundedHeight
+            ? ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 420.0)
+            : (horizontal ? cardWidth * 9 / 16 + _horizontalCardMetaHeight : cardWidth / .58);
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
           cacheExtent: 720,
