@@ -1,7 +1,7 @@
 name: han1me_win_plus
 description: Windows-focused fork of Han1mePlus, a Flutter client for browsing Han1me content.
 publish_to: 'none'
-version: 1.1.15+26
+version: 1.1.16+27
 
 environment:
   sdk: '>=3.11.0 <4.0.0'
@@ -54,6 +54,24 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  fonts:
+    # 应用内置字体：MiSans（小米科技有限责任公司，遵循《MiSans 字体知识产权许可协议》，
+    # 免费商用；按协议要求在「关于 → 致谢」中署名）。
+    # 只随包提供 Regular 一档。Flutter 不会对普通文本字体做 tree-shake（--tree-shake-icons
+    # 只管图标字体），pubspec 里声明几档字重就会把几个完整的全量 CJK 字库原样打进安装包：
+    # 单档 7.8 MB，四档合计 31 MB；LZMA 压缩后每档约占安装包 4.3 MB（四档 → 单档省 12.9 MB）。
+    #
+    # 缺档字重的实际表现（实测：dart:ui 栅格化后比较墨迹总量）：
+    #   - w600 / w700 会落到这一档并做合成加粗，墨迹约为 400 的 1.47 倍（真 Bold 对照为
+    #     1.11 倍，故观感偏重），且 w600 与 w700 渲染完全一致，四档层次只剩两级；
+    #   - w500 被静默忽略、与 400 完全一致（没有合成加粗）。所以 Material 3 默认取 w500 的
+    #     titleMedium / titleSmall / label* 会比四档时期更轻。
+    # 若要让 w500 或 w600/w700 用上真字重，把对应的 MiSans-Medium / MiSans-Demibold 补回
+    # 下面的 fonts 列表即可（每档约 +4.3 MB 安装包体积）。
+    - family: MiSans
+      fonts:
+        - asset: assets/fonts/MiSans-Regular.ttf
+          weight: 400
   assets:
     - assets/logo.png
     - assets/search_options/

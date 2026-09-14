@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/local/json_store.dart';
 import 'platform_paths.dart';
+import 'video_decoders.dart';
 
 enum AppThemeMode { system, light, dark }
 
@@ -54,6 +55,7 @@ class AppSettings {
     this.language = AppLanguage.system,
     this.playerEngine = PlayerEngine.libMpv,
     this.hardwareAcceleration = true,
+    this.hardwareDecoder = defaultHardwareDecoder,
     this.videoRenderer = VideoRenderer.auto,
     this.videoView = VideoView.platformView,
     this.customParameters = const [],
@@ -93,7 +95,7 @@ class AppSettings {
     this.useCompactSearchCards = true,
     this.expandHomeVideoCards = false,
     this.useNavigationDrawer = false,
-    this.useSystemFont = true,
+    this.useSystemFont = false,
     this.useSystemTitleBar = true,
     this.useHomeCategoryTabs = false,
     this.blockedVideoTitleKeywords = const [],
@@ -127,6 +129,8 @@ class AppSettings {
   final AppLanguage language;
   final PlayerEngine playerEngine;
   final bool hardwareAcceleration;
+  /// 传给 mpv 的 hwdec 值（仅在硬件解码开启时生效）
+  final String hardwareDecoder;
   final VideoRenderer videoRenderer;
   final VideoView videoView;
   final List<String> customParameters;
@@ -220,6 +224,7 @@ class AppSettings {
         'language': language.name,
         'playerEngine': playerEngine.name,
         'hardwareAcceleration': hardwareAcceleration,
+        'hardwareDecoder': hardwareDecoder,
         'videoRenderer': videoRenderer.name,
         'videoView': videoView.name,
         'customParameters': customParameters,
@@ -294,6 +299,7 @@ class AppSettings {
         language: _language(json['language'] as String?),
         playerEngine: _playerEngine(json['playerEngine'] as String?),
         hardwareAcceleration: json['hardwareAcceleration'] as bool? ?? true,
+        hardwareDecoder: knownHardwareDecoder(json['hardwareDecoder'] as String?),
         videoRenderer: _enumByName(VideoRenderer.values, json['videoRenderer'] as String?) ?? VideoRenderer.auto,
         videoView: _enumByName(VideoView.values, json['videoView'] as String?) ?? VideoView.platformView,
         customParameters: (json['customParameters'] as List? ?? const []).whereType<String>().toList(),
@@ -333,7 +339,7 @@ class AppSettings {
         useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
         expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
         useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? false,
-        useSystemFont: json['useSystemFont'] as bool? ?? true,
+        useSystemFont: json['useSystemFont'] as bool? ?? false,
         useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -413,6 +419,7 @@ class AppSettings {
     AppLanguage? language,
     PlayerEngine? playerEngine,
     bool? hardwareAcceleration,
+    String? hardwareDecoder,
     VideoRenderer? videoRenderer,
     VideoView? videoView,
     List<String>? customParameters,
@@ -486,6 +493,7 @@ class AppSettings {
         language: language ?? this.language,
         playerEngine: playerEngine ?? this.playerEngine,
         hardwareAcceleration: hardwareAcceleration ?? this.hardwareAcceleration,
+        hardwareDecoder: hardwareDecoder ?? this.hardwareDecoder,
         videoRenderer: videoRenderer ?? this.videoRenderer,
         videoView: videoView ?? this.videoView,
         customParameters: customParameters ?? this.customParameters,

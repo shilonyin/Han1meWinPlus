@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/settings.dart';
 
-ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false}) {
+ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false}) {
   var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
   if (amoled) {
     scheme = scheme.copyWith(
@@ -17,12 +17,25 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    // 默认用内置 MiSans；系统字体开关打开时交回平台默认字体。
+    // fallback 用于 MiSans 没有的字符（emoji、生僻字）与彩色 emoji。
+    fontFamily: useSystemFont ? null : 'MiSans',
+    fontFamilyFallback: useSystemFont ? null : const ['Microsoft YaHei UI', 'Segoe UI Emoji', 'Segoe UI Symbol'],
     scaffoldBackgroundColor: amoled ? Colors.black : null,
     canvasColor: amoled ? Colors.black : null,
     // M3 tints the app bar with the primary colour once content scrolls under
     // it, which stands out badly against the flat/AMOLED surfaces this app uses.
     // Keep the bar the same colour as the page.
     appBarTheme: AppBarTheme(backgroundColor: scheme.surface, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
+    // 贴底的通栏 SnackBar 在这个布局里显得很重，改成半透明浮动圆角。
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.92),
+      contentTextStyle: TextStyle(color: scheme.onSurface),
+      actionTextColor: scheme.primary,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
     sliderTheme: const SliderThemeData(year2023: false),
   );
 }

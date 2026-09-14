@@ -2549,7 +2549,7 @@ abstract class AppLocalizations {
   /// No description provided for @useSystemFontDescription.
   ///
   /// In en, this message translates to:
-  /// **'Turn off to use the bundled font'**
+  /// **'Turn off to use the MiSans font'**
   String get useSystemFontDescription;
 
   /// No description provided for @useSystemTitleBar.
@@ -2647,6 +2647,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use hardware-accelerated video decoding'**
   String get hardwareDecodeDescription;
+
+  /// No description provided for @hardwareDecoder.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardware decoder'**
+  String get hardwareDecoder;
+
+  /// No description provided for @hardwareDecoderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only effective when hardware decoding is enabled'**
+  String get hardwareDecoderDescription;
+
+  /// No description provided for @hardwareDecoderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported decoders fall back to software decoding'**
+  String get hardwareDecoderHint;
+
+  /// No description provided for @projectSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get projectSection;
+
+  /// No description provided for @openSourceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source'**
+  String get openSourceSection;
+
+  /// No description provided for @sourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get sourceCode;
+
+  /// No description provided for @upstreamProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Upstream project'**
+  String get upstreamProject;
+
+  /// No description provided for @contributing.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributing'**
+  String get contributing;
+
+  /// No description provided for @acknowledgements.
+  ///
+  /// In en, this message translates to:
+  /// **'Acknowledgements'**
+  String get acknowledgements;
+
+  /// No description provided for @acknowledgementsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is MiSans by Xiaomi Corporation, free for commercial use under the MiSans Font Intellectual Property License Agreement.'**
+  String get acknowledgementsBody;
+
+  /// No description provided for @agplLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'AGPL-3.0 license'**
+  String get agplLicense;
+
+  /// No description provided for @thirdPartyLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Third-party licenses'**
+  String get thirdPartyLicenses;
+
+  /// No description provided for @changelog.
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog'**
+  String get changelog;
+
+  /// No description provided for @changelogUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog is unavailable right now'**
+  String get changelogUnavailable;
+
+  /// No description provided for @openOnGitHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Open on GitHub'**
+  String get openOnGitHub;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Update check failed, please try again later'**
+  String get updateCheckFailed;
+
+  /// No description provided for @updateSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get updateSection;
 
   /// No description provided for @decoder.
   ///

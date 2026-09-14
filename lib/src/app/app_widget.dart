@@ -68,12 +68,13 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         themeMode: settings.materialThemeMode,
-        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor)),
+        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,
           settings.themeColor.seedColor(settings.customThemeColor),
           brightness: Brightness.dark,
           amoled: settings.amoledMode,
+          useSystemFont: settings.useSystemFont,
         ),
       ),
     );

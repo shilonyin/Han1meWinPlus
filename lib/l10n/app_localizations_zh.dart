@@ -1329,7 +1329,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get useSystemFont => '使用系统字体';
 
   @override
-  String get useSystemFontDescription => '关闭后使用应用内置字体';
+  String get useSystemFontDescription => '关闭后使用 MiSans 字体';
 
   @override
   String get useSystemTitleBar => '使用系统标题栏';
@@ -1380,6 +1380,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get hardwareDecodeDescription => '使用硬件加速解码视频';
+
+  @override
+  String get hardwareDecoder => '硬件解码器';
+
+  @override
+  String get hardwareDecoderDescription => '仅在硬件解码启用时生效';
+
+  @override
+  String get hardwareDecoderHint => '选择不受支持的解码器将回退到软件解码';
+
+  @override
+  String get projectSection => '项目';
+
+  @override
+  String get openSourceSection => '开源';
+
+  @override
+  String get sourceCode => '源代码';
+
+  @override
+  String get upstreamProject => '上游项目';
+
+  @override
+  String get contributing => '贡献指南';
+
+  @override
+  String get acknowledgements => '致谢';
+
+  @override
+  String get acknowledgementsBody =>
+      '本应用基于上游开源项目二次开发，感谢上游作者与所有贡献者。\n\n界面与播放能力来自 Flutter、media_kit（libmpv）、Riverpod、go_router 等开源项目。\n\n界面字体为 MiSans，由小米科技有限责任公司提供，依《MiSans 字体知识产权许可协议》免费商用。';
+
+  @override
+  String get agplLicense => 'AGPL-3.0 许可证';
+
+  @override
+  String get thirdPartyLicenses => '第三方许可证';
+
+  @override
+  String get changelog => '更新日志';
+
+  @override
+  String get changelogUnavailable => '暂时无法获取更新日志';
+
+  @override
+  String get openOnGitHub => '在 GitHub 打开';
+
+  @override
+  String get aboutTitle => '关于';
+
+  @override
+  String get updateCheckFailed => '检查更新失败，请稍后重试';
+
+  @override
+  String get updateSection => '更新';
 
   @override
   String get decoder => '解码器';
@@ -3076,7 +3131,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get useSystemFont => '使用系統字型';
 
   @override
-  String get useSystemFontDescription => '關閉後使用應用內建字型';
+  String get useSystemFontDescription => '關閉後使用 MiSans 字型';
 
   @override
   String get useSystemTitleBar => '使用系統標題列';
@@ -3127,6 +3182,61 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get hardwareDecodeDescription => '使用硬體加速解碼影片';
+
+  @override
+  String get hardwareDecoder => '硬體解碼器';
+
+  @override
+  String get hardwareDecoderDescription => '僅在硬體解碼啟用時生效';
+
+  @override
+  String get hardwareDecoderHint => '選擇不受支援的解碼器將回退到軟體解碼';
+
+  @override
+  String get projectSection => '專案';
+
+  @override
+  String get openSourceSection => '開源';
+
+  @override
+  String get sourceCode => '原始碼';
+
+  @override
+  String get upstreamProject => '上游專案';
+
+  @override
+  String get contributing => '貢獻指南';
+
+  @override
+  String get acknowledgements => '致謝';
+
+  @override
+  String get acknowledgementsBody =>
+      '本應用基於上游開源專案二次開發，感謝上游作者與所有貢獻者。\n\n介面與播放能力來自 Flutter、media_kit（libmpv）、Riverpod、go_router 等開源專案。\n\n介面字型為 MiSans，由小米科技有限責任公司提供，依《MiSans 字型知識產權許可協議》免費商用。';
+
+  @override
+  String get agplLicense => 'AGPL-3.0 授權';
+
+  @override
+  String get thirdPartyLicenses => '第三方授權';
+
+  @override
+  String get changelog => '更新日誌';
+
+  @override
+  String get changelogUnavailable => '暫時無法取得更新日誌';
+
+  @override
+  String get openOnGitHub => '在 GitHub 開啟';
+
+  @override
+  String get aboutTitle => '關於';
+
+  @override
+  String get updateCheckFailed => '檢查更新失敗，請稍後重試';
+
+  @override
+  String get updateSection => '更新';
 
   @override
   String get decoder => '解碼器';

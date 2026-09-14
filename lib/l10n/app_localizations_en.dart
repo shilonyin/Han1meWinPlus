@@ -1365,7 +1365,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useSystemFont => 'Use system font';
 
   @override
-  String get useSystemFontDescription => 'Turn off to use the bundled font';
+  String get useSystemFontDescription => 'Turn off to use the MiSans font';
 
   @override
   String get useSystemTitleBar => 'Use system title bar';
@@ -1420,6 +1420,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hardwareDecodeDescription =>
       'Use hardware-accelerated video decoding';
+
+  @override
+  String get hardwareDecoder => 'Hardware decoder';
+
+  @override
+  String get hardwareDecoderDescription =>
+      'Only effective when hardware decoding is enabled';
+
+  @override
+  String get hardwareDecoderHint =>
+      'Unsupported decoders fall back to software decoding';
+
+  @override
+  String get projectSection => 'Project';
+
+  @override
+  String get openSourceSection => 'Open source';
+
+  @override
+  String get sourceCode => 'Source code';
+
+  @override
+  String get upstreamProject => 'Upstream project';
+
+  @override
+  String get contributing => 'Contributing';
+
+  @override
+  String get acknowledgements => 'Acknowledgements';
+
+  @override
+  String get acknowledgementsBody =>
+      'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is MiSans by Xiaomi Corporation, free for commercial use under the MiSans Font Intellectual Property License Agreement.';
+
+  @override
+  String get agplLicense => 'AGPL-3.0 license';
+
+  @override
+  String get thirdPartyLicenses => 'Third-party licenses';
+
+  @override
+  String get changelog => 'Changelog';
+
+  @override
+  String get changelogUnavailable => 'Changelog is unavailable right now';
+
+  @override
+  String get openOnGitHub => 'Open on GitHub';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String get updateCheckFailed => 'Update check failed, please try again later';
+
+  @override
+  String get updateSection => 'Updates';
 
   @override
   String get decoder => 'Decoder';
