@@ -48,6 +48,56 @@ class ExplorePage extends ConsumerStatefulWidget {
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   var _sectionIndex = 0;
   var _searchPanelOpen = false;
+  var _searchFocused = false;
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(_onSearchFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _searchFocus.removeListener(_onSearchFocusChange);
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  /// 输入框失焦（例如点了侧栏或快捷键）时也收起搜索态。
+  void _onSearchFocusChange() {
+    if (_searchFocus.hasFocus || !_searchFocused) return;
+    setState(() {
+      _searchFocused = false;
+      _searchPanelOpen = false;
+    });
+  }
+
+  /// 点搜索框：左侧的分类与快捷页签淡出，输入框滑到中间变宽，同时铺开建议面板。
+  void _openSearch() {
+    setState(() {
+      _searchFocused = true;
+      _searchPanelOpen = true;
+    });
+    _searchFocus.requestFocus();
+  }
+
+  void _closeSearch() {
+    _searchFocus.unfocus();
+    setState(() {
+      _searchFocused = false;
+      _searchPanelOpen = false;
+    });
+  }
+
+  void _submitSearch(String value) {
+    final text = value.trim();
+    _searchController.text = text;
+    _closeSearch();
+    context.push('/search', extra: SearchRouteRequest(initialQuery: SearchQuery(text: text)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,41 +116,92 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final quickIndexes = <int>{for (final item in quick) item.index};
     final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final searchFieldWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 176.0 : 0.0);
+    final idleSearchWidth = screenWidth >= 1180 ? 260.0 : (screenWidth >= 940 ? 180.0 : 132.0);
     return Scaffold(
       appBar: AppBar(
         leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)) : null,
-        // The category picker shares the bar with the actions so it lines up with
+        // The category picker shares the bar with the search field so it lines up with
         // them instead of taking a row of its own; the six shortcuts sit next to it.
-        title: showPicker
-            ? Row(
-                children: [
-                  if (pickerIndexes.isNotEmpty) _CategorySelector(sections: sections, indexes: pickerIndexes, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
-                  if (pickerIndexes.isNotEmpty && quick.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    const SizedBox(height: 22, child: VerticalDivider(width: 1)),
-                    const SizedBox(width: 8),
-                  ],
-                  if (quick.isNotEmpty)
-                    Expanded(
-                      child: UnderlineTabStrip(
-                        labels: [for (final item in quick) item.label],
-                        index: quick.indexWhere((item) => item.index == index),
-                        onSelected: (value) => setState(() => _sectionIndex = quick[value].index),
-                      ),
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            final full = constraints.maxWidth;
+            final width = (_searchFocused ? 520.0 : idleSearchWidth).clamp(120.0, full);
+            final left = (_searchFocused ? (full - width) / 2 : full - width).clamp(0.0, double.infinity);
+            return Stack(
+              children: [
+                // 左侧标题（分类下拉 + 快捷分类）：聚焦搜索时淡出并让位。
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  right: width + 8,
+                  child: IgnorePointer(
+                    ignoring: _searchFocused,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 160),
+                      opacity: _searchFocused ? 0 : 1,
+                      child: showPicker
+                          ? Row(
+                              children: [
+                                if (pickerIndexes.isNotEmpty) _CategorySelector(sections: sections, indexes: pickerIndexes, index: index, onSelected: (value) => setState(() => _sectionIndex = value)),
+                                if (pickerIndexes.isNotEmpty && quick.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  const SizedBox(height: 22, child: VerticalDivider(width: 1)),
+                                  const SizedBox(width: 8),
+                                ],
+                                if (quick.isNotEmpty)
+                                  Expanded(
+                                    child: UnderlineTabStrip(
+                                      labels: [for (final item in quick) item.label],
+                                      index: quick.indexWhere((item) => item.index == index),
+                                      onSelected: (value) => setState(() => _sectionIndex = quick[value].index),
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : null,
                     ),
-                ],
-              )
-            : null,
-        titleSpacing: showPicker ? 8 : null,
+                  ),
+                ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  left: left,
+                  top: 0,
+                  bottom: 0,
+                  width: width,
+                  child: _HomeSearchField(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                    focused: _searchFocused,
+                    onTap: _openSearch,
+                    onSubmitted: _submitSearch,
+                    onClear: () {
+                      _searchController.clear();
+                      _closeSearch();
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        titleSpacing: 8,
         actions: [
-          // 宽度够时直接用内嵌搜索框（参考实现的顶栏），窄窗退回搜索图标。
-          if (searchFieldWidth > 0)
-            _HomeSearchBox(width: searchFieldWidth, open: _searchPanelOpen, onTap: () => setState(() => _searchPanelOpen = !_searchPanelOpen))
-          else
-            IconButton(onPressed: () => context.push('/search', extra: SearchRouteRequest()), icon: const Icon(Icons.search)),
-          IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
-          IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 160),
+            opacity: _searchFocused ? 0 : 1,
+            child: IgnorePointer(
+              ignoring: _searchFocused,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(onPressed: () => context.push('/previews/${_currentPreviewMonth()}'), icon: const Icon(Icons.live_tv_outlined)),
+                  IconButton(tooltip: l10n.mine, onPressed: () => context.push('/mine'), icon: const Icon(Icons.account_circle_outlined)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
       body: Stack(
@@ -122,38 +223,51 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
             data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
           ),
-          // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点头一条建议都会收起。
-          if (_searchPanelOpen) ...[
-            Positioned.fill(
+          // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
+          IgnorePointer(
+            ignoring: !_searchPanelOpen,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 170),
+              opacity: _searchPanelOpen ? 1 : 0,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _searchPanelOpen = false),
+                onTap: _closeSearch,
                 child: const SizedBox.expand(),
               ),
             ),
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6, right: 16),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
-                    ),
-                    child: SearchSuggestions(
-                      width: (screenWidth - 64).clamp(280.0, 560.0),
-                      onSelected: (query) {
-                        setState(() => _searchPanelOpen = false);
-                        context.push('/search', extra: SearchRouteRequest(initialQuery: query));
-                      },
+          ),
+          IgnorePointer(
+            ignoring: !_searchPanelOpen,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                offset: _searchPanelOpen ? Offset.zero : const Offset(0, -0.03),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 170),
+                  opacity: _searchPanelOpen ? 1 : 0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
+                      ),
+                      child: SearchSuggestions(
+                        width: (screenWidth - 64).clamp(280.0, 520.0),
+                        onSelected: (query) {
+                          _closeSearch();
+                          context.push('/search', extra: SearchRouteRequest(initialQuery: query));
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -222,38 +336,57 @@ class _HomeFeedBody extends ConsumerWidget {
       );
 }
 
-/// 顶栏里的搜索框：点击展开「搜索历史 + 热门标签」浮层（浮层由首页 body 渲染）。
-class _HomeSearchBox extends StatelessWidget {
-  const _HomeSearchBox({required this.width, required this.open, required this.onTap});
+/// 顶栏里的搜索框：点击后左侧的分类与快捷页签淡出、它自己滑到中间变宽，回车直接进搜索页。
+class _HomeSearchField extends StatelessWidget {
+  const _HomeSearchField({required this.controller, required this.focusNode, required this.focused, required this.onTap, required this.onSubmitted, required this.onClear});
 
-  final double width;
-  final bool open;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool focused;
   final VoidCallback onTap;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: open ? theme.colorScheme.surfaceContainerHigh : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: open ? theme.colorScheme.primary.withValues(alpha: .7) : Colors.transparent),
-          ),
-          child: Row(
-            children: [
-              Expanded(child: Text(l10n.searchHint, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
-              const SizedBox(width: 6),
-              Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
-            ],
+    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide.none);
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        height: 36,
+        width: double.infinity,
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          textInputAction: TextInputAction.search,
+          onTap: onTap,
+          onSubmitted: onSubmitted,
+          style: theme.textTheme.bodySmall,
+          decoration: InputDecoration(
+            hintText: l10n.searchHint,
+            isDense: true,
+            filled: true,
+            fillColor: focused ? theme.colorScheme.surfaceContainerHigh : theme.colorScheme.surfaceContainerHighest,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            border: border,
+            enabledBorder: border,
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: .7))),
+            suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, _) => value.text.isEmpty
+                      ? const SizedBox.shrink()
+                      : IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: onClear, icon: const Icon(Icons.close)),
+                ),
+                IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: () => onSubmitted(controller.text), icon: const Icon(Icons.search)),
+                const SizedBox(width: 4),
+              ],
+            ),
           ),
         ),
       ),

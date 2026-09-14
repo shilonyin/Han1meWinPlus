@@ -62,12 +62,13 @@ class AppRouter {
                 path: '/',
                 builder: (context, state) => const ExplorePage(),
                 // 这些页面挂在本分支下，使其在侧栏内侧展开（常驻侧栏不会消失）。
-                // 子路径与父路径拼接后仍是 /check-in、/previews/... ，URL 不变。
+                // 子路径与父路径拼接后仍是 /check-in、/previews/...、/search ，URL 不变。
                 routes: [
                   GoRoute(path: 'check-in', builder: (context, state) => const CheckInPage()),
                   GoRoute(path: 'previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),
                   GoRoute(path: 'previews/getchu/:month', builder: (context, state) => GetchuPreviewPage(month: state.pathParameters['month']!)),
                   GoRoute(path: 'previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
+                  GoRoute(path: 'search', builder: _searchRouteBuilder),
                 ],
               ),
             ]),
@@ -103,19 +104,6 @@ class AppRouter {
             path: '/user/${state.pathParameters['id']!}/edit',
             title: AppLocalizations.of(context)!.accountProfile,
           ),
-        ),
-        GoRoute(
-          path: '/search',
-          builder: (context, state) {
-            final extra = state.extra;
-            final request = extra is SearchRouteRequest
-                ? extra
-                : SearchRouteRequest.fromRoute(
-                    state.pageKey.value.toString(),
-                    initialUrl: extra as String? ?? (state.uri.hasQuery ? state.uri.toString() : null),
-                  );
-            return SearchPage(key: ValueKey(request.sessionId), request: request);
-          },
         ),
         GoRoute(path: '/settings/about', builder: (context, state) => const AboutPage()),
         GoRoute(path: '/settings/license', builder: (context, state) => const AppLicensePage()),
@@ -161,6 +149,18 @@ class AppRouter {
   void dispose() {
     router.dispose();
   }
+}
+
+/// 搜索页的构造：优先用调用方传入的查询条件，其次解析 URL（深链或外部打开）。
+Widget _searchRouteBuilder(BuildContext context, GoRouterState state) {
+  final extra = state.extra;
+  final request = extra is SearchRouteRequest
+      ? extra
+      : SearchRouteRequest.fromRoute(
+          state.pageKey.value.toString(),
+          initialUrl: extra is String ? extra : (state.uri.hasQuery ? state.uri.toString() : null),
+        );
+  return SearchPage(key: ValueKey(request.sessionId), request: request);
 }
 
 String? _deepLinkRedirect(GoRouterState state) {
