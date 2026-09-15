@@ -27,9 +27,11 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderStateMixin {
   late int _currentIndex;
   late final List<int> _branchHistory;
+  /// 切换侧栏分栏（首页/清单/缓存/设置）时让内容区整体淡入；侧栏本身不参与动画。
+  late final AnimationController _branchSwitch;
   var _isBackNavigation = false;
 
   @override
@@ -37,6 +39,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.initState();
     _currentIndex = widget.navigationShell.currentIndex;
     _branchHistory = <int>[widget.navigationShell.currentIndex];
+    _branchSwitch = AnimationController(vsync: this, duration: const Duration(milliseconds: 240), value: 1);
   }
 
   @override
@@ -54,10 +57,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (_branchHistory.length > 4) _branchHistory.removeAt(0);
     }
     _currentIndex = nextIndex;
+    _branchSwitch.forward(from: 0);
   }
 
   @override
   void dispose() {
+    _branchSwitch.dispose();
     super.dispose();
   }
 
@@ -85,6 +90,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           }
         : widget.navigationShell;
     final mediaQuery = MediaQuery.of(context);
+    // 分栏切换时整块内容淡入（含漫画模式的四个根页）。
+    final animatedContent = FadeTransition(opacity: CurvedAnimation(parent: _branchSwitch, curve: Curves.easeOutCubic), child: content);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -99,7 +106,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 children: [
                   _CompactNavigationRail(navigationShell: widget.navigationShell),
                   const VerticalDivider(width: 1),
-                  Expanded(child: content),
+                  Expanded(child: animatedContent),
                 ],
               )
             : useRail
@@ -112,10 +119,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                         destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label))).toList(),
                       ),
                       const VerticalDivider(width: 1),
-                      Expanded(child: content),
+                      Expanded(child: animatedContent),
                     ],
                   )
-                : MediaQuery(data: mediaQuery, child: content),
+                : MediaQuery(data: mediaQuery, child: animatedContent),
         bottomNavigationBar: drawerMode || useRail
             ? null
             : NavigationBar(

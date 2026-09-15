@@ -1,6 +1,38 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import '../core/settings.dart';
+
+/// 页面跳转过渡：淡入 + 极小的上浮。
+///
+/// 桌面端默认用的是 `ZoomPageTransitionsBuilder`（整页从 0.85 缩放进场），切换时
+/// 大块内容“弹”一下，和这个以卡片/列表为主、配色平滑的界面不搭；这里改成以淡入为主、
+/// 位移只做点缀，和主题切换（320ms easeInOut）的平滑感保持一致。
+class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _AppPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+    final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    return FadeTransition(
+      opacity: curve,
+      child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.015), end: Offset.zero).animate(curve), child: child),
+    );
+  }
+}
+
+/// 只替换桌面平台的过渡：Android 保持 PredictiveBack、iOS/macOS 保持 Cupertino（含边缘返回手势），
+/// 都跟 Flutter 自带默认值一致，避免影响移动端。
+const _pageTransitionsTheme = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.fuchsia: ZoomPageTransitionsBuilder(),
+    TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.linux: _AppPageTransitionsBuilder(),
+    TargetPlatform.windows: _AppPageTransitionsBuilder(),
+  },
+);
 
 ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false}) {
   var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
@@ -28,6 +60,7 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
     // it, which stands out badly against the flat/AMOLED surfaces this app uses.
     // Keep the bar the same colour as the page.
     appBarTheme: AppBarTheme(backgroundColor: scheme.surface, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
+    pageTransitionsTheme: _pageTransitionsTheme,
     // 贴底的通栏 SnackBar 在这个布局里显得很重，改成半透明浮动圆角。
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
