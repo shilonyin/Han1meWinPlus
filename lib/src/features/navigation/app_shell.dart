@@ -105,7 +105,6 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
             ? Row(
                 children: [
                   _CompactNavigationRail(navigationShell: widget.navigationShell),
-                  const VerticalDivider(width: 1),
                   Expanded(child: animatedContent),
                 ],
               )
@@ -115,10 +114,11 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
                       NavigationRail(
                         selectedIndex: widget.navigationShell.currentIndex,
                         labelType: NavigationRailLabelType.all,
+                        // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
+                        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                         onDestinationSelected: select,
                         destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label))).toList(),
                       ),
-                      const VerticalDivider(width: 1),
                       Expanded(child: animatedContent),
                     ],
                   )
@@ -283,6 +283,10 @@ class _CompactNavigationRail extends ConsumerWidget {
     final sections = _drawerSections(context, comicMode: comicMode, previewSource: ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto');
     final path = GoRouterState.of(context).uri.path;
     final colorScheme = Theme.of(context).colorScheme;
+    // 侧栏与内容区之间不画分隔线，改用色块深浅区分（比内容区深/浅一档）。
+    // AMOLED 下所有 surface 都是纯黑，再加一层极淡的白叠出可分度。
+    final amoled = ref.watch(settingsProvider).valueOrNull?.amoledMode ?? false;
+    final railColor = amoled ? Colors.white.withValues(alpha: 0.04) : colorScheme.surfaceContainer;
     // 桌面窄侧栏分两段（与参考布局一致）：
     //   上段 = 主项（首页 / 新番预告 / 冲了么）
     //   下段 = 「我的」（头像打头）+ 观看历史 / 下载 + 主题模式 + 设置
@@ -295,7 +299,7 @@ class _CompactNavigationRail extends ConsumerWidget {
     final rows = mainItems.length + iconItems.length + 3;
     return Container(
       width: railWidth,
-      color: colorScheme.surfaceContainerLow,
+      color: railColor,
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
