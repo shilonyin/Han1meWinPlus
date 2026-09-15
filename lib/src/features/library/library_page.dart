@@ -190,6 +190,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
             ? Center(child: Text(l10n.noWatchHistory))
             : VideoCardGrid(
                 videos: items.map((item) => VideoCard(id: item.videoCode, title: item.title, coverUrl: '')).toList(growable: false),
+                cardsPerRow: 4,
                 itemBuilder: (context, index, video, horizontal) {
                   final item = items[index];
                   final selected = _selected.contains(item.id);
@@ -482,6 +483,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
             ? Center(child: Text(l10n.noWatchHistory))
             : VideoCardGrid(
                 videos: widget.videos.map(_videoCard).toList(growable: false),
+                cardsPerRow: 4,
                 itemBuilder: (context, index, video, horizontal) {
                   final selected = _selected.contains(video.id);
                   return Stack(
@@ -779,6 +781,7 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
             ? Center(child: Text(widget.emptyMessage, style: Theme.of(context).textTheme.bodyLarge))
             : VideoCardGrid(
                 videos: widget.videos.map(_videoCard).toList(growable: false),
+                cardsPerRow: 4,
                 itemBuilder: (context, index, video, horizontal) {
                   final selected = _selected.contains(video.id);
                   return Stack(
