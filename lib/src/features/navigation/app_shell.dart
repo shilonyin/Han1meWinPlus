@@ -274,7 +274,10 @@ class _CompactNavigationRail extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   /// 图标 + 两三个汉字宽度，恰好放得下精简后的标签。
-  static const double railWidth = 88;
+  ///
+  /// 参考布局的侧栏是 96（其窗口 100% 缩放，即屏幕上 96px），而我们这边是 150% 缩放，
+  /// 同一个宽度要在屏幕上一样细，就用 96 / 1.5 = 64。
+  static const double railWidth = 64;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -307,7 +310,7 @@ class _CompactNavigationRail extends ConsumerWidget {
             // 条目高度按可用高度算（限制在上下限之间），窗口变矮时图标与文案一起缩；
             // 富余的高度不给条目，而是留给上下两段之间的间隔 —— 上段贴顶、下段贴底。
             final extent = (constraints.maxHeight / rows).clamp(34.0, 58.0);
-            const edge = EdgeInsets.symmetric(vertical: 8, horizontal: 6);
+            const edge = EdgeInsets.symmetric(vertical: 8, horizontal: 4);
             const minGap = 16.0;
             final top = <Widget>[
               for (final item in mainItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
@@ -369,7 +372,7 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
     final account = widget.account;
     final loggedIn = account != null;
     final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
-    final radius = (widget.extent * 0.26).clamp(12.0, 15.0);
+    final radius = (widget.extent * 0.26).clamp(12.0, 14.0);
     final highlighted = widget.selected || _hovering;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -458,9 +461,9 @@ class _CompactRailItemState extends State<_CompactRailItem> {
     final color = highlighted ? scheme.primary : scheme.onSurfaceVariant;
     final label = item.shortLabel ?? item.label;
     final extent = widget.extent;
-    // 图标尺寸统一按同一个口径算（带文案与纯图标条目一律同尺寸），
-    // 上限 26 与参考布局里带文字时的图标大小一致。
-    final iconSize = (extent * 0.45).clamp(16.0, 26.0);
+    // 图标尺寸统一按同一个口径算（带文案与纯图标条目一律同尺寸）；
+    // 上限 24 与参考里的图标大小（屏幕上 30px 左右）相当。
+    final iconSize = (extent * 0.45).clamp(16.0, 24.0);
     final labelSize = (extent * 0.2).clamp(9.0, 11.5);
     final gap = ((extent - iconSize - labelSize - 4) / 2).clamp(1.0, 5.0);
     return MouseRegion(
