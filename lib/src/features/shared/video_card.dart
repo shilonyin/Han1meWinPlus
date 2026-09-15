@@ -9,6 +9,7 @@ import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import 'app_image_cache.dart';
 
 int videoCardCacheWidth(double cardWidth, double devicePixelRatio) => (cardWidth * devicePixelRatio).round().clamp(240, 480).toInt();
 
@@ -212,6 +213,7 @@ class VideoCardTile extends ConsumerWidget {
               else
                 CachedNetworkImage(
                   imageUrl: video.coverUrl,
+                  cacheManager: appImageCacheManager,
                   fit: BoxFit.cover,
                   memCacheWidth: cacheWidth,
                   fadeInDuration: Duration.zero,

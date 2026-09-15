@@ -20,6 +20,12 @@ class WindowsConnectionFactory {
     '2606:4700:3030::6815:714',
   ];
 
+  /// 图片 CDN（CDN77）的优选节点。实测同一张缩略图：`89.187.187.14` 总耗时
+  /// 0.95s（TLS 0.31s），而 `143.244.51.58` / `.245` 的 TLS 握手要 1.4-1.6s、
+  /// 总耗时 2.5-3.9s。系统 DNS 会同时返回这两段并随机命中，所以固定优先快节点；
+  /// 它们连不上时仍会回退到系统解析（`_connect` 里把域名接在最后）。
+  static const imageCdnAddresses = ['89.187.187.14', '89.187.187.10', '89.187.187.19'];
+
   /// host → 实测可用的地址。getchu 是日本源站，实测走系统 DNS / 代理都要 ~1.9s，
   /// 直连下面这个地址只要 0.5s（参考上游用的另一个 210.155.150.145 实测已超时，不要加）。
   static const builtInHosts = <String, List<String>>{
@@ -28,6 +34,7 @@ class WindowsConnectionFactory {
     'hanimeone.me': builtInAddresses,
     'javchu.com': builtInAddresses,
     'www.getchu.com': ['210.155.150.166'],
+    'vdownload.hembed.com': imageCdnAddresses,
   };
 
   WindowsConnectionFactory({

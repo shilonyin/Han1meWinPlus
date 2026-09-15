@@ -17,6 +17,7 @@ import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
+import '../shared/app_image_cache.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
@@ -25,6 +26,18 @@ import 'explore_controller.dart';
 const _maxContentWidth = 1440.0;
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
+
+/// 预热一张封面：图片站点偶发 SSL 握手中断，失败时重试一次。
+Future<void> precacheCover(String url, int cacheWidth, BuildContext context) async {
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      await precacheImage(CachedNetworkImageProvider(url, maxWidth: cacheWidth, cacheManager: appImageCacheManager), context);
+      return;
+    } catch (_) {
+      // 握手/传输失败时重试一次
+    }
+  }
+}
 
 /// Column count of the home waterfall. Cards end up roughly 240-320 logical
 /// pixels wide, which is the density the reference app's poster wall uses.
@@ -537,7 +550,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
     if (url == null || url.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(precacheImage(CachedNetworkImageProvider(url, maxWidth: 960), context).catchError((_) {}));
+      unawaited(precacheCover(url, 960, context));
     });
   }
 
@@ -705,10 +718,11 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final width = _viewportWidth;
     final columns = homeWaterfallColumns(width);
     final cacheWidth = videoCardCacheWidth(homeWaterfallCardWidth(width, columns), MediaQuery.devicePixelRatioOf(context));
-    for (final video in (videos ?? _videos).take(columns * 4)) {
-      if (video.coverUrl.isNotEmpty) {
-        unawaited(precacheImage(CachedNetworkImageProvider(video.coverUrl, maxWidth: cacheWidth), context).catchError((_) {}));
-      }
+    final targets = (videos ?? _videos).take(columns * 6).where((video) => video.coverUrl.isNotEmpty).toList(growable: false);
+    // 图片站点单张要 0.3-5s，一次把几十张全发出去会互相争带宽而且更容易握手失败，
+    // 所以分批下载；失败的补一次重试（实测偶发 SSL 握手中断）。
+    for (var index = 0; index < targets.length; index += 6) {
+      await Future.wait(targets.skip(index).take(6).map((video) => precacheCover(video.coverUrl, cacheWidth, context)));
     }
   }
 
@@ -861,6 +875,7 @@ class _FeaturedVideoSurface extends StatelessWidget {
             children: [
               CachedNetworkImage(
                 imageUrl: video.coverUrl,
+                cacheManager: appImageCacheManager,
                 fit: BoxFit.cover,
                 memCacheWidth: 960,
                 fadeInDuration: Duration.zero,
