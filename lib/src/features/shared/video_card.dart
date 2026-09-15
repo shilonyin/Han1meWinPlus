@@ -10,6 +10,15 @@ int videoCardCacheWidth(double cardWidth, double devicePixelRatio) => (cardWidth
 
 const _horizontalCardMetaHeight = 120.0;
 
+/// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出两行空间。
+const _horizontalCardCompactMetaHeight = 78.0;
+
+/// 该卡片是否带作者 / 评分 / 上传时间。
+bool hasVideoCardMeta(VideoCard video) => video.artist != null || video.rating != null || video.uploadTime != null;
+
+/// 一批卡片在封面下方需要的高度（整批都没有 meta 时用矮一点的值）。
+double videoCardMetaHeight(Iterable<VideoCard> videos) => videos.any(hasVideoCardMeta) ? _horizontalCardMetaHeight : _horizontalCardCompactMetaHeight;
+
 class VideoCardMetrics {
   const VideoCardMetrics({required this.horizontal, required this.cardsPerRow, required this.cardWidth, required this.cardHeight});
 
@@ -90,8 +99,10 @@ class VideoCardTile extends StatelessWidget {
   Widget _horizontalContent(ThemeData theme, int cacheWidth) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大
-          if (dense || fillCover)
+          // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大。
+          // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
+          // 否则卡片下方会空出一段没有内容的区域。
+          if (dense || fillCover || !hasVideoCardMeta(video))
             Expanded(child: _cover(theme, cacheWidth))
           else
             AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
@@ -136,7 +147,9 @@ class VideoCardTile extends StatelessWidget {
         ),
       );
 
-  Widget _details(ThemeData theme) => Column(
+  Widget _details(ThemeData theme) {
+    final hasMeta = hasVideoCardMeta(video);
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -155,21 +168,24 @@ class VideoCardTile extends StatelessWidget {
                 ),
               ),
             ),
-          SizedBox(height: dense ? 2 : 2),
-          // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
-          Text(video.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
-          SizedBox(height: dense ? 2 : 2),
-          SizedBox(
-            height: dense ? 14 : 16,
-            child: Row(
-              children: [
-                Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: dense ? 11 : 14, color: theme.colorScheme.outline), SizedBox(width: dense ? 3 : 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)))])),
-                if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
-              ],
+          if (hasMeta) ...[
+            const SizedBox(height: 2),
+            // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
+            Text(video.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
+            const SizedBox(height: 2),
+            SizedBox(
+              height: dense ? 14 : 16,
+              child: Row(
+                children: [
+                  Expanded(child: video.rating == null ? const SizedBox.shrink() : Row(children: [Icon(Icons.thumb_up_outlined, size: dense ? 11 : 14, color: theme.colorScheme.outline), SizedBox(width: dense ? 3 : 4), Flexible(child: Text(video.rating!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)))])),
+                  if (video.uploadTime != null) Text(video.uploadTime!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: theme.colorScheme.outline)),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       );
+  }
 }
 
 class VideoCardGrid extends ConsumerWidget {
@@ -206,7 +222,7 @@ class VideoCardGrid extends ConsumerWidget {
         final rows = rowsPerScreen;
         final cardHeight = rows != null && constraints.hasBoundedHeight
             ? ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 420.0)
-            : (horizontal ? cardWidth * 9 / 16 + _horizontalCardMetaHeight : cardWidth / .58);
+            : (horizontal ? cardWidth * 9 / 16 + videoCardMetaHeight(videos) : cardWidth / .58);
         return GridView.builder(
           controller: controller,
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),

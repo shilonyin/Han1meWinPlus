@@ -26,10 +26,6 @@ const _maxContentWidth = 1440.0;
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
 
-/// 卡片封面下方（标题/作者/评分）预留的高度。用固定高度而不是瀑布流，
-/// 否则长短不一的标题会让每一列越往下错得越多。
-const _cardMetaHeight = 120.0;
-
 /// Column count of the home waterfall. Cards end up roughly 240-320 logical
 /// pixels wide, which is the density the reference app's poster wall uses.
 int homeWaterfallColumns(double width) {
@@ -734,7 +730,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                 crossAxisCount: columns,
                 mainAxisSpacing: 14,
                 crossAxisSpacing: _gridSpacing,
-                mainAxisExtent: cardWidth * 9 / 16 + _cardMetaHeight,
+                mainAxisExtent: cardWidth * 9 / 16 + videoCardMetaHeight(_videos),
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) => index == _videos.length - 1 && hasMore
