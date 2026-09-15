@@ -60,13 +60,14 @@ class AppRouter {
                 path: '/',
                 builder: (context, state) => const ExplorePage(),
                 // 这些页面挂在本分支下，使其在侧栏内侧展开（常驻侧栏不会消失）。
-                // 子路径与父路径拼接后仍是 /check-in、/previews/...、/search ，URL 不变。
+                // 子路径与父路径拼接后仍是 /check-in、/previews/...、/search、/mine ，URL 不变。
                 routes: [
                   GoRoute(path: 'check-in', builder: (context, state) => const CheckInPage()),
                   GoRoute(path: 'previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),
                   GoRoute(path: 'previews/getchu/:month', builder: (context, state) => GetchuPreviewPage(month: state.pathParameters['month']!)),
                   GoRoute(path: 'previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
                   GoRoute(path: 'search', builder: _searchRouteBuilder),
+                  GoRoute(path: 'mine', builder: (context, state) => const AccountPage()),
                 ],
               ),
             ]),
@@ -93,7 +94,6 @@ class AppRouter {
         ),
         GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
         GoRoute(path: '/login/cookies', builder: (context, state) => const ManualCookiePage()),
-        GoRoute(path: '/mine', builder: (context, state) => const AccountPage()),
         GoRoute(path: '/cache/groups/new', builder: (context, state) => const DownloadGroupPage()),
         GoRoute(path: '/cache/groups/:id', builder: (context, state) => DownloadGroupPage(groupId: state.pathParameters['id'])),
         GoRoute(

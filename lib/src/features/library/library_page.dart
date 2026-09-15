@@ -30,19 +30,16 @@ class LibraryPage extends ConsumerStatefulWidget {
 }
 
 class _LibraryPageState extends ConsumerState<LibraryPage> {
-  String? _artistId;
-
   @override
   Widget build(BuildContext context) {
     final account = ref.watch(accountProvider).valueOrNull;
     final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     if (account?.id != null) return _RemoteLibrary(initialTab: widget.initialTab, drawerMode: drawerMode);
-    final value = ref.watch(libraryProvider);
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
         appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Icons.bar_chart_outlined))] : null),
-        body: value.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, stackTrace) => Center(child: Text('$error')), data: (library) => _tabContent(library, widget.initialTab)),
+        body: LibraryTabView(index: widget.initialTab),
       );
     }
     return DefaultTabController(
@@ -55,33 +52,55 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
           actions: [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Icons.bar_chart_outlined))],
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n)),
         ),
-        body: value.when(
-          loading: () => const Center(child: M3EContainedLoadingIndicator()),
-          error: (error, stackTrace) => Center(child: Text('$error')),
-          data: _content,
-        ),
+        body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
       ),
     );
   }
+}
 
-  Widget _content(LibraryState library) {
-    return TabBarView(
-      children: [
-        for (var index = 0; index < 5; index++) _tabContent(library, index),
-      ],
-    );
-  }
+/// 单个清单页签的内容（清单页与「我的」页共用）：自己取数据，因此可以直接嵌进别的页面。
+class LibraryTabView extends ConsumerStatefulWidget {
+  const LibraryTabView({super.key, required this.index});
 
-  Widget _tabContent(LibraryState library, int index) {
+  /// 0 稍后观看 / 1 喜欢的影片 / 2 播放清单 / 3 我的订阅 / 4 观看历史。
+  final int index;
+
+  @override
+  ConsumerState<LibraryTabView> createState() => _LibraryTabViewState();
+}
+
+class _LibraryTabViewState extends ConsumerState<LibraryTabView> {
+  /// 订阅页里选中的作者（本地订阅用）。
+  String? _artistId;
+
+  @override
+  Widget build(BuildContext context) {
+    final account = ref.watch(accountProvider).valueOrNull;
     final l10n = AppLocalizations.of(context)!;
-    return switch (index) {
-      0 => _SelectableVideos(videos: library.watchLater, emptyMessage: l10n.noWatchLater, remover: (ref, ids) => ref.read(libraryProvider.notifier).removeWatchLater(ids)),
-      1 => _SelectableVideos(videos: library.favorites, emptyMessage: l10n.noFavoriteVideos, remover: (ref, ids) => ref.read(libraryProvider.notifier).removeFavorites(ids)),
-      2 => _LocalPlaylists(playlists: library.playlists),
-      3 => _LocalSubscriptions(artists: library.artists, videos: library.subscriptionVideos, selectedArtist: _artistId, onSelected: (artist) => setState(() => _artistId = artist)),
-      _ => const _LocalHistory(),
-    };
+    if (account?.id != null) {
+      return ref.watch(remoteLibraryProvider).when(
+            loading: () => const Center(child: M3EContainedLoadingIndicator()),
+            error: (error, stackTrace) => Center(child: FilledButton(onPressed: () => ref.invalidate(remoteLibraryProvider), child: Text(l10n.reload))),
+            data: (library) => _remoteTabContent(context, library, widget.index, account?.csrfToken),
+          );
+    }
+    return ref.watch(libraryProvider).when(
+          loading: () => const Center(child: M3EContainedLoadingIndicator()),
+          error: (error, stackTrace) => Center(child: Text('$error')),
+          data: (library) => _localTabContent(context, library, widget.index, _artistId, (artist) => setState(() => _artistId = artist)),
+        );
   }
+}
+
+Widget _localTabContent(BuildContext context, LibraryState library, int index, String? artistId, ValueChanged<String?> onSelectedArtist) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (index) {
+    0 => _SelectableVideos(videos: library.watchLater, emptyMessage: l10n.noWatchLater, remover: (ref, ids) => ref.read(libraryProvider.notifier).removeWatchLater(ids)),
+    1 => _SelectableVideos(videos: library.favorites, emptyMessage: l10n.noFavoriteVideos, remover: (ref, ids) => ref.read(libraryProvider.notifier).removeFavorites(ids)),
+    2 => _LocalPlaylists(playlists: library.playlists),
+    3 => _LocalSubscriptions(artists: library.artists, videos: library.subscriptionVideos, selectedArtist: artistId, onSelected: onSelectedArtist),
+    _ => const _LocalHistory(),
+  };
 }
 
 class _RemoteLibrary extends ConsumerWidget {
@@ -93,29 +112,18 @@ class _RemoteLibrary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final account = ref.watch(accountProvider).valueOrNull;
     if (drawerMode) {
       return Scaffold(
         appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)), title: Text(_tabTitle(l10n, initialTab))),
-        body: ref.watch(remoteLibraryProvider).when(
-          loading: () => const Center(child: M3EContainedLoadingIndicator()),
-          error: (error, stackTrace) => Center(child: FilledButton(onPressed: () => ref.invalidate(remoteLibraryProvider), child: Text(l10n.reload))),
-          data: (library) => _remoteTabContent(context, library, initialTab, account?.csrfToken),
-        ),
+        body: LibraryTabView(index: initialTab),
       );
     }
     return DefaultTabController(
       length: 5,
       initialIndex: initialTab,
-      child: Builder(
-        builder: (context) => Scaffold(
-          appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
-          body: ref.watch(remoteLibraryProvider).when(
-                loading: () => const Center(child: M3EContainedLoadingIndicator()),
-                error: (error, stackTrace) => Center(child: FilledButton(onPressed: () => ref.invalidate(remoteLibraryProvider), child: Text(l10n.reload))),
-                data: (library) => TabBarView(children: [for (var index = 0; index < 5; index++) _remoteTabContent(context, library, index, account?.csrfToken)]),
-              ),
-        ),
+      child: Scaffold(
+        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
+        body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
       ),
     );
   }

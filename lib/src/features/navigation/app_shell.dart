@@ -282,10 +282,15 @@ class _CompactNavigationRail extends ConsumerWidget {
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
     final sections = _drawerSections(context, comicMode: comicMode, previewSource: ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto');
     final path = GoRouterState.of(context).uri.path;
-    final loggedIn = account != null;
-    final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
-    final items = _drawerDestinations(sections);
     final colorScheme = Theme.of(context).colorScheme;
+    // 桌面窄侧栏分两段（与参考布局一致）：
+    //   上段 = 主项（首页 / 新番预告 / 冲了么）
+    //   下段 = 「我的」（头像打头）+ 观看历史 / 下载 + 主题模式 + 设置
+    // 「我的清单」那一组已经挪进「我的」页的页签，侧栏不再重复列一遍。
+    final mainItems = sections.first.items;
+    final videoItems = sections.last.items;
+    final settingsItem = videoItems.firstWhere((item) => item.location == '/settings');
+    final iconItems = videoItems.where((item) => item.location != '/settings').toList();
     return Container(
       width: railWidth,
       color: colorScheme.surfaceContainerLow,
@@ -294,41 +299,27 @@ class _CompactNavigationRail extends ConsumerWidget {
           builder: (context, constraints) {
             // 不用 ListView（桌面端会带滚动条）：按可用高度把每个条目的高度算出来，
             // 图标、文字、间距跟着一起缩，所以调整窗口大小时侧栏始终完整显示、不滚动。
-            const avatarBlock = 50.0;
             const dividerBlock = 14.0;
             final themeMode = ref.watch(settingsProvider).valueOrNull?.themeMode ?? AppThemeMode.system;
-            final fixed = avatarBlock + (sections.length - 1) * dividerBlock;
-            // 末尾还要放一个「主题模式」入口，所以按 items.length + 1 算条目高度。
-            final extent = ((constraints.maxHeight - fixed - 8) / (items.length + 1)).clamp(32.0, 60.0);
+            // 下段固定多三项：头像（我的）、主题模式、设置。
+            final rows = mainItems.length + iconItems.length + 3;
+            final extent = ((constraints.maxHeight - dividerBlock - 8) / rows).clamp(32.0, 60.0);
             final content = Column(
               children: [
-                SizedBox(
-                  height: avatarBlock,
-                  child: Center(
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () => context.push('/mine'),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: CircleAvatar(radius: 17, backgroundImage: hasAvatar ? appNetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 19)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                for (var i = 0; i < sections.length; i++) ...[
-                  if (i > 0) const SizedBox(height: dividerBlock, child: Divider(height: dividerBlock, indent: 12, endIndent: 12)),
-                  for (final item in sections[i].items) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
-                ],
-                // 左下角的主题模式：点一下在「跟随系统 → 浅色 → 深色」之间循环，图标跟着当前模式变。
+                for (final item in mainItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
+                const SizedBox(height: dividerBlock, child: Divider(height: dividerBlock, indent: 12, endIndent: 12)),
+                // 下段第一项就是「我的」（头像），点它进「我的」页。
+                _CompactRailAvatar(account: account, extent: extent, selected: path == '/mine', onTap: () => context.push('/mine')),
+                for (final item in iconItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
+                // 主题模式：点一下在「跟随系统 → 浅色 → 深色」之间循环，图标跟着当前模式变。
                 _CompactRailItem(
                   item: _DrawerItem(icon: _themeModeIcon(themeMode), selectedIcon: _themeModeIcon(themeMode), label: AppLocalizations.of(context)!.themeMode, location: '', iconOnly: true),
                   selected: false,
                   extent: extent,
                   onTap: () => unawaited(_cycleThemeMode(context, ref)),
                 ),
+                // 设置：放在最末尾（主题模式在它上面）。
+                _CompactRailItem(item: settingsItem, selected: settingsItem.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, settingsItem.location)),
               ],
             );
             // 极端尺寸的兜底：允许滚动但隐藏滚动条（正常尺寸下根本不会滚）。
@@ -337,6 +328,59 @@ class _CompactNavigationRail extends ConsumerWidget {
               child: SingleChildScrollView(padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6), child: content),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// 侧栏下段的第一项：「我的」（圆形头像）。悬停与选中都只给头像描一圈主题色，
+/// 与其它条目一样不画底色块。
+class _CompactRailAvatar extends StatefulWidget {
+  const _CompactRailAvatar({required this.account, required this.extent, required this.selected, required this.onTap});
+
+  final Account? account;
+  final double extent;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_CompactRailAvatar> createState() => _CompactRailAvatarState();
+}
+
+class _CompactRailAvatarState extends State<_CompactRailAvatar> {
+  var _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final account = widget.account;
+    final loggedIn = account != null;
+    final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
+    final radius = (widget.extent * 0.29).clamp(13.0, 18.0);
+    final highlighted = widget.selected || _hovering;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: SizedBox(
+        height: widget.extent,
+        child: InkWell(
+          hoverColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          onTap: widget.onTap,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: highlighted ? scheme.primary : Colors.transparent, width: 2)),
+              child: CircleAvatar(
+                radius: radius,
+                backgroundImage: hasAvatar ? appNetworkImage(account!.avatarUrl!) : null,
+                child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: radius, color: highlighted ? scheme.primary : scheme.onSurfaceVariant),
+              ),
+            ),
+          ),
         ),
       ),
     );
