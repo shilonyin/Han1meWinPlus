@@ -1438,7 +1438,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useSystemFont => 'Use system font';
 
   @override
-  String get useSystemFontDescription => 'Turn off to use the MiSans font';
+  String get useSystemFontDescription =>
+      'Turn off to use the HarmonyOS Sans font';
 
   @override
   String get useSystemTitleBar => 'Use system title bar';
@@ -1525,7 +1526,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acknowledgementsBody =>
-      'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is MiSans by Xiaomi Corporation, free for commercial use under the MiSans Font Intellectual Property License Agreement.';
+      'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is HarmonyOS Sans by Huawei Device Co., Ltd., free to use under the HarmonyOS Sans Fonts License Agreement.';
 
   @override
   String get agplLicense => 'AGPL-3.0 license';

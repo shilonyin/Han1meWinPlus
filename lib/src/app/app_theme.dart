@@ -17,9 +17,10 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    // 默认用内置 MiSans；系统字体开关打开时交回平台默认字体。
-    // fallback 用于 MiSans 没有的字符（emoji、生僻字）与彩色 emoji。
-    fontFamily: useSystemFont ? null : 'MiSans',
+    // 默认用内置 HarmonyOS Sans SC（可变字体，单文件自带 9 档字重）；
+    // 系统字体开关打开时交回平台默认字体。
+    // fallback 用于该字体没有的字符（emoji、生僻字）与彩色 emoji。
+    fontFamily: useSystemFont ? null : 'HarmonyOS Sans SC',
     fontFamilyFallback: useSystemFont ? null : const ['Microsoft YaHei UI', 'Segoe UI Emoji', 'Segoe UI Symbol'],
     scaffoldBackgroundColor: amoled ? Colors.black : null,
     canvasColor: amoled ? Colors.black : null,

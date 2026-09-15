@@ -56,27 +56,34 @@ flutter:
   uses-material-design: true
   generate: true
   fonts:
-    # 应用内置字体：MiSans（小米科技有限责任公司，遵循《MiSans 字体知识产权许可协议》，
-    # 免费商用；按协议要求在「关于 → 致谢」中署名）。
-    # 只随包提供 Regular 一档。Flutter 不会对普通文本字体做 tree-shake（--tree-shake-icons
-    # 只管图标字体），pubspec 里声明几档字重就会把几个完整的全量 CJK 字库原样打进安装包：
-    # 单档 7.8 MB，四档合计 31 MB；LZMA 压缩后每档约占安装包 4.3 MB（四档 → 单档省 12.9 MB）。
+    # 应用内置字体：HarmonyOS Sans SC（鸿蒙黑体），版权 2021 Huawei Device Co., Ltd.，
+    # 依《HarmonyOS Sans Fonts License Agreement》免费使用（协议允许随软件嵌入、打包、
+    # 再分发，含商业用途；要求署名、保留协议副本、不得修改字体文件）。
+    # 协议副本随包提供：assets/fonts/HarmonyOS_Sans_SC_LICENSE.txt
     #
-    # 缺档字重的实际表现（实测：dart:ui 栅格化后比较墨迹总量）：
-    #   - w600 / w700 会落到这一档并做合成加粗，墨迹约为 400 的 1.47 倍（真 Bold 对照为
-    #     1.11 倍，故观感偏重），且 w600 与 w700 渲染完全一致，四档层次只剩两级；
-    #   - w500 被静默忽略、与 400 完全一致（没有合成加粗）。所以 Material 3 默认取 w500 的
-    #     titleMedium / titleSmall / label* 会比四档时期更轻。
-    # 若要让 w500 或 w600/w700 用上真字重，把对应的 MiSans-Medium / MiSans-Demibold 补回
-    # 下面的 fonts 列表即可（每档约 +4.3 MB 安装包体积）。
-    - family: MiSans
+    # 这个文件是**可变字体**（variable font），单文件内含 wght 轴 40–900 共 9 档字重
+    # （Thin / UltraLight / Light / Regular / Medium / SemiBold / Bold / Heavy / Black），
+    # 所以只声明一次就能拿到全部字重。Flutter 不会对普通文本字体做 tree-shake
+    # （--tree-shake-icons 只管图标字体），静态字体声明几档就打进几个全量 CJK 字库：
+    # 可变字体单文件 19.7 MB ↔ MiSans 静态四档合计约 31 MB。
+    #
+    # 实测（dart:ui 栅格化后比较墨迹总量，w400 = 16136）：
+    #   w500 = 18130（1.12x）、w600 = 20114（1.25x）、w700 = 22186（1.38x）
+    #   —— 引擎会把 FontWeight 映射到 wght 轴，拿到的是真实字重；静态单档字体则会把
+    #      w500 静默忽略、把 w600/w700 合成加粗。用 fontVariations 显式指定 wght=500/700
+    #      得到的墨迹与 FontWeight.w500/w700 完全一致，可确认这就是轴插值。
+    #
+    # 协议禁止修改字体（含实例化、子集化），上面的 ttf 必须保持官方原样。
+    - family: HarmonyOS Sans SC
       fonts:
-        - asset: assets/fonts/MiSans-Regular.ttf
+        - asset: assets/fonts/HarmonyOS_Sans_SC.ttf
           weight: 400
   assets:
     - assets/logo.png
     - assets/search_options/
     - assets/shaders/
+    # 字体许可协议要求随字体副本一并保留协议原文，故作为资源打进安装包。
+    - assets/fonts/HarmonyOS_Sans_SC_LICENSE.txt
 
 flutter_native_splash:
   color: '#f7f7fb'
