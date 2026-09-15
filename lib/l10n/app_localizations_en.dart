@@ -329,6 +329,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cache => 'Cache';
 
   @override
+  String get clearCache => 'Clear cache';
+
+  @override
+  String get clearCacheDescription =>
+      'Clears cached cover images and list metadata. Downloads and watch history are kept.';
+
+  @override
+  String cacheUsage(String size) {
+    return 'Currently using $size';
+  }
+
+  @override
+  String cacheCleared(String size) {
+    return 'Cleared $size';
+  }
+
+  @override
   String get more => 'See More';
 
   @override

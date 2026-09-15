@@ -318,6 +318,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cache => '缓存';
 
   @override
+  String get clearCache => '清理缓存';
+
+  @override
+  String get clearCacheDescription => '清除封面图片与列表信息的缓存，下载内容与观看记录不受影响';
+
+  @override
+  String cacheUsage(String size) {
+    return '当前占用 $size';
+  }
+
+  @override
+  String cacheCleared(String size) {
+    return '已清理 $size';
+  }
+
+  @override
   String get more => '查看更多';
 
   @override
@@ -2274,6 +2290,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get cache => '快取';
+
+  @override
+  String get clearCache => '清理快取';
+
+  @override
+  String get clearCacheDescription => '清除封面圖片與列表資訊的快取，下載內容與觀看記錄不受影響';
+
+  @override
+  String cacheUsage(String size) {
+    return '目前佔用 $size';
+  }
+
+  @override
+  String cacheCleared(String size) {
+    return '已清理 $size';
+  }
 
   @override
   String get more => '查看更多';

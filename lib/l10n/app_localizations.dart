@@ -687,6 +687,30 @@ abstract class AppLocalizations {
   /// **'Cache'**
   String get cache;
 
+  /// No description provided for @clearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cache'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Clears cached cover images and list metadata. Downloads and watch history are kept.'**
+  String get clearCacheDescription;
+
+  /// No description provided for @cacheUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently using {size}'**
+  String cacheUsage(String size);
+
+  /// No description provided for @cacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared {size}'**
+  String cacheCleared(String size);
+
   /// No description provided for @more.
   ///
   /// In en, this message translates to:

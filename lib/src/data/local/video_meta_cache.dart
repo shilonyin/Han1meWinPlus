@@ -26,6 +26,15 @@ class VideoMetaCache {
   /// 同步读内存（命中时卡片可以立刻渲染补全后的内容，不会闪一下）。
   VideoCard? read(String id) => _memory[id];
 
+  /// 清空内存与磁盘缓存（设置里的「清理缓存」会调它）。
+  Future<void> clear() async {
+    _memory.clear();
+    _pending = false;
+    try {
+      await _store.write(_fileName, const <String, dynamic>{});
+    } catch (_) {}
+  }
+
   Future<void> put(VideoCard meta) async {
     _memory[meta.id] = meta;
     // 多张卡片几乎同时回来，合并成一次写盘；但仍然等它真的写完。
