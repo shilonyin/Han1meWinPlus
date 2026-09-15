@@ -242,26 +242,7 @@ class _RemoteSubscriptionsState extends State<_RemoteSubscriptions> {
     final videos = selected == null ? widget.videos : widget.videos.where((video) => video.artistName == selected).toList(growable: false);
     return Column(
       children: [
-        if (widget.artists.isNotEmpty)
-          SizedBox(
-            height: 252,
-            child: GridView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              scrollDirection: Axis.horizontal,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 72),
-              itemCount: widget.artists.length,
-              itemBuilder: (context, index) {
-                final artist = widget.artists[index];
-                final isSelected = artist.name == selected;
-                return _SubscribedArtistCard(
-                  artist: artist,
-                  selected: isSelected,
-                  onTap: () => setState(() => _artist = artist.name == selected ? null : artist.name),
-                  onLongPress: () => context.push('/search', extra: SearchRouteRequest(initialUrl: Uri(path: '/search', queryParameters: {'query': artist.name}).toString())),
-                );
-              },
-            ),
-          ),
+        if (widget.artists.isNotEmpty) _ArtistStrip(artists: widget.artists, selectedKey: selected, keyOf: (artist) => artist.name, onSelected: (key) => setState(() => _artist = key)),
         Expanded(child: _Videos(videos: videos, message: AppLocalizations.of(context)!.noSubscriptionVideos)),
       ],
     );
@@ -284,53 +265,90 @@ class _LocalSubscriptions extends StatelessWidget {
     final visible = selected == null ? allVideos : videos[selected] ?? const <FollowingVideo>[];
     return Column(
       children: [
-        if (artists.isNotEmpty)
-          SizedBox(
-            height: 252,
-            child: GridView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              scrollDirection: Axis.horizontal,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 72),
-              itemCount: artists.length,
-              itemBuilder: (context, index) {
-                final artist = artists[index];
-                return _SubscribedArtistCard(artist: artist, selected: artist.id == selected, onTap: () => onSelected(artist.id == selected ? null : artist.id), onLongPress: () => context.push('/search', extra: SearchRouteRequest(initialUrl: Uri(path: '/search', queryParameters: {'query': artist.name}).toString())));
-              },
-            ),
-          ),
+        if (artists.isNotEmpty) _ArtistStrip(artists: artists, selectedKey: selected, keyOf: (artist) => artist.id, onSelected: onSelected),
         Expanded(child: _Videos(videos: visible, message: AppLocalizations.of(context)!.noSubscriptionVideos)),
       ],
     );
   }
 }
 
-class _SubscribedArtistCard extends StatelessWidget {
-  const _SubscribedArtistCard({required this.artist, required this.selected, required this.onTap, required this.onLongPress});
+/// 订阅作者条：单行横向滚动，第一个是「全部」。
+class _ArtistStrip extends StatelessWidget {
+  const _ArtistStrip({required this.artists, required this.selectedKey, required this.keyOf, required this.onSelected});
 
-  final SubscribedArtist artist;
+  final List<SubscribedArtist> artists;
+  final String? selectedKey;
+  final String Function(SubscribedArtist artist) keyOf;
+  final ValueChanged<String?> onSelected;
+
+  static const double height = 104;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      height: height,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        itemCount: artists.length + 1,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) return _ArtistStripCard(selected: selectedKey == null, label: l10n.all, isAll: true, onTap: () => onSelected(null), onLongPress: () => onSelected(null));
+          final artist = artists[index - 1];
+          final key = keyOf(artist);
+          final selected = key == selectedKey;
+          return _ArtistStripCard(
+            selected: selected,
+            label: artist.name,
+            avatarUrl: artist.avatarUrl,
+            onTap: () => onSelected(selected ? null : key),
+            onLongPress: () => context.push('/search', extra: SearchRouteRequest(initialUrl: Uri(path: '/search', queryParameters: {'query': artist.name}).toString())),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ArtistStripCard extends StatelessWidget {
+  const _ArtistStripCard({required this.selected, required this.label, required this.onTap, required this.onLongPress, this.avatarUrl, this.isAll = false});
+
   final bool selected;
+  final String label;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final String? avatarUrl;
+  final bool isAll;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: selected ? BorderSide(color: theme.colorScheme.primary, width: 2) : BorderSide.none),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(radius: 20, backgroundImage: artist.avatarUrl?.isNotEmpty == true ? NetworkImage(artist.avatarUrl!) : null, child: artist.avatarUrl?.isNotEmpty == true ? null : Text(artist.name.characters.first)),
-              const SizedBox(height: 4),
-              Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: theme.textTheme.labelSmall),
-            ],
+    final hasAvatar = avatarUrl?.isNotEmpty == true;
+    return SizedBox(
+      width: 96,
+      child: Material(
+        color: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: selected ? BorderSide(color: theme.colorScheme.primary, width: 2) : BorderSide.none),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+                  child: hasAvatar ? null : Icon(isAll ? Icons.people_alt_outlined : Icons.person_outline, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 6),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(fontWeight: selected ? FontWeight.w700 : null)),
+              ],
+            ),
           ),
         ),
       ),
@@ -733,7 +751,7 @@ class _Videos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (videos.isEmpty) return Center(child: Text(message, style: Theme.of(context).textTheme.bodyLarge));
-    return VideoCardGrid(videos: videos.map(_videoCard).toList(growable: false));
+    return VideoCardGrid(videos: videos.map(_videoCard).toList(growable: false), cardsPerRow: 4);
   }
 }
 
