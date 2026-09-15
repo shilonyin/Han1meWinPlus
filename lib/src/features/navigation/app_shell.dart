@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,11 +8,13 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../../core/platform_service.dart';
+import '../../core/settings.dart';
 import '../../domain/models/account.dart';
 import '../account/account_controller.dart';
 import '../comics/comic_pages.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/app_toast.dart';
 import 'exit_coordinator.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -285,8 +289,10 @@ class _CompactNavigationRail extends ConsumerWidget {
             // 图标、文字、间距跟着一起缩，所以调整窗口大小时侧栏始终完整显示、不滚动。
             const avatarBlock = 50.0;
             const dividerBlock = 14.0;
+            final themeMode = ref.watch(settingsProvider).valueOrNull?.themeMode ?? AppThemeMode.system;
             final fixed = avatarBlock + (sections.length - 1) * dividerBlock;
-            final extent = ((constraints.maxHeight - fixed - 8) / items.length).clamp(32.0, 60.0);
+            // 末尾还要放一个「主题模式」入口，所以按 items.length + 1 算条目高度。
+            final extent = ((constraints.maxHeight - fixed - 8) / (items.length + 1)).clamp(32.0, 60.0);
             final content = Column(
               children: [
                 SizedBox(
@@ -309,6 +315,13 @@ class _CompactNavigationRail extends ConsumerWidget {
                   if (i > 0) const SizedBox(height: dividerBlock, child: Divider(height: dividerBlock, indent: 12, endIndent: 12)),
                   for (final item in sections[i].items) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
                 ],
+                // 左下角的主题模式：点一下在「跟随系统 → 浅色 → 深色」之间循环，图标跟着当前模式变。
+                _CompactRailItem(
+                  item: _DrawerItem(icon: _themeModeIcon(themeMode), selectedIcon: _themeModeIcon(themeMode), label: AppLocalizations.of(context)!.themeMode, location: '', iconOnly: true),
+                  selected: false,
+                  extent: extent,
+                  onTap: () => unawaited(_cycleThemeMode(context, ref)),
+                ),
               ],
             );
             // 极端尺寸的兜底：允许滚动但隐藏滚动条（正常尺寸下根本不会滚）。
@@ -321,6 +334,37 @@ class _CompactNavigationRail extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 主题模式图标：跟随系统 / 浅色 / 深色 各一个。
+IconData _themeModeIcon(AppThemeMode mode) => switch (mode) {
+      AppThemeMode.system => Icons.brightness_auto_outlined,
+      AppThemeMode.light => Icons.light_mode_outlined,
+      AppThemeMode.dark => Icons.dark_mode_outlined,
+    };
+
+/// 左下角的主题模式入口：点一下在「跟随系统 → 浅色 → 深色」之间循环，
+/// 切换后给一个居中提示（侧栏按约定不用 tooltip）。
+Future<void> _cycleThemeMode(BuildContext context, WidgetRef ref) async {
+  final settings = ref.read(settingsProvider).valueOrNull;
+  if (settings == null) return;
+  final next = switch (settings.themeMode) {
+    AppThemeMode.system => AppThemeMode.light,
+    AppThemeMode.light => AppThemeMode.dark,
+    AppThemeMode.dark => AppThemeMode.system,
+  };
+  final l10n = AppLocalizations.of(context);
+  await ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(themeMode: next));
+  if (!context.mounted || l10n == null) return;
+  showAppToast(
+    context,
+    switch (next) {
+      AppThemeMode.system => l10n.followSystem,
+      AppThemeMode.light => l10n.light,
+      AppThemeMode.dark => l10n.dark,
+    },
+    icon: _themeModeIcon(next),
+  );
 }
 
 /// 单个窄栏条目：悬停或选中时**只有图标与文字**转为主题色（b 站那种），
