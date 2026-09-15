@@ -524,6 +524,36 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
   final _controller = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _prefetchFeatured();
+  }
+
+  @override
+  void didUpdateWidget(_HomeScroll oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.featured?.coverUrl != widget.featured?.coverUrl) _prefetchFeatured();
+  }
+
+  /// 首屏推荐位是一张大图（`memCacheWidth: 960`），不预热的话刷新后第一眼就是一个大灰块。
+  void _prefetchFeatured() {
+    final url = widget.featured?.coverUrl;
+    if (url == null || url.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(precacheImage(CachedNetworkImageProvider(url, maxWidth: 960), context).catchError((_) {}));
+    });
+  }
+
+  /// 右下角刷新：重新拉首页数据（各行的分页状态会通过 homeRefreshTokenProvider 重置），
+  /// 并滚回顶部，让刷新结果立刻可见。
+  Future<void> _refreshAll() async {
+    await ref.read(homeSectionsProvider.notifier).refresh();
+    if (!mounted || !_controller.hasClients) return;
+    _controller.jumpTo(0);
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -542,7 +572,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
             ],
           ),
-          Positioned(right: 0, bottom: 0, child: ScrollActions(controller: _controller, onRefresh: () => ref.read(homeSectionsProvider.notifier).refresh())),
+          Positioned(right: 0, bottom: 0, child: ScrollActions(controller: _controller, onRefresh: _refreshAll)),
         ],
       );
 }
@@ -558,15 +588,25 @@ class _HomeSection extends ConsumerStatefulWidget {
 }
 
 class _HomeSectionState extends ConsumerState<_HomeSection> {
-  String _prefetchKey = '';
   late List<VideoCard> _videos = widget.section.videos;
   var _page = 1;
   int? _totalPages;
   var _loading = false;
+  var _failed = false;
+  var _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
+  var _retryDelay = Duration.zero;
 
   /// Unknown until the first extra page comes back, so the first probe always
   /// gets a chance to ask for it.
   bool get _hasMore => widget.section.moreUrl != null && (_totalPages == null || _page < _totalPages!);
+
+  @override
+  void initState() {
+    super.initState();
+    // 右下角刷新与下拉刷新都会自增这个令牌：丢掉滚动时累积的分页，从第一页重新开始。
+    ref.listenManual(homeRefreshTokenProvider, (previous, next) => _reloadFromFirstPage());
+    _schedulePrefetch();
+  }
 
   @override
   void didUpdateWidget(_HomeSection oldWidget) {
@@ -574,12 +614,21 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     // The parent rebuilds the section objects on every build, so identity is
     // taken from the "more" link and the first card instead of the object.
     final changed = oldWidget.section.moreUrl != widget.section.moreUrl || oldWidget.section.videos.firstOrNull?.id != widget.section.videos.firstOrNull?.id;
-    if (changed) {
-      _videos = widget.section.videos;
-      _page = 1;
-      _totalPages = null;
-      _schedulePrefetch();
-    }
+    if (changed) _reloadFromFirstPage(notify: false);
+  }
+
+  /// 回到「只有第一页数据」的状态：刷新时把滚动累积的额外分页清掉，
+  /// 顺带清掉失败标记与退避，让这一行重新有机会加载。
+  void _reloadFromFirstPage({bool notify = true}) {
+    _videos = widget.section.videos;
+    _page = 1;
+    _totalPages = null;
+    _failed = false;
+    _retryDelay = Duration.zero;
+    _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
+    _schedulePrefetch();
+    // didUpdateWidget 是在 build 期间被调用的，那里不能 setState。
+    if (notify && mounted) setState(() {});
   }
 
   void _schedulePrefetch() {
@@ -595,7 +644,13 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
   Future<void> _loadMore() async {
     final moreUrl = widget.section.moreUrl;
     if (_loading || !_hasMore || moreUrl == null) return;
-    _loading = true;
+    // 上次失败后先退避一小会儿：probe 每次被重建都会来问一次，不能立刻打爆站点。
+    if (DateTime.now().difference(_lastAttempt) < _retryDelay) return;
+    _lastAttempt = DateTime.now();
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
     try {
       final settings = await ref.read(settingsProvider.future);
       final query = SearchQuery.fromUri(moreUrl);
@@ -622,20 +677,39 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
         _page = result.page;
         _totalPages = result.totalPages;
       });
+      _retryDelay = Duration.zero;
+      // 刚拿到的这一批先预热封面，滚过去时就不会先看到一片灰。
+      unawaited(_prefetch(extra));
     } catch (error) {
       debugPrint('[home] load more failed: $error');
+      final seconds = _retryDelay == Duration.zero ? 2 : _retryDelay.inSeconds * 2;
+      _retryDelay = Duration(seconds: seconds > 30 ? 30 : seconds);
+      if (mounted) setState(() => _failed = true);
     } finally {
-      _loading = false;
+      if (mounted) {
+        setState(() => _loading = false);
+      } else {
+        _loading = false;
+      }
     }
   }
 
-  Future<void> _prefetch() async {
+  /// 页尾「重试」按钮：忽略退避，立刻再试一次。
+  Future<void> _retry() {
+    _retryDelay = Duration.zero;
+    _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
+    return _loadMore();
+  }
+
+  /// 预热封面。[videos] 为空时预热列表开头那几行（首屏）。
+  /// 行数给得宽一点：CDN 一张图要 1-2 秒，预热不足的话快速滚过去时只能看到灰块。
+  Future<void> _prefetch([List<VideoCard>? videos]) async {
     if (!mounted) return;
     final context = this.context;
     final width = _viewportWidth;
     final columns = homeWaterfallColumns(width);
     final cacheWidth = videoCardCacheWidth(homeWaterfallCardWidth(width, columns), MediaQuery.devicePixelRatioOf(context));
-    for (final video in _videos.take(columns * 2)) {
+    for (final video in (videos ?? _videos).take(columns * 4)) {
       if (video.coverUrl.isNotEmpty) {
         unawaited(precacheImage(CachedNetworkImageProvider(video.coverUrl, maxWidth: cacheWidth), context).catchError((_) {}));
       }
@@ -646,11 +720,6 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
   Widget build(BuildContext context) {
     final width = _viewportWidth;
     final columns = homeWaterfallColumns(width);
-    final prefetchKey = '${_videos.length}-$columns';
-    if (prefetchKey != _prefetchKey) {
-      _prefetchKey = prefetchKey;
-      _schedulePrefetch();
-    }
     final hasMore = _hasMore;
     final cardWidth = homeWaterfallCardWidth(width, columns);
     return SliverMainAxisGroup(
@@ -676,11 +745,17 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
             ),
           ),
         ),
-        if (hasMore && _loading)
-          const SliverToBoxAdapter(
+        if (hasMore)
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.only(bottom: 24),
-              child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))),
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Center(
+                child: _loading
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
+                    : _failed
+                        ? TextButton.icon(onPressed: () => unawaited(_retry()), icon: const Icon(Icons.refresh, size: 18), label: Text(AppLocalizations.of(context)!.retry))
+                        : const SizedBox(height: 24),
+              ),
             ),
           ),
       ],
@@ -704,6 +779,18 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
   @override
   void initState() {
     super.initState();
+    _probe();
+  }
+
+  /// 这个格子被重建时（父级 setState、上一次加载失败后重建等）再试探一次。
+  /// 只在 initState 里试探的话，一次失败就会把这一行永久卡住。
+  @override
+  void didUpdateWidget(_LoadMoreProbe oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _probe();
+  }
+
+  void _probe() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(widget.onProbe());
     });

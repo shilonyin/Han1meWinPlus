@@ -2,20 +2,33 @@ import 'dart:convert';
 import 'dart:io';
 
 class WindowsConnectionFactory {
-  static var _nextAddress = 0;
-
   static const hanimeHosts = {'hanime1.me', 'hanime1.com', 'hanimeone.me', 'javchu.com'};
 
+  /// Cloudflare edge addresses that actually serve [hanimeHosts] with the right
+  /// SNI. Verified 2026-09-15 by requesting `/` and `/search` over each address:
+  /// `162.159.0.1`, `108.162.192.1` and `172.64.33.1` answer Cloudflare
+  /// error 1034 (Direct IP access not allowed) for every path, so they were
+  /// removed — dialing them only burned the timeout already before.
   static const builtInAddresses = [
     '172.64.229.154',
-    '162.159.0.1',
-    '108.162.192.1',
-    '172.64.33.1',
     '104.19.0.1',
+    '104.18.0.1',
+    '104.16.0.1',
+    '188.114.96.1',
     '2606:4700:3035::ac43:bb8d',
     '2606:4700:3030::6815:746',
     '2606:4700:3030::6815:714',
   ];
+
+  /// host → 实测可用的地址。getchu 是日本源站，实测走系统 DNS / 代理都要 ~1.9s，
+  /// 直连下面这个地址只要 0.5s（参考上游用的另一个 210.155.150.145 实测已超时，不要加）。
+  static const builtInHosts = <String, List<String>>{
+    'hanime1.me': builtInAddresses,
+    'hanime1.com': builtInAddresses,
+    'hanimeone.me': builtInAddresses,
+    'javchu.com': builtInAddresses,
+    'www.getchu.com': ['210.155.150.166'],
+  };
 
   WindowsConnectionFactory({
     required this.useBuiltInHosts,
@@ -38,9 +51,8 @@ class WindowsConnectionFactory {
   Future<ConnectionTask<Socket>> call(Uri uri, String? proxyHost, int? proxyPort) async {
     if (proxyHost != null) return Socket.startConnect(proxyHost, proxyPort ?? uri.port);
     final port = uri.hasPort ? uri.port : (uri.isScheme('https') ? 443 : 80);
-    if (useBuiltInHosts && hanimeHosts.contains(uri.host)) {
-      return _connect(uri, [...builtInAddresses, uri.host], port);
-    }
+    final builtIn = useBuiltInHosts ? builtInHosts[uri.host] : null;
+    if (builtIn != null) return _connect(uri, [...builtIn, uri.host], port);
     if (!useDoh) return _startConnect(uri.host, port);
     try {
       final addresses = await _DohResolver(
@@ -56,15 +68,23 @@ class WindowsConnectionFactory {
 
   Future<ConnectionTask<Socket>> _connect(Uri uri, List<String> addresses, int port) async {
     final allowBadCertificate = useBuiltInHosts && hanimeHosts.contains(uri.host);
-    final start = _nextAddress++ % addresses.length;
     Object? lastError;
     StackTrace? lastStackTrace;
-    for (var offset = 0; offset < addresses.length; offset++) {
-      final address = addresses[(start + offset) % addresses.length];
+    // IPv4 first: on some networks IPv6 is a black hole (the connect hangs until
+    // it times out), and the IPv6 edges are not guaranteed to serve every site.
+    // Try the candidates in order instead of rotating the start index — rotating
+    // just means a request randomly dials an edge that cannot serve the site.
+    final ordered = [
+      ...addresses.where((address) => !address.contains(':')),
+      ...addresses.where((address) => address.contains(':')),
+    ];
+    for (final address in ordered) {
       Socket? plain;
       try {
         if (address == uri.host) return _startConnect(uri.host, port);
-        plain = await Socket.connect(address, port, timeout: _timeout);
+        // 逐个候选探测用短超时：候选里只要有一个黑洞地址，长超时就会让整次请求
+        // 卡满设置里的秒数（默认 10s）才轮到下一个——实测内置列表里就踩过这种坑。
+        plain = await Socket.connect(address, port, timeout: const Duration(seconds: 4));
         final secure = await SecureSocket.secure(
           plain,
           host: uri.host,

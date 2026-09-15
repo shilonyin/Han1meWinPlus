@@ -158,14 +158,16 @@ class _DrawerSection {
 }
 
 /// 侧边栏结构（参考移动端分支的分组）：主项 → 我的清单 → 影片。
-List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = false}) {
+List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = false, String previewSource = 'auto'}) {
   final l10n = AppLocalizations.of(context)!;
   final now = DateTime.now();
   final month = '${now.year.toString().padLeft(4, '0')}${now.month.toString().padLeft(2, '0')}';
+  // 「新番」直接进用户选定的数据源：默认站点那张预告表常年不可用，别再让入口落在它上面。
+  final previewsLocation = previewSource == 'getchu' ? '/previews/getchu/$month' : '/previews/$month';
   return [
     _DrawerSection(items: [
       _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
-      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, shortLabel: l10n.railPreviews, location: '/previews/$month'),
+      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, shortLabel: l10n.railPreviews, location: previewsLocation),
       _DrawerItem(icon: Icons.thumb_up_alt_outlined, selectedIcon: Icons.thumb_up_alt, label: l10n.checkIn, location: '/check-in'),
     ]),
     _DrawerSection(title: l10n.myListSection, items: [
@@ -221,7 +223,7 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider).valueOrNull;
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
-    final sections = _drawerSections(context, comicMode: comicMode);
+    final sections = _drawerSections(context, comicMode: comicMode, previewSource: ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto');
     final destinations = _drawerDestinations(sections);
     final selectedIndex = _selectedDrawerIndex(context, destinations);
     return NavigationDrawer(
@@ -266,7 +268,7 @@ class _CompactNavigationRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(accountProvider).valueOrNull;
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
-    final sections = _drawerSections(context, comicMode: comicMode);
+    final sections = _drawerSections(context, comicMode: comicMode, previewSource: ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto');
     final path = GoRouterState.of(context).uri.path;
     final loggedIn = account != null;
     final hasAvatar = account?.avatarUrl?.isNotEmpty == true;

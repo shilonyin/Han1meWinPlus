@@ -381,6 +381,54 @@ abstract class AppLocalizations {
   /// **'Use built-in Cloudflare addresses for Hanime1 domains, falling back to system DNS automatically'**
   String get useBuiltInHostsDescription;
 
+  /// No description provided for @proxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy'**
+  String get proxy;
+
+  /// No description provided for @proxyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system proxy, connect directly, or use a custom address; built-in hosts and DoH only apply when not using a proxy'**
+  String get proxyDescription;
+
+  /// No description provided for @proxySystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system'**
+  String get proxySystem;
+
+  /// No description provided for @proxyDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'No proxy (direct)'**
+  String get proxyDirect;
+
+  /// No description provided for @proxyCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom proxy'**
+  String get proxyCustom;
+
+  /// No description provided for @proxyCustomAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy address'**
+  String get proxyCustomAddress;
+
+  /// No description provided for @proxyCustomAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 127.0.0.1:7897 (http:// optional)'**
+  String get proxyCustomAddressHint;
+
+  /// No description provided for @proxyDirectOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A proxy is in use, so built-in hosts have no effect'**
+  String get proxyDirectOnlyHint;
+
   /// No description provided for @doh.
   ///
   /// In en, this message translates to:
@@ -878,6 +926,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Season Previews'**
   String get previews;
+
+  /// No description provided for @previewSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Previews source'**
+  String get previewSource;
+
+  /// No description provided for @previewSourceAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get previewSourceAuto;
+
+  /// No description provided for @previewSourceDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default site'**
+  String get previewSourceDefault;
+
+  /// No description provided for @previewSourceGetchu.
+  ///
+  /// In en, this message translates to:
+  /// **'Getchu'**
+  String get previewSourceGetchu;
+
+  /// No description provided for @previewSourceAutoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Fall back to Getchu when the default site has no previews'**
+  String get previewSourceAutoDescription;
+
+  /// No description provided for @previewSourceDefaultDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only use the default site previews'**
+  String get previewSourceDefaultDescription;
+
+  /// No description provided for @previewSourceGetchuDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only use the Getchu previews'**
+  String get previewSourceGetchuDescription;
+
+  /// No description provided for @previewSourceSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Default site previews are unavailable, switched to Getchu'**
+  String get previewSourceSwitched;
 
   /// No description provided for @getchuPreviews.
   ///

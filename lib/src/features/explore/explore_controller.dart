@@ -11,6 +11,10 @@ import '../settings/settings_controller.dart';
 final homeCacheProvider = Provider((_) => HomeCache());
 final homeSectionsProvider = AsyncNotifierProvider<HomeSectionsController, HomeFeed>(HomeSectionsController.new);
 
+/// Bumped every time the feed is fetched again, so the rows can drop the extra
+/// pages they accumulated while scrolling and start over from the first page.
+final homeRefreshTokenProvider = StateProvider<int>((_) => 0);
+
 class HomeSectionsController extends AsyncNotifier<HomeFeed> {
   @override
   Future<HomeFeed> build() async {
@@ -33,6 +37,7 @@ class HomeSectionsController extends AsyncNotifier<HomeFeed> {
     final feed = await ref.read(han1meRepositoryProvider).home(settings.homeBaseUrl);
     await ref.read(homeCacheProvider).write(settings.homeBaseUrl, account?.id, feed);
     state = AsyncData(feed);
+    ref.read(homeRefreshTokenProvider.notifier).state++;
     return feed;
   }
 }

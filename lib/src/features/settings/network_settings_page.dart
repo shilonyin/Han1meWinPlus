@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
+import '../../core/configured_media_kit_video_player.dart';
 import '../../core/platform_paths.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -29,7 +30,8 @@ class NetworkSettingsPage extends ConsumerWidget {
        SettingsCardList(title: l10n.general, children: [
         SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Icons.language_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/site')),
        SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Icons.link_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
-       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),
+       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),
+       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Icons.vpn_lock_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showProxySettings(context, settings, controller)),
        SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Icons.security_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
        SettingsCardList(title: l10n.downloadSettings, children: [
@@ -80,9 +82,45 @@ class NetworkSettingsPage extends ConsumerWidget {
     if (result != null) await controller.saveChanges((current) => current.copyWith(useDoh: result.enabled, useBuiltInHosts: result.enabled ? false : current.useBuiltInHosts, dohPreset: result.preset, dohCustomUrl: result.customUrl, dohBootstrapIps: result.bootstrapIps, dohTimeoutSeconds: result.timeoutSeconds));
   }
 
+  String _proxySummary(AppLocalizations l10n, AppSettings settings) => switch (settings.proxyMode) {
+        'direct' => l10n.proxyDirect,
+        'custom' => settings.customProxy.isEmpty ? l10n.proxyCustom : '${l10n.proxyCustom} · ${settings.customProxy}',
+        _ => l10n.proxySystem,
+      };
+
+  /// 代理模式会影响两套网络栈：Dart 的 HttpClient（图片/页面/评论）与 mpv（视频），
+  /// 所以保存后要额外让播放器重新解析一次代理，否则视频仍走旧的代理设置。
+  Future<void> _showProxySettings(BuildContext context, AppSettings settings, SettingsController controller) async {
+    final result = await showDialog<_ProxySettings>(context: context, builder: (_) => _ProxySettingsDialog(settings: settings));
+    if (result == null) return;
+    await controller.saveChanges((current) => current.copyWith(proxyMode: result.mode, customProxy: result.custom));
+    await ConfiguredMediaKitVideoPlayer.refreshHttpProxy();
+  }
+
 }
 
 const _dohPresets = {'alidns': 'AliDNS', 'dnspod': 'DNSPod', 'cloudflare': 'Cloudflare'};
+
+class _ProxySettings { const _ProxySettings({required this.mode, required this.custom}); final String mode; final String custom; }
+
+class _ProxySettingsDialog extends StatefulWidget { const _ProxySettingsDialog({required this.settings}); final AppSettings settings; @override State<_ProxySettingsDialog> createState() => _ProxySettingsDialogState(); }
+
+class _ProxySettingsDialogState extends State<_ProxySettingsDialog> {
+  late var _mode = widget.settings.proxyMode;
+  late final _custom = TextEditingController(text: widget.settings.customProxy);
+  @override void dispose() { _custom.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final options = [('system', l10n.proxySystem), ('direct', l10n.proxyDirect), ('custom', l10n.proxyCustom)];
+    return AlertDialog(title: Text(l10n.proxy), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(l10n.proxyDescription, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
+      const SizedBox(height: 4),
+      for (final option in options) ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(option.$2), trailing: _mode == option.$1 ? const Icon(Icons.check) : null, onTap: () => setState(() => _mode = option.$1)),
+      const SizedBox(height: 8),
+      TextField(controller: _custom, enabled: _mode == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.proxyCustomAddress, helperText: l10n.proxyCustomAddressHint)),
+    ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save))]);
+  }
+}
 
 class _DohSettings { const _DohSettings({required this.enabled, required this.preset, required this.customUrl, required this.bootstrapIps, required this.timeoutSeconds}); final bool enabled; final String preset; final String customUrl; final String bootstrapIps; final int timeoutSeconds; }
 

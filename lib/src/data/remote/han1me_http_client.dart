@@ -59,10 +59,10 @@ class Han1meHttpClient {
     await clearCookies();
   }
 
-  Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds}) async {
+  Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds, String proxyMode = 'system', String customProxy = ''}) async {
     if (_isDesktop) {
       HttpOverrides.global = WindowsHttpOverrides(
-        proxy: await WindowsHttpOverrides.systemProxy(),
+        proxy: await WindowsHttpOverrides.resolveRule(mode: proxyMode, custom: customProxy),
         useBuiltInHosts: useBuiltInHosts,
         useDoh: useDoh,
         dohPreset: dohPreset,

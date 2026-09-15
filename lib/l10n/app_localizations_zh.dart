@@ -153,6 +153,30 @@ class AppLocalizationsZh extends AppLocalizations {
       '为 Hanime1 域名使用内置的 Cloudflare 地址，并自动回退到系统 DNS';
 
   @override
+  String get proxy => '代理';
+
+  @override
+  String get proxyDescription => '跟随系统时使用系统代理；不使用代理时内置 Hosts 与 DoH 才会生效';
+
+  @override
+  String get proxySystem => '跟随系统';
+
+  @override
+  String get proxyDirect => '不使用代理';
+
+  @override
+  String get proxyCustom => '自定义代理';
+
+  @override
+  String get proxyCustomAddress => '代理地址';
+
+  @override
+  String get proxyCustomAddressHint => '例如 127.0.0.1:7897，可省略 http://';
+
+  @override
+  String get proxyDirectOnlyHint => '当前走了代理，内置 Hosts 不会生效';
+
+  @override
   String get doh => 'DNS over HTTPS';
 
   @override
@@ -422,6 +446,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get previews => '新番预告';
+
+  @override
+  String get previewSource => '预告数据源';
+
+  @override
+  String get previewSourceAuto => '自动';
+
+  @override
+  String get previewSourceDefault => '默认站点';
+
+  @override
+  String get previewSourceGetchu => 'Getchu';
+
+  @override
+  String get previewSourceAutoDescription => '默认站点的预告不可用时自动改用 Getchu';
+
+  @override
+  String get previewSourceDefaultDescription => '只使用默认站点的预告表';
+
+  @override
+  String get previewSourceGetchuDescription => '只使用 Getchu 的预告表';
+
+  @override
+  String get previewSourceSwitched => '默认站点的预告暂不可用，已改用 Getchu';
 
   @override
   String get getchuPreviews => 'Getchu 新番预告';
@@ -2063,6 +2111,30 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
       '為 Hanime1 網域使用內建的 Cloudflare 位址，並自動回退到系統 DNS';
 
   @override
+  String get proxy => '代理';
+
+  @override
+  String get proxyDescription => '跟隨系統時使用系統代理；不使用代理時內建 Hosts 與 DoH 才會生效';
+
+  @override
+  String get proxySystem => '跟隨系統';
+
+  @override
+  String get proxyDirect => '不使用代理';
+
+  @override
+  String get proxyCustom => '自訂代理';
+
+  @override
+  String get proxyCustomAddress => '代理位址';
+
+  @override
+  String get proxyCustomAddressHint => '例如 127.0.0.1:7897，可省略 http://';
+
+  @override
+  String get proxyDirectOnlyHint => '目前走了代理，內建 Hosts 不會生效';
+
+  @override
   String get doh => 'DNS over HTTPS';
 
   @override
@@ -2332,6 +2404,30 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get previews => '新番預告';
+
+  @override
+  String get previewSource => '預告資料來源';
+
+  @override
+  String get previewSourceAuto => '自動';
+
+  @override
+  String get previewSourceDefault => '預設站點';
+
+  @override
+  String get previewSourceGetchu => 'Getchu';
+
+  @override
+  String get previewSourceAutoDescription => '預設站點的預告無法使用時自動改用 Getchu';
+
+  @override
+  String get previewSourceDefaultDescription => '只使用預設站點的預告表';
+
+  @override
+  String get previewSourceGetchuDescription => '只使用 Getchu 的預告表';
+
+  @override
+  String get previewSourceSwitched => '預設站點的預告暫時無法使用，已改用 Getchu';
 
   @override
   String get getchuPreviews => 'Getchu 新番預告';

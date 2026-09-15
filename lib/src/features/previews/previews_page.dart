@@ -8,34 +8,56 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import '../shared/app_toast.dart';
 
 final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>((ref, month) async {
   final settings = await ref.watch(settingsProvider.future);
   return ref.watch(han1meRepositoryProvider).previews(settings.resolvedBaseUrl, month);
 });
 
-class PreviewsPage extends ConsumerWidget {
+class PreviewsPage extends ConsumerStatefulWidget {
   const PreviewsPage({super.key, required this.month});
 
   final String month;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PreviewsPage> createState() => _PreviewsPageState();
+}
+
+class _PreviewsPageState extends ConsumerState<PreviewsPage> {
+  var _fallbackScheduled = false;
+
+  /// 默认站点的预告表常年返回 500；「自动」模式下不要把它变成一张死页面，
+  /// 直接换到 Getchu 的当月预告，并用一条居中提示告诉用户发生了什么。
+  void _scheduleGetchuFallback() {
+    if (_fallbackScheduled) return;
+    _fallbackScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showAppToast(context, AppLocalizations.of(context)!.previewSourceSwitched);
+      context.replace('/previews/getchu/${widget.month}');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final selectedMonth = _PreviewMonth.parse(month);
-    final result = ref.watch(previewsProvider(month));
+    final selectedMonth = _PreviewMonth.parse(widget.month);
+    final result = ref.watch(previewsProvider(widget.month));
+    final auto = (ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto') == 'auto';
+    const fallbackPlaceholder = Center(child: M3EContainedLoadingIndicator());
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.previews),
         actions: [
           IconButton(
             tooltip: l10n.getchuPreviews,
-            onPressed: () => context.push('/previews/getchu/$month'),
+            onPressed: () => context.push('/previews/getchu/${widget.month}'),
             icon: const Icon(Icons.calendar_month_outlined),
           ),
           IconButton(
             tooltip: l10n.comments,
-            onPressed: () => context.push('/comments/preview/$month', extra: l10n.previews),
+            onPressed: () => context.push('/comments/preview/${widget.month}', extra: l10n.previews),
             icon: const Icon(Icons.forum_outlined),
           ),
         ],
@@ -60,26 +82,38 @@ class PreviewsPage extends ConsumerWidget {
           Expanded(
             child: result.when(
               loading: () => const Center(child: M3EContainedLoadingIndicator()),
-              error: (error, _) => _PreviewUnavailable(
-                title: l10n.previewUnavailable,
-                description: l10n.previewUnavailableDescription,
-                onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-                onRetry: () => ref.invalidate(previewsProvider(month)),
-              ),
-              data: (feed) => feed.items.isEmpty
-                  ? _PreviewUnavailable(
-                      title: l10n.noPreviews,
-                      description: l10n.noPreviewsDescription,
-                      onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-                      onRetry: () => ref.invalidate(previewsProvider(month)),
-                    )
-                  : CustomScrollView(
-                      slivers: [
-                        SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),
-                        SliverList.builder(itemCount: feed.items.length, itemBuilder: (context, index) => _PreviewTile(item: feed.items[index])),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                      ],
-                    ),
+              error: (error, _) {
+                if (auto) {
+                  _scheduleGetchuFallback();
+                  return fallbackPlaceholder;
+                }
+                return _PreviewUnavailable(
+                  title: l10n.previewUnavailable,
+                  description: l10n.previewUnavailableDescription,
+                  onPrevious: () => _replaceMonth(context, selectedMonth.previous),
+                  onRetry: () => ref.invalidate(previewsProvider(widget.month)),
+                );
+              },
+              data: (feed) {
+                if (feed.items.isEmpty && auto) {
+                  _scheduleGetchuFallback();
+                  return fallbackPlaceholder;
+                }
+                return feed.items.isEmpty
+                    ? _PreviewUnavailable(
+                        title: l10n.noPreviews,
+                        description: l10n.noPreviewsDescription,
+                        onPrevious: () => _replaceMonth(context, selectedMonth.previous),
+                        onRetry: () => ref.invalidate(previewsProvider(widget.month)),
+                      )
+                    : CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),
+                          SliverList.builder(itemCount: feed.items.length, itemBuilder: (context, index) => _PreviewTile(item: feed.items[index])),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        ],
+                      );
+              },
             ),
           ),
         ],

@@ -80,6 +80,7 @@ class AppSettings {
     this.commentsEnabled = true,
     this.blockedCommentKeywords = const [],
     this.comicMode = false,
+    this.previewSource = 'auto',
     this.videoBaseUrl = 'https://hanime1.com',
     this.useBuiltInHosts = false,
     this.useCustomMirrorSite = false,
@@ -90,6 +91,8 @@ class AppSettings {
     this.dohCustomUrl = '',
     this.dohBootstrapIps = '',
     this.dohTimeoutSeconds = 10,
+    this.proxyMode = 'system',
+    this.customProxy = '',
     this.useHorizontalSearchCards = true,
     this.searchCardsPerRow = 2,
     this.useCompactSearchCards = true,
@@ -156,6 +159,9 @@ class AppSettings {
   final bool commentsEnabled;
   final List<String> blockedCommentKeywords;
   final bool comicMode;
+
+  /// 新番预告的数据源：`auto`（默认站点不可用时自动改用 Getchu）、`default`（只用默认站点）、`getchu`。
+  final String previewSource;
   final String videoBaseUrl;
   final bool useBuiltInHosts;
   final bool useCustomMirrorSite;
@@ -166,6 +172,13 @@ class AppSettings {
   final String dohCustomUrl;
   final String dohBootstrapIps;
   final int dohTimeoutSeconds;
+
+  /// 代理模式：`system` 跟随系统代理（默认）、`direct` 不使用代理、`custom` 用 [customProxy]。
+  ///
+  /// 注意：只要走代理，连接工厂就会把请求交给代理，内置 Hosts 与 DoH 都会被绕过；
+  /// `direct` 才能用上内置地址（实测内置 IP 直连站点比走代理还快）。
+  final String proxyMode;
+  final String customProxy;
   final bool useHorizontalSearchCards;
   final int searchCardsPerRow;
   final bool useCompactSearchCards;
@@ -254,6 +267,7 @@ class AppSettings {
         'commentsEnabled': commentsEnabled,
         'blockedCommentKeywords': blockedCommentKeywords,
         'comicMode': comicMode,
+        'previewSource': previewSource,
         'videoBaseUrl': videoBaseUrl,
         'useBuiltInHosts': useBuiltInHosts,
         'useCustomMirrorSite': useCustomMirrorSite,
@@ -264,6 +278,8 @@ class AppSettings {
         'dohCustomUrl': dohCustomUrl,
         'dohBootstrapIps': dohBootstrapIps,
         'dohTimeoutSeconds': dohTimeoutSeconds,
+        'proxyMode': proxyMode,
+        'customProxy': customProxy,
         'useHorizontalSearchCards': useHorizontalSearchCards,
         'searchCardsPerRow': searchCardsPerRow,
         'useCompactSearchCards': useCompactSearchCards,
@@ -330,6 +346,7 @@ class AppSettings {
         commentsEnabled: json['commentsEnabled'] as bool? ?? true,
         blockedCommentKeywords: (json['blockedCommentKeywords'] as List? ?? const []).whereType<String>().toList(),
         comicMode: json['comicMode'] as bool? ?? false,
+        previewSource: _previewSource(json['previewSource'] as String?),
         videoBaseUrl: json['videoBaseUrl'] as String? ?? (json['baseUrl'] == 'https://hanimeone.me' ? 'https://hanime1.com' : json['baseUrl'] as String? ?? 'https://hanime1.com'),
         useBuiltInHosts: json['useBuiltInHosts'] as bool? ?? Platform.isWindows || Platform.isLinux || Platform.isMacOS,
         useCustomMirrorSite: json['useCustomMirrorSite'] as bool? ?? false,
@@ -340,6 +357,8 @@ class AppSettings {
         dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
         dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
         dohTimeoutSeconds: (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60) as int,
+        proxyMode: _proxyMode(json['proxyMode'] as String?),
+        customProxy: (json['customProxy'] as String? ?? '').trim(),
         useHorizontalSearchCards: json['useHorizontalSearchCards'] as bool? ?? true,
         searchCardsPerRow: (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3) as int,
         useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
@@ -409,6 +428,16 @@ class AppSettings {
         _ => 'alidns',
       };
 
+  static String _proxyMode(String? value) => switch (value) {
+        'system' || 'direct' || 'custom' => value!,
+        _ => 'system',
+      };
+
+  static String _previewSource(String? value) => switch (value) {
+        'auto' || 'default' || 'getchu' => value!,
+        _ => 'auto',
+      };
+
   static String _mirrorUrl(String? value) {
     final normalized = value?.trim().replaceAll(RegExp(r'/+$'), '') ?? '';
     final uri = Uri.tryParse(normalized);
@@ -451,6 +480,7 @@ class AppSettings {
     bool? commentsEnabled,
     List<String>? blockedCommentKeywords,
     bool? comicMode,
+    String? previewSource,
     String? videoBaseUrl,
     bool? useBuiltInHosts,
     bool? useCustomMirrorSite,
@@ -461,6 +491,8 @@ class AppSettings {
     String? dohCustomUrl,
     String? dohBootstrapIps,
     int? dohTimeoutSeconds,
+    String? proxyMode,
+    String? customProxy,
     bool? useHorizontalSearchCards,
     int? searchCardsPerRow,
     bool? useCompactSearchCards,
@@ -526,6 +558,7 @@ class AppSettings {
         commentsEnabled: commentsEnabled ?? this.commentsEnabled,
         blockedCommentKeywords: blockedCommentKeywords ?? this.blockedCommentKeywords,
         comicMode: comicMode ?? this.comicMode,
+        previewSource: previewSource ?? this.previewSource,
         videoBaseUrl: videoBaseUrl ?? this.videoBaseUrl,
         useBuiltInHosts: useBuiltInHosts ?? this.useBuiltInHosts,
         useCustomMirrorSite: useCustomMirrorSite ?? this.useCustomMirrorSite,
@@ -536,6 +569,8 @@ class AppSettings {
         dohCustomUrl: dohCustomUrl ?? this.dohCustomUrl,
         dohBootstrapIps: dohBootstrapIps ?? this.dohBootstrapIps,
         dohTimeoutSeconds: dohTimeoutSeconds ?? this.dohTimeoutSeconds,
+        proxyMode: proxyMode ?? this.proxyMode,
+        customProxy: customProxy ?? this.customProxy,
         useHorizontalSearchCards: useHorizontalSearchCards ?? this.useHorizontalSearchCards,
         searchCardsPerRow: searchCardsPerRow ?? this.searchCardsPerRow,
         useCompactSearchCards: useCompactSearchCards ?? this.useCompactSearchCards,

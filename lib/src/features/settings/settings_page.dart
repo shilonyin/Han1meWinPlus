@@ -11,6 +11,7 @@ import 'language_settings_page.dart';
 import 'layout_settings_page.dart';
 import 'network_settings_page.dart';
 import 'playback_settings_page.dart';
+import 'selection_settings_pages.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
 import 'theme_settings_page.dart';
@@ -41,6 +42,7 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         _SettingsEntry(Icons.cloud_sync_outlined, l10n.webDavSettings, const WebDavSettingsPage(), '/settings/webdav'),
       ]),
       (l10n.content, [
+        _SettingsEntry(Icons.calendar_month_outlined, l10n.previewSource, const PreviewSourceSettingsPage(), '/settings/previews'),
         _SettingsEntry(Icons.forum_outlined, l10n.commentSettings, const CommentSettingsPage(), '/settings/comments'),
         _SettingsEntry(Icons.translate_outlined, l10n.languageSettings, const LanguageSettingsPage(), '/settings/language'),
       ]),

@@ -116,6 +116,26 @@ class HardwareDecoderSettingsPage extends ConsumerWidget {
   }
 }
 
+/// 新番预告的数据源：默认站点的预告表常年不可用，所以默认选「自动」，
+/// 由 `PreviewsPage` 在加载失败时换到 Getchu。
+class PreviewSourceSettingsPage extends ConsumerWidget {
+  const PreviewSourceSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final current = ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto';
+    return _RadioSettingsPage<String>(
+      title: l10n.previewSource,
+      current: current,
+      options: const ['auto', 'default', 'getchu'],
+      label: (value) => switch (value) { 'getchu' => l10n.previewSourceGetchu, 'default' => l10n.previewSourceDefault, _ => l10n.previewSourceAuto },
+      description: (value) => switch (value) { 'getchu' => l10n.previewSourceGetchuDescription, 'default' => l10n.previewSourceDefaultDescription, _ => l10n.previewSourceAutoDescription },
+      onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(previewSource: value)),
+    );
+  }
+}
+
 class SuperResolutionSettingsPage extends ConsumerWidget {
   const SuperResolutionSettingsPage({super.key});
 
@@ -134,12 +154,13 @@ class SuperResolutionSettingsPage extends ConsumerWidget {
 }
 
 class _RadioSettingsPage<T> extends StatelessWidget {
-  const _RadioSettingsPage({required this.title, required this.current, required this.options, required this.label, required this.onChanged});
+  const _RadioSettingsPage({required this.title, required this.current, required this.options, required this.label, required this.onChanged, this.description});
 
   final String title;
   final T current;
   final List<T> options;
   final String Function(T value) label;
+  final String Function(T value)? description;
   final ValueChanged<T> onChanged;
 
   @override
@@ -151,7 +172,7 @@ class _RadioSettingsPage<T> extends StatelessWidget {
               title: Text(title, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
               tiles: [
                 for (final option in options)
-                  SettingsTile<T>.radioTile(radioValue: option, groupValue: current, title: Text(label(option)), onChanged: (value) { if (value != null) onChanged(value); }),
+                  SettingsTile<T>.radioTile(radioValue: option, groupValue: current, title: Text(label(option)), description: description == null ? null : Text(description!(option)), onChanged: (value) { if (value != null) onChanged(value); }),
               ],
             ),
           ],

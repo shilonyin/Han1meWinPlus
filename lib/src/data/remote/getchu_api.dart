@@ -226,14 +226,16 @@ class GetchuApi {
   }
 
   GetchuPreviewItem? _previewItem(dom.Element product) {
-    final link = product.querySelector('td.dd > a[href*="/soft.phtml"], td.dd > a[href*="/item/"], a[href*="/soft.phtml"], a[href*="/item/"]');
-    if (link == null) return null;
+    final links = product.querySelectorAll('td.dd > a[href*="/soft.phtml"], td.dd > a[href*="/item/"], a[href*="/soft.phtml"], a[href*="/item/"]');
+    if (links.isEmpty) return null;
+    // 第一个链接是封面链接（不含文字），标题要取第一个带文字的链接
+    final link = links.firstWhere((candidate) => _clean(candidate.text).isNotEmpty, orElse: () => links.first);
     final id = _getId(link.attributes['href']);
     if (id == null) return null;
     final titleAndBrand = _clean(link.text);
     final brandMatch = RegExp(r'\(([^()]*)\)\s*$').firstMatch(titleAndBrand);
     final image = product.querySelector('img[src*="package"]');
-    final title = titleAndBrand.replaceFirst(RegExp(r'\s*\([^()]+\)\s*$'), '').trim();
+    final title = titleAndBrand.replaceFirst(RegExp(r'\s*\([^()]+\)\s*$'), '').replaceAll(RegExp(r'[\u3000 ]+'), ' ').trim();
     final cover = _absolute(image?.attributes['src']?.replaceFirst('package_s.', 'package.'));
     return GetchuPreviewItem(id: id, title: title.isEmpty ? _clean(image?.attributes['alt'] ?? '') : title, brand: _nullable(brandMatch?.group(1)), coverUrl: cover == null ? null : _withGc(cover), detailUrl: '${_baseUrl}item/$id/', price: _nullable(_clean(product.querySelector('span.redb')?.text ?? '')));
   }

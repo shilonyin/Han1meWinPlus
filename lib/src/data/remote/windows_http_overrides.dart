@@ -22,6 +22,16 @@ class WindowsHttpOverrides extends HttpOverrides {
   final String dohBootstrapIps;
   final int dohTimeoutSeconds;
 
+  /// 按设置里的代理模式解析出 Dart `findProxy` 用的规则。
+  ///
+  /// `direct` 返回 `DIRECT`——只有这时「内置 Hosts」与 DoH 才真正生效，因为走代理时
+  /// 连接工厂会把连接交给代理，内置地址一律被绕过（实测直连内置 IP 反而更快）。
+  static Future<String> resolveRule({required String mode, required String custom}) async {
+    if (mode == 'direct') return 'DIRECT';
+    if (mode == 'custom') return WindowsProxy.rule(custom) ?? 'DIRECT';
+    return systemProxy();
+  }
+
   static Future<String> systemProxy() async {
     final environmentProxy = Platform.environment['HTTPS_PROXY'] ??
         Platform.environment['https_proxy'] ??

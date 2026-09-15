@@ -157,6 +157,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use built-in Cloudflare addresses for Hanime1 domains, falling back to system DNS automatically';
 
   @override
+  String get proxy => 'Proxy';
+
+  @override
+  String get proxyDescription =>
+      'Follow the system proxy, connect directly, or use a custom address; built-in hosts and DoH only apply when not using a proxy';
+
+  @override
+  String get proxySystem => 'Follow system';
+
+  @override
+  String get proxyDirect => 'No proxy (direct)';
+
+  @override
+  String get proxyCustom => 'Custom proxy';
+
+  @override
+  String get proxyCustomAddress => 'Proxy address';
+
+  @override
+  String get proxyCustomAddressHint => 'e.g. 127.0.0.1:7897 (http:// optional)';
+
+  @override
+  String get proxyDirectOnlyHint =>
+      'A proxy is in use, so built-in hosts have no effect';
+
+  @override
   String get doh => 'DNS over HTTPS';
 
   @override
@@ -433,6 +459,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get previews => 'Season Previews';
+
+  @override
+  String get previewSource => 'Previews source';
+
+  @override
+  String get previewSourceAuto => 'Automatic';
+
+  @override
+  String get previewSourceDefault => 'Default site';
+
+  @override
+  String get previewSourceGetchu => 'Getchu';
+
+  @override
+  String get previewSourceAutoDescription =>
+      'Fall back to Getchu when the default site has no previews';
+
+  @override
+  String get previewSourceDefaultDescription =>
+      'Only use the default site previews';
+
+  @override
+  String get previewSourceGetchuDescription => 'Only use the Getchu previews';
+
+  @override
+  String get previewSourceSwitched =>
+      'Default site previews are unavailable, switched to Getchu';
 
   @override
   String get getchuPreviews => 'Getchu Season Previews';

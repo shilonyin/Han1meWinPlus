@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
+import '../data/local/json_store.dart';
 import '../data/remote/windows_http_overrides.dart';
 import '../data/remote/windows_proxy.dart';
 import 'settings.dart';
@@ -40,7 +41,9 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   static Future<void> _resolveHttpProxy() async {
     try {
-      httpProxy = WindowsProxy.mpvUrl(await WindowsHttpOverrides.systemProxy());
+      final settings = await SettingsStore(JsonStore()).load();
+      final rule = await WindowsHttpOverrides.resolveRule(mode: settings.proxyMode, custom: settings.customProxy);
+      httpProxy = WindowsProxy.mpvUrl(rule);
     } catch (_) {
       httpProxy = null;
     }
