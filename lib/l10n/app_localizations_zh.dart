@@ -1396,7 +1396,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get useSystemFont => '使用系统字体';
 
   @override
-  String get useSystemFontDescription => '关闭后使用鸿蒙字体';
+  String get useSystemFontDescription => '关闭后使用 HarmonyOS Sans 字体';
 
   @override
   String get useSystemTitleBar => '使用系统标题栏';
@@ -1477,7 +1477,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get acknowledgementsBody =>
-      '本应用基于上游开源项目二次开发，感谢上游作者与所有贡献者。\n\n界面与播放能力来自 Flutter、media_kit（libmpv）、Riverpod、go_router 等开源项目。\n\n界面字体为 HarmonyOS Sans（鸿蒙黑体），由华为终端有限公司提供，依《HarmonyOS Sans 字体许可协议》免费使用。';
+      '本应用基于上游开源项目二次开发，感谢上游作者与所有贡献者。\n\n界面与播放能力来自 Flutter、media_kit（libmpv）、Riverpod、go_router 等开源项目。\n\n界面字体为 HarmonyOS Sans，由华为终端有限公司提供，依《HarmonyOS Sans 字体许可协议》免费使用。';
 
   @override
   String get agplLicense => 'AGPL-3.0 许可证';
@@ -3373,7 +3373,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get useSystemFont => '使用系統字型';
 
   @override
-  String get useSystemFontDescription => '關閉後使用鴻蒙字型';
+  String get useSystemFontDescription => '關閉後使用 HarmonyOS Sans 字型';
 
   @override
   String get useSystemTitleBar => '使用系統標題列';
@@ -3454,7 +3454,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get acknowledgementsBody =>
-      '本應用基於上游開源專案二次開發，感謝上游作者與所有貢獻者。\n\n介面與播放能力來自 Flutter、media_kit（libmpv）、Riverpod、go_router 等開源專案。\n\n介面字型為 HarmonyOS Sans（鴻蒙黑體），由華為終端有限公司提供，依《HarmonyOS Sans 字體許可協議》免費使用。';
+      '本應用基於上游開源專案二次開發，感謝上游作者與所有貢獻者。\n\n介面與播放能力來自 Flutter、media_kit（libmpv）、Riverpod、go_router 等開源專案。\n\n介面字型為 HarmonyOS Sans，由華為終端有限公司提供，依《HarmonyOS Sans 字體許可協議》免費使用。';
 
   @override
   String get agplLicense => 'AGPL-3.0 授權';
