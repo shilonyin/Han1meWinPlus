@@ -103,6 +103,7 @@
   "explore": "Explore",
   "library": "Library",
   "cache": "Cache",
+  "storage": "Storage",
   "clearCache": "Clear cache",
   "clearCacheDescription": "Clears cached cover images and list metadata. Downloads and watch history are kept.",
   "cacheUsage": "Currently using {size}",

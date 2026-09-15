@@ -103,6 +103,7 @@
   "explore": "探索",
   "library": "收藏",
   "cache": "缓存",
+  "storage": "存储",
   "clearCache": "清理缓存",
   "clearCacheDescription": "清除封面图片与列表信息的缓存，下载内容与观看记录不受影响",
   "cacheUsage": "当前占用 {size}",

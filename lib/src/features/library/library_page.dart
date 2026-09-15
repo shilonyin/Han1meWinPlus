@@ -14,6 +14,7 @@ import '../../domain/models/library.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../shared/video_card.dart';
+import '../shared/app_image_cache.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
 import 'remote_library_controller.dart';
@@ -343,7 +344,7 @@ class _ArtistStripCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+                  backgroundImage: hasAvatar ? appNetworkImage(avatarUrl!) : null,
                   child: hasAvatar ? null : Icon(isAll ? Icons.people_alt_outlined : Icons.person_outline, size: 20, color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 6),

@@ -23,11 +23,10 @@ import '../features/previews/previews_page.dart';
 import '../features/checkin/check_in_page.dart';
 import '../features/search/search_page.dart';
 import '../features/settings/about_page.dart';
-import '../features/settings/application_settings_page.dart';
+import '../features/settings/storage_settings_page.dart';
 import '../features/settings/backup_settings_page.dart';
 import '../features/settings/cloudflare_page.dart';
 import '../features/settings/comment_settings_page.dart';
-import '../features/settings/deep_link_settings_page.dart';
 import '../features/settings/home_categories_page.dart';
 import '../features/settings/keyframes_page.dart';
 import '../features/settings/language_settings_page.dart';
@@ -36,7 +35,6 @@ import '../features/settings/license_page.dart';
 import '../features/settings/network_settings_page.dart';
 import '../features/settings/playback_settings_page.dart';
 import '../features/settings/player_settings_page.dart';
-import '../features/settings/privacy_settings_page.dart';
 import '../features/settings/recommendation_settings_page.dart';
 import '../features/settings/selection_settings_pages.dart';
 import '../features/settings/settings_page.dart';
@@ -110,10 +108,8 @@ class AppRouter {
         GoRoute(path: '/settings/keyframes', builder: (context, state) => const KeyframesPage()),
         GoRoute(path: '/settings/playback', builder: (context, state) => const PlaybackSettingsPage()),
         GoRoute(path: '/settings/player', builder: (context, state) => const PlayerSettingsPage()),
-        GoRoute(path: '/settings/privacy', builder: (context, state) => const PrivacySettingsPage()),
         GoRoute(path: '/settings/comments', builder: (context, state) => const CommentSettingsPage()),
         GoRoute(path: '/settings/comments/users', builder: (context, state) => const CommentUserFilterPage()),
-        GoRoute(path: '/settings/deep-links', builder: (context, state) => const DeepLinkSettingsPage()),
         GoRoute(path: '/settings/theme', builder: (context, state) => const ThemeSettingsPage()),
         GoRoute(path: '/settings/layout', builder: (context, state) => const LayoutSettingsPage()),
         GoRoute(path: '/settings/layout/home-categories', builder: (context, state) => const HomeCategoriesPage()),
@@ -123,8 +119,8 @@ class AppRouter {
         GoRoute(path: '/settings/recommendations/authors', builder: (context, state) => const AuthorFilterPage()),
         GoRoute(path: '/settings/webdav', builder: (context, state) => const WebDavSettingsPage()),
         GoRoute(path: '/settings/webdav/configuration', builder: (context, state) => const WebDavConfigurationPage()),
-        GoRoute(path: '/settings/application', builder: (context, state) => const ApplicationSettingsPage()),
-        GoRoute(path: '/settings/application/backup', builder: (context, state) => const BackupSettingsPage()),
+        GoRoute(path: '/settings/storage', builder: (context, state) => const StorageSettingsPage()),
+        GoRoute(path: '/settings/storage/backup', builder: (context, state) => const BackupSettingsPage()),
         GoRoute(path: '/settings/language', builder: (context, state) => const LanguageSettingsPage()),
         GoRoute(path: '/settings/site', builder: (context, state) => const SiteSettingsPage()),
         GoRoute(path: '/settings/player/decoder', builder: (context, state) => const DecoderSettingsPage()),

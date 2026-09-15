@@ -329,6 +329,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cache => 'Cache';
 
   @override
+  String get storage => 'Storage';
+
+  @override
   String get clearCache => 'Clear cache';
 
   @override

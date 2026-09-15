@@ -103,6 +103,7 @@
   "explore": "探索",
   "library": "收藏",
   "cache": "快取",
+  "storage": "儲存",
   "clearCache": "清理快取",
   "clearCacheDescription": "清除封面圖片與列表資訊的快取，下載內容與觀看記錄不受影響",
   "cacheUsage": "目前佔用 {size}",

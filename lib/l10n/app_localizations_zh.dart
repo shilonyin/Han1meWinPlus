@@ -318,6 +318,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cache => '缓存';
 
   @override
+  String get storage => '存储';
+
+  @override
   String get clearCache => '清理缓存';
 
   @override
@@ -2290,6 +2293,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get cache => '快取';
+
+  @override
+  String get storage => '儲存';
 
   @override
   String get clearCache => '清理快取';

@@ -687,6 +687,12 @@ abstract class AppLocalizations {
   /// **'Cache'**
   String get cache;
 
+  /// No description provided for @storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get storage;
+
   /// No description provided for @clearCache.
   ///
   /// In en, this message translates to:

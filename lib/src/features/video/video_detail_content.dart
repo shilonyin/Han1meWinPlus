@@ -14,6 +14,7 @@ import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/video_card.dart';
+import '../shared/app_image_cache.dart';
 import 'video_actions.dart';
 import 'video_controller.dart';
 
@@ -166,7 +167,7 @@ class _ArtistRow extends ConsumerWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(radius: 24, backgroundColor: theme.colorScheme.surfaceContainerHighest, backgroundImage: video.artistAvatarUrl == null ? null : NetworkImage(video.artistAvatarUrl!), child: video.artistAvatarUrl == null ? Text(video.artist!.characters.first, style: theme.textTheme.titleMedium) : null),
+                CircleAvatar(radius: 24, backgroundColor: theme.colorScheme.surfaceContainerHighest, backgroundImage: video.artistAvatarUrl == null ? null : appNetworkImage(video.artistAvatarUrl!), child: video.artistAvatarUrl == null ? Text(video.artist!.characters.first, style: theme.textTheme.titleMedium) : null),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.artist!, style: theme.textTheme.titleSmall), Text(AppLocalizations.of(context)!.studio, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
                 FilledButton.tonal(

@@ -11,6 +11,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../account/account_controller.dart';
+import 'app_image_cache.dart';
 
 enum CommentSort { latest, earliest, mostReplies, mostLikes, mostDislikes }
 
@@ -120,7 +121,7 @@ class CommentCard extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [CircleAvatar(backgroundImage: comment.avatarUrl?.isNotEmpty == true ? NetworkImage(comment.avatarUrl!) : null, child: comment.avatarUrl?.isNotEmpty == true ? null : Text(comment.username.characters.first)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comment.username, style: Theme.of(context).textTheme.titleSmall), if (comment.timeAgo != null) Text(comment.timeAgo!, style: Theme.of(context).textTheme.bodySmall)])), MenuAnchor(builder: (context, controller, child) => IconButton(tooltip: AppLocalizations.of(context)!.more, onPressed: controller.open, icon: const Icon(Icons.more_vert)), menuChildren: [MenuItemButton(onPressed: token == null ? null : () => _report(context, ref), leadingIcon: const Icon(Icons.flag_outlined), child: Text(AppLocalizations.of(context)!.report)), MenuItemButton(onPressed: () => _filterUser(ref), leadingIcon: const Icon(Icons.person_off_outlined), child: Text(AppLocalizations.of(context)!.filter))])]),
+            Row(children: [CircleAvatar(backgroundImage: comment.avatarUrl?.isNotEmpty == true ? appNetworkImage(comment.avatarUrl!) : null, child: comment.avatarUrl?.isNotEmpty == true ? null : Text(comment.username.characters.first)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comment.username, style: Theme.of(context).textTheme.titleSmall), if (comment.timeAgo != null) Text(comment.timeAgo!, style: Theme.of(context).textTheme.bodySmall)])), MenuAnchor(builder: (context, controller, child) => IconButton(tooltip: AppLocalizations.of(context)!.more, onPressed: controller.open, icon: const Icon(Icons.more_vert)), menuChildren: [MenuItemButton(onPressed: token == null ? null : () => _report(context, ref), leadingIcon: const Icon(Icons.flag_outlined), child: Text(AppLocalizations.of(context)!.report)), MenuItemButton(onPressed: () => _filterUser(ref), leadingIcon: const Icon(Icons.person_off_outlined), child: Text(AppLocalizations.of(context)!.filter))])]),
             const SizedBox(height: 10),
             Text(comment.content),
             const SizedBox(height: 6),

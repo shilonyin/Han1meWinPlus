@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import 'about_page.dart';
-import 'application_settings_page.dart';
 import 'comment_settings_page.dart';
 import 'language_settings_page.dart';
 import 'layout_settings_page.dart';
@@ -14,6 +13,7 @@ import 'playback_settings_page.dart';
 import 'selection_settings_pages.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
+import 'storage_settings_page.dart';
 import 'theme_settings_page.dart';
 import 'webdav_settings_page.dart';
 
@@ -46,8 +46,8 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         _SettingsEntry(Icons.forum_outlined, l10n.commentSettings, const CommentSettingsPage(), '/settings/comments'),
         _SettingsEntry(Icons.translate_outlined, l10n.languageSettings, const LanguageSettingsPage(), '/settings/language'),
       ]),
-      (l10n.application, [
-        _SettingsEntry(Icons.apps_outlined, l10n.applicationSettings, const ApplicationSettingsPage(), '/settings/application'),
+      (l10n.storage, [
+        _SettingsEntry(Icons.sd_storage_outlined, l10n.storage, const StorageSettingsPage(), '/settings/storage'),
       ]),
       (l10n.other, [
         _SettingsEntry(Icons.info_outline, l10n.about, const AboutPage(), '/settings/about'),

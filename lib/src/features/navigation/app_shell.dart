@@ -10,6 +10,7 @@ import '../../domain/models/account.dart';
 import '../account/account_controller.dart';
 import '../comics/comic_pages.dart';
 import '../settings/settings_controller.dart';
+import '../shared/app_image_cache.dart';
 import 'exit_coordinator.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -298,7 +299,7 @@ class _CompactNavigationRail extends ConsumerWidget {
                         onTap: () => context.push('/mine'),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
-                          child: CircleAvatar(radius: 17, backgroundImage: hasAvatar ? NetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 19)),
+                          child: CircleAvatar(radius: 17, backgroundImage: hasAvatar ? appNetworkImage(account!.avatarUrl!) : null, child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 19)),
                         ),
                       ),
                     ),
@@ -418,7 +419,7 @@ class _DrawerAccountCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(radius: 28, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? NetworkImage(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 30)),
+                CircleAvatar(radius: 28, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? appNetworkImage(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 30)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
