@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/han1me_repository.dart';
+import '../../data/local/video_meta_cache.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 
@@ -53,13 +54,29 @@ class _RequestGate {
 final _metaGate = _RequestGate(4);
 
 /// 站点有些分类列表（里番、泡麵番）只给封面和标题，
-/// 这些卡片用详情页把时长/播放量/作者/评分补回来。
-final videoCardMetaProvider = FutureProvider.autoDispose.family<VideoDetail, String>((ref, id) async {
+/// 这些卡片用详情页把时长/播放量/作者/评分/视频截图补回来，结果写进 [VideoMetaCache]。
+/// 缓存命中时不会再发请求，所以刷新、滚动来回、重启都直接有值。
+final videoCardMetaProvider = FutureProvider.autoDispose.family<VideoCard, String>((ref, id) async {
+  final cache = ref.watch(videoMetaCacheProvider);
+  final cached = cache.read(id);
+  if (cached != null) return cached;
   final settings = await ref.watch(settingsProvider.future);
   final repository = ref.watch(han1meRepositoryProvider);
   await _metaGate.enter();
   try {
-    return await repository.video(settings.resolvedBaseUrl, id);
+    final detail = await repository.video(settings.resolvedBaseUrl, id);
+    final meta = VideoCard(
+      id: id,
+      title: detail.title,
+      coverUrl: detail.coverUrl ?? '',
+      duration: detail.duration,
+      views: detail.views,
+      rating: detail.rating,
+      artist: detail.artist,
+      uploadTime: detail.uploadDate,
+    );
+    await cache.put(meta);
+    return meta;
   } finally {
     _metaGate.leave();
   }
@@ -111,22 +128,27 @@ class VideoCardTile extends ConsumerWidget {
   final VoidCallback? onLongPress;
   final ImageProvider? coverImage;
 
-  /// 需要补全时用详情页的数据替代缺的字段。
+  /// 需要补全时用详情页的数据填掉缺的字段。
+  /// 命中本地缓存时是同步的，所以刷新后卡片会直接显示补全后的内容。
   VideoCard _resolved(WidgetRef ref) {
-    if (!autoFetchMeta || hasVideoCardMeta(video) || video.id.isEmpty) return video;
-    final detail = ref.watch(videoCardMetaProvider(video.id)).valueOrNull;
-    if (detail == null) return video;
-    return VideoCard(
-      id: video.id,
-      title: video.title,
-      coverUrl: video.coverUrl,
-      duration: video.duration ?? detail.duration,
-      views: video.views ?? detail.views,
-      rating: video.rating ?? detail.rating,
-      artist: video.artist ?? detail.artist,
-      uploadTime: video.uploadTime ?? detail.uploadDate,
-    );
+    if (!autoFetchMeta || video.id.isEmpty || hasVideoCardMeta(video)) return video;
+    final cached = ref.watch(videoMetaCacheProvider).read(video.id);
+    if (cached != null) return _mergeMeta(cached);
+    final fetched = ref.watch(videoCardMetaProvider(video.id)).valueOrNull;
+    return fetched == null ? video : _mergeMeta(fetched);
   }
+
+  /// 补全信息以详情页为准（封面换成视频内容截图，而不是列表页给的海报）。
+  VideoCard _mergeMeta(VideoCard meta) => VideoCard(
+        id: video.id,
+        title: video.title,
+        coverUrl: meta.coverUrl.isEmpty ? video.coverUrl : meta.coverUrl,
+        duration: meta.duration ?? video.duration,
+        views: meta.views ?? video.views,
+        rating: meta.rating ?? video.rating,
+        artist: meta.artist ?? video.artist,
+        uploadTime: meta.uploadTime ?? video.uploadTime,
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
