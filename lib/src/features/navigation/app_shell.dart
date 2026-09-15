@@ -192,7 +192,7 @@ List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = fal
     ]),
     _DrawerSection(title: l10n.videoSection, items: [
       if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history', iconOnly: true),
-      _DrawerItem(icon: Icons.download_outlined, selectedIcon: Icons.download, label: l10n.download, location: '/cache', iconOnly: true),
+      _DrawerItem(icon: Icons.download_for_offline_outlined, selectedIcon: Icons.download_for_offline, label: l10n.download, location: '/cache', iconOnly: true),
       _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings', iconOnly: true),
     ]),
   ];
@@ -291,41 +291,49 @@ class _CompactNavigationRail extends ConsumerWidget {
     final videoItems = sections.last.items;
     final settingsItem = videoItems.firstWhere((item) => item.location == '/settings');
     final iconItems = videoItems.where((item) => item.location != '/settings').toList();
+    // 下段固定多三项：头像（我的）、主题模式、设置。
+    final rows = mainItems.length + iconItems.length + 3;
     return Container(
       width: railWidth,
       color: colorScheme.surfaceContainerLow,
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // 不用 ListView（桌面端会带滚动条）：按可用高度把每个条目的高度算出来，
-            // 图标、文字、间距跟着一起缩，所以调整窗口大小时侧栏始终完整显示、不滚动。
-            const dividerBlock = 14.0;
             final themeMode = ref.watch(settingsProvider).valueOrNull?.themeMode ?? AppThemeMode.system;
-            // 下段固定多三项：头像（我的）、主题模式、设置。
-            final rows = mainItems.length + iconItems.length + 3;
-            final extent = ((constraints.maxHeight - dividerBlock - 8) / rows).clamp(32.0, 60.0);
-            final content = Column(
-              children: [
-                for (final item in mainItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
-                const SizedBox(height: dividerBlock, child: Divider(height: dividerBlock, indent: 12, endIndent: 12)),
-                // 下段第一项就是「我的」（头像），点它进「我的」页。
-                _CompactRailAvatar(account: account, extent: extent, selected: path == '/mine', onTap: () => context.push('/mine')),
-                for (final item in iconItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
-                // 主题模式：点一下在「跟随系统 → 浅色 → 深色」之间循环，图标跟着当前模式变。
-                _CompactRailItem(
-                  item: _DrawerItem(icon: _themeModeIcon(themeMode), selectedIcon: _themeModeIcon(themeMode), label: AppLocalizations.of(context)!.themeMode, location: '', iconOnly: true),
-                  selected: false,
-                  extent: extent,
-                  onTap: () => unawaited(_cycleThemeMode(context, ref)),
-                ),
-                // 设置：放在最末尾（主题模式在它上面）。
-                _CompactRailItem(item: settingsItem, selected: settingsItem.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, settingsItem.location)),
-              ],
-            );
-            // 极端尺寸的兜底：允许滚动但隐藏滚动条（正常尺寸下根本不会滚）。
-            return ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-              child: SingleChildScrollView(padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6), child: content),
+            // 条目高度按可用高度算（限制在上下限之间），窗口变矮时图标与文案一起缩；
+            // 富余的高度不给条目，而是留给上下两段之间的间隔 —— 上段贴顶、下段贴底。
+            final extent = (constraints.maxHeight / rows).clamp(34.0, 58.0);
+            const edge = EdgeInsets.symmetric(vertical: 8, horizontal: 6);
+            const minGap = 16.0;
+            final top = <Widget>[
+              for (final item in mainItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
+            ];
+            final bottom = <Widget>[
+              // 下段第一项就是「我的」（头像），点它进「我的」页。
+              _CompactRailAvatar(account: account, extent: extent, selected: path == '/mine', onTap: () => context.push('/mine')),
+              for (final item in iconItems) _CompactRailItem(item: item, selected: item.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, item.location)),
+              // 主题模式：点一下在「跟随系统 → 浅色 → 深色」之间循环，图标跟着当前模式变。
+              _CompactRailItem(
+                item: _DrawerItem(icon: _themeModeIcon(themeMode), selectedIcon: _themeModeIcon(themeMode), label: AppLocalizations.of(context)!.themeMode, location: '', iconOnly: true),
+                selected: false,
+                extent: extent,
+                onTap: () => unawaited(_cycleThemeMode(context, ref)),
+              ),
+              // 设置：放在最末尾（主题模式在它上面）。
+              _CompactRailItem(item: settingsItem, selected: settingsItem.location == path, extent: extent, onTap: () => _openDrawerLocation(context, navigationShell, settingsItem.location)),
+            ];
+            if (extent * rows + minGap + 16 > constraints.maxHeight) {
+              // 极矮窗口的兜底：允许滚动但隐藏滚动条（正常尺寸下根本不会滚）。
+              return ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                child: SingleChildScrollView(padding: edge, child: Column(children: [...top, const SizedBox(height: minGap), ...bottom])),
+              );
+            }
+            // 注意：必须用 Column（mainAxisSize.max）撑满高度，否则侧栏背景只有内容那么高、
+            // 会被外层 Row 垂直居中，看起来就像“所有东西都挤在中间”。
+            return Padding(
+              padding: edge,
+              child: Column(children: [...top, constraints.maxHeight.isFinite ? const Spacer() : const SizedBox(height: minGap), ...bottom]),
             );
           },
         ),
@@ -357,7 +365,7 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
     final account = widget.account;
     final loggedIn = account != null;
     final hasAvatar = account?.avatarUrl?.isNotEmpty == true;
-    final radius = (widget.extent * 0.29).clamp(13.0, 18.0);
+    final radius = (widget.extent * 0.26).clamp(12.0, 15.0);
     final highlighted = widget.selected || _hovering;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -446,7 +454,9 @@ class _CompactRailItemState extends State<_CompactRailItem> {
     final color = highlighted ? scheme.primary : scheme.onSurfaceVariant;
     final label = item.shortLabel ?? item.label;
     final extent = widget.extent;
-    final iconSize = (extent * 0.42).clamp(14.0, 24.0);
+    // 图标尺寸统一按同一个口径算（带文案与纯图标条目一律同尺寸），
+    // 上限 26 与参考布局里带文字时的图标大小一致。
+    final iconSize = (extent * 0.45).clamp(16.0, 26.0);
     final labelSize = (extent * 0.2).clamp(9.0, 11.5);
     final gap = ((extent - iconSize - labelSize - 4) / 2).clamp(1.0, 5.0);
     return MouseRegion(
