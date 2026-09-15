@@ -730,12 +730,12 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                 crossAxisCount: columns,
                 mainAxisSpacing: 14,
                 crossAxisSpacing: _gridSpacing,
-                mainAxisExtent: cardWidth * 9 / 16 + videoCardMetaHeight(_videos),
+                mainAxisExtent: cardWidth * 9 / 16 + videoCardMetaHeight(_videos, assumeMeta: true),
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) => index == _videos.length - 1 && hasMore
-                    ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true))
-                    : VideoCardTile(video: _videos[index], horizontal: true),
+                    ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true))
+                    : VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true),
                 childCount: _videos.length,
               ),
             ),

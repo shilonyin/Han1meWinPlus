@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 
@@ -17,7 +20,50 @@ const _horizontalCardCompactMetaHeight = 78.0;
 bool hasVideoCardMeta(VideoCard video) => video.artist != null || video.rating != null || video.uploadTime != null;
 
 /// 一批卡片在封面下方需要的高度（整批都没有 meta 时用矮一点的值）。
-double videoCardMetaHeight(Iterable<VideoCard> videos) => videos.any(hasVideoCardMeta) ? _horizontalCardMetaHeight : _horizontalCardCompactMetaHeight;
+/// [assumeMeta] 为真时按完整高度算（卡片会去详情页补全信息）。
+double videoCardMetaHeight(Iterable<VideoCard> videos, {bool assumeMeta = false}) => assumeMeta || videos.any(hasVideoCardMeta) ? _horizontalCardMetaHeight : _horizontalCardCompactMetaHeight;
+
+/// 简单并发闸门：补全卡片信息会同时发起不少详情页请求，限制同时在跑的个数。
+class _RequestGate {
+  _RequestGate(this.maxConcurrent);
+
+  final int maxConcurrent;
+  var _active = 0;
+  final _waiting = <Completer<void>>[];
+
+  Future<void> enter() async {
+    if (_active < maxConcurrent) {
+      _active++;
+      return;
+    }
+    final completer = Completer<void>();
+    _waiting.add(completer);
+    await completer.future;
+  }
+
+  void leave() {
+    if (_waiting.isEmpty) {
+      _active--;
+    } else {
+      _waiting.removeAt(0).complete();
+    }
+  }
+}
+
+final _metaGate = _RequestGate(4);
+
+/// 站点有些分类列表（里番、泡麵番）只给封面和标题，
+/// 这些卡片用详情页把时长/播放量/作者/评分补回来。
+final videoCardMetaProvider = FutureProvider.autoDispose.family<VideoDetail, String>((ref, id) async {
+  final settings = await ref.watch(settingsProvider.future);
+  final repository = ref.watch(han1meRepositoryProvider);
+  await _metaGate.enter();
+  try {
+    return await repository.video(settings.resolvedBaseUrl, id);
+  } finally {
+    _metaGate.leave();
+  }
+});
 
 class VideoCardMetrics {
   const VideoCardMetrics({required this.horizontal, required this.cardsPerRow, required this.cardWidth, required this.cardHeight});
@@ -48,8 +94,8 @@ VideoCardMetrics videoCardMetrics({
   return VideoCardMetrics(horizontal: horizontal, cardsPerRow: 1, cardWidth: cardWidth, cardHeight: cardHeight);
 }
 
-class VideoCardTile extends StatelessWidget {
-  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.fillCover = false, this.onTap, this.onLongPress, this.coverImage});
+class VideoCardTile extends ConsumerWidget {
+  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.fillCover = false, this.autoFetchMeta = false, this.onTap, this.onLongPress, this.coverImage});
 
   final VideoCard video;
   final bool horizontal;
@@ -58,12 +104,33 @@ class VideoCardTile extends StatelessWidget {
   final bool dense;
   /// 固定高度的网格里让封面吃掉剩余高度（高度不够时裁切图片，而不是撑破卡片）
   final bool fillCover;
+  /// 卡片没有作者/评分时去详情页补（站点部分分类列表只给封面和标题）。
+  /// 搜索结果页不用它，保持只显示站点列表给出的内容。
+  final bool autoFetchMeta;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final ImageProvider? coverImage;
 
+  /// 需要补全时用详情页的数据替代缺的字段。
+  VideoCard _resolved(WidgetRef ref) {
+    if (!autoFetchMeta || hasVideoCardMeta(video) || video.id.isEmpty) return video;
+    final detail = ref.watch(videoCardMetaProvider(video.id)).valueOrNull;
+    if (detail == null) return video;
+    return VideoCard(
+      id: video.id,
+      title: video.title,
+      coverUrl: video.coverUrl,
+      duration: video.duration ?? detail.duration,
+      views: video.views ?? detail.views,
+      rating: video.rating ?? detail.rating,
+      artist: video.artist ?? detail.artist,
+      uploadTime: video.uploadTime ?? detail.uploadDate,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolved = _resolved(ref);
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
@@ -79,40 +146,40 @@ class VideoCardTile extends StatelessWidget {
             onTap: onTap ?? (video.id.isEmpty ? null : () => context.push('/video/${video.id}')),
             onLongPress: onLongPress,
             child: horizontal
-                ? _horizontalContent(theme, cacheWidth)
-                : _verticalContent(theme, cacheWidth),
+                ? _horizontalContent(theme, cacheWidth, resolved)
+                : _verticalContent(theme, cacheWidth, resolved),
           ),
         );
       },
     );
   }
 
-  Widget _verticalContent(ThemeData theme, int cacheWidth) => Column(
+  Widget _verticalContent(ThemeData theme, int cacheWidth, VideoCard video) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _cover(theme, cacheWidth)),
+          Expanded(child: _cover(theme, cacheWidth, video)),
           const SizedBox(height: 8),
-          _details(theme),
+          _details(theme, video),
         ],
       );
 
-  Widget _horizontalContent(ThemeData theme, int cacheWidth) => Column(
+  Widget _horizontalContent(ThemeData theme, int cacheWidth, VideoCard video) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大。
           // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
           // 否则卡片下方会空出一段没有内容的区域。
           if (dense || fillCover || !hasVideoCardMeta(video))
-            Expanded(child: _cover(theme, cacheWidth))
+            Expanded(child: _cover(theme, cacheWidth, video))
           else
-            AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth)),
+            AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth, video)),
           SizedBox(height: dense ? 4 : 8),
           // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
-          Flexible(child: ClipRect(child: _details(theme))),
+          Flexible(child: ClipRect(child: _details(theme, video))),
         ],
       );
 
-  Widget _cover(ThemeData theme, int cacheWidth) => RepaintBoundary(
+  Widget _cover(ThemeData theme, int cacheWidth, VideoCard video) => RepaintBoundary(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Stack(
@@ -147,7 +214,7 @@ class VideoCardTile extends StatelessWidget {
         ),
       );
 
-  Widget _details(ThemeData theme) {
+  Widget _details(ThemeData theme, VideoCard video) {
     final hasMeta = hasVideoCardMeta(video);
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
