@@ -16,7 +16,8 @@ class VideoMetaCache {
   }
 
   static const _fileName = 'video_meta.json';
-  static const _limit = 800;
+  // 分类切多了、翻页多了之后 800 条很容易被挤掉，被挤掉的卡片又要重新请求详情页。
+  static const _limit = 2000;
 
   final JsonStore _store;
   final _memory = <String, VideoCard>{};

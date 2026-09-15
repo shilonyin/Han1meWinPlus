@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -52,12 +53,14 @@ class _RequestGate {
   }
 }
 
-final _metaGate = _RequestGate(4);
+final _metaGate = _RequestGate(6);
 
 /// 站点有些分类列表（里番、泡麵番）只给封面和标题，
 /// 这些卡片用详情页把时长/播放量/作者/评分/视频截图补回来，结果写进 [VideoMetaCache]。
 /// 缓存命中时不会再发请求，所以刷新、滚动来回、重启都直接有值。
 final videoCardMetaProvider = FutureProvider.autoDispose.family<VideoCard, String>((ref, id) async {
+  // 预热时不一定有卡片在监听，靠缓存（内存 + 磁盘）就足够，不需要重复进入并发闸门。
+  ref.keepAlive();
   final cache = ref.watch(videoMetaCacheProvider);
   final cached = cache.read(id);
   if (cached != null) return cached;
@@ -317,7 +320,7 @@ class VideoCardGrid extends ConsumerWidget {
         return GridView.builder(
           controller: controller,
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
-          cacheExtent: 720,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(1400),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: effectiveCardsPerRow,
             mainAxisSpacing: mainAxisSpacing,

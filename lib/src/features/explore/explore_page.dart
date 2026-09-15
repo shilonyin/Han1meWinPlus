@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -574,7 +575,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
           CustomScrollView(
             controller: _controller,
             physics: const AlwaysScrollableScrollPhysics(),
-            cacheExtent: 720,
+            scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
             slivers: [
               if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _MaxWidth(child: _FeaturedVideo(video: widget.featured!)))),
               for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
@@ -585,6 +586,10 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
         ],
       );
 }
+
+/// 切分区会重建对应的 `_HomeSection`（第一页来自带缓存的 feed），但滚动累积的分页
+/// 会随 State 一起消失，切回来就得逐页重新加载。这里按「更多链接」把分页记在进程内。
+final _sectionPageCache = <String, ({List<VideoCard> videos, int page, int? totalPages})>{};
 
 class _HomeSection extends ConsumerStatefulWidget {
   const _HomeSection({required this.section, this.showHeader = true});
@@ -612,6 +617,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
   @override
   void initState() {
     super.initState();
+    _restorePages();
     // 右下角刷新与下拉刷新都会自增这个令牌：丢掉滚动时累积的分页，从第一页重新开始。
     ref.listenManual(homeRefreshTokenProvider, (previous, next) => _reloadFromFirstPage());
     _schedulePrefetch();
@@ -623,12 +629,34 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     // The parent rebuilds the section objects on every build, so identity is
     // taken from the "more" link and the first card instead of the object.
     final changed = oldWidget.section.moreUrl != widget.section.moreUrl || oldWidget.section.videos.firstOrNull?.id != widget.section.videos.firstOrNull?.id;
-    if (changed) _reloadFromFirstPage(notify: false);
+    // 切到另一个分区：接上它之前滚动加载过的分页（没有就从第一页开始），
+    // 不要把数据丢掉，否则切回来又要逐页重新加载。
+    if (changed) _restorePages();
+  }
+
+  String get _cacheKey => widget.section.moreUrl ?? widget.section.title;
+
+  /// 接上本分区之前加载过的分页；没有缓存时回到「只有第一页」的状态。
+  void _restorePages() {
+    final cached = _sectionPageCache[_cacheKey];
+    if (cached == null) {
+      _videos = widget.section.videos;
+      _page = 1;
+      _totalPages = null;
+      _failed = false;
+      _retryDelay = Duration.zero;
+      _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
+      return;
+    }
+    _videos = cached.videos;
+    _page = cached.page;
+    _totalPages = cached.totalPages;
   }
 
   /// 回到「只有第一页数据」的状态：刷新时把滚动累积的额外分页清掉，
   /// 顺带清掉失败标记与退避，让这一行重新有机会加载。
   void _reloadFromFirstPage({bool notify = true}) {
+    _sectionPageCache.remove(_cacheKey);
     _videos = widget.section.videos;
     _page = 1;
     _totalPages = null;
@@ -686,6 +714,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
         _page = result.page;
         _totalPages = result.totalPages;
       });
+      _sectionPageCache[_cacheKey] = (videos: _videos, page: _page, totalPages: _totalPages);
       _retryDelay = Duration.zero;
       // 刚拿到的这一批先预热封面，滚过去时就不会先看到一片灰。
       unawaited(_prefetch(extra));
@@ -724,6 +753,19 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     for (var index = 0; index < targets.length; index += 6) {
       await Future.wait(targets.skip(index).take(6).map((video) => precacheCover(video.coverUrl, cacheWidth, context)));
     }
+    // 顺带把缺元数据的卡片排进补全队列（受 provider 内部并发闸门限制）：
+    // 滚到它们时通常已经补好了，不会先看到空着的作者/评分行。
+    unawaited(_prefetchMeta(videos ?? _videos));
+  }
+
+  /// 预取卡片元数据。站点部分分类（里番、泡麵番）的列表页只给封面和标题，
+  /// 卡片得去详情页把时长/播放量/作者/评分补回来，这里提前排队减少滚动时的等待。
+  Future<void> _prefetchMeta(List<VideoCard> videos) async {
+    final targets = videos.take(homeWaterfallColumns(_viewportWidth) * 4).where((video) => video.id.isNotEmpty && !hasVideoCardMeta(video)).toList(growable: false);
+    if (targets.isEmpty) return;
+    await Future.wait([
+      for (final video in targets) ref.read(videoCardMetaProvider(video.id).future).then<VideoCard?>((value) => value, onError: (Object _, StackTrace __) => null),
+    ]);
   }
 
   @override
