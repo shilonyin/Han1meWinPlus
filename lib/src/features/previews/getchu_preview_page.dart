@@ -7,6 +7,7 @@ import 'package:m3e_core/m3e_core.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/getchu_preview.dart';
 import 'getchu_preview_controller.dart';
+import 'preview_grid.dart';
 
 class GetchuPreviewPage extends ConsumerWidget {
   const GetchuPreviewPage({super.key, required this.month});
@@ -34,14 +35,26 @@ class GetchuPreviewPage extends ConsumerWidget {
               error: (error, _) => _Unavailable(error: error, onRetry: () => ref.invalidate(getchuPreviewsProvider(selectedMonth.value))),
               data: (feed) => feed.groups.isEmpty
                   ? _Unavailable(onRetry: () => ref.invalidate(getchuPreviewsProvider(selectedMonth.value)))
-                  : CustomScrollView(
-                      slivers: [
-                        for (final group in feed.groups) ...[
-                          SliverToBoxAdapter(child: _GroupHeader(title: group.releaseDate)),
-                          SliverList.builder(itemCount: group.items.length, itemBuilder: (context, index) => _PreviewTile(item: group.items[index])),
-                        ],
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                      ],
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final metrics = PreviewGridMetrics.of(constraints, coverRatio: 4 / 3, detailsHeight: 60);
+                        return CustomScrollView(
+                          slivers: [
+                            for (final group in feed.groups) ...[
+                              SliverToBoxAdapter(child: _GroupHeader(title: group.releaseDate)),
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: PreviewGridMetrics.horizontalPadding),
+                                sliver: SliverGrid.builder(
+                                  gridDelegate: metrics.delegate,
+                                  itemCount: group.items.length,
+                                  itemBuilder: (context, index) => _PreviewCard(item: group.items[index]),
+                                ),
+                              ),
+                            ],
+                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                          ],
+                        );
+                      },
                     ),
             ),
           ),
@@ -119,52 +132,76 @@ class _GroupHeader extends StatelessWidget {
       );
 }
 
-class _PreviewTile extends StatelessWidget {
-  const _PreviewTile({required this.item});
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({required this.item});
 
   final GetchuPreviewItem item;
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () => context.push('/previews/getchu/detail/${item.id}'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 72,
-                height: 96,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: item.coverUrl == null
-                      ? const ColoredBox(color: Colors.black12, child: Icon(Icons.image_not_supported_outlined))
-                      : CachedNetworkImage(
-                          imageUrl: item.coverUrl!,
-                          httpHeaders: const {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'},
-                          fit: BoxFit.cover,
-                          fadeInDuration: Duration.zero,
-                        ),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (item.coverUrl == null)
+                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Icons.image_not_supported_outlined))
+                  else
+                    CachedNetworkImage(
+                      imageUrl: item.coverUrl!,
+                      httpHeaders: const {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'},
+                      fit: BoxFit.cover,
+                      memCacheWidth: 480,
+                      fadeInDuration: Duration.zero,
+                    ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.center,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0xB3000000)],
+                        stops: [0.45, 1],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 10,
+                    right: 10,
+                    bottom: 8,
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, height: 1.25),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium),
-                    if ([item.brand, item.price].whereType<String>().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text([item.brand, item.price].whereType<String>().join('\n'), style: Theme.of(context).textTheme.bodyMedium),
-                    ],
-                  ],
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.brand ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+                  if (item.price != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(item.price!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700))),
+                ],
               ),
-              const Padding(padding: EdgeInsets.only(top: 36), child: Icon(Icons.chevron_right)),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _Unavailable extends StatelessWidget {

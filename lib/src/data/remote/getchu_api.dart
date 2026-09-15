@@ -10,7 +10,11 @@ class GetchuApi {
   GetchuApi(this._http);
 
   static const _baseUrl = 'https://www.getchu.com/';
-  static const _headers = {'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc', 'Referer': _baseUrl};
+
+  /// Getchu 对移动端 UA 会返回精简页面：没有预告视频（第三方播放器嵌入）、
+  /// 没有规格表与 #soft-title，所以这里始终用桌面 UA。
+  static const _desktopUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  static const _headers = {'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc', 'Referer': _baseUrl, 'User-Agent': _desktopUserAgent};
   final Han1meHttpClient _http;
 
   Future<GetchuPreviewFeed> previews(String month) async {
@@ -66,7 +70,7 @@ class GetchuApi {
       ...RegExp('["\']([^"\']*?/brandnew/$id/c${id}sample\\d+\\.jpg)["\']', caseSensitive: false).allMatches(body).map((match) => _absolute(match.group(1))).whereType<String>(),
       ...jsonImages.skip(1).map(_absolute).whereType<String>(),
     }.map(_withGc).toList(growable: false);
-    final videoUrls = _videoUrls(document, body);
+    final trailers = await _trailers(document, body);
     final inlineSeries = document.querySelectorAll('div.item-series-content, div[class*="item-series"], section.related-products li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>();
     final parentId = RegExp('["\']parent_id_array["\']\\s*:\\s*["\']([^"\']+)["\']', caseSensitive: false).firstMatch(body)?.group(1);
     final ajaxSeries = parentId == null ? const <GetchuPreviewItem>[] : await _seriesItems(parentId);
@@ -86,7 +90,7 @@ class GetchuApi {
       releaseDate: releaseDate,
       price: _nullable(jsonPrice == null ? _clean(document.querySelector('span.redb2')?.text ?? specification('価格') ?? '') : '¥$jsonPrice'),
       productUrl: _absolute(offer is Map && offer['url'] is String ? offer['url'] as String : null) ?? '${_baseUrl}item/$id/?gc=gc',
-      videoUrls: videoUrls,
+      trailers: trailers,
       sections: sections,
       sampleImages: samples,
       seriesItems: seriesItems,
@@ -223,6 +227,58 @@ class GetchuApi {
       if (url != null) urls.add(url);
     }
     return urls.toList(growable: false);
+  }
+
+  /// Getchu 很少直接给 mp4，预告片大多放在第三方播放器的 iframe 里（如 chobit.cc）。
+  /// 这两类来源在这里统一成「一条预告 = 一组清晰度」，交给应用内播放器。
+  Future<List<GetchuPreviewTrailer>> _trailers(dom.Document document, String body) async {
+    final trailers = <GetchuPreviewTrailer>[];
+    final direct = _videoUrls(document, body);
+    if (direct.isNotEmpty) trailers.add(GetchuPreviewTrailer(sources: [for (final url in direct) GetchuPreviewSource(url: url)]));
+    for (final embed in _embedUrls(document)) {
+      final trailer = await _embeddedTrailer(embed);
+      if (trailer != null && trailer.sources.isNotEmpty) trailers.add(trailer);
+    }
+    return trailers;
+  }
+
+  List<String> _embedUrls(dom.Document document) {
+    final urls = <String>{};
+    for (final element in document.querySelectorAll('iframe[src]')) {
+      final value = element.attributes['src']?.trim() ?? '';
+      if (value.isEmpty || !RegExp(r'(?:chobit\.cc|chobit\.jp)/embed/', caseSensitive: false).hasMatch(value)) continue;
+      urls.add(value.startsWith('//') ? 'https:$value' : value);
+    }
+    return urls.toList(growable: false);
+  }
+
+  static final _embedCache = <String, GetchuPreviewTrailer>{};
+
+  Future<GetchuPreviewTrailer?> _embeddedTrailer(String embedUrl) async {
+    final cached = _embedCache[embedUrl];
+    if (cached != null) return cached;
+    try {
+      final response = await _http.get(embedUrl, headers: const {'Referer': _baseUrl, 'User-Agent': _desktopUserAgent});
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final document = html_parser.parse(response.body, sourceUrl: embedUrl);
+      final base = Uri.parse(embedUrl);
+      final sources = <GetchuPreviewSource>[];
+      final seen = <String>{};
+      for (final element in document.querySelectorAll('video source[src], source[src], video[src]')) {
+        final value = element.attributes['src']?.trim() ?? '';
+        if (value.isEmpty) continue;
+        final url = base.resolve(value).toString();
+        if (!seen.add(url)) continue;
+        final height = element.attributes['data-height']?.trim() ?? '';
+        sources.add(GetchuPreviewSource(url: url, quality: height.isEmpty ? _nullable(element.attributes['data-res']) : '${height}p'));
+      }
+      if (sources.isEmpty) return null;
+      final trailer = GetchuPreviewTrailer(sources: sources, posterUrl: _nullable(document.querySelector('video')?.attributes['data-poster']));
+      _embedCache[embedUrl] = trailer;
+      return trailer;
+    } catch (_) {
+      return null;
+    }
   }
 
   GetchuPreviewItem? _previewItem(dom.Element product) {

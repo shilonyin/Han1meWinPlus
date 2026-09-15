@@ -94,17 +94,17 @@ class _ProductSummary extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (detail.videoUrls.isNotEmpty)
+                    if (detail.trailers.isNotEmpty)
                       FilledButton.icon(onPressed: () => _play(context, 0), icon: const Icon(Icons.play_arrow), label: Text(l10n.playTrailer)),
                     OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse(detail.productUrl), mode: LaunchMode.externalApplication), icon: const Icon(Icons.open_in_new), label: Text(l10n.openGetchu)),
                   ],
                 ),
-                if (detail.videoUrls.length > 1) ...[
+                if (detail.trailers.length > 1) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: [
-                      for (var index = 1; index < detail.videoUrls.length; index++)
+                      for (var index = 1; index < detail.trailers.length; index++)
                         TextButton.icon(onPressed: () => _play(context, index), icon: const Icon(Icons.play_circle_outline), label: Text(l10n.trailerNumber(index + 1))),
                     ],
                   ),
@@ -127,14 +127,15 @@ class _ProductSummary extends StatelessWidget {
   }
 
   void _play(BuildContext context, int index) {
+    final trailer = detail.trailers[index];
     final video = VideoDetail(
       id: 'getchu-${detail.id}-$index',
-      title: detail.videoUrls.length == 1 ? detail.title : '${detail.title} ${index + 1}',
-      coverUrl: detail.coverUrl,
+      title: detail.trailers.length == 1 ? detail.title : '${detail.title} ${index + 1}',
+      coverUrl: trailer.posterUrl ?? detail.coverUrl,
       artist: detail.brand,
       uploadDate: detail.releaseDate,
       description: detail.description,
-      sources: [VideoSource(quality: 'Trailer', url: detail.videoUrls[index], type: 'video/mp4')],
+      sources: [for (final source in trailer.sources) VideoSource(quality: source.quality ?? 'Trailer', url: source.url, type: 'video/mp4')],
       tags: const [],
       playlist: const [],
       related: const [],

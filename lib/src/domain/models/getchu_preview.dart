@@ -28,7 +28,7 @@ class GetchuPreviewDetail {
     required this.id,
     required this.title,
     required this.productUrl,
-    required this.videoUrls,
+    required this.trailers,
     required this.sections,
     required this.sampleImages,
     required this.seriesItems,
@@ -47,10 +47,25 @@ class GetchuPreviewDetail {
   final String? description;
   final String? releaseDate;
   final String? price;
-  final List<String> videoUrls;
+  final List<GetchuPreviewTrailer> trailers;
   final List<GetchuPreviewSection> sections;
   final List<String> sampleImages;
   final List<GetchuPreviewItem> seriesItems;
+}
+
+/// 一条预告片：可能带多档清晰度（第三方播放器会把 1080p/720p/480p 都列出来）。
+class GetchuPreviewTrailer {
+  const GetchuPreviewTrailer({required this.sources, this.posterUrl});
+
+  final List<GetchuPreviewSource> sources;
+  final String? posterUrl;
+}
+
+class GetchuPreviewSource {
+  const GetchuPreviewSource({required this.url, this.quality});
+
+  final String url;
+  final String? quality;
 }
 
 class GetchuPreviewSection {

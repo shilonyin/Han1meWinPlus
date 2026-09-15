@@ -9,6 +9,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_toast.dart';
+import 'preview_grid.dart';
 
 final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>((ref, month) async {
   final settings = await ref.watch(settingsProvider.future);
@@ -106,12 +107,24 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
                         onPrevious: () => _replaceMonth(context, selectedMonth.previous),
                         onRetry: () => ref.invalidate(previewsProvider(widget.month)),
                       )
-                    : CustomScrollView(
-                        slivers: [
-                          SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),
-                          SliverList.builder(itemCount: feed.items.length, itemBuilder: (context, index) => _PreviewTile(item: feed.items[index])),
-                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        ],
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final metrics = PreviewGridMetrics.of(constraints, coverRatio: 16 / 9, detailsHeight: 40);
+                          return CustomScrollView(
+                            slivers: [
+                              SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: PreviewGridMetrics.horizontalPadding),
+                                sliver: SliverGrid.builder(
+                                  gridDelegate: metrics.delegate,
+                                  itemCount: feed.items.length,
+                                  itemBuilder: (context, index) => _PreviewCard(item: feed.items[index]),
+                                ),
+                              ),
+                              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                            ],
+                          );
+                        },
                       );
               },
             ),
@@ -245,108 +258,68 @@ class _PreviewHeader extends StatelessWidget {
       );
 }
 
-class _PreviewTile extends StatelessWidget {
-  const _PreviewTile({required this.item});
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({required this.item});
 
   final PreviewItem item;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => context.push('/video/${item.id}'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 176,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 720, fadeInDuration: Duration.zero),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.72)],
-                          stops: const [0.4, 1],
-                        ),
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/video/${item.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.center,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0xB3000000)],
+                        stops: [0.45, 1],
                       ),
                     ),
-                    if (item.releaseDate != null)
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: _PreviewBadge(text: item.releaseDate!),
-                      ),
-                    Positioned(
-                      left: 14,
-                      right: 14,
-                      bottom: 12,
-                      child: Row(
-                        children: [
-                          const Icon(Icons.play_circle_fill, color: Colors.white, size: 28),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(l10n.watchVideo, style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700))),
-                          const Icon(Icons.arrow_forward, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    if (item.videoTitle != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(item.videoTitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary))),
-                    if (item.brand != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(item.brand!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))),
-                    if (item.description != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(item.description!, maxLines: 3, overflow: TextOverflow.ellipsis)),
-                    if (item.tags.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Wrap(spacing: 6, runSpacing: 4, children: item.tags.take(5).map((tag) => Chip(label: Text(tag), visualDensity: VisualDensity.compact, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap)).toList())),
-                  ],
-                ),
-              ),
-              if (item.previewImages.isNotEmpty) ...[
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.previewImages(item.previewImages.length), style: theme.textTheme.labelLarge),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 76,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: item.previewImages.length,
-                          separatorBuilder: (context, index) => const SizedBox(width: 8),
-                          itemBuilder: (context, index) => InkWell(
-                            borderRadius: BorderRadius.circular(6),
-                            onTap: () => _showPreviewImages(context, item, index),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: AspectRatio(aspectRatio: 4 / 3, child: CachedNetworkImage(imageUrl: item.previewImages[index], fit: BoxFit.cover, memCacheWidth: 240, fadeInDuration: Duration.zero)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-              ],
-            ],
-          ),
+                  if (item.releaseDate != null) Positioned(top: 8, right: 8, child: _PreviewBadge(text: item.releaseDate!)),
+                  Positioned(
+                    left: 10,
+                    right: 10,
+                    bottom: 8,
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, height: 1.25),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Row(
+                children: [
+                  Expanded(child: Text(item.videoTitle ?? item.brand ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))),
+                  if (item.previewImages.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.collections_outlined, size: 14, color: theme.colorScheme.outline),
+                    const SizedBox(width: 2),
+                    Text('${item.previewImages.length}', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -368,52 +341,3 @@ class _PreviewBadge extends StatelessWidget {
       );
 }
 
-Future<void> _showPreviewImages(BuildContext context, PreviewItem item, int initialPage) => showDialog<void>(
-      context: context,
-      builder: (context) => _PreviewImagesDialog(item: item, initialPage: initialPage),
-    );
-
-class _PreviewImagesDialog extends StatefulWidget {
-  const _PreviewImagesDialog({required this.item, required this.initialPage});
-
-  final PreviewItem item;
-  final int initialPage;
-
-  @override
-  State<_PreviewImagesDialog> createState() => _PreviewImagesDialogState();
-}
-
-class _PreviewImagesDialogState extends State<_PreviewImagesDialog> {
-  late final _controller = PageController(initialPage: widget.initialPage);
-  late var _index = widget.initialPage;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Dialog.fullscreen(
-        child: Scaffold(
-          appBar: AppBar(title: Text(widget.item.videoTitle ?? widget.item.title)),
-          body: Stack(
-            children: [
-              PageView.builder(
-                controller: _controller,
-                itemCount: widget.item.previewImages.length,
-                onPageChanged: (value) => setState(() => _index = value),
-                itemBuilder: (context, index) => InteractiveViewer(
-                  child: Center(child: CachedNetworkImage(imageUrl: widget.item.previewImages[index], fit: BoxFit.contain, fadeInDuration: Duration.zero)),
-                ),
-              ),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: _PreviewBadge(text: '${_index + 1} / ${widget.item.previewImages.length}'),
-              ),
-            ],
-          ),
-        ),
-      );
-}
