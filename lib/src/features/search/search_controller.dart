@@ -70,6 +70,8 @@ class SearchHistoryController extends AsyncNotifier<List<SearchQuery>> {
 }
 
 final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, SearchRouteRequest>((ref, request) async {
+  // 切回搜索结果页（或翻页回来）时不再重新请求；条件变化会自然重算。
+  ref.keepAlive();
   ref.watch(accountProvider);
   final settings = await ref.watch(settingsProvider.future);
   final catalog = await ref.watch(searchOptionCatalogProvider.future);

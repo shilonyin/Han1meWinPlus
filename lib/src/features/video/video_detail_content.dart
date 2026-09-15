@@ -515,7 +515,7 @@ class _RelatedVideoTile extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image_outlined))))),
+              ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image_outlined))))),
               const SizedBox(width: 12),
               Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 6), if (video.artist != null) Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)), if (video.views != null) Text(video.views!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
             ],

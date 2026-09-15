@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,8 +40,14 @@ class ComicHomeController extends AsyncNotifier<ComicHome> {
     return feed;
   }
 }
-final comicDetailProvider = FutureProvider.autoDispose.family((ref, String id) => ref.watch(comicRepositoryProvider).detail(id));
-final _browseProvider = FutureProvider.autoDispose.family<ComicSearchResult, (String, int)>((ref, value) => ref.watch(comicRepositoryProvider).browse(value.$1, value.$2));
+final comicDetailProvider = FutureProvider.autoDispose.family((ref, String id) {
+  ref.keepAlive();
+  return ref.watch(comicRepositoryProvider).detail(id);
+});
+final _browseProvider = FutureProvider.autoDispose.family<ComicSearchResult, (String, int)>((ref, value) {
+  ref.keepAlive();
+  return ref.watch(comicRepositoryProvider).browse(value.$1, value.$2);
+});
 
 class ComicExplorePage extends ConsumerWidget {
   const ComicExplorePage({super.key});
@@ -243,7 +251,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, width: 118, height: 172, fit: BoxFit.cover)),
+              ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, width: 118, height: 172, fit: BoxFit.cover)),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
             ],
@@ -499,7 +507,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     for (final index in [_page - 1, _page + 1, _page + 2]) {
       if (index >= 0 && index < widget.comic.imageUrls.length) {
         final url = widget.comic.imageUrls[index];
-        if (!url.startsWith('/')) precacheImage(CachedNetworkImageProvider(url), context);
+        if (!url.startsWith('/')) precacheImage(CachedNetworkImageProvider(url, cacheManager: appImageCacheManager), context);
       }
     }
   }
@@ -569,7 +577,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final visible = _category.isEmpty ? items : items.where((item) => item.category == _category).toList();
     final all = AppLocalizations.of(context)!.all;
     String label(String category) => category.isEmpty ? all : (category == defaultComicCategory ? l10n.defaultCategory : category);
-    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: CachedNetworkImage(imageUrl: item.coverUrl, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Icons.delete_outline)))).toList()))]);
+    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Icons.delete_outline)))).toList()))]);
   }
 
   Future<void> _open(ComicCacheEntry entry) async {
@@ -643,7 +651,7 @@ class ComicTile extends StatelessWidget {
   final ComicCard comic;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => context.push('/comics/${comic.id}'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]));
+  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => context.push('/comics/${comic.id}'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]));
 }
 
 class _ComicGrid extends StatelessWidget {
@@ -691,7 +699,7 @@ class _Image extends StatelessWidget {
   final String url;
 
   @override
-  Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white)) : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white));
+  Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white)) : CachedNetworkImage(imageUrl: url, cacheManager: appImageCacheManager, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white));
 }
 
 class _Retry extends StatelessWidget {

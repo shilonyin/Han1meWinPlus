@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../shared/app_toast.dart';
 import 'preview_grid.dart';
 
 final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>((ref, month) async {
+  ref.keepAlive();
   final settings = await ref.watch(settingsProvider.future);
   return ref.watch(han1meRepositoryProvider).previews(settings.resolvedBaseUrl, month);
 });
@@ -247,7 +250,7 @@ class _PreviewHeader extends StatelessWidget {
           if (feed.coverUrl != null && feed.coverUrl!.isNotEmpty)
             AspectRatio(
               aspectRatio: 16 / 8,
-              child: CachedNetworkImage(imageUrl: feed.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, fadeInDuration: Duration.zero),
+              child: CachedNetworkImage(imageUrl: feed.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 960, fadeInDuration: Duration.zero),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -279,7 +282,7 @@ class _PreviewCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                  CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(

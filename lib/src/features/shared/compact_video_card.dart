@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import 'app_image_cache.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/models/video.dart';
@@ -55,6 +57,7 @@ class CompactVideoCard extends StatelessWidget {
           children: [
             CachedNetworkImage(
               imageUrl: video.coverUrl,
+              cacheManager: appImageCacheManager,
               fit: BoxFit.cover,
               memCacheWidth: cacheWidth,
               fadeInDuration: Duration.zero,

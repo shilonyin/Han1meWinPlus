@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -158,6 +160,7 @@ class _PreviewCard extends StatelessWidget {
                   else
                     CachedNetworkImage(
                       imageUrl: item.coverUrl!,
+                      cacheManager: appImageCacheManager,
                       httpHeaders: const {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'},
                       fit: BoxFit.cover,
                       memCacheWidth: 480,

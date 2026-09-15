@@ -17,6 +17,8 @@ final subscriptionOverrideProvider = StateProvider.autoDispose.family<bool?, Str
 final videoTranslationProvider = AsyncNotifierProvider.autoDispose.family<VideoTranslationController, VideoTranslation?, String>(VideoTranslationController.new);
 
 final videoDetailProvider = FutureProvider.autoDispose.family<VideoDetail, String>((ref, id) async {
+  // 详情页数据量大、站点响应慢，保留住避免来回进出时重复加载。
+  ref.keepAlive();
   ref.watch(accountProvider);
   final settings = await ref.watch(settingsProvider.future);
   return ref.watch(han1meRepositoryProvider).video(settings.resolvedBaseUrl, id);

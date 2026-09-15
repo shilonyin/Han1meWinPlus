@@ -1,5 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -73,7 +74,7 @@ class _AccountCard extends StatelessWidget {
                         onRefresh();
                       }
                     : null,
-                child: CircleAvatar(radius: 44, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? CachedNetworkImageProvider(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 44)),
+                child: CircleAvatar(radius: 44, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? appNetworkImage(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 44)),
               ),
               const SizedBox(height: 12),
               Text(account?.name?.isNotEmpty == true ? account!.name! : loggedIn ? l10n.signedIn : l10n.signedOut, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
@@ -132,7 +133,7 @@ class _AccountSheet extends ConsumerWidget {
             ...accounts.map(
               (item) => ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: item.avatarUrl?.isNotEmpty == true ? CachedNetworkImageProvider(item.avatarUrl!) : null,
+                  backgroundImage: item.avatarUrl?.isNotEmpty == true ? appNetworkImage(item.avatarUrl!) : null,
                   child: item.avatarUrl?.isNotEmpty == true ? null : const Icon(Icons.person_outline),
                 ),
                 title: Text(item.name?.isNotEmpty == true ? item.name! : item.id ?? ''),

@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -81,7 +83,7 @@ class _ProductSummary extends StatelessWidget {
           final compact = constraints.maxWidth < 520;
           final cover = detail.coverUrl == null
               ? null
-              : CachedNetworkImage(imageUrl: detail.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, alignment: Alignment.topCenter, fadeInDuration: Duration.zero);
+              : CachedNetworkImage(imageUrl: detail.coverUrl!, cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, alignment: Alignment.topCenter, fadeInDuration: Duration.zero);
           final information = Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -193,7 +195,7 @@ class _SampleImages extends StatelessWidget {
               onTap: () => showDialog<void>(context: context, barrierColor: Colors.black87, builder: (_) => _ImageViewer(images: images, initialIndex: index)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: CachedNetworkImage(imageUrl: images[index], httpHeaders: _getchuImageHeaders, width: 200, fit: BoxFit.cover, fadeInDuration: Duration.zero),
+                child: CachedNetworkImage(imageUrl: images[index], cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, width: 200, fit: BoxFit.cover, fadeInDuration: Duration.zero),
               ),
             ),
           ),
@@ -248,7 +250,7 @@ class _SeriesCard extends StatelessWidget {
                 Expanded(
                   child: item.coverUrl == null
                       ? const ColoredBox(color: Colors.black12, child: Icon(Icons.image_not_supported_outlined))
-                      : CachedNetworkImage(imageUrl: item.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
+                      : CachedNetworkImage(imageUrl: item.coverUrl!, cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10),
@@ -296,7 +298,7 @@ class _ImageViewerState extends State<_ImageViewer> {
               controller: _controller,
               itemCount: widget.images.length,
               onPageChanged: (value) => setState(() => _index = value),
-              itemBuilder: (context, index) => InteractiveViewer(child: Center(child: CachedNetworkImage(imageUrl: widget.images[index], httpHeaders: _getchuImageHeaders, fit: BoxFit.contain, fadeInDuration: Duration.zero))),
+              itemBuilder: (context, index) => InteractiveViewer(child: Center(child: CachedNetworkImage(imageUrl: widget.images[index], cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, fit: BoxFit.contain, fadeInDuration: Duration.zero))),
             ),
             SafeArea(child: IconButton(onPressed: () => Navigator.pop(context), color: Colors.white, icon: const Icon(Icons.close))),
             Positioned(left: 0, right: 0, bottom: 24, child: Text('${_index + 1} / ${widget.images.length}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),

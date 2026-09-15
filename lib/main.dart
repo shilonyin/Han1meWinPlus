@@ -17,6 +17,10 @@ import 'src/features/settings/settings_controller.dart';
 Future<void> main() async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
+  // 列表页图片数量多（首页 + 搜索 + 库 + 预告），默认的 100MB / 1000 张容易被挤掉，
+  // 被淘汰的图再滚回来就要重新解码甚至重新下载。桌面端内存宽裕，放宽一倍以上。
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
+  PaintingBinding.instance.imageCache.maximumSize = 2000;
   final loadedSettings = await SettingsStore(JsonStore()).load();
   // The runner shows the window before the engine is up, so the title bar style
   // has to be applied from here. Doing it before runApp keeps the change on the
