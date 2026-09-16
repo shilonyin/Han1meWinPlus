@@ -389,23 +389,25 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     final videoWidth = state.width ?? 0;
     final videoHeight = state.height ?? 0;
     final target = videoWidth > 0 && videoHeight > 0 && settings.superResolutionMode != SuperResolutionMode.off ? _outputSizeFor(textureId, videoWidth, videoHeight) : null;
-    if (_appliedSizes.containsKey(textureId) && _appliedSizes[textureId] == target) return;
-    _appliedSizes[textureId] = target;
-    unawaited(_applyOutputSize(textureId, target));
+    // 目标等于视频原始尺寸时不需要下发：那本来就是播放内核的默认状态。
+    // 多下发一次只会白白重建一次渲染表面，而实测「先按放大倍数、再改回原尺寸」
+    // 这种往返在增强档的着色器链路下会把播放直接搞崩。
+    final effective = target != null && target.$1 == videoWidth && target.$2 == videoHeight ? null : target;
+    if (_appliedSizes.containsKey(textureId) && _appliedSizes[textureId] == effective) return;
+    _appliedSizes[textureId] = effective;
+    unawaited(_applyOutputSize(textureId, effective));
   }
 
-  /// 目标输出尺寸：优先按界面层给出的播放区域换算；界面层还没报上来时退回「视频 2 倍」
-  /// ——Anime4K 的 x2 放大模组正是按 2 倍设计的，这样即使拿不到界面尺寸也能生效。
+  /// 目标输出尺寸：按界面层给出的播放区域换算。
+  ///
+  /// 界面层还没报上区域时返回视频原始尺寸（即不下发任何尺寸），不做凭空的倍数猜测——
+  /// 那样会让每次加载都多走一次「放大→改回」的往返，既白重建渲染表面又很危险。
   (int, int) _outputSizeFor(int textureId, int videoWidth, int videoHeight) {
     final area = _outputAreas[textureId];
-    double factor;
-    if (area != null && area.$2 && area.$1.width >= 1 && area.$1.height >= 1) {
-      // 渲染尺寸要与视频宽高比一致，否则会把黑边烘进纹理；裁剪/拉伸模式按「铺满」算。
-      final box = area.$1;
-      factor = (area.$3 ? math.max(box.width / videoWidth, box.height / videoHeight) : math.min(box.width / videoWidth, box.height / videoHeight)).clamp(1.0, 3.0);
-    } else {
-      factor = 2.0;
-    }
+    if (area == null || !area.$2 || area.$1.width < 1 || area.$1.height < 1) return (videoWidth, videoHeight);
+    // 渲染尺寸要与视频宽高比一致，否则会把黑边烘进纹理；裁剪/拉伸模式按「铺满」算。
+    final box = area.$1;
+    final factor = (area.$3 ? math.max(box.width / videoWidth, box.height / videoHeight) : math.min(box.width / videoWidth, box.height / videoHeight)).clamp(1.0, 3.0);
     var width = (videoWidth * factor).round();
     var height = (videoHeight * factor).round();
     // 上限约 4K，避免极小的视频在超大窗口里把渲染纹理撑爆。
