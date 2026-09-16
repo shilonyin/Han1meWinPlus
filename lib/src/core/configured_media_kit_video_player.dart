@@ -107,7 +107,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         player,
         configuration: _videoConfiguration(settings),
       );
-      await _applyShaders(native, settings);
+      await _applySuperResolution(native, settings);
       final completer = Completer<void>();
       final streamController = StreamController<VideoEvent>();
       final streamSubscriptions = <StreamSubscription>[];
@@ -170,15 +170,25 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     }
   }
 
-  Future<void> _applyShaders(NativePlayer native, AppSettings settings) async {
+  /// 应用「超分辨率」设置。
+  ///
+  /// 各方案互不相容，且切换方案时播放器会被重建（见 `VideoPlayerPanel`），
+  /// 所以这里只负责写入当前方案，不需要清理上一个方案留下的设置。
+  Future<void> _applySuperResolution(NativePlayer native, AppSettings settings) async {
     final embed = settings.videoRenderer == VideoRenderer.mediacodecEmbed;
-    if (embed || settings.superResolutionMode == SuperResolutionMode.off) return;
-    final shaders = settings.superResolutionMode == SuperResolutionMode.efficiency
-        ? mpvAnime4KShadersLite
-        : mpvAnime4KShaders;
-    final directory = ShaderService.directory?.path;
-    if (directory == null) return;
+    final mode = settings.superResolutionMode;
+    if (embed || mode == SuperResolutionMode.off) return;
     try {
+      if (mode == SuperResolutionMode.natural) {
+        // 不接着色器，只换放大滤镜：libplacebo 的 EWA Lanczos 锐化版。
+        // 色度显式钉回 bilinear，否则 mpv 会让 `cscale` 跟随 `scale`，白白多算一遍 EWA。
+        await native.setProperty('scale', 'ewa_lanczossharp');
+        await native.setProperty('cscale', 'bilinear');
+        return;
+      }
+      final shaders = mode == SuperResolutionMode.efficiency ? mpvAnime4KShadersLite : mpvAnime4KShaders;
+      final directory = ShaderService.directory?.path;
+      if (directory == null) return;
       await native.waitForVideoControllerInitializationIfAttached;
       await native.command([
         'change-list',

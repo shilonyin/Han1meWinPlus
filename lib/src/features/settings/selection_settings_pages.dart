@@ -147,11 +147,26 @@ class SuperResolutionSettingsPage extends ConsumerWidget {
       title: l10n.superResolution,
       current: current,
       options: SuperResolutionMode.values,
-      label: (value) => switch (value) { SuperResolutionMode.off => l10n.superResolutionOff, SuperResolutionMode.efficiency => l10n.superResolutionEfficiency, SuperResolutionMode.quality => l10n.superResolutionQuality },
+      label: (value) => _superResolutionLabel(l10n, value),
+      description: (value) => _superResolutionDescription(l10n, value),
       onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(superResolutionMode: value)),
     );
   }
 }
+
+String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) {
+      SuperResolutionMode.off => l10n.superResolutionOff,
+      SuperResolutionMode.efficiency => l10n.superResolutionEfficiency,
+      SuperResolutionMode.quality => l10n.superResolutionQuality,
+      SuperResolutionMode.natural => l10n.superResolutionNatural,
+    };
+
+String _superResolutionDescription(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) {
+      SuperResolutionMode.off => l10n.superResolutionOffDescription,
+      SuperResolutionMode.efficiency => l10n.superResolutionEfficiencyDescription,
+      SuperResolutionMode.quality => l10n.superResolutionQualityDescription,
+      SuperResolutionMode.natural => l10n.superResolutionNaturalDescription,
+    };
 
 class _RadioSettingsPage<T> extends StatelessWidget {
   const _RadioSettingsPage({required this.title, required this.current, required this.options, required this.label, required this.onChanged, this.description});

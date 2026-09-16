@@ -18,7 +18,13 @@ enum VideoRenderer { auto, gpu, gpuNext, mediacodecEmbed }
 
 enum VideoView { platformView, surfaceView }
 
-enum SuperResolutionMode { off, efficiency, quality }
+/// 超分辨率方案。`efficiency` / `quality` 是 Anime4K 的两个档位。
+/// 序列化按枚举名保存，所以已有的值不能改名或删除，新方案只能往后追加。
+///
+/// 注：曾评估过 ArtCNN（与 Anime4K 同类的模型放大），但它是纯计算着色器实现，
+/// 而本应用默认的 libmpv 渲染链路走 ANGLE（OpenGL ES 3.0，`compute shaders=0`），
+/// 计算着色器 pass 会被直接丢弃，实测编译失败，因此未收录。
+enum SuperResolutionMode { off, efficiency, quality, natural }
 
 enum VideoAspectRatio { auto, crop, stretch, ratio4x3 }
 

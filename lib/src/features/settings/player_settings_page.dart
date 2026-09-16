@@ -59,6 +59,7 @@ class PlayerSettingsPage extends ConsumerWidget {
         SuperResolutionMode.off => l10n.superResolutionOff,
         SuperResolutionMode.efficiency => l10n.superResolutionEfficiency,
         SuperResolutionMode.quality => l10n.superResolutionQuality,
+        SuperResolutionMode.natural => l10n.superResolutionNatural,
       };
 
   Future<void> _editCustomParameters(BuildContext context, WidgetRef ref, AppSettings settings) async {

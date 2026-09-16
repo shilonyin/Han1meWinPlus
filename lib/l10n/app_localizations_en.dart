@@ -1579,7 +1579,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get superResolutionDescription =>
-      'Upscale with Anime4K through libmpv shaders';
+      'Enhance the picture with libmpv shaders or scalers';
 
   @override
   String get availableOnlyForLibmpv =>
@@ -1619,10 +1619,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get superResolutionOff => 'Off';
 
   @override
-  String get superResolutionEfficiency => 'Efficiency';
+  String get superResolutionOffDescription =>
+      'No processing, player default scaler';
 
   @override
-  String get superResolutionQuality => 'Quality';
+  String get superResolutionEfficiency => 'Anime4K Efficiency';
+
+  @override
+  String get superResolutionEfficiencyDescription =>
+      'Anime4K lite tier: sharper lines at a lower cost';
+
+  @override
+  String get superResolutionQuality => 'Anime4K Quality';
+
+  @override
+  String get superResolutionQualityDescription =>
+      'Anime4K quality tier: sharper lines, heavier on the GPU';
+
+  @override
+  String get superResolutionNatural => 'Natural Upscaling (EWA Lanczos)';
+
+  @override
+  String get superResolutionNaturalDescription =>
+      'No shaders; only swaps the upscaling filter for sharpened EWA Lanczos';
 
   @override
   String get accountManage => 'Account Management';

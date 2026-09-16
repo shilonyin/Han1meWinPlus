@@ -1528,7 +1528,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get superResolution => '超分辨率';
 
   @override
-  String get superResolutionDescription => '通过 libmpv 着色器使用 Anime4K 提升画质';
+  String get superResolutionDescription => '通过 libmpv 着色器或缩放器提升画质';
 
   @override
   String get availableOnlyForLibmpv => '仅在解码器为 libmpv 时可用';
@@ -1567,10 +1567,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get superResolutionOff => '关闭';
 
   @override
-  String get superResolutionEfficiency => '效率档';
+  String get superResolutionOffDescription => '不处理画面，使用播放器默认缩放';
 
   @override
-  String get superResolutionQuality => '质量档';
+  String get superResolutionEfficiency => 'Anime4K 效率档';
+
+  @override
+  String get superResolutionEfficiencyDescription => 'Anime4K 轻量档：线条更锐利，开销较低';
+
+  @override
+  String get superResolutionQuality => 'Anime4K 质量档';
+
+  @override
+  String get superResolutionQualityDescription => 'Anime4K 质量档：线条更锐利，更吃 GPU';
+
+  @override
+  String get superResolutionNatural => '自然放大（EWA Lanczos）';
+
+  @override
+  String get superResolutionNaturalDescription =>
+      '不使用着色器，只把放大滤镜换成 EWA Lanczos 锐化版';
 
   @override
   String get accountManage => '账号管理';
@@ -3505,7 +3521,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get superResolution => '超解析度';
 
   @override
-  String get superResolutionDescription => '透過 libmpv 著色器使用 Anime4K 提升畫質';
+  String get superResolutionDescription => '透過 libmpv 著色器或縮放器提升畫質';
 
   @override
   String get availableOnlyForLibmpv => '僅在解碼器為 libmpv 時可用';
@@ -3544,10 +3560,26 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get superResolutionOff => '關閉';
 
   @override
-  String get superResolutionEfficiency => '效率模式';
+  String get superResolutionOffDescription => '不處理畫面，使用播放器預設縮放';
 
   @override
-  String get superResolutionQuality => '品質模式';
+  String get superResolutionEfficiency => 'Anime4K 效率模式';
+
+  @override
+  String get superResolutionEfficiencyDescription => 'Anime4K 輕量模式：線條更銳利，開銷較低';
+
+  @override
+  String get superResolutionQuality => 'Anime4K 品質模式';
+
+  @override
+  String get superResolutionQualityDescription => 'Anime4K 品質模式：線條更銳利，更吃 GPU';
+
+  @override
+  String get superResolutionNatural => '自然放大（EWA Lanczos）';
+
+  @override
+  String get superResolutionNaturalDescription =>
+      '不使用著色器，只把放大濾鏡換成 EWA Lanczos 銳化版';
 
   @override
   String get accountManage => '帳號管理';

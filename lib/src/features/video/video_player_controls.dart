@@ -284,7 +284,7 @@ class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
   }
 }
 
-String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) { SuperResolutionMode.off => l10n.superResolutionOff, SuperResolutionMode.efficiency => l10n.superResolutionEfficiency, SuperResolutionMode.quality => l10n.superResolutionQuality };
+String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) { SuperResolutionMode.off => l10n.superResolutionOff, SuperResolutionMode.efficiency => l10n.superResolutionEfficiency, SuperResolutionMode.quality => l10n.superResolutionQuality, SuperResolutionMode.natural => l10n.superResolutionNatural };
 
 String _aspectLabel(AppLocalizations l10n, VideoAspectRatio aspect) => switch (aspect) { VideoAspectRatio.auto => l10n.aspectAuto, VideoAspectRatio.crop => l10n.aspectCrop, VideoAspectRatio.stretch => l10n.aspectStretch, VideoAspectRatio.ratio4x3 => l10n.aspectFourThree };
 
@@ -300,7 +300,7 @@ class _Anime4KMenu extends ConsumerWidget {
     return MenuAnchor(
       builder: (context, menu, child) => IconButton(
         color: Colors.white,
-        tooltip: l10n.anime4k,
+        tooltip: l10n.superResolution,
         onPressed: menu.open,
         icon: Icon(mode == SuperResolutionMode.off ? Icons.auto_awesome_outlined : Icons.auto_awesome),
       ),

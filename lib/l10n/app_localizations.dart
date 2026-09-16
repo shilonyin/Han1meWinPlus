@@ -2933,7 +2933,7 @@ abstract class AppLocalizations {
   /// No description provided for @superResolutionDescription.
   ///
   /// In en, this message translates to:
-  /// **'Upscale with Anime4K through libmpv shaders'**
+  /// **'Enhance the picture with libmpv shaders or scalers'**
   String get superResolutionDescription;
 
   /// No description provided for @availableOnlyForLibmpv.
@@ -3008,17 +3008,47 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get superResolutionOff;
 
+  /// No description provided for @superResolutionOffDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No processing, player default scaler'**
+  String get superResolutionOffDescription;
+
   /// No description provided for @superResolutionEfficiency.
   ///
   /// In en, this message translates to:
-  /// **'Efficiency'**
+  /// **'Anime4K Efficiency'**
   String get superResolutionEfficiency;
+
+  /// No description provided for @superResolutionEfficiencyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime4K lite tier: sharper lines at a lower cost'**
+  String get superResolutionEfficiencyDescription;
 
   /// No description provided for @superResolutionQuality.
   ///
   /// In en, this message translates to:
-  /// **'Quality'**
+  /// **'Anime4K Quality'**
   String get superResolutionQuality;
+
+  /// No description provided for @superResolutionQualityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime4K quality tier: sharper lines, heavier on the GPU'**
+  String get superResolutionQualityDescription;
+
+  /// No description provided for @superResolutionNatural.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural Upscaling (EWA Lanczos)'**
+  String get superResolutionNatural;
+
+  /// No description provided for @superResolutionNaturalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No shaders; only swaps the upscaling filter for sharpened EWA Lanczos'**
+  String get superResolutionNaturalDescription;
 
   /// No description provided for @accountManage.
   ///
