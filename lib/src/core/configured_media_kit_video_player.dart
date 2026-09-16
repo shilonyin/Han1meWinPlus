@@ -202,15 +202,57 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     } catch (_) {}
   }
 
+  /// 取「自定义参数」里的属性名，非 `key=value` 形式一律视为无效。
+  static String? _parameterName(String parameter) {
+    final separator = parameter.indexOf('=');
+    if (separator <= 0) return null;
+    return parameter.substring(0, separator).trim();
+  }
+
   Future<void> _applyCustomParameters(NativePlayer native, AppSettings settings) async {
     for (final parameter in settings.customParameters) {
-      final separator = parameter.indexOf('=');
-      if (separator <= 0) continue;
+      final name = _parameterName(parameter);
+      if (name == null) continue;
       try {
-        await native.setProperty(
-          parameter.substring(0, separator).trim(),
-          parameter.substring(separator + 1).trim(),
-        );
+        await native.setProperty(name, parameter.substring(parameter.indexOf('=') + 1).trim());
+      } catch (_) {}
+    }
+  }
+
+  /// 把 media_kit 无条件下发的「移动端省电」画质选项改回 mpv 的 high-quality 取向。
+  ///
+  /// media_kit 创建播放器时会写 `scale` / `dscale` = bilinear、`dither` = no、
+  /// `correct-downscaling` / `linear-downscaling` / `sigmoid-upscaling` = no、
+  /// `hdr-compute-peak` = no（见其 `real.dart` 的 `_create`）。这些在桌面端纯属降质：
+  /// `dscale=bilinear` 降采样会糊且闪；`dither=no` 让渐变与 10bit 转 8bit 出色带；
+  /// `sigmoid-upscaling=no` 会让 EWA 缩放器完全失去抗振铃（
+  /// `scale-antiring` 对 vo_gpu 的极坐标 EWA 缩放器本来就不起作用）。
+  ///
+  /// 只在开启「超分辨率」时改，「关闭」档不碰，默认播放的开销与观感保持不变；
+  /// 用户在「自定义参数」里显式写过的项一律以用户为准。
+  ///
+  /// 注意这些全程依赖「mpv 真的需要缩放」：`scaler-resizes-only` 默认开启，
+  /// 不变形时并不会额外耗时，所以界面层必须把显示尺寸交给它（见 [setVideoOutputSize]），
+  /// 否则这一组选项等于没开。
+  Future<void> _applyDesktopQuality(NativePlayer native, AppSettings settings) async {
+    final overridden = settings.customParameters.map(_parameterName).whereType<String>().toSet();
+    const options = {
+      'scale': 'ewa_lanczossharp',
+      'scale-antiring': '0.6',
+      'dscale': 'mitchell',
+      'dither': 'fruit',
+      'correct-downscaling': 'yes',
+      'linear-downscaling': 'yes',
+      'sigmoid-upscaling': 'yes',
+      // mpv 默认关闭，而番剧的平坦渐变最容易出色带，值得为它付这点开销。
+      'deband': 'yes',
+      // 恢复 mpv 默认值：本应用的上下文是 GLES 3.0，mpv 会自行判定不可用而跳过。
+      'hdr-compute-peak': 'auto',
+    };
+    for (final entry in options.entries) {
+      if (overridden.contains(entry.key)) continue;
+      try {
+        await native.setProperty(entry.key, entry.value);
       } catch (_) {}
     }
   }
@@ -224,12 +266,9 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     final mode = settings.superResolutionMode;
     if (embed || mode == SuperResolutionMode.off) return;
     try {
+      await _applyDesktopQuality(native, settings);
       if (mode == SuperResolutionMode.natural) {
-        // 不接着色器，改用 libplacebo 的高质量缩放器（对齐 mpv 的 high-quality 预设）。
-        // 注意：只有 mpv 真的需要缩放时才会用到 `scale`，所以界面层必须把显示尺寸
-        // 交给它（见 [setVideoOutputSize]），否则这一档等于没开。
-        await native.setProperty('scale', 'ewa_lanczossharp');
-        await native.setProperty('scale-antiring', '0.6');
+        // 这一档只用缩放器（见 [_applyDesktopQuality]），不接着色器。
         return;
       }
       final shaders = mode == SuperResolutionMode.efficiency ? mpvAnime4KShadersLite : mpvAnime4KShaders;
