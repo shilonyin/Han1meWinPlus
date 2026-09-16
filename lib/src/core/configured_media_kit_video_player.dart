@@ -157,14 +157,16 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       _streamControllers[textureId] = streamController;
       _streamSubscriptions[textureId] = streamSubscriptions;
 
+      // 先建立初始化监听（它会发出 `initialized` 事件），再挂平台层自己的监听，
+      // 避免两者争用同一个订阅列表的顺序。
+      _initialize(textureId);
+
       // media_kit 自己会在 videoParams 变化时把输出尺寸改回视频原始尺寸，
       // 而视频就绪（尺寸已知）本身也不会引发 Widget 重建，所以这里一并重算。
       streamSubscriptions.add(videoController.player.stream.videoParams.listen((_) {
         final id = textureId;
         if (id != null) _refreshOutputSize(id);
       }));
-
-      _initialize(textureId);
 
       final resource = switch (dataSource.sourceType) {
         DataSourceType.asset => dataSource.package == null
@@ -438,7 +440,11 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   Future<void> setWebOptions(int textureId, VideoPlayerWebOptions options) => Future.value();
 
   void _initialize(int textureId) {
-    if (_streamSubscriptions[textureId]?.isNotEmpty ?? false) return;
+    // 不能用「订阅列表非空」当作「已初始化」的标志：平台层自己也会往同一个列表里挂
+    // 监听（见 `create()` 里用于重算输出尺寸的 `videoParams` 监听）。一旦那样，本方法
+    // 会直接返回，`initialized` 事件永远发不出去 —— 表现为播放页一直转圈、不自动播放。
+    // 改用「初始化完成时才 complete 的 Completer」判断。
+    if (_completers[textureId]?.isCompleted ?? true) return;
 
     final player = _players[textureId];
     final completer = _completers[textureId];
