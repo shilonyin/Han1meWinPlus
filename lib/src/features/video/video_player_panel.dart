@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/configured_media_kit_video_player.dart';
 import '../../core/platform_service.dart';
 import '../../core/route_observer.dart';
 import '../../core/settings.dart';
@@ -48,6 +49,8 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   bool _disposed = false;
   bool _notifiersDisposed = false;
   bool _routeSubscribed = false;
+  /// 「视频输出卡死」的兜底重载次数（避免反复重载）。
+  var _stallRecoveries = 0;
   VideoPlayerController? _pendingDispose;
   final _disposing = <VideoPlayerController>{};
   final _pendingInitialize = <VideoPlayerController, Future<void>>{};
@@ -64,6 +67,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     _watchController = ref.read(watchProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
     _controllerNotifier.addListener(_handleControllerChanged);
+    ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = _recoverFromStalledOutput;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncSource();
     });
@@ -200,14 +204,35 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   Future<void> _changeSuperResolution(SuperResolutionMode mode) async {
     final settings = await ref.read(settingsProvider.future);
     if (settings.superResolutionMode == mode) return;
-    final current = _controllerNotifier.value;
-    final position = current?.value.isInitialized == true ? current!.value.position : null;
-    final wasPlaying = current?.value.isInitialized == true && current!.value.isPlaying;
     final source = widget.video.sources.where((source) => source.quality == _loadedQuality).firstOrNull;
     await ref.read(settingsProvider.notifier).saveChanges(
           (current) => current.copyWith(superResolutionMode: mode),
         );
+    // 就地切换，不重建播放器。
+    //
+    // 之前是「改设置 + 重建播放器」，会让新实例的着色器链编译与渲染尺寸调整挤在同一瞬间，
+    // 实测会把 mpv 的渲染上下文搞坏：画面永久转圈、声音照旧、界面看上去卡死；
+    // 而且重建过程本身也必然先转一次圈。
+    if (await ConfiguredMediaKitVideoPlayer.applySuperResolutionMode(mode)) return;
+    // 不是 libmpv 内核（例如 Android 用的是官方插件）时退回重建，保证设置仍然生效。
+    final current = _controllerNotifier.value;
+    final position = current?.value.isInitialized == true ? current!.value.position : null;
+    final wasPlaying = current?.value.isInitialized == true && current!.value.isPlaying;
     if (source != null) await _load(source, startAt: position, resumePlaying: wasPlaying);
+  }
+
+  /// 视频输出卡死的兜底：重载当前片源（最多两次）。
+  ///
+  /// mpv 的渲染上下文一旦被搞坏就不会自己恢复，只能重建播放器；这里把它控制在
+  /// 「转几秒圈就恢复」，而不是让用户去杀进程。只靠界面层重载，不碰平台层的状态。
+  void _recoverFromStalledOutput() {
+    if (!mounted || _disposed || _stallRecoveries >= 2) return;
+    final controller = _controllerNotifier.value;
+    final source = widget.video.sources.where((source) => source.quality == _loadedQuality).firstOrNull;
+    if (controller == null || source == null) return;
+    _stallRecoveries++;
+    final position = controller.value.isInitialized ? controller.value.position : null;
+    unawaited(_load(source, startAt: position, resumePlaying: true));
   }
 
   Future<void> _load(VideoSource source, {Duration? startAt, bool resumePlaying = false}) async {
@@ -221,7 +246,13 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
       if (previous.value.isInitialized && previous.value.isPlaying) {
         unawaited(previous.pause().catchError((_) {}));
       }
-      unawaited(_queueDisposal(previous));
+      // 必须等旧的播放器真的销毁完再建新的。
+      //
+      // 两个播放器同时存在时，底层会同时存在两个渲染表面（ANGLE 表面管理器），
+      // 旧的那个销毁时可能把共用的 EGL display 一起释放掉，把新实例的渲染上下文搞死：
+      // 表现就是画面永久转圈、声音照旧。串行之后这个重叠窗口就没了。
+      // 加超时是为了不让「上一个还没初始化完」这种情况把加载卡住。
+      await _queueDisposal(previous).timeout(const Duration(seconds: 5), onTimeout: () {});
     }
     if (!mounted || version != _loadVersion) return;
     final settings = await ref.read(settingsProvider.future);
@@ -405,6 +436,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   void dispose() {
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
+    if (identical(ConfiguredMediaKitVideoPlayer.onVideoOutputStalled, _recoverFromStalledOutput)) {
+      ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = null;
+    }
     _disposed = true;
     _loadVersion++;
     try {

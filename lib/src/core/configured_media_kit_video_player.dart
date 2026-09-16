@@ -52,7 +52,24 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 最近一次真正下发给原生侧的输出尺寸；`null` 表示跟随视频原始分辨率。
   final _appliedSizes = HashMap<int, (int, int)?>();
   final _outputSizeTimers = HashMap<int, Timer>();
+  /// 播放稳定起点：改渲染尺寸必须等到播放真的稳下来（见 [_canResizeNow]）。
+  final _playingSince = HashMap<int, DateTime>();
+  /// 改尺寸的暂缓截止时间：重着色器链编译期间绝不能重建渲染表面。
+  final _resizeHoldUntil = HashMap<int, DateTime>();
+  /// 「等播放稳下来再改尺寸」的重试计时器与次数。
+  final _resizeRetryTimers = HashMap<int, Timer>();
+  final _resizeRetryCounts = HashMap<int, int>();
+  /// 视频输出「卡死」（在播但画面不再更新）的持续秒数与恢复标记。
+  final _stallSeconds = HashMap<int, int>();
+  final _stallTimers = HashMap<int, Timer>();
+  final _stallRecovered = HashMap<int, bool>();
   int _nextTextureId = 0;
+
+  /// 视频输出卡死时的兜底回调（由播放页接管：重新加载当前片源）。
+  ///
+  /// mpv 的渲染上下文一旦被搞坏就再也不会自己恢复（画面永久转圈、声音照旧），
+  /// 此时唯一的解法是重建播放器，所以留一个钩子给界面层。
+  static void Function()? onVideoOutputStalled;
 
   /// mpv 使用的 HTTP 代理（取自系统代理）。
   ///
@@ -99,6 +116,19 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _outputSizeTimers.clear();
     _outputAreas.clear();
     _appliedSizes.clear();
+    for (final timer in _resizeRetryTimers.values) {
+      timer.cancel();
+    }
+    _resizeRetryTimers.clear();
+    for (final timer in _stallTimers.values) {
+      timer.cancel();
+    }
+    _stallTimers.clear();
+    _playingSince.clear();
+    _resizeHoldUntil.clear();
+    _resizeRetryCounts.clear();
+    _stallSeconds.clear();
+    _stallRecovered.clear();
   }
 
   @override
@@ -110,6 +140,13 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _outputAreas.remove(textureId);
     _appliedSizes.remove(textureId);
     _outputSizeTimers.remove(textureId)?.cancel();
+    _playingSince.remove(textureId);
+    _resizeHoldUntil.remove(textureId);
+    _resizeRetryTimers.remove(textureId)?.cancel();
+    _resizeRetryCounts.remove(textureId);
+    _stallTimers.remove(textureId)?.cancel();
+    _stallSeconds.remove(textureId);
+    _stallRecovered.remove(textureId);
     final completer = _completers.remove(textureId);
     if (completer != null && !completer.isCompleted) {
       completer.complete();
@@ -167,6 +204,32 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         final id = textureId;
         if (id != null) _refreshOutputSize(id);
       }));
+
+      // 播放稳定计时：只有「正在播放、没在缓冲、并且已经这样持续了一会儿」
+      // 才允许改渲染尺寸（原因见 [_canResizeNow]）。
+      streamSubscriptions.add(videoController.player.stream.playing.listen((playing) {
+        final id = textureId;
+        if (id == null) return;
+        if (playing) {
+          _playingSince[id] = DateTime.now();
+        } else {
+          _playingSince.remove(id);
+        }
+        _refreshOutputSize(id);
+      }));
+      streamSubscriptions.add(videoController.player.stream.buffering.listen((buffering) {
+        final id = textureId;
+        if (id == null) return;
+        if (buffering) {
+          _playingSince.remove(id);
+        } else {
+          _playingSince[id] = DateTime.now();
+        }
+        _refreshOutputSize(id);
+      }));
+
+      // 兜底看门狗：万一渲染上下文还是被搞坏了，通报界面层重载。
+      _stallTimers[textureId] = Timer.periodic(const Duration(seconds: 2), (_) => _checkStall(textureId!));
 
       final resource = switch (dataSource.sourceType) {
         DataSourceType.asset => dataSource.package == null
@@ -261,16 +324,24 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   /// 应用「超分辨率」设置。
   ///
-  /// 各方案互不相容，且切换方案时播放器会被重建（见 `VideoPlayerPanel`），
-  /// 所以这里只负责写入当前方案，不需要清理上一个方案留下的设置。
-  Future<void> _applySuperResolution(NativePlayer native, AppSettings settings) async {
+  /// [created] 为 true 表示刚新建的播放器（还没动过任何设置，不存在需要清理的旧方案）；
+  /// 为 false 表示在**活着的播放器**上就地切档，必须把上一个档位留下的东西撤干净。
+  Future<void> _applySuperResolution(NativePlayer native, AppSettings settings, {bool created = true}) async {
     final embed = settings.videoRenderer == VideoRenderer.mediacodecEmbed;
     final mode = settings.superResolutionMode;
-    if (embed || mode == SuperResolutionMode.off) return;
+    if (embed) return;
+    if (mode == SuperResolutionMode.off) {
+      // 「关闭」档就是 media_kit 的默认画质，新建时不该去动它。
+      if (created) return;
+      await _clearShaders(native);
+      await _resetDesktopQuality(native, settings);
+      return;
+    }
     try {
       await _applyDesktopQuality(native, settings);
       if (mode == SuperResolutionMode.natural) {
         // 这一档只用缩放器（见 [_applyDesktopQuality]），不接着色器。
+        if (!created) await _clearShaders(native);
         return;
       }
       final shaders = mode == SuperResolutionMode.efficiency ? mpvAnime4KShadersLite : mpvAnime4KShaders;
@@ -284,6 +355,37 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         buildShadersAbsolutePath(directory, shaders),
       ]);
     } catch (_) {}
+  }
+
+  /// 清空着色器链（切回「关闭」或「自然放大」时用）。
+  Future<void> _clearShaders(NativePlayer native) async {
+    try {
+      await native.command(['change-list', 'glsl-shaders', 'clear']);
+    } catch (_) {}
+  }
+
+  /// 把 [_applyDesktopQuality] 改过的选项恢复成 media_kit 的默认值。
+  ///
+  /// 就地切回「关闭」档时必须做这一步，否则上一个档位留下的缩放器/抖动设置会一直生效。
+  Future<void> _resetDesktopQuality(NativePlayer native, AppSettings settings) async {
+    final overridden = settings.customParameters.map(_parameterName).whereType<String>().toSet();
+    const options = {
+      'scale': 'bilinear',
+      'scale-antiring': '0',
+      'dscale': 'bilinear',
+      'dither': 'no',
+      'correct-downscaling': 'no',
+      'linear-downscaling': 'no',
+      'sigmoid-upscaling': 'no',
+      'deband': 'no',
+      'hdr-compute-peak': 'no',
+    };
+    for (final entry in options.entries) {
+      if (overridden.contains(entry.key)) continue;
+      try {
+        await native.setProperty(entry.key, entry.value);
+      } catch (_) {}
+    }
   }
 
   VideoControllerConfiguration _videoConfiguration(AppSettings settings) {
@@ -383,19 +485,81 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 未开启增强档（或视频尺寸还没就绪）时目标为 `null`，即恢复「跟随视频原始分辨率」——
   /// 那是默认行为，也是开销最低的路径。
   void _refreshOutputSize(int textureId) {
+    if (_players[textureId] == null || _videoControllers[textureId] == null) return;
+    final target = _targetSizeFor(textureId);
+    if (_appliedSizes.containsKey(textureId) && _appliedSizes[textureId] == target) {
+      _resizeRetryTimers.remove(textureId)?.cancel();
+      _resizeRetryCounts.remove(textureId);
+      return;
+    }
+    if (!_canResizeNow(textureId)) {
+      // 现在改尺寸不安全（刚起播 / 在缓冲 / 着色器链刚换），过会儿再补。
+      _scheduleResizeRetry(textureId);
+      return;
+    }
+    unawaited(_applyOutputSize(textureId, target));
+  }
+
+  /// 目标输出尺寸；`null` 表示「跟随视频原始分辨率」（即不下发任何尺寸）。
+  (int, int)? _targetSizeFor(int textureId) {
     final controller = _videoControllers[textureId];
-    if (controller == null) return;
+    if (controller == null) return null;
     final state = controller.player.state;
     final videoWidth = state.width ?? 0;
     final videoHeight = state.height ?? 0;
-    final target = videoWidth > 0 && videoHeight > 0 && settings.superResolutionMode != SuperResolutionMode.off ? _outputSizeFor(textureId, videoWidth, videoHeight) : null;
+    if (videoWidth < 1 || videoHeight < 1) return null;
+    if (settings.superResolutionMode == SuperResolutionMode.off) return null;
+    final target = _outputSizeFor(textureId, videoWidth, videoHeight);
     // 目标等于视频原始尺寸时不需要下发：那本来就是播放内核的默认状态。
     // 多下发一次只会白白重建一次渲染表面，而实测「先按放大倍数、再改回原尺寸」
     // 这种往返在增强档的着色器链路下会把播放直接搞崩。
-    final effective = target != null && target.$1 == videoWidth && target.$2 == videoHeight ? null : target;
-    if (_appliedSizes.containsKey(textureId) && _appliedSizes[textureId] == effective) return;
-    _appliedSizes[textureId] = effective;
-    unawaited(_applyOutputSize(textureId, effective));
+    return target.$1 == videoWidth && target.$2 == videoHeight ? null : target;
+  }
+
+  /// 现在能不能改渲染尺寸？
+  ///
+  /// 实测（mpv 0.36 + media_kit_video 2.0.1 + ANGLE）：**改渲染尺寸必须避开重着色器链的编译**。
+  /// 两件事撞在一起时 ANGLE 表面会被重建、mpv 的渲染上下文随即坏掉，日志里留下
+  /// `mpv_render_context_render() not being called or stuck.`，之后画面永久停在转圈、
+  /// 声音却照旧（渲染线程死了，音频线程不受影响）——用户看到的就是「卡死、没法操作」。
+  /// 所以这里要求：正在播放、没在缓冲、已经稳定播放 1.5s 以上，且不在链切换后的冷却期。
+  bool _canResizeNow(int textureId) {
+    final player = _players[textureId];
+    if (player == null) return false;
+    final holdUntil = _resizeHoldUntil[textureId];
+    if (holdUntil != null) {
+      if (DateTime.now().isBefore(holdUntil)) return false;
+      _resizeHoldUntil.remove(textureId);
+    }
+    final state = player.state;
+    if (!state.playing || state.buffering) return false;
+    final since = _playingSince[textureId];
+    if (since == null) return false;
+    return DateTime.now().difference(since) >= const Duration(milliseconds: 1500);
+  }
+
+  /// 改尺寸现在不安全，过 500ms 再看一次（最多 30s）。
+  void _scheduleResizeRetry(int textureId) {
+    if (_resizeRetryTimers.containsKey(textureId)) return;
+    final attempt = (_resizeRetryCounts[textureId] ?? 0) + 1;
+    _resizeRetryCounts[textureId] = attempt;
+    if (attempt > 60) return;
+    _resizeRetryTimers[textureId] = Timer(const Duration(milliseconds: 500), () {
+      _resizeRetryTimers.remove(textureId);
+      _refreshOutputSize(textureId);
+    });
+  }
+
+  /// 在接下来的这段时间内不要改渲染尺寸（用于着色器链刚换上的编译期）。
+  void _holdResizes(int textureId, [Duration duration = const Duration(seconds: 3)]) {
+    _resizeHoldUntil[textureId] = DateTime.now().add(duration);
+    _resizeRetryTimers.remove(textureId)?.cancel();
+    _resizeRetryCounts.remove(textureId);
+    // 冷却结束后主动重算一次，不依赖外部事件来触发。
+    _resizeRetryTimers[textureId] = Timer(duration, () {
+      _resizeRetryTimers.remove(textureId);
+      _refreshOutputSize(textureId);
+    });
   }
 
   /// 目标输出尺寸：按界面层给出的播放区域换算。
@@ -429,10 +593,94 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   Future<void> _applyOutputSize(int textureId, (int, int)? target) async {
     final controller = _videoControllers[textureId];
     if (controller == null) return;
+    _resizeRetryTimers.remove(textureId)?.cancel();
+    _resizeRetryCounts.remove(textureId);
+    _appliedSizes[textureId] = target;
     try {
       await controller.setSize();
       if (target != null) await controller.setSize(width: target.$1, height: target.$2);
     } catch (_) {}
+  }
+
+  /// 等原生侧真的重建完渲染表面。
+  ///
+  /// media_kit 重建表面后会下发新的纹理 id，用它当「表面已就绪」的信号，
+  /// 这样才能保证「改尺寸」和「换着色器链」在时间上真正错开。
+  Future<void> _waitForTextureChange(VideoController controller, int? previous, Duration timeout) async {
+    if (controller.id.value != previous) return;
+    final completer = Completer<void>();
+    void listener() {
+      if (controller.id.value != previous && !completer.isCompleted) completer.complete();
+    }
+
+    controller.id.addListener(listener);
+    try {
+      await completer.future.timeout(timeout);
+    } catch (_) {
+      // 超时就不等了：宁可不改尺寸，也不能把链的切换无限推迟。
+    } finally {
+      controller.id.removeListener(listener);
+    }
+  }
+
+  /// 兜底看门狗：渲染上下文万一还是坏了，通报界面层重载。
+  ///
+  /// 只用「在缓冲」判断不够：网络真卡时也会缓冲，那种情况不能动手。
+  /// 缓冲区明明领先播放位置却一直不播，说明数据早就够了，卡的是画面输出。
+  void _checkStall(int textureId) {
+    final player = _players[textureId];
+    if (player == null) return;
+    final state = player.state;
+    final ahead = state.buffer - state.position;
+    if (!state.playing || !state.buffering || ahead < const Duration(seconds: 3)) {
+      _stallSeconds[textureId] = 0;
+      return;
+    }
+    final seconds = (_stallSeconds[textureId] ?? 0) + 2;
+    _stallSeconds[textureId] = seconds;
+    if (seconds < 6 || _stallRecovered[textureId] == true) return;
+    _stallRecovered[textureId] = true;
+    onVideoOutputStalled?.call();
+  }
+
+  /// 在活着的播放器上就地切换「超分辨率」档位（不重建播放器）。
+  ///
+  /// 以前的做法是「改设置 + 重建播放器」，那会让新实例的**重着色器链编译**与
+  /// **渲染表面重建**挤在同一瞬间，实测会把 mpv 的渲染上下文搞坏；而且重建过程本身
+  /// 必然出现一次转圈。就地切换后两件事都被拆开：先让尺寸落地（此时链还是旧的、
+  /// 管线是热的、不涉及编译），确认表面真的重建完（纹理 id 变化）再换链，
+  /// 换完链再压住尺寸几秒不让它被打扰。
+  Future<void> _switchSuperResolution() async {
+    for (final textureId in _players.keys.toList(growable: false)) {
+      final controller = _videoControllers[textureId];
+      final native = _players[textureId]?.platform;
+      if (controller == null || native is! NativePlayer) continue;
+      final target = _targetSizeFor(textureId);
+      if (_appliedSizes[textureId] != target && _canResizeNow(textureId)) {
+        _holdResizes(textureId);
+        final previous = controller.id.value;
+        await _applyOutputSize(textureId, target);
+        await _waitForTextureChange(controller, previous, const Duration(seconds: 2));
+      }
+      // 尺寸没变（或现在不适合改尺寸）：直接换链，尺寸留给 _refreshOutputSize
+      // 在播放稳下来之后自己补上。
+      await _applySuperResolution(native, settings, created: false);
+      _holdResizes(textureId);
+    }
+  }
+
+  /// 就地切换「超分辨率」档位（供播放页调用）。
+  ///
+  /// 返回 false 表示当前平台实现不是本类（例如 Android 上用的是官方插件），
+  /// 调用方应当退回「重建播放器」的老做法。
+  static Future<bool> applySuperResolutionMode(SuperResolutionMode mode) async {
+    final platform = VideoPlayerPlatform.instance;
+    if (platform is! ConfiguredMediaKitVideoPlayer) return false;
+    // 先让本类的设定与调用方一致，避免依赖设置流的更新时机。
+    settings = settings.copyWith(superResolutionMode: mode);
+    if (platform._players.isEmpty) return true;
+    await platform._switchSuperResolution();
+    return true;
   }
 
   @override
