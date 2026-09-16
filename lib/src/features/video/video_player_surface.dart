@@ -8,6 +8,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/platform_service.dart';
 import '../../core/settings.dart';
@@ -356,14 +357,25 @@ class _VideoViewport extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final aspect = ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ?? VideoAspectRatio.auto;
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final aspect = settings?.videoAspectRatio ?? VideoAspectRatio.auto;
+    final enhance = (settings?.superResolutionMode ?? SuperResolutionMode.off) != SuperResolutionMode.off;
     final ratio = controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio;
-    return switch (aspect) {
-      VideoAspectRatio.auto => Center(child: AspectRatio(aspectRatio: ratio, child: VideoPlayer(controller))),
-      VideoAspectRatio.ratio4x3 => Center(child: AspectRatio(aspectRatio: 4 / 3, child: FittedBox(fit: BoxFit.contain, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller))))),
-      VideoAspectRatio.crop => Positioned.fill(child: FittedBox(fit: BoxFit.cover, clipBehavior: Clip.hardEdge, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
-      VideoAspectRatio.stretch => Positioned.fill(child: FittedBox(fit: BoxFit.fill, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
-    };
+    return LayoutBuilder(builder: (context, constraints) {
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      final fill = aspect == VideoAspectRatio.crop || aspect == VideoAspectRatio.stretch;
+      return VideoOutputArea(
+        enabled: enhance,
+        fill: fill,
+        size: Size(constraints.maxWidth.isFinite ? constraints.maxWidth * dpr : 0, constraints.maxHeight.isFinite ? constraints.maxHeight * dpr : 0),
+        child: switch (aspect) {
+        VideoAspectRatio.auto => Center(child: AspectRatio(aspectRatio: ratio, child: VideoPlayer(controller))),
+        VideoAspectRatio.ratio4x3 => Center(child: AspectRatio(aspectRatio: 4 / 3, child: FittedBox(fit: BoxFit.contain, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller))))),
+        VideoAspectRatio.crop => Positioned.fill(child: FittedBox(fit: BoxFit.cover, clipBehavior: Clip.hardEdge, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
+        VideoAspectRatio.stretch => Positioned.fill(child: FittedBox(fit: BoxFit.fill, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
+        },
+      );
+    });
   }
 }
 

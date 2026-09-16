@@ -1573,13 +1573,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get superResolutionEfficiency => 'Anime4K 效率档';
 
   @override
-  String get superResolutionEfficiencyDescription => 'Anime4K 轻量档：线条更锐利，开销较低';
+  String get superResolutionEfficiencyDescription =>
+      'Anime4K 轻量档：线条增强 + 放大，开销较低';
 
   @override
   String get superResolutionQuality => 'Anime4K 质量档';
 
   @override
-  String get superResolutionQualityDescription => 'Anime4K 质量档：线条更锐利，更吃 GPU';
+  String get superResolutionQualityDescription =>
+      'Anime4K 质量档：线条增强 + 放大，最吃 GPU';
 
   @override
   String get superResolutionNatural => '自然放大（EWA Lanczos）';
@@ -3566,13 +3568,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get superResolutionEfficiency => 'Anime4K 效率模式';
 
   @override
-  String get superResolutionEfficiencyDescription => 'Anime4K 輕量模式：線條更銳利，開銷較低';
+  String get superResolutionEfficiencyDescription =>
+      'Anime4K 輕量模式：線條增強 + 放大，開銷較低';
 
   @override
   String get superResolutionQuality => 'Anime4K 品質模式';
 
   @override
-  String get superResolutionQualityDescription => 'Anime4K 品質模式：線條更銳利，更吃 GPU';
+  String get superResolutionQualityDescription =>
+      'Anime4K 品質模式：線條增強 + 放大，最吃 GPU';
 
   @override
   String get superResolutionNatural => '自然放大（EWA Lanczos）';

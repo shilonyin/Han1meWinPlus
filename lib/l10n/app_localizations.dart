@@ -3023,7 +3023,7 @@ abstract class AppLocalizations {
   /// No description provided for @superResolutionEfficiencyDescription.
   ///
   /// In en, this message translates to:
-  /// **'Anime4K lite tier: sharper lines at a lower cost'**
+  /// **'Anime4K lite tier: line enhancement plus upscaling, lower cost'**
   String get superResolutionEfficiencyDescription;
 
   /// No description provided for @superResolutionQuality.
@@ -3035,7 +3035,7 @@ abstract class AppLocalizations {
   /// No description provided for @superResolutionQualityDescription.
   ///
   /// In en, this message translates to:
-  /// **'Anime4K quality tier: sharper lines, heavier on the GPU'**
+  /// **'Anime4K quality tier: line enhancement plus upscaling, heaviest load'**
   String get superResolutionQualityDescription;
 
   /// No description provided for @superResolutionNatural.

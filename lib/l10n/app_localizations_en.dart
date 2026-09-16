@@ -1627,14 +1627,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get superResolutionEfficiencyDescription =>
-      'Anime4K lite tier: sharper lines at a lower cost';
+      'Anime4K lite tier: line enhancement plus upscaling, lower cost';
 
   @override
   String get superResolutionQuality => 'Anime4K Quality';
 
   @override
   String get superResolutionQualityDescription =>
-      'Anime4K quality tier: sharper lines, heavier on the GPU';
+      'Anime4K quality tier: line enhancement plus upscaling, heaviest load';
 
   @override
   String get superResolutionNatural => 'Natural Upscaling (EWA Lanczos)';
