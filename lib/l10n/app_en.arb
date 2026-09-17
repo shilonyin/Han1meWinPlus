@@ -537,6 +537,7 @@
   "superResolutionQualityDescription": "Anime4K quality tier: line enhancement plus upscaling, heaviest load",
   "superResolutionNatural": "Natural Upscaling (EWA Lanczos)",
   "superResolutionNaturalDescription": "No shaders; only swaps the upscaling filter for sharpened EWA Lanczos",
+  "switchingQuality": "Switching quality…",
   "accountManage": "Account Management",
   "accountManageSubtitleEmpty": "Add or switch accounts for this site",
   "accountManageSubtitleCount": "{count} account(s) saved for this site",

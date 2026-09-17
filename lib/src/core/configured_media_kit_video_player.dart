@@ -63,7 +63,17 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   final _stallSeconds = HashMap<int, int>();
   final _stallTimers = HashMap<int, Timer>();
   final _stallRecovered = HashMap<int, bool>();
+  /// 正在改画质（重新编译着色器链）的纹理：这段时间内核上报的「缓冲」要压掉。
+  final _switchingQuality = HashMap<int, bool>();
+  final _switchingTimers = HashMap<int, Timer>();
   int _nextTextureId = 0;
+
+  /// 正在切换画质（重编译着色器链），界面据此显示提示条。
+  ///
+  /// 重档位（Anime4K 质量档）要编译一大串着色器，要几秒；期间渲染线程被占住，
+  /// 内核会短暂进入缓冲状态——但线程没死，音频一直在放。直接把它当成「加载中」
+  /// 上报，界面就会弹一个转圈，看起来像卡住。
+  static final ValueNotifier<bool> switchingSuperResolution = ValueNotifier<bool>(false);
 
   /// 视频输出卡死时的兜底回调（由播放页接管：重新加载当前片源）。
   ///
@@ -124,6 +134,12 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       timer.cancel();
     }
     _stallTimers.clear();
+    for (final timer in _switchingTimers.values) {
+      timer.cancel();
+    }
+    _switchingTimers.clear();
+    _switchingQuality.clear();
+    switchingSuperResolution.value = false;
     _playingSince.clear();
     _resizeHoldUntil.clear();
     _resizeRetryCounts.clear();
@@ -147,6 +163,10 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _stallTimers.remove(textureId)?.cancel();
     _stallSeconds.remove(textureId);
     _stallRecovered.remove(textureId);
+    _switchingTimers.remove(textureId)?.cancel();
+    if (_switchingQuality.remove(textureId) != null) {
+      switchingSuperResolution.value = _switchingQuality.isNotEmpty;
+    }
     final completer = _completers.remove(textureId);
     if (completer != null && !completer.isCompleted) {
       completer.complete();
@@ -224,6 +244,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
           _playingSince.remove(id);
         } else {
           _playingSince[id] = DateTime.now();
+          // 切画质造成的短暂缓冲到此结束，提示条可以收了。
+          _endSwitchingQuality(id);
         }
         _refreshOutputSize(id);
       }));
@@ -655,17 +677,40 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final controller = _videoControllers[textureId];
       final native = _players[textureId]?.platform;
       if (controller == null || native is! NativePlayer) continue;
-      final target = _targetSizeFor(textureId);
-      if (_appliedSizes[textureId] != target && _canResizeNow(textureId)) {
+      _beginSwitchingQuality(textureId);
+      try {
+        final target = _targetSizeFor(textureId);
+        if (_appliedSizes[textureId] != target && _canResizeNow(textureId)) {
+          _holdResizes(textureId);
+          final previous = controller.id.value;
+          await _applyOutputSize(textureId, target);
+          await _waitForTextureChange(controller, previous, const Duration(seconds: 2));
+        }
+        // 尺寸没变（或现在不适合改尺寸）：直接换链，尺寸留给 _refreshOutputSize
+        // 在播放稳下来之后自己补上。
+        await _applySuperResolution(native, settings, created: false);
         _holdResizes(textureId);
-        final previous = controller.id.value;
-        await _applyOutputSize(textureId, target);
-        await _waitForTextureChange(controller, previous, const Duration(seconds: 2));
+      } finally {
+        // 没进缓冲就说明没有重编译（或已瞬间完成），提示条可以立刻收。
+        if (!(_players[textureId]?.state.buffering ?? false)) _endSwitchingQuality(textureId);
       }
-      // 尺寸没变（或现在不适合改尺寸）：直接换链，尺寸留给 _refreshOutputSize
-      // 在播放稳下来之后自己补上。
-      await _applySuperResolution(native, settings, created: false);
-      _holdResizes(textureId);
+    }
+  }
+
+  /// 标记「正在改画质」：这段时间压掉内核上报的缓冲事件，并让界面显示提示条。
+  ///
+  /// [timeout] 是兜底：万一内核没有上报缓冲结束，也不会让提示条一直挂着。
+  void _beginSwitchingQuality(int textureId, [Duration timeout = const Duration(seconds: 20)]) {
+    _switchingQuality[textureId] = true;
+    switchingSuperResolution.value = true;
+    _switchingTimers.remove(textureId)?.cancel();
+    _switchingTimers[textureId] = Timer(timeout, () => _endSwitchingQuality(textureId));
+  }
+
+  void _endSwitchingQuality(int textureId) {
+    _switchingTimers.remove(textureId)?.cancel();
+    if (_switchingQuality.remove(textureId) != null) {
+      switchingSuperResolution.value = _switchingQuality.isNotEmpty;
     }
   }
 
@@ -773,11 +818,13 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     streamSubscriptions.add(
       player.stream.buffering.listen((event) async {
         await completer.future;
-        if (isActive()) {
-          streamController.add(
-            VideoEvent(eventType: event ? VideoEventType.bufferingStart : VideoEventType.bufferingEnd),
-          );
-        }
+        if (!isActive()) return;
+        // 改画质要重新编译着色器链（重档位好几秒），内核会短暂进入缓冲状态：
+        // 那不是网络加载，也不是卡死（音频一直在放），上报出去界面就会弹个转圈。
+        if (event && (_switchingQuality[textureId] ?? false)) return;
+        streamController.add(
+          VideoEvent(eventType: event ? VideoEventType.bufferingStart : VideoEventType.bufferingEnd),
+        );
       }),
     );
     streamSubscriptions.add(

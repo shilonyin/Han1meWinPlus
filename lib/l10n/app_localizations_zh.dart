@@ -1591,6 +1591,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '不使用着色器，只把放大滤镜换成 EWA Lanczos 锐化版';
 
   @override
+  String get switchingQuality => '正在切换画质…';
+
+  @override
   String get accountManage => '账号管理';
 
   @override
@@ -3584,6 +3587,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String get superResolutionNaturalDescription =>
       '不使用著色器，只把放大濾鏡換成 EWA Lanczos 銳化版';
+
+  @override
+  String get switchingQuality => '正在切換畫質…';
 
   @override
   String get accountManage => '帳號管理';

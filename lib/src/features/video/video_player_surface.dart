@@ -221,6 +221,33 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
               const ColoredBox(color: Colors.black),
               _VideoViewport(controller: controller),
               ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
+              // 切超分辨率要重编译着色器链（重档位几秒）：这段时间画面会停住、声音照常，
+              // 播放内核也会短暂报告「缓冲」。给一个明确的提示，而不是弹成「加载中」。
+              Positioned(
+                top: 72,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: ConfiguredMediaKitVideoPlayer.switchingSuperResolution,
+                    builder: (context, switching, _) => !switching
+                        ? const SizedBox.shrink()
+                        : Center(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.88), borderRadius: BorderRadius.circular(999)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white)),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.switchingQuality, style: const TextStyle(color: Colors.white)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
               ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
               if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
               // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致

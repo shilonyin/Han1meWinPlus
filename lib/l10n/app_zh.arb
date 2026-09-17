@@ -537,6 +537,7 @@
   "superResolutionQualityDescription": "Anime4K 质量档：线条增强 + 放大，最吃 GPU",
   "superResolutionNatural": "自然放大（EWA Lanczos）",
   "superResolutionNaturalDescription": "不使用着色器，只把放大滤镜换成 EWA Lanczos 锐化版",
+  "switchingQuality": "正在切换画质…",
   "accountManage": "账号管理",
   "accountManageSubtitleEmpty": "添加或切换此站点的账号",
   "accountManageSubtitleCount": "此站点已保存 {count} 个账号",

@@ -20,8 +20,13 @@ final videoDetailProvider = FutureProvider.autoDispose.family<VideoDetail, Strin
   // 详情页数据量大、站点响应慢，保留住避免来回进出时重复加载。
   ref.keepAlive();
   ref.watch(accountProvider);
-  final settings = await ref.watch(settingsProvider.future);
-  return ref.watch(han1meRepositoryProvider).video(settings.resolvedBaseUrl, id);
+  // 只依赖「站点地址」这一个字段。
+  //
+  // 不能写成 await ref.watch(settingsProvider.future)：那等于依赖整个设置对象，
+  // 改任何一项设置都会让详情重新加载，页面退回 loading 态、把播放器整个从树上摘掉，
+  // 表现为「切超分辨率档位时画面变成加载中，声音却还在响」（旧播放器还在异步销毁）。
+  final baseUrl = await ref.watch(settingsProvider.selectAsync((settings) => settings.resolvedBaseUrl));
+  return ref.watch(han1meRepositoryProvider).video(baseUrl, id);
 });
 
 class VideoTranslationController extends AutoDisposeFamilyAsyncNotifier<VideoTranslation?, String> {

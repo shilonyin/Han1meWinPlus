@@ -3050,6 +3050,12 @@ abstract class AppLocalizations {
   /// **'No shaders; only swaps the upscaling filter for sharpened EWA Lanczos'**
   String get superResolutionNaturalDescription;
 
+  /// No description provided for @switchingQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching quality…'**
+  String get switchingQuality;
+
   /// No description provided for @accountManage.
   ///
   /// In en, this message translates to:

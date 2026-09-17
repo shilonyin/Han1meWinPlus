@@ -12,34 +12,36 @@ import '../../data/local/library_repository.dart';
 final accountStoreProvider = Provider((_) => AccountStore());
 final accountProvider = AsyncNotifierProvider<AccountController, Account?>(AccountController.new);
 final accountsProvider = FutureProvider<List<Account>>((ref) async {
-  final settings = await ref.watch(settingsProvider.future);
-  return ref.read(accountStoreProvider).readAll(settings.resolvedBaseUrl);
+  final baseUrl = await ref.watch(settingsProvider.selectAsync((settings) => settings.resolvedBaseUrl));
+  return ref.read(accountStoreProvider).readAll(baseUrl);
 });
 
 class AccountController extends AsyncNotifier<Account?> {
   @override
   Future<Account?> build() async {
-    ref.listen(settingsProvider, (previous, next) {
-      if (previous?.valueOrNull?.resolvedBaseUrl != null && previous?.valueOrNull?.resolvedBaseUrl != next.valueOrNull?.resolvedBaseUrl) ref.invalidateSelf();
-    });
-    final settings = await ref.watch(settingsProvider.future);
+    // 只依赖「站点地址」这一个字段。
+    // 原本这里是 await ref.watch(settingsProvider.future)（依赖整个设置对象），
+    // 于是改任何设置都会重建账号状态，并连带把正在播放的视频详情页一起重载、
+    // 把播放器拆掉重建。改成 select 之后，原先那个只在站点地址变化时失效自己的
+    // ref.listen 也就多余了。
+    final baseUrl = await ref.watch(settingsProvider.selectAsync((settings) => settings.resolvedBaseUrl));
     final store = ref.read(accountStoreProvider);
     final http = ref.read(han1meHttpClientProvider);
     ref.read(han1meRepositoryProvider).replaceCookie('');
-    final cloudflareCookie = await store.readCloudflareCookie(settings.resolvedBaseUrl);
+    final cloudflareCookie = await store.readCloudflareCookie(baseUrl);
     if (cloudflareCookie?.isNotEmpty == true) {
       ref.read(han1meRepositoryProvider).setCloudflareCookie(cloudflareCookie!);
-      if (!await http.hasCookie(settings.resolvedBaseUrl, 'cf_clearance')) {
-        await http.saveCookies(cloudflareCookie!, url: settings.resolvedBaseUrl);
+      if (!await http.hasCookie(baseUrl, 'cf_clearance')) {
+        await http.saveCookies(cloudflareCookie!, url: baseUrl);
       }
     }
-    final account = await store.read(settings.resolvedBaseUrl);
+    final account = await store.read(baseUrl);
     if (account == null || account.cookie.isEmpty) return null;
     final cookie = _withoutCloudflareCookie(account.cookie);
     final sanitizedAccount = account.copyWith(cookie: cookie);
-    if (cookie != account.cookie) await store.write(settings.resolvedBaseUrl, sanitizedAccount);
+    if (cookie != account.cookie) await store.write(baseUrl, sanitizedAccount);
     ref.read(han1meRepositoryProvider).setCookie(cookie);
-    await http.saveCookies(cookie, url: settings.resolvedBaseUrl);
+    await http.saveCookies(cookie, url: baseUrl);
     unawaited(Future<void>.delayed(Duration.zero, () async {
       await _refresh(sanitizedAccount);
     }));

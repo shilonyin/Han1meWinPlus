@@ -1644,6 +1644,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No shaders; only swaps the upscaling filter for sharpened EWA Lanczos';
 
   @override
+  String get switchingQuality => 'Switching quality…';
+
+  @override
   String get accountManage => 'Account Management';
 
   @override
