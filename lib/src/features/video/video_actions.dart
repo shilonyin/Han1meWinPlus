@@ -87,7 +87,7 @@ List<_VideoAction> _videoActions(BuildContext context, WidgetRef ref, VideoDetai
   return [
     _VideoAction(inWatchLater ? Icons.playlist_add_check : Icons.playlist_add, l10n.addToPlaylist, () => account == null ? _pickLocalPlaylist(context, ref, video, library) : _pickPlaylist(context, ref, video, video.csrfToken ?? remote?.csrfToken ?? account.csrfToken, remote)),
     _VideoAction(inFavorites ? Icons.favorite : Icons.favorite_border, l10n.favorite, () => _toggleFavorite(ref, video, account == null ? null : video.csrfToken ?? account.csrfToken, account == null ? null : video.currentUserId ?? account.id, !inFavorites)),
-    _VideoAction(Icons.download_outlined, l10n.download, video.sources.isEmpty ? null : () => _showDownloadPicker(context, ref, video)),
+    _VideoAction(Icons.download_outlined, l10n.download, video.sources.any((item) => !_isStreamPlaylist(item)) ? () => _showDownloadPicker(context, ref, video) : null),
     _VideoAction(Icons.share_outlined, l10n.share, () => Share.share('${video.title} (${video.id})', subject: video.title)),
   ];
 }
@@ -167,8 +167,13 @@ Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail vide
   ref.invalidate(remoteLibraryProvider);
 }
 
+/// HLS/播放列表源不能当成普通文件下载（那只会存到一个清单），下载入口只对渐进式片源开放。
+bool _isStreamPlaylist(VideoSource source) => (source.type ?? '').toLowerCase().contains('mpegurl') || source.url.contains('.m3u8');
+
 Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetail video) async {
-  var source = video.sources.first;
+  final downloadable = video.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
+  if (downloadable.isEmpty) return;
+  var source = downloadable.first;
   final picked = await showModalBottomSheet<VideoSource>(
     context: context,
     builder: (sheetContext) => StatefulBuilder(
@@ -177,7 +182,7 @@ Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetai
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(padding: const EdgeInsets.all(16), child: Text(AppLocalizations.of(context)!.selectDownloadQuality, style: const TextStyle(fontWeight: FontWeight.w600))),
-            ...video.sources.map((item) => RadioListTile<VideoSource>(value: item, groupValue: source, onChanged: (value) => setSheet(() => source = value!), title: Text(item.quality))),
+            ...downloadable.map((item) => RadioListTile<VideoSource>(value: item, groupValue: source, onChanged: (value) => setSheet(() => source = value!), title: Text(item.quality))),
             const SizedBox(height: 8),
             FilledButton(onPressed: () => Navigator.pop(sheetContext, source), child: Text(AppLocalizations.of(context)!.startDownload)),
             const SizedBox(height: 16),

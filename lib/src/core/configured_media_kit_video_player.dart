@@ -89,6 +89,12 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   static String? httpProxy;
   static Future<void>? _httpProxyLookup;
 
+  /// 必须直连的片源主机。
+  ///
+  /// 有些 CDN（例如 javchu 在用的 cdn2020）会对代理出口 IP 直接回 `451`，
+  /// 同一个地址直连却是 200；这类主机试出结果后就记下来，以后不再交给代理。
+  static final Set<String> _directMediaHosts = <String>{};
+
   /// 重新读取系统代理。启动时调用一次即可，系统代理变化后可再次调用。
   static Future<void> refreshHttpProxy() => _httpProxyLookup = _resolveHttpProxy();
 
@@ -196,7 +202,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final native = player.platform as NativePlayer;
       await native.waitForPlayerInitialization;
       await ensureHttpProxy();
-      await _applyHttpProxy(native);
+      await _applyHttpProxy(native, _mediaHost(dataSource.uri));
       if (dataSource.sourceType == DataSourceType.network) await _applyStreamTuning(native);
       await _applyCustomParameters(native, settings);
       final videoController = VideoController(
@@ -265,6 +271,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         Media(resource, httpHeaders: dataSource.httpHeaders),
         play: false,
       );
+      _retryWithoutProxyOnFailure(textureId, player, dataSource);
       return textureId;
     } catch (_) {
       if (textureId != null && identical(_players[textureId], player)) {
@@ -282,12 +289,41 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   ///
   /// 故意放在 [_applyCustomParameters] 之前：用户在「自定义参数」里显式写了
   /// `http-proxy=...` 时，以自己的设置为准。
-  Future<void> _applyHttpProxy(NativePlayer native) async {
+  Future<void> _applyHttpProxy(NativePlayer native, String host) async {
     final proxy = httpProxy;
-    if (proxy == null || proxy.isEmpty) return;
+    if (proxy == null || proxy.isEmpty || _directMediaHosts.contains(host)) return;
     try {
       await native.setProperty('http-proxy', proxy);
     } catch (_) {}
+  }
+
+  static String _mediaHost(String? uri) => Uri.tryParse(uri ?? '')?.host ?? '';
+
+  /// 打开失败时改用直连重试一次（仅限网络源、且当前确实在用代理）。
+  ///
+  /// 代理出口被 CDN 拒绝时内核给出的就是加载失败；换成直连往往立刻就通了。
+  /// 重试成功后把主机记下来，之后同一主机的片源直接走直连，不再经历一次失败。
+  void _retryWithoutProxyOnFailure(int textureId, Player player, DataSource dataSource) {
+    if (dataSource.sourceType != DataSourceType.network) return;
+    final host = _mediaHost(dataSource.uri);
+    final proxy = httpProxy;
+    if (host.isEmpty || proxy == null || proxy.isEmpty || _directMediaHosts.contains(host)) return;
+    var retried = false;
+    late final StreamSubscription<String> subscription;
+    subscription = player.stream.error.listen((message) async {
+      // 画面已经出来之后再报的错（解码器告警之类）不在这里处理。
+      if (retried || (_completers[textureId]?.isCompleted ?? true) || !identical(_players[textureId], player)) return;
+      retried = true;
+      unawaited(subscription.cancel());
+      _directMediaHosts.add(host);
+      try {
+        await (player.platform as NativePlayer).setProperty('http-proxy', '');
+        if (identical(_players[textureId], player)) {
+          await player.open(Media(dataSource.uri!, httpHeaders: dataSource.httpHeaders), play: false);
+        }
+      } catch (_) {}
+    });
+    _streamSubscriptions[textureId]?.add(subscription);
   }
 
   /// 取「自定义参数」里的属性名，非 `key=value` 形式一律视为无效。

@@ -167,6 +167,7 @@ class Han1meApi {
             ))
         .where((source) => source.url.isNotEmpty)
         .toList();
+    if (sources.isEmpty) sources.addAll(_embeddedSources(baseUrl, document, player));
     final title = (document.querySelector('meta[property="og:title"]')?.attributes['content'] ?? document.querySelector('title')?.text ?? '').trim();
     final finalTitle = title.contains('- Hanime1.me') || title.contains('- H\u52d5\u6f2b/\u88cf\u756a') ? title.split(' - ').first.trim() : title;
     final cover = _absolute(baseUrl, player?.attributes['poster'] ?? document.querySelector('meta[property="og:image"]')?.attributes['content']);
@@ -550,6 +551,49 @@ class Han1meApi {
       coverUrl: image?.attributes['src'] ?? '',
     );
   }
+
+  /// 部分镜像站（如 javchu）不再输出 `<source>`，播放地址改放在 `<link rel="preload" as="video">`
+  /// 或内联脚本（`const source = '...'`）里，只有在取不到 `<source>` 时才做这里的兜底解析。
+  List<VideoSource> _embeddedSources(String baseUrl, dom.Document document, dom.Element? player) {
+    final direct = <String?>[
+      player?.attributes['src'],
+      document.querySelector('link[rel="preload"][as="video"]')?.attributes['href'],
+    ];
+    for (final candidate in direct) {
+      final url = _playableUrl(baseUrl, candidate);
+      if (url != null) return [VideoSource(quality: 'Default', url: url, type: _sourceType(url))];
+    }
+    final scripts = document.querySelectorAll('script').map((script) => script.text).join('\n');
+    for (final pattern in _sourcePatterns) {
+      final match = RegExp(pattern, caseSensitive: false).firstMatch(scripts);
+      final value = match == null ? null : (match.groupCount >= 1 ? match.group(1) : match.group(0));
+      if (value != null && !_isStreamLike(value)) continue;
+      final url = _playableUrl(baseUrl, value);
+      if (url != null) return [VideoSource(quality: 'Default', url: url, type: _sourceType(url))];
+    }
+    final url = _playableUrl(baseUrl, _streamPattern.firstMatch(document.documentElement?.outerHtml ?? '')?.group(0));
+    return url == null ? const <VideoSource>[] : [VideoSource(quality: 'Default', url: url, type: _sourceType(url))];
+  }
+
+  /// 依次尝试：命名为 source 的变量、带媒体扩展名的键值对、脚本里任意 HLS/MP4 地址。
+  static const _sourcePatterns = <String>[
+    r'''(?:const|let|var)\s*[\w$]*source[\w$]*\s*=\s*["']([^"']+)["']''',
+    r'''["']?(?:file|source|src|url|hls|hlsUrl|sourceUrl)["']?\s*[:=]\s*["']([^"']+\.(?:m3u8|mp4)[^"']*)["']''',
+    r'''https?://[^\s"'<>\\]+\.(?:m3u8|mp4)[^\s"'<>\\]*''',
+  ];
+
+  static final _streamPattern = RegExp(r'''https?://[^\s"'<>\\]+\.(?:m3u8|mp4)[^\s"'<>\\]*''', caseSensitive: false);
+
+  bool _isStreamLike(String value) => value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//') || _streamPattern.hasMatch(value);
+
+  String? _playableUrl(String baseUrl, String? path) {
+    final value = path?.trim() ?? '';
+    if (value.isEmpty || value.startsWith('blob:') || value.startsWith('data:')) return null;
+    final url = _absolute(baseUrl, value);
+    return url.isEmpty ? null : url;
+  }
+
+  String? _sourceType(String url) => url.contains('.m3u8') ? 'application/x-mpegURL' : null;
 
   String _absolute(String baseUrl, String? path) {
     if (path == null || path.isEmpty) return '';
