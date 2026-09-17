@@ -24,9 +24,12 @@ import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'explore_controller.dart';
 
-const _maxContentWidth = 1440.0;
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
+
+/// 瀑布流卡片的目樇宽度（逻辑像素）。窗口变化时靠它反推列数，
+/// 使卡片密度保持在可读的范围内，同时把宽度用满。
+const _targetCardWidth = 260.0;
 
 /// 预热一张封面：图片站点偶发 SSL 握手中断，失败时重试一次。
 Future<void> precacheCover(String url, int cacheWidth, BuildContext context) async {
@@ -42,23 +45,17 @@ Future<void> precacheCover(String url, int cacheWidth, BuildContext context) asy
 
 /// Column count of the home waterfall. Cards end up roughly 240-320 logical
 /// pixels wide, which is the density the reference app's poster wall uses.
+///
+/// 列数由窗口宽度反推，宽屏（比如把窗口放到最大）会自动加列把宽度用满，
+/// 不再像以前那样在右侧留出一大片空白。
 int homeWaterfallColumns(double width) {
-  if (width >= 1500) return 6;
-  if (width >= 1180) return 5;
-  if (width >= 880) return 4;
-  if (width >= 600) return 3;
-  return 2;
+  if (width <= 0) return 2;
+  final usable = width - _gridPadding * 2;
+  final fitting = ((usable + _gridSpacing) / (_targetCardWidth + _gridSpacing)).round();
+  return fitting.clamp(2, 16);
 }
 
 double homeWaterfallCardWidth(double width, int columns) => (width - _gridPadding * 2 - _gridSpacing * (columns - 1)) / columns;
-
-/// 内容列比窗口窄时需要补的左右内边距。
-///
-/// 内容列最大 [_maxContentWidth]：窗口更宽时（例如退出全屏后窗口钺满屏幕）
-/// 必须左右对称留白。之前瀑布流只用 SliverConstrainedCrossAxis 限制宽度、
-/// 但它是靠左占位的，而同一页的标题与推荐位是居中的，于是看起来就像
-/// 「内容挤在左边、右侧一大片空白」的界面异常。
-double _contentInset(double viewportWidth) => viewportWidth <= _maxContentWidth ? 0 : (viewportWidth - _maxContentWidth) / 2;
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -585,7 +582,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
             physics: const AlwaysScrollableScrollPhysics(),
             scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
             slivers: [
-              if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _MaxWidth(child: _FeaturedVideo(video: widget.featured!)))),
+              if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
               for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
               SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
             ],
@@ -682,7 +679,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     });
   }
 
-  double get _viewportWidth => MediaQuery.sizeOf(context).width.clamp(0.0, _maxContentWidth).toDouble();
+  double get _viewportWidth => MediaQuery.sizeOf(context).width;
 
   /// The home page only ships the first page of each row, so the rest is pulled
   /// from the same search the row's "more" link points at.
@@ -782,12 +779,11 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final columns = homeWaterfallColumns(width);
     final hasMore = _hasMore;
     final cardWidth = homeWaterfallCardWidth(width, columns);
-    final inset = _contentInset(MediaQuery.sizeOf(context).width);
     return SliverMainAxisGroup(
       slivers: [
-        if (widget.showHeader) SliverToBoxAdapter(child: _MaxWidth(child: _SectionHeader(section: widget.section))),
+        if (widget.showHeader) SliverToBoxAdapter(child: _SectionHeader(section: widget.section)),
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(_gridPadding + inset, 0, _gridPadding + inset, 20),
+          padding: const EdgeInsets.fromLTRB(_gridPadding, 0, _gridPadding, 20),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
@@ -856,18 +852,6 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
 
   @override
   Widget build(BuildContext context) => widget.child;
-}
-
-class _MaxWidth extends StatelessWidget {
-  const _MaxWidth({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: _maxContentWidth), child: child),
-      );
 }
 
 class _SectionHeader extends StatelessWidget {
