@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
@@ -44,13 +45,57 @@ class WindowChrome {
 
   static Future<void> minimize() => _run((manager) => manager.minimize());
 
+  /// 进入全屏前的窗口状态，退出时用来自己还原。
+  static Rect? _boundsBeforeFullScreen;
+  static bool _maximizedBeforeFullScreen = false;
+
   /// 视频全屏：让窗口真正全屏（覆盖任务栏），同时收起应用内标题栏。
   ///
   /// 只用 [visible] 隐藏标题栏的话，画面只是“铺满这个窗口”，窗口本身还在，
   /// 所以在桌面上必须再调 setFullScreen。
+  ///
+  /// 但插件自己那套“全屏/还原”在不同状态下不靠谱：进入前是最大化时它会先把窗口
+  /// 去掉边框（于是窗口先变回普通大小），退出时按「是否最大化」分支还原，
+  /// 结果就是窗口停在“铺满屏幕但并不是最大化”的状态——尺寸与进全屏前不一致，
+  /// 界面就按大窗口布局、右侧空一大片，看起来像界面坏了。所以这里自己把状态
+  /// 记下来，退出时强制还原到位。
   static Future<void> setFullscreen(bool value) async {
     visible.value = !value;
-    await _run((manager) => manager.setFullScreen(value));
+    if (!isSupported) return;
+    await bind();
+    try {
+      if (value) {
+        _maximizedBeforeFullScreen = await windowManager.isMaximized();
+        _boundsBeforeFullScreen = _maximizedBeforeFullScreen ? null : await windowManager.getBounds();
+        await windowManager.setFullScreen(true);
+      } else {
+        await windowManager.setFullScreen(false);
+        if (_maximizedBeforeFullScreen) {
+          if (!await windowManager.isMaximized()) await windowManager.maximize();
+        } else {
+          final bounds = _boundsBeforeFullScreen;
+          if (bounds != null && !await _matchesBounds(bounds)) await windowManager.setBounds(bounds);
+        }
+        _boundsBeforeFullScreen = null;
+        _maximizedBeforeFullScreen = false;
+      }
+    } catch (error) {
+      debugPrint('[window] full screen failed: $error');
+    }
+  }
+
+  /// 当前窗口矩形是否已经（近似）是 [expected]；容差 2 逻辑像素。
+  static Future<bool> _matchesBounds(Rect expected) async {
+    try {
+      final current = await windowManager.getBounds();
+      return (current.left - expected.left).abs() <= 2 &&
+          (current.top - expected.top).abs() <= 2 &&
+          (current.width - expected.width).abs() <= 2 &&
+          (current.height - expected.height).abs() <= 2;
+    } catch (_) {
+      // 读不到就当作已经对上了，不要多做动作。
+      return true;
+    }
   }
 
   static Future<void> close() => _run((manager) => manager.close());

@@ -52,6 +52,14 @@ int homeWaterfallColumns(double width) {
 
 double homeWaterfallCardWidth(double width, int columns) => (width - _gridPadding * 2 - _gridSpacing * (columns - 1)) / columns;
 
+/// 内容列比窗口窄时需要补的左右内边距。
+///
+/// 内容列最大 [_maxContentWidth]：窗口更宽时（例如退出全屏后窗口钺满屏幕）
+/// 必须左右对称留白。之前瀑布流只用 SliverConstrainedCrossAxis 限制宽度、
+/// 但它是靠左占位的，而同一页的标题与推荐位是居中的，于是看起来就像
+/// 「内容挤在左边、右侧一大片空白」的界面异常。
+double _contentInset(double viewportWidth) => viewportWidth <= _maxContentWidth ? 0 : (viewportWidth - _maxContentWidth) / 2;
+
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
 
@@ -774,26 +782,24 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final columns = homeWaterfallColumns(width);
     final hasMore = _hasMore;
     final cardWidth = homeWaterfallCardWidth(width, columns);
+    final inset = _contentInset(MediaQuery.sizeOf(context).width);
     return SliverMainAxisGroup(
       slivers: [
         if (widget.showHeader) SliverToBoxAdapter(child: _MaxWidth(child: _SectionHeader(section: widget.section))),
-        SliverConstrainedCrossAxis(
-          maxExtent: _maxContentWidth,
-          sliver: SliverPadding(
-            padding: const EdgeInsets.fromLTRB(_gridPadding, 0, _gridPadding, 20),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: _gridSpacing,
-                mainAxisExtent: cardWidth * 9 / 16 + videoCardMetaHeight(_videos, assumeMeta: true),
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => index == _videos.length - 1 && hasMore
-                    ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true))
-                    : VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true),
-                childCount: _videos.length,
-              ),
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(_gridPadding + inset, 0, _gridPadding + inset, 20),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: _gridSpacing,
+              mainAxisExtent: cardWidth * 9 / 16 + videoCardMetaHeight(_videos, assumeMeta: true),
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => index == _videos.length - 1 && hasMore
+                  ? _LoadMoreProbe(onProbe: _loadMore, child: VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true))
+                  : VideoCardTile(video: _videos[index], horizontal: true, autoFetchMeta: true),
+              childCount: _videos.length,
             ),
           ),
         ),
