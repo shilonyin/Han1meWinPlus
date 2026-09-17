@@ -48,11 +48,15 @@ class VideoPlayerControls extends StatelessWidget {
             builder: (context, value, _) {
               final l10n = AppLocalizations.of(context)!;
               final progress = value.duration == Duration.zero ? 0.0 : value.position.inMilliseconds / value.duration.inMilliseconds;
+              // 已缓冲到的位置：直接画在进度条轨道上，卡住时一眼能看出
+              // 是「缓冲没跟上」还是别的问题（比如解码/渲染卡住时缓冲条是跑在前面的）。
+              final buffered = value.buffered.isEmpty ? Duration.zero : value.buffered.last.end;
+              final bufferedFraction = value.duration.inMilliseconds == 0 ? 0.0 : (buffered.inMilliseconds / value.duration.inMilliseconds).clamp(0.0, 1.0);
               return Column(mainAxisSize: MainAxisSize.min, children: [
                 SizedBox(
                   height: _progressBarHeight,
                   child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: const RoundSliderOverlayShape(overlayRadius: 14), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white24, thumbColor: Colors.white, year2023: true),
+                    data: SliderTheme.of(context).copyWith(trackHeight: 3, trackShape: _BufferedTrackShape(fraction: bufferedFraction), thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: const RoundSliderOverlayShape(overlayRadius: 14), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white24, thumbColor: Colors.white, year2023: true),
                     child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }),
                   ),
                 ),
@@ -90,6 +94,55 @@ class VideoPlayerControls extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// 在原本的进度条轨道下面先画一段「已缓冲」的亮色。
+///
+/// 画在原本的轨道之前，所以未播放的半透明轨道会盖在上面（变成稍亮的一段），
+/// 已播放的白色段照旧盖在最上层：视觉上就是常见在线视频的
+/// 「已播放 / 已缓冲 / 未加载」三段。
+class _BufferedTrackShape extends RoundedRectSliderTrackShape {
+  const _BufferedTrackShape({required this.fraction});
+
+  /// 已缓冲比例（0-1）。
+  final double fraction;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required TextDirection textDirection,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+    double additionalActiveTrackHeight = 2,
+  }) {
+    final rect = getPreferredRect(parentBox: parentBox, offset: offset, sliderTheme: sliderTheme, isEnabled: isEnabled, isDiscrete: isDiscrete);
+    final width = rect.width * fraction.clamp(0.0, 1.0);
+    if (width > 0 && rect.height > 0) {
+      context.canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(rect.left, rect.top, width, rect.height), Radius.circular(rect.height / 2)),
+        Paint()..color = Colors.white54,
+      );
+    }
+    super.paint(
+      context,
+      offset,
+      parentBox: parentBox,
+      sliderTheme: sliderTheme,
+      enableAnimation: enableAnimation,
+      textDirection: textDirection,
+      thumbCenter: thumbCenter,
+      secondaryOffset: secondaryOffset,
+      isDiscrete: isDiscrete,
+      isEnabled: isEnabled,
+      additionalActiveTrackHeight: additionalActiveTrackHeight,
+    );
+  }
 }
 
 /// 左下角的音量入口：点开后用竖排滑杆调音量（桌面端调的是播放器音量）。

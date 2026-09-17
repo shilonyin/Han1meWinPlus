@@ -197,6 +197,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       await native.waitForPlayerInitialization;
       await ensureHttpProxy();
       await _applyHttpProxy(native);
+      if (dataSource.sourceType == DataSourceType.network) await _applyStreamTuning(native);
       await _applyCustomParameters(native, settings);
       final videoController = VideoController(
         player,
@@ -294,6 +295,17 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     final separator = parameter.indexOf('=');
     if (separator <= 0) return null;
     return parameter.substring(0, separator).trim();
+  }
+
+  /// 网络源让解复用器多预读一些（默认只有十来秒）。
+  ///
+  /// 进度条上的「已缓冲」就是内核解复用缓存的位置：预读太少时那条几乎看不出余量，
+  /// 卡住时也不好判断是「缓冲跟不上」还是别的问题；顺带也能多扛一点网络抖动。
+  /// 只动这一项 —— `cache-secs` 在 `cache-on-disk=yes` 下默认就很大，不该去改小它。
+  Future<void> _applyStreamTuning(NativePlayer native) async {
+    try {
+      await native.setProperty('demuxer-readahead-secs', '60');
+    } catch (_) {}
   }
 
   Future<void> _applyCustomParameters(NativePlayer native, AppSettings settings) async {
