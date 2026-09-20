@@ -7,6 +7,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../data/remote/han1me_http_client.dart';
+import '../../data/remote/jav/jav_api.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
 import 'settings_controller.dart';
@@ -39,7 +41,7 @@ class NetworkSettingsPage extends ConsumerWidget {
     if (result == null || result.enabled == settings.useCustomMirrorSite && result.url == settings.customMirrorSite && result.appendPath == settings.appendCustomMirrorPath) return;
     await controller.saveChanges((current) => current.copyWith(useCustomMirrorSite: result.enabled, customMirrorSite: result.url, appendCustomMirrorPath: result.appendPath));
     ref.invalidate(accountProvider);
-    ref.invalidate(homeSectionsProvider);
+    resetHomeFeed(ref);
   }
 
   Future<void> _showDohSettings(BuildContext context, AppSettings settings, SettingsController controller) async {
@@ -130,6 +132,15 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
     final apiBase = _appendPath ? homeUrl : Uri.parse(homeUrl).origin;
     final http = Han1meHttpClient();
     try {
+      // AV 视频源是另一套页面结构：这里填它的地址（或它的其它语言站/镜像）时按 AV 源
+      // 的方式验证，否则拿 hanime1 的标记去判会误报「主页结构解析失败」。
+      final javSite = javSiteFor(homeUrl);
+      if (javSite != null) {
+        final section = javSite.sections.isEmpty ? '/' : javSite.sections.first.path;
+        final result = await JavApi(http).search(javSite, keyword: '', genre: section, page: 1);
+        if (result.items.isEmpty) return l10n.customMirrorTestParseFailed;
+        return l10n.customMirrorTestJavSuccess(javSite.label, javSite.baseUrl, result.items.length);
+      }
       final home = await http.get('$homeUrl/');
       if (home.statusCode >= 400) return l10n.customMirrorTestFailedHttp(home.statusCode, home.url);
       if (home.statusCode == 403 || home.body.contains('cf-chl-')) return l10n.customMirrorTestChallenge;

@@ -87,11 +87,17 @@ class VideoTag {
 }
 
 class VideoSource {
-  const VideoSource({required this.quality, required this.url, this.type});
+  const VideoSource({required this.quality, required this.url, this.type, this.headers});
 
   final String quality;
   final String url;
   final String? type;
+
+  /// 播放该片源时必须带上的请求头。
+  ///
+  /// 部分站点（例如 missav 的 surrit CDN）会校验 Referer，缺失就直接回 403，
+  /// 所以「取流时用到的 Referer/UA」要一路带到内核里（mpv 的 `http-header-fields`）。
+  final Map<String, String>? headers;
 }
 
 class VideoDetail {

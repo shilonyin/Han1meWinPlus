@@ -115,6 +115,20 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     VideoPlayerPlatform.instance = _instance;
   }
 
+  /// 新建播放器时用的配置：在 media_kit 的默认协议白名单上补一个 `httpproxy`。
+  ///
+  /// media_kit 会把白名单原样下发给 mpv（`--demuxer-lavf-o=protocol_whitelist=...`），
+  /// 默认值是 `udp,rtp,tcp,tls,data,file,http,https,crypto`。而 ffmpeg 的 http 协议在
+  /// **配了代理**时会用 `httpproxy` 协议去连代理：白名单里没有它，取分片与解密密钥时就会
+  /// 直接 `avformat_open_input() failed`。此时 mpv 会退而用「播放列表」解复用器把 m3u8
+  /// 里的每一行当成独立文件播——于是 HLS 片源的表现变成「只播几秒就卡」
+  /// （每个分片被当成一个几百 KB 的小文件），或者干脆一直加载。
+  ///
+  /// 本应用的场景里代理是常态（番剧站与 AV 源都不能直连），所以这一项必须有。
+  static final PlayerConfiguration _playerConfiguration = PlayerConfiguration(
+    protocolWhitelist: [...const PlayerConfiguration().protocolWhitelist, 'httpproxy'],
+  );
+
   @override
   Future<void> init() async {
     final textureIds = _players.keys.toList(growable: false);
@@ -196,7 +210,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<int?> create(DataSource dataSource) async {
-    final player = Player();
+    final player = Player(configuration: _playerConfiguration);
     int? textureId;
     try {
       final native = player.platform as NativePlayer;

@@ -162,7 +162,7 @@ Widget _searchRouteBuilder(BuildContext context, GoRouterState state) {
 String? _deepLinkRedirect(GoRouterState state) {
   final uri = state.uri;
   if (uri.scheme != 'https' && uri.scheme != 'http') return null;
-  const hosts = {'hanime1.com', 'hanimeone.me', 'hanime1.me', 'javchu.com'};
+  const hosts = {'hanime1.com', 'hanimeone.me', 'hanime1.me'};
   if (!hosts.contains(uri.host)) return null;
   final videoId = uri.queryParameters['v'];
   if (videoId != null && uri.path.contains('watch')) return '/video/$videoId';

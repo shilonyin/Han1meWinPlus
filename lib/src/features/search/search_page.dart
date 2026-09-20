@@ -8,7 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show SearchResult;
+import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
+import '../settings/settings_controller.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
@@ -58,6 +60,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final query = ref.watch(searchQueryProvider(request));
     final notifier = ref.read(searchQueryProvider(request).notifier);
     final options = ref.watch(searchOptionCatalogProvider).valueOrNull;
+    final baseUrl = ref.watch(settingsProvider.select((settings) => settings.valueOrNull?.resolvedBaseUrl ?? ''));
     final l10n = AppLocalizations.of(context)!;
     ref.listen<SearchQuery>(searchQueryProvider(request), (previous, next) {
       if (previous != next && next.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(next));
@@ -91,8 +94,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
       body: Column(
         children: [
-          _GenreTabs(options: options, query: query, notifier: notifier),
-          _SortRow(options: options, query: query, notifier: notifier),
+          // AV 视频源只有关键词搜索（没有 hanime1 那套分类/排序/标签筛选），
+          // 所以整行筛选控件直接不渲染，避免点了没效果的假控件。
+          if (javSiteFor(baseUrl) == null) ...[
+            _GenreTabs(options: options, query: query, notifier: notifier),
+            _SortRow(options: options, query: query, notifier: notifier),
+          ],
           Expanded(
             child: Stack(
               children: [

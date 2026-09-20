@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
 import '../../core/video_decoders.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
 import 'settings_controller.dart';
@@ -13,7 +14,7 @@ import 'settings_controller.dart';
 class SiteSettingsPage extends ConsumerWidget {
   const SiteSettingsPage({super.key});
 
-  static const _hosts = ['https://hanime1.com', 'https://hanimeone.me', 'https://hanime1.me', 'https://javchu.com'];
+  static const _hosts = ['https://hanime1.com', 'https://hanimeone.me', 'https://hanime1.me'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,6 +23,13 @@ class SiteSettingsPage extends ConsumerWidget {
     if (settings == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final current = settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl;
     final hosts = settings.comicMode ? const ['https://hanimeone.me'] : _hosts;
+    Future<void> select(String value) async {
+      if (value == current) return;
+      await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(baseUrl: value, videoBaseUrl: settings.comicMode ? settings.videoBaseUrl : value, useCustomMirrorSite: false, customMirrorSite: ''));
+      ref.invalidate(accountProvider);
+      resetHomeFeed(ref);
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.site)),
       body: SettingsList(
@@ -34,15 +42,30 @@ class SiteSettingsPage extends ConsumerWidget {
                   radioValue: host,
                   groupValue: current,
                   title: Text(host),
-                  onChanged: (value) async {
-                    if (value == null || value == current) return;
-                    await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(baseUrl: value, videoBaseUrl: settings.comicMode ? settings.videoBaseUrl : value, useCustomMirrorSite: false, customMirrorSite: ''));
-                    ref.invalidate(accountProvider);
-                    ref.invalidate(homeSectionsProvider);
+                  onChanged: (value) {
+                    if (value != null) select(value);
                   },
                 ),
             ],
           ),
+          // AV 视频源：这些站点与 hanime1 是两套完全不同的站点（账号/评论/清单都不通用），
+          // 选中后面板会整体切到对应站点的首页与搜索。
+          if (!settings.comicMode)
+            SettingsSection(
+              title: Text(l10n.javSources, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+              tiles: [
+                for (final site in javSites)
+                  SettingsTile<String>.radioTile(
+                    radioValue: site.baseUrl,
+                    groupValue: current,
+                    title: Text('${site.label} · ${site.host}'),
+                    description: site.requiresVerification ? Text(l10n.javSourceVerification) : null,
+                    onChanged: (value) {
+                      if (value != null) select(value);
+                    },
+                  ),
+              ],
+            ),
         ],
       ),
     );

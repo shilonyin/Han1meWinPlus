@@ -5,16 +5,28 @@ import '../domain/models/account.dart';
 import '../domain/models/library.dart';
 import 'remote/han1me_api.dart';
 import 'remote/han1me_http_client.dart';
+import 'remote/jav/jav_api.dart';
+import 'remote/jav/jav_site.dart';
+import 'remote/webview_page_fetcher.dart';
 
 final han1meHttpClientProvider = Provider((ref) => Han1meHttpClient());
 final han1meRepositoryProvider = Provider((ref) {
-  return Han1meRepository(Han1meApi(ref.read(han1meHttpClientProvider)));
+  final http = ref.read(han1meHttpClientProvider);
+  // AV 源在 Dart 被 Cloudflare 按 TLS 指纹拦下时会改用真实 Chromium 代取。
+  return Han1meRepository(Han1meApi(http), JavApi(http, ref.read(webViewPageFetcherProvider)));
 });
 
+/// 站点数据的统一入口。
+///
+/// hanime1 系（含它的镜像站）走 [Han1meApi]；AV 视频源走 [JavApi]。两者是两套完全
+/// 不同的站点，只能靠当前的站点地址来分辨，所以每个方法都先问一次
+/// [javSiteFor]。账号、清单、评论这些只有 hanime1 才有的能力，在 AV 源下会降级为
+/// 「空结果」而不是报错，界面才不会弹一堆无意义的失败提示。
 class Han1meRepository {
-  Han1meRepository(this._api);
+  Han1meRepository(this._api, this._jav);
 
   final Han1meApi _api;
+  final JavApi _jav;
   final _requests = <String, Future<dynamic>>{};
 
   Future<T> _merge<T>(String key, Future<T> Function() request) {
@@ -26,7 +38,12 @@ class Han1meRepository {
     return future;
   }
 
-  Future<HomeFeed> home(String baseUrl) => _api.home(baseUrl);
+  Future<HomeFeed> home(String baseUrl) {
+    final jav = javSiteFor(baseUrl);
+    if (jav != null) return _merge('jav-home:$baseUrl', () => _jav.home(jav));
+    return _api.home(baseUrl);
+  }
+
   Future<SearchResult> search({
     required String baseUrl,
     required String query,
@@ -38,21 +55,26 @@ class Han1meRepository {
     required bool broad,
     required String type,
     required int page,
-  }) => _merge(
-    'search:$baseUrl:$query:$genre:$sort:$date:$duration:${tags.join(',')}:$broad:$type:$page',
-    () => _api.search(
-      baseUrl: baseUrl,
-      query: query,
-      genre: genre,
-      sort: sort,
-      date: date,
-      duration: duration,
-      tags: tags,
-      broad: broad,
-      type: type,
-      page: page,
-    ),
-  );
+  }) {
+    final jav = javSiteFor(baseUrl);
+    if (jav != null) return _merge('jav-search:$baseUrl:$query:$genre:$page', () => _jav.search(jav, keyword: query, genre: genre, page: page));
+    return _merge(
+      'search:$baseUrl:$query:$genre:$sort:$date:$duration:${tags.join(',')}:$broad:$type:$page',
+      () => _api.search(
+        baseUrl: baseUrl,
+        query: query,
+        genre: genre,
+        sort: sort,
+        date: date,
+        duration: duration,
+        tags: tags,
+        broad: broad,
+        type: type,
+        page: page,
+      ),
+    );
+  }
+
   Future<PreviewFeed> previews(String baseUrl, String month) => _merge('previews:$baseUrl:$month', () => _api.previews(baseUrl, month));
   void setCookie(String cookie) => _api.setCookie(cookie);
   void replaceCookie(String cookie) {
@@ -60,8 +82,15 @@ class Han1meRepository {
     _api.replaceCookie(cookie);
   }
   void setCloudflareCookie(String cookie) => _api.setCookie(cookie);
-  Future<VideoDetail> video(String baseUrl, String id) => _merge('video:$baseUrl:$id', () => _api.video(baseUrl, id));
-  Future<Account> account(String baseUrl) => _merge('account:$baseUrl', () => _api.account(baseUrl));
+
+  Future<VideoDetail> video(String baseUrl, String id) {
+    final jav = javSiteFor(baseUrl);
+    if (jav != null) return _merge('jav-video:$baseUrl:$id', () => _jav.video(jav, id));
+    return _merge('video:$baseUrl:$id', () => _api.video(baseUrl, id));
+  }
+
+  /// AV 源没有站内账号，直接当作「未登录」。
+  Future<Account> account(String baseUrl) async => javSiteFor(baseUrl) == null ? _merge('account:$baseUrl', () => _api.account(baseUrl)) : const Account(cookie: '');
   Future<void> updateProfile(String baseUrl, String id, String token, String name, String email) => _api.updateProfile(baseUrl, id, token, name, email);
   Future<void> updatePassword(String baseUrl, String id, String token, String oldPassword, String password, String confirmation) => _api.updatePassword(baseUrl, id, token, oldPassword, password, confirmation);
   Future<RemoteLibrary> library(String baseUrl, String id) => _merge('library:$baseUrl:$id', () => _api.library(baseUrl, id));
@@ -74,8 +103,19 @@ class Han1meRepository {
   Future<void> updatePlaylist(String baseUrl, String token, String id, String title, String description, bool delete) => _api.updatePlaylist(baseUrl, token, id, title, description, delete);
   Future<void> removePlaylistItem(String baseUrl, String token, String id) => _api.removePlaylistItem(baseUrl, token, id);
   Future<void> deleteHistory(String baseUrl, String token, String id) => _api.deleteHistory(baseUrl, token, id);
-  Future<List<VideoCard>> related(String baseUrl, String id) => _merge('related:$baseUrl:$id', () => _api.related(baseUrl, id));
-  Future<CommentPage> comments(String baseUrl, String id, {String type = 'video'}) => _merge('comments:$baseUrl:$type:$id', () => _api.comments(baseUrl, id, type: type));
+
+  Future<List<VideoCard>> related(String baseUrl, String id) {
+    final jav = javSiteFor(baseUrl);
+    if (jav != null) return _jav.related(jav, id);
+    return _merge('related:$baseUrl:$id', () => _api.related(baseUrl, id));
+  }
+
+  /// AV 源没有评论系统，返回空列表（详情页的评论页签会显示「暂无评论」）。
+  Future<CommentPage> comments(String baseUrl, String id, {String type = 'video'}) {
+    if (javSiteFor(baseUrl) != null) return Future.value(const CommentPage(comments: []));
+    return _merge('comments:$baseUrl:$type:$id', () => _api.comments(baseUrl, id, type: type));
+  }
+
   Future<CommentPage> replies(String baseUrl, String id) => _api.replies(baseUrl, id);
   Future<void> postComment(String baseUrl, String token, String userId, String type, String targetId, String text) => _api.postComment(baseUrl, token, userId, type, targetId, text);
   Future<void> replyComment(String baseUrl, String token, String id, String text) => _api.replyComment(baseUrl, token, id, text);

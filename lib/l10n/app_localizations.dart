@@ -498,7 +498,7 @@ abstract class AppLocalizations {
   /// No description provided for @customMirrorSiteHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter a mirror site with the same structure as the main site that opens its homepage directly, e.g. https://www.example.com/enter; the homepage is requested exactly as entered'**
+  /// **'Enter a mirror site with the same structure as the main site that opens its homepage directly, e.g. https://www.example.com/enter; the homepage is requested exactly as entered. AV source addresses (e.g. xHamster) also work here and are recognized by domain'**
   String get customMirrorSiteHint;
 
   /// No description provided for @enableCustomMirrorSite.
@@ -554,6 +554,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Test succeeded\nHomepage: {homeUrl}\nOther API base: {apiBase}'**
   String customMirrorTestSuccess(Object homeUrl, Object apiBase);
+
+  /// No description provided for @customMirrorTestJavSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Test succeeded: recognized as {source}\nRequest base: {base}\nParsed {count} items'**
+  String customMirrorTestJavSuccess(Object source, Object base, int count);
 
   /// No description provided for @customMirrorTestPartialSuccess.
   ///
@@ -2875,6 +2881,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update check failed, please try again later'**
   String get updateCheckFailed;
+
+  /// No description provided for @javSources.
+  ///
+  /// In en, this message translates to:
+  /// **'AV sources'**
+  String get javSources;
+
+  /// No description provided for @javSourceVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs Cloudflare verification in the app'**
+  String get javSourceVerification;
+
+  /// No description provided for @javNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New Releases'**
+  String get javNew;
+
+  /// No description provided for @javUncensored.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncensored'**
+  String get javUncensored;
+
+  /// No description provided for @javSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese Subtitles'**
+  String get javSubtitles;
+
+  /// No description provided for @javHot.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot'**
+  String get javHot;
+
+  /// No description provided for @javTopRated.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Rated'**
+  String get javTopRated;
+
+  /// No description provided for @javByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'By Category'**
+  String get javByCategory;
+
+  /// No description provided for @javAmateur.
+  ///
+  /// In en, this message translates to:
+  /// **'Amateur'**
+  String get javAmateur;
 
   /// No description provided for @updateSection.
   ///

@@ -33,7 +33,7 @@ class HomeCategoriesPage extends ConsumerWidget {
     // 原始分类名 → 当前语言下的显示名
     String label(String raw) {
       for (final section in sections) {
-        if (section.title == raw) return localizedHomeSectionTitle(section, catalog, locale);
+        if (section.title == raw) return localizedHomeSectionTitle(section, catalog, locale, l10n: AppLocalizations.of(context));
       }
       return raw;
     }

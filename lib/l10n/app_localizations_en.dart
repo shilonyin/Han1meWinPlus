@@ -218,7 +218,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customMirrorSiteHint =>
-      'Enter a mirror site with the same structure as the main site that opens its homepage directly, e.g. https://www.example.com/enter; the homepage is requested exactly as entered';
+      'Enter a mirror site with the same structure as the main site that opens its homepage directly, e.g. https://www.example.com/enter; the homepage is requested exactly as entered. AV source addresses (e.g. xHamster) also work here and are recognized by domain';
 
   @override
   String get enableCustomMirrorSite => 'Enable custom mirror site';
@@ -250,6 +250,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String customMirrorTestSuccess(Object homeUrl, Object apiBase) {
     return 'Test succeeded\nHomepage: $homeUrl\nOther API base: $apiBase';
+  }
+
+  @override
+  String customMirrorTestJavSuccess(Object source, Object base, int count) {
+    return 'Test succeeded: recognized as $source\nRequest base: $base\nParsed $count items';
   }
 
   @override
@@ -1548,6 +1553,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Update check failed, please try again later';
+
+  @override
+  String get javSources => 'AV sources';
+
+  @override
+  String get javSourceVerification =>
+      'Needs Cloudflare verification in the app';
+
+  @override
+  String get javNew => 'New Releases';
+
+  @override
+  String get javUncensored => 'Uncensored';
+
+  @override
+  String get javSubtitles => 'Chinese Subtitles';
+
+  @override
+  String get javHot => 'Hot';
+
+  @override
+  String get javTopRated => 'Top Rated';
+
+  @override
+  String get javByCategory => 'By Category';
+
+  @override
+  String get javAmateur => 'Amateur';
 
   @override
   String get updateSection => 'Updates';

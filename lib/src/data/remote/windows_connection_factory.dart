@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 class WindowsConnectionFactory {
-  static const hanimeHosts = {'hanime1.me', 'hanime1.com', 'hanimeone.me', 'javchu.com'};
+  static const hanimeHosts = {'hanime1.me', 'hanime1.com', 'hanimeone.me'};
 
   /// Cloudflare edge addresses that actually serve [hanimeHosts] with the right
   /// SNI. Verified 2026-09-15 by requesting `/` and `/search` over each address:
@@ -32,7 +32,6 @@ class WindowsConnectionFactory {
     'hanime1.me': builtInAddresses,
     'hanime1.com': builtInAddresses,
     'hanimeone.me': builtInAddresses,
-    'javchu.com': builtInAddresses,
     'www.getchu.com': ['210.155.150.166'],
     'vdownload.hembed.com': imageCdnAddresses,
   };

@@ -12,6 +12,7 @@ import '../../core/app_shell.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/remote/han1me_api.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../../data/local/library_repository.dart';
@@ -324,18 +325,21 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final locale = searchOptionLocaleKey(Localizations.localeOf(context));
     final subscribed = ref.watch(libraryProvider).valueOrNull?.artists.map((artist) => artist.name.toLowerCase()).toSet() ?? <String>{};
-    return feed.sections
+    final categories = feed.sections
         .map((section) => _FeedCategory(
               rawTitle: section.title,
               section: HomeSection(
-                title: localizedHomeSectionTitle(section, catalog, locale),
+                title: localizedHomeSectionTitle(section, catalog, locale, l10n: AppLocalizations.of(context)),
                 videos: section.videos.where((video) => _visible(video, settings, subscribed)).toList(),
                 moreUrl: section.moreUrl,
                 isFeatured: section.isFeatured,
               ),
             ))
-        .where((category) => category.section.videos.isNotEmpty)
         .toList();
+    // AV 源的分区是**按需加载**的：只有第一个分区自带内容，其余的页签要保留下来
+    // （被选中时才去抓第一页）。hanime1 那边空分区没有意义，照旧过滤掉。
+    if (javSiteFor(settings?.homeBaseUrl) != null) return categories;
+    return categories.where((category) => category.section.videos.isNotEmpty).toList();
   }
 
   /// 顶栏快捷分类：优先按设置里保存的顺序（存的是站点原始分类名），未设置时取前 6 个。
@@ -497,7 +501,12 @@ class _CategorySelectorState extends State<_CategorySelector> {
 
 /// 把站点的分类名换成当前语言下的名字（找不到就用原名）。首页顶栏与「首页快捷分类」
 /// 设置页都用它，保证两处显示一致。
-String localizedHomeSectionTitle(HomeSection section, SearchOptionCatalog? catalog, String locale) {
+///
+/// AV 视频源（missav 等）的分区名是我们自己定的，存成 `jav:new` 这样的文案键，
+/// 所以先查这一张表；hanime1 的分类名才需要去 catalog 里翻。
+String localizedHomeSectionTitle(HomeSection section, SearchOptionCatalog? catalog, String locale, {AppLocalizations? l10n}) {
+  final javLabel = _javSectionTitle(l10n, javSectionKey(section.title));
+  if (javLabel != null) return javLabel;
   if (catalog == null) return section.title;
   final uri = Uri.tryParse(section.moreUrl ?? '');
   final genre = uri?.queryParameters['genre'];
@@ -508,6 +517,19 @@ String localizedHomeSectionTitle(HomeSection section, SearchOptionCatalog? catal
       catalog.sorts.localize(section.title, locale) ??
       section.title;
 }
+
+String? _javSectionTitle(AppLocalizations? l10n, String? key) => switch (key) {
+      'new' => l10n?.javNew,
+      'latest' => l10n?.latest,
+      'uncensored' => l10n?.javUncensored,
+      'subtitles' => l10n?.javSubtitles,
+      'hot' => l10n?.javHot,
+      'popular' => l10n?.popular,
+      'topRated' => l10n?.javTopRated,
+      'byCategory' => l10n?.javByCategory,
+      'amateur' => l10n?.javAmateur,
+      _ => null,
+    };
 
 /// Home rows are pre-filtered, and the pages loaded while scrolling have to go
 /// through the same recommendation filters.
@@ -625,6 +647,8 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     _restorePages();
     // 右下角刷新与下拉刷新都会自增这个令牌：丢掉滚动时累积的分页，从第一页重新开始。
     ref.listenManual(homeRefreshTokenProvider, (previous, next) => _reloadFromFirstPage());
+    // 惰性分区（AV 源只有第一个分区带内容）被选中时才会走到这里，这时补抓第一页。
+    unawaited(_loadFirstPageIfNeeded());
     _schedulePrefetch();
   }
 
@@ -636,7 +660,13 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final changed = oldWidget.section.moreUrl != widget.section.moreUrl || oldWidget.section.videos.firstOrNull?.id != widget.section.videos.firstOrNull?.id;
     // 切到另一个分区：接上它之前滚动加载过的分页（没有就从第一页开始），
     // 不要把数据丢掉，否则切回来又要逐页重新加载。
-    if (changed) _restorePages();
+    if (changed) {
+      _restorePages();
+      // 惰性分区（AV 源只有第一个分区带内容，其余是占位）就是在这里被选中的：
+      // 换成它以后必须补抓第一页，否则永远空白（initState 只对最开始那个分区生效）。
+      unawaited(_loadFirstPageIfNeeded());
+      _schedulePrefetch();
+    }
   }
 
   String get _cacheKey => widget.section.moreUrl ?? widget.section.title;
@@ -668,6 +698,8 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     _failed = false;
     _retryDelay = Duration.zero;
     _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
+    // 惰性分区刷新后回到「还没有内容」的状态，需要重新补抓第一页。
+    unawaited(_loadFirstPageIfNeeded());
     _schedulePrefetch();
     // didUpdateWidget 是在 build 期间被调用的，那里不能 setState。
     if (notify && mounted) setState(() {});
@@ -683,9 +715,21 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
 
   /// The home page only ships the first page of each row, so the rest is pulled
   /// from the same search the row's "more" link points at.
-  Future<void> _loadMore() async {
+  Future<void> _loadMore() => _fetchPage(_page + 1);
+
+  /// 分区还没有内容时补抓它的第一页。
+  ///
+  /// AV 源的首页只带第一个分区的内容，其余分区是占位（不然一次要发十几个页面请求，
+  /// 既慢又容易被站点限流）；它们被选中时（也就是这个 State 被创建时）才来这里抓。
+  Future<void> _loadFirstPageIfNeeded() async {
+    if (_videos.isNotEmpty || _loading || widget.section.moreUrl == null) return;
+    await _fetchPage(1, replace: true);
+  }
+
+  Future<void> _fetchPage(int page, {bool replace = false}) async {
     final moreUrl = widget.section.moreUrl;
-    if (_loading || !_hasMore || moreUrl == null) return;
+    if (_loading || moreUrl == null) return;
+    if (!replace && !_hasMore) return;
     // 上次失败后先退避一小会儿：probe 每次被重建都会来问一次，不能立刻打爆站点。
     if (DateTime.now().difference(_lastAttempt) < _retryDelay) return;
     _lastAttempt = DateTime.now();
@@ -706,16 +750,16 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
             tags: query.tags,
             broad: query.broad,
             type: query.type,
-            page: _page + 1,
+            page: page,
           );
       if (!mounted) return;
       final subscribed = ref.read(libraryProvider).valueOrNull?.artists.map((artist) => artist.name.toLowerCase()).toSet() ?? <String>{};
       final current = ref.read(settingsProvider).valueOrNull;
-      final known = _videos.map((video) => video.id).toSet();
+      final known = replace ? const <String>{} : _videos.map((video) => video.id).toSet();
       final extra = result.items.where((video) => !known.contains(video.id) && _visible(video, current, subscribed)).toList();
       debugPrint('[home] ${widget.section.title}: page ${result.page}/${result.totalPages}, +${extra.length}');
       setState(() {
-        _videos = [..._videos, ...extra];
+        _videos = replace ? extra : [..._videos, ...extra];
         _page = result.page;
         _totalPages = result.totalPages;
       });
@@ -724,7 +768,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
       // 刚拿到的这一批先预热封面，滚过去时就不会先看到一片灰。
       unawaited(_prefetch(extra));
     } catch (error) {
-      debugPrint('[home] load more failed: $error');
+      debugPrint('[home] load failed: $error');
       final seconds = _retryDelay == Duration.zero ? 2 : _retryDelay.inSeconds * 2;
       _retryDelay = Duration(seconds: seconds > 30 ? 30 : seconds);
       if (mounted) setState(() => _failed = true);
@@ -765,7 +809,12 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
 
   /// 预取卡片元数据。站点部分分类（里番、泡麵番）的列表页只给封面和标题，
   /// 卡片得去详情页把时长/播放量/作者/评分补回来，这里提前排队减少滚动时的等待。
+  ///
+  /// AV 视频源不预热：它们每个分区就有二三十张缺元数据的卡片，而详情页是几百 KB、
+  /// 还隔着代理和 Cloudflare，一次性打几十个请求既慢又容易触发限流。滚动到可见时
+  /// 卡片自己会按需补（`VideoCardTile` 的 `autoFetchMeta`）。
   Future<void> _prefetchMeta(List<VideoCard> videos) async {
+    if (javSiteFor(ref.read(settingsProvider).valueOrNull?.homeBaseUrl) != null) return;
     final targets = videos.take(homeWaterfallColumns(_viewportWidth) * 4).where((video) => video.id.isNotEmpty && !hasVideoCardMeta(video)).toList(growable: false);
     if (targets.isEmpty) return;
     await Future.wait([

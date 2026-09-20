@@ -77,7 +77,12 @@ class Han1meHttpClient {
 
   Future<bool> hasCookie(String url, String name) async => _isDesktop ? _cookiesFor(Uri.parse(url)).split(';').any((cookie) => cookie.trim().split('=').first.toLowerCase() == name.toLowerCase()) : await _channel.invokeMethod<bool>('hasCookie', {'url': url, 'name': name}) ?? false;
 
-  Future<Han1meHttpResponse> get(String url, {String? responseCharset, Map<String, String>? headers}) => _request(url, responseCharset: responseCharset, headers: headers);
+  /// [followRedirects] 为 false 时不自动跟随重定向（只对桌面端生效：移动端走原生实现，
+  /// 仍是自动跟随）。给 KVS 系站点用：它们会把非 ASCII 的 slug 以原始 UTF-8
+  /// 字节写进 `Location`，而 HTTP 头按规范是 Latin-1，Dart 解出来是乱码，
+  /// 自动跟随会一直拿到同一个 301（最后报 Redirect loop detected）。
+  Future<Han1meHttpResponse> get(String url, {String? responseCharset, Map<String, String>? headers, bool followRedirects = true}) =>
+      _request(url, responseCharset: responseCharset, headers: headers, followRedirects: followRedirects);
 
   Future<void> download(String url, String path) async {
     if (!_isDesktop) {
@@ -107,8 +112,8 @@ class Han1meHttpClient {
   Future<Han1meHttpResponse> delete(String url, Map<String, String> data, {Map<String, String>? headers, bool json = false}) =>
       _request(url, method: 'DELETE', data: data, headers: headers, json: json);
 
-  Future<Han1meHttpResponse> _request(String url, {String methodName = 'request', String method = 'GET', Map<String, String>? data, Map<String, String>? headers, String? responseCharset, bool json = false}) async {
-    if (_isDesktop) return _desktopRequest(url, method: method, data: data, headers: headers, responseCharset: responseCharset, json: json);
+  Future<Han1meHttpResponse> _request(String url, {String methodName = 'request', String method = 'GET', Map<String, String>? data, Map<String, String>? headers, String? responseCharset, bool json = false, bool followRedirects = true}) async {
+    if (_isDesktop) return _desktopRequest(url, method: method, data: data, headers: headers, responseCharset: responseCharset, json: json, followRedirects: followRedirects);
     final response = await _channel.invokeMethod<dynamic>(methodName, {
       'url': url,
       'method': method,
@@ -130,10 +135,11 @@ class Han1meHttpClient {
     );
   }
 
-  Future<Han1meHttpResponse> _desktopRequest(String url, {required String method, Map<String, String>? data, Map<String, String>? headers, String? responseCharset, required bool json}) async {
+  Future<Han1meHttpResponse> _desktopRequest(String url, {required String method, Map<String, String>? data, Map<String, String>? headers, String? responseCharset, required bool json, bool followRedirects = true}) async {
     final client = _desktopClient();
     try {
       final request = await client.openUrl(method, Uri.parse(url));
+      request.followRedirects = followRedirects;
       request.headers.set(HttpHeaders.userAgentHeader, userAgent);
       final cookie = _cookiesFor(request.uri);
       if (cookie.isNotEmpty) request.headers.set(HttpHeaders.cookieHeader, cookie);

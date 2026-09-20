@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import 'app_image_cache.dart';
@@ -136,6 +137,11 @@ class VideoCardTile extends ConsumerWidget {
   /// 命中本地缓存时是同步的，所以刷新后卡片会直接显示补全后的内容。
   VideoCard _resolved(WidgetRef ref) {
     if (!autoFetchMeta || video.id.isEmpty || hasVideoCardMeta(video)) return video;
+    // AV 源的列表页自己就带标题/封面/时长/播放量/作者，不需要补 —— 而且**不能**补：
+    // 一屏十几张卡片各抓一次详情页会把站点打到 Cloudflare 限流（实测 jable 直接
+    // 返回 Error 1015），限流期间站点给的是「Page not Found」错误页，那张页面的
+    // logo 又会被当成封面写进缓存 —— 表现就是整屏卡片用同一张占位图。
+    if (javSiteFor(ref.watch(settingsProvider).valueOrNull?.homeBaseUrl ?? '') != null) return video;
     final cached = ref.watch(videoMetaCacheProvider).read(video.id);
     if (cached != null) return _mergeMeta(cached);
     final fetched = ref.watch(videoCardMetaProvider(video.id)).valueOrNull;

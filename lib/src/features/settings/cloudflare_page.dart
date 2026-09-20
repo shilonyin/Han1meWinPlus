@@ -8,6 +8,8 @@ import '../../../l10n/app_localizations.dart';
 
 import '../../data/han1me_repository.dart';
 import '../../data/remote/han1me_api.dart';
+import '../../data/remote/jav/jav_api.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../../data/remote/webview_environment.dart';
 import '../account/account_controller.dart';
 import 'settings_controller.dart';
@@ -67,6 +69,9 @@ class _CloudflarePageState extends ConsumerState<CloudflarePage> {
   Widget build(BuildContext context) {
     final baseUrl = ref.watch(settingsProvider).valueOrNull?.resolvedBaseUrl ?? 'https://hanime1.com';
     final initialUrl = widget.initialUrl ?? baseUrl;
+    // `cf_clearance` 是与 UA 绑定的，所以验证用的 UA 必须和随后抓页面的 UA 一致：
+    // AV 视频源走桌面版 Chrome（见 `JavApi.userAgent`），hanime1 走它自己的移动 UA。
+    final userAgent = javSiteFor(initialUrl) == null ? Han1meApi.userAgent : JavApi.userAgent;
     final webViewEnvironment = ref.watch(webViewEnvironmentProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.cloudflareVerification)),
@@ -77,7 +82,7 @@ class _CloudflarePageState extends ConsumerState<CloudflarePage> {
             javaScriptEnabled: true,
             domStorageEnabled: true,
             thirdPartyCookiesEnabled: true,
-            userAgent: Han1meApi.userAgent,
+            userAgent: userAgent,
           ),
           onWebViewCreated: (controller) async {
             _initialClearance = _clearanceCookie(await ref.read(han1meHttpClientProvider).webViewCookies(initialUrl));

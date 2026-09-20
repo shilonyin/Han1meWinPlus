@@ -258,16 +258,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     final settings = await ref.read(settingsProvider.future);
     if (!mounted || version != _loadVersion) return;
     final getchuTrailer = widget.video.id.startsWith('getchu-');
+    // 解析层给了请求头就用它（AV 源必须带自己的 Referer，例如 missav 的 CDN
+    // 少一个 Referer 就直接 403）；否则按 hanime1 / Getchu 的惯例拼。
+    final httpHeaders = source.headers ??
+        {
+          'User-Agent': Han1meApi.userAgent,
+          'Referer': getchuTrailer ? 'https://www.getchu.com/' : '${settings.resolvedBaseUrl}/watch?v=${widget.video.id}',
+          if (getchuTrailer) 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc',
+        };
     final controller = source.url.startsWith('/')
         ? VideoPlayerController.file(File(source.url))
-        : VideoPlayerController.networkUrl(
-            Uri.parse(source.url),
-            httpHeaders: {
-              'User-Agent': Han1meApi.userAgent,
-              'Referer': getchuTrailer ? 'https://www.getchu.com/' : '${settings.resolvedBaseUrl}/watch?v=${widget.video.id}',
-              if (getchuTrailer) 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc',
-            },
-          );
+        : VideoPlayerController.networkUrl(Uri.parse(source.url), httpHeaders: httpHeaders);
     _loadedQuality = source.quality;
     _qualityNotifier.value = source.quality;
     _wasPlaying = null;

@@ -6,6 +6,7 @@ import '../../data/han1me_repository.dart';
 import '../../data/local/json_store.dart';
 import '../../data/local/search_history_repository.dart';
 import '../../data/remote/han1me_api.dart';
+import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
@@ -74,18 +75,22 @@ final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, Se
   ref.keepAlive();
   ref.watch(accountProvider);
   final settings = await ref.watch(settingsProvider.future);
-  final catalog = await ref.watch(searchOptionCatalogProvider.future);
   final query = ref.watch(searchQueryProvider(request));
-  final result = await ref.watch(han1meRepositoryProvider).search(
+  final repository = ref.watch(han1meRepositoryProvider);
+  // AV 视频源没有 hanime1 的那套分类/排序/标签，条件原样交给解析层
+  // （首页分区的「加载更多」正是靠 genre 携带列表路径走这条分支）。
+  final javSource = javSiteFor(settings.resolvedBaseUrl) != null;
+  final catalog = javSource ? null : await ref.watch(searchOptionCatalogProvider.future);
+  final result = await repository.search(
         baseUrl: settings.resolvedBaseUrl,
         query: query.text,
-        genre: catalog.genres.canonical(query.genre),
-        sort: catalog.sorts.canonical(query.sort),
-        date: catalog.releaseDates.canonical(query.date),
-        duration: catalog.durations.canonical(query.duration),
-        tags: query.tags.map(catalog.canonicalTag).toList(growable: false),
-        broad: query.broad,
-        type: query.type,
+        genre: javSource ? query.genre : catalog!.genres.canonical(query.genre),
+        sort: javSource ? '' : catalog!.sorts.canonical(query.sort),
+        date: javSource ? '' : catalog!.releaseDates.canonical(query.date),
+        duration: javSource ? '' : catalog!.durations.canonical(query.duration),
+        tags: javSource ? const <String>[] : query.tags.map(catalog!.canonicalTag).toList(growable: false),
+        broad: javSource ? false : query.broad,
+        type: javSource ? '' : query.type,
         page: query.page,
       );
   if (!settings.applyRecommendationFiltersToSearch) return result;

@@ -211,7 +211,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get customMirrorSiteHint =>
-      '请输入与主站结构相同、直达主页的镜像站，例如 https://www.example.com/enter；主页会按输入原样请求';
+      '请输入与主站结构相同、直达主页的镜像站，例如 https://www.example.com/enter；主页会按输入原样请求。AV 视频源的地址（如 xHamster）也可以填在这里，会按域名自动识别';
 
   @override
   String get enableCustomMirrorSite => '启用自定义镜像站';
@@ -243,6 +243,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String customMirrorTestSuccess(Object homeUrl, Object apiBase) {
     return '测试成功\n主页：$homeUrl\n其他接口基址：$apiBase';
+  }
+
+  @override
+  String customMirrorTestJavSuccess(Object source, Object base, int count) {
+    return '测试成功：识别为 $source 源\n请求地址：$base\n已解析 $count 条';
   }
 
   @override
@@ -1501,6 +1506,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateCheckFailed => '检查更新失败，请稍后重试';
 
   @override
+  String get javSources => 'AV 视频源';
+
+  @override
+  String get javSourceVerification => '需要先在应用内完成 Cloudflare 验证';
+
+  @override
+  String get javNew => '新作上市';
+
+  @override
+  String get javUncensored => '无码流出';
+
+  @override
+  String get javSubtitles => '中文字幕';
+
+  @override
+  String get javHot => '热门';
+
+  @override
+  String get javTopRated => '高评分';
+
+  @override
+  String get javByCategory => '分类精选';
+
+  @override
+  String get javAmateur => '素人';
+
+  @override
   String get updateSection => '更新';
 
   @override
@@ -2209,7 +2241,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get customMirrorSiteHint =>
-      '請輸入與主站結構相同、直達首頁的鏡像站，例如 https://www.example.com/enter；首頁會依輸入原樣請求';
+      '請輸入與主站結構相同、直達首頁的鏡像站，例如 https://www.example.com/enter；首頁會依輸入原樣請求。AV 視頻源的位址（如 xHamster）也可以填在這裡，會依域名自動識別';
 
   @override
   String get enableCustomMirrorSite => '啟用自訂鏡像站';
@@ -2241,6 +2273,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String customMirrorTestSuccess(Object homeUrl, Object apiBase) {
     return '測試成功\n首頁：$homeUrl\n其他介面基址：$apiBase';
+  }
+
+  @override
+  String customMirrorTestJavSuccess(Object source, Object base, int count) {
+    return '測試成功：識別為 $source 源\n請求位址：$base\n已解析 $count 條';
   }
 
   @override
@@ -3497,6 +3534,33 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get updateCheckFailed => '檢查更新失敗，請稍後重試';
+
+  @override
+  String get javSources => 'AV 視頻源';
+
+  @override
+  String get javSourceVerification => '需要先在應用內完成 Cloudflare 驗證';
+
+  @override
+  String get javNew => '新作上市';
+
+  @override
+  String get javUncensored => '無碼流出';
+
+  @override
+  String get javSubtitles => '中文字幕';
+
+  @override
+  String get javHot => '熱門';
+
+  @override
+  String get javTopRated => '高評分';
+
+  @override
+  String get javByCategory => '分類精選';
+
+  @override
+  String get javAmateur => '素人';
 
   @override
   String get updateSection => '更新';
