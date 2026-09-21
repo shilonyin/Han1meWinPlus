@@ -84,8 +84,8 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
             children: [
               const SizedBox(width: 14),
               // 左上角整张锁标（图标 + 字标一体，和关于页 / README 同一份资源），
-              // 不再拿方形图标 + 标题文字拼。22px 时字标约 9px 高，和原来的标题字一样大。
-              Image.asset('assets/logo_lockup.png', height: 22, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
+              // 不再拿方形图标 + 标题文字拼。26px 时字标约 11px 高，比原来的标题字略大。
+              Image.asset('assets/logo_lockup.png', height: 26, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
               const Spacer(),
               _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Icons.remove, iconSize: 16),
               _TitleBarButton(

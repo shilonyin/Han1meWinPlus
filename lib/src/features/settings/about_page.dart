@@ -197,7 +197,7 @@ class _AboutHeader extends StatelessWidget {
       children: [
         // 横版锁标是一体图（图标 + 字标），直接整张显示 —— 字标是设计稿里的专用
         // 字形，用系统字体拼字会走样（与 README / 安装包使用同一份资源）。
-        Image.asset('assets/logo_lockup.png', height: 46, filterQuality: FilterQuality.high, semanticLabel: appName),
+        Image.asset('assets/logo_lockup.png', height: 58, filterQuality: FilterQuality.high, semanticLabel: appName),
         if (version.isNotEmpty) ...[const SizedBox(height: 8), Text(version, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.outline))],
         const SizedBox(height: 16),
         Text(l10n.thirdPartyClient, style: theme.textTheme.bodyLarge),
