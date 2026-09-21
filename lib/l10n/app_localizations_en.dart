@@ -506,7 +506,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keyframeManagement => 'Key H-Frame Management';
 
   @override
-  String get about => 'About Han1meWinPlus';
+  String get about => 'About';
 
   @override
   String get aboutDescription => 'Version and open-source info';

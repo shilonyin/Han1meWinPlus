@@ -486,7 +486,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyframeManagement => '关键 H 帧管理';
 
   @override
-  String get about => '关于 Han1meWinPlus';
+  String get about => '关于';
 
   @override
   String get aboutDescription => '版本与开源信息';
@@ -2700,7 +2700,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get keyframeManagement => '關鍵 H 幀管理';
 
   @override
-  String get about => '關於 Han1meWinPlus';
+  String get about => '關於';
 
   @override
   String get aboutDescription => '版本與開源資訊';
