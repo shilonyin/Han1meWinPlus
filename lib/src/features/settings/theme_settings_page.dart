@@ -8,6 +8,7 @@ import '../../core/window_chrome.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_list.dart';
 import 'theme_scheme_page.dart';
 
 class ThemeSettingsPage extends ConsumerStatefulWidget {
@@ -63,8 +64,7 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
               ),
             ),
           ]),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+          SettingsFootnote(
             child: Text(l10n.dynamicColorFootnote, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           const SizedBox(height: 16),
