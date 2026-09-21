@@ -195,6 +195,9 @@ class _AboutHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 应用图标（与 exe / 安装包使用同一份资源）
+        Image.asset('assets/logo.png', width: 64, height: 64, filterQuality: FilterQuality.high),
+        const SizedBox(height: 12),
         Text(appName, style: theme.textTheme.headlineMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700)),
         if (version.isNotEmpty) ...[const SizedBox(height: 2), Text(version, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.outline))],
         const SizedBox(height: 16),

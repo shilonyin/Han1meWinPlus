@@ -60,7 +60,8 @@ int DpiScale(int value, UINT dpi) {
   return static_cast<int>(static_cast<double>(value) * dpi / 96.0 + 0.5);
 }
 
-// Splash icon side length. app_icon.ico only ships a single 64x64 image.
+// Splash icon side length (logical px). app_icon.ico ships 16-256 px images,
+// so the DPI-scaled request resolves to a crisp source.
 constexpr int kSplashIconSide = 64;
 
 bool SystemPrefersDarkApps() {
