@@ -68,9 +68,12 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         themeMode: settings.materialThemeMode,
-        // 主题切换（含跟随系统、amoled）时让整套配色平滑过渡，而不是瞬间跳变。
-        themeAnimationDuration: const Duration(milliseconds: 320),
-        themeAnimationCurve: Curves.easeInOut,
+        // 主题切换必须瞬时生效：整套配色在深/浅之间插值时，页面、卡片、文字会一起
+        // 变成发灰的中间色（看起来像蒙了一层），用户点侧栏的主题按钮时就会看到
+        // 「底色切换异常」。
+        // 注意：`themeAnimationDuration` 的**默认值是 200ms**（kThemeAnimationDuration），
+        // 所以「不写这个参数」并不等于关掉动画 —— 必须显式给 Duration.zero。
+        themeAnimationDuration: Duration.zero,
         theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,

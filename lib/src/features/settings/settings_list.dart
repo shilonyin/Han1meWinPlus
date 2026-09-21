@@ -351,16 +351,23 @@ class _SplitListRowState extends State<_SplitListRow> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = MediaQuery.disableAnimationsOf(context) ? Duration.zero : _pressDuration;
-    return AnimatedContainer(
+    // 只给「按下时圆角变化」做动画：底色必须直接用当前主题色，**不能**放进
+    // AnimatedContainer 里补间 —— 否则切换主题时页面瞬间换色、这组卡片却要 250ms
+    // 后才跟上，看起来就是一半浅、一半深（用户报的「底色切换异常」）。
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: _pressed ? 1 : 0),
       duration: duration,
       curve: Curves.easeInOutCubic,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(_pressed ? _groupOuterRadius : widget.topRadius),
-          bottom: Radius.circular(_pressed ? _groupOuterRadius : widget.bottomRadius),
+      builder: (context, t, child) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(widget.topRadius + (_groupOuterRadius - widget.topRadius) * t),
+            bottom: Radius.circular(widget.bottomRadius + (_groupOuterRadius - widget.bottomRadius) * t),
+          ),
         ),
+        child: child,
       ),
       child: Material(
         type: MaterialType.transparency,
