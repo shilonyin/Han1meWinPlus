@@ -3,140 +3,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
-import '../../core/video_decoders.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
+import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
+import 'site_groups_page.dart';
 
-class SiteSettingsPage extends ConsumerWidget {
-  const SiteSettingsPage({super.key});
-
-  static const _hosts = ['https://hanime1.com', 'https://hanimeone.me', 'https://hanime1.me'];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final settings = ref.watch(settingsProvider).valueOrNull;
-    if (settings == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final current = settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl;
-    final hosts = settings.comicMode ? const ['https://hanimeone.me'] : _hosts;
-    Future<void> select(String value) async {
-      if (value == current) return;
-      await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(baseUrl: value, videoBaseUrl: settings.comicMode ? settings.videoBaseUrl : value, useCustomMirrorSite: false, customMirrorSite: ''));
-      ref.invalidate(accountProvider);
-      resetHomeFeed(ref);
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.site)),
-      body: SettingsList(
-        sections: [
-          SettingsSection(
-            title: Text(l10n.site, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-            tiles: [
-              for (final host in hosts)
-                SettingsTile<String>.radioTile(
-                  radioValue: host,
-                  groupValue: current,
-                  title: Text(host),
-                  onChanged: (value) {
-                    if (value != null) select(value);
-                  },
-                ),
-            ],
-          ),
-          // AV 视频源：这些站点与 hanime1 是两套完全不同的站点（账号/评论/清单都不通用），
-          // 选中后面板会整体切到对应站点的首页与搜索。
-          if (!settings.comicMode)
-            SettingsSection(
-              title: Text(l10n.javSources, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-              tiles: [
-                for (final site in javSites)
-                  SettingsTile<String>.radioTile(
-                    radioValue: site.baseUrl,
-                    groupValue: current,
-                    title: Text('${site.label} · ${site.host}'),
-                    description: site.requiresVerification ? Text(l10n.javSourceVerification) : null,
-                    onChanged: (value) {
-                      if (value != null) select(value);
-                    },
-                  ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class DecoderSettingsPage extends ConsumerWidget {
-  const DecoderSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final current = ref.watch(settingsProvider).valueOrNull?.playerEngine ?? PlayerEngine.libMpv;
-    return _RadioSettingsPage<PlayerEngine>(
-      title: l10n.decoder,
-      current: current,
-      options: PlaybackSpeedPolicy.isHarmonyOs ? const [PlayerEngine.libMpv] : PlayerEngineX.available,
-      label: (value) => switch (value) { PlayerEngine.exoPlayer => l10n.exoPlayer, PlayerEngine.avPlayer => l10n.avPlayer, PlayerEngine.libMpv => l10n.libMpv },
-      onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(playerEngine: value)),
-    );
-  }
-}
-
-class RendererSettingsPage extends ConsumerWidget {
-  const RendererSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final current = ref.watch(settingsProvider).valueOrNull?.videoRenderer ?? VideoRenderer.auto;
-    return _RadioSettingsPage<VideoRenderer>(
-      title: l10n.videoRenderer,
-      current: current,
-      options: VideoRenderer.values,
-      label: (value) => switch (value) { VideoRenderer.auto => l10n.rendererAuto, VideoRenderer.gpu => l10n.rendererGpu, VideoRenderer.gpuNext => l10n.rendererGpuNext, VideoRenderer.mediacodecEmbed => l10n.rendererMediacodecEmbed },
-      onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoRenderer: value)),
-    );
-  }
-}
-
-class HardwareDecoderSettingsPage extends ConsumerWidget {
-  const HardwareDecoderSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final current = knownHardwareDecoder(ref.watch(settingsProvider).valueOrNull?.hardwareDecoder);
-    final decoders = hardwareDecodersFor(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.hardwareDecoder)),
-      body: SettingsList(
-        sections: [
-          SettingsSection(
-            title: Text(l10n.hardwareDecoderHint, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-            tiles: [
-              for (final decoder in decoders.entries)
-                SettingsTile<String>.radioTile(
-                  radioValue: decoder.key,
-                  groupValue: current,
-                  title: Text(decoder.key),
-                  description: Text(decoder.value),
-                  onChanged: (value) {
-                    if (value != null) ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(hardwareDecoder: value));
-                  },
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+/// 站点选择：默认站点与 AV 视频源放在同一个单选项弹层里。
+///
+/// 「内容少 → 弹层」的典型：原先为选一行地址要跳一个独立页面，不划算。AV 源与 hanime1
+/// 是两套完全不同的站点（账号/评论/清单都不通用），所以切换后要重置首页、并让账号按新
+/// 站点重新解析。
+Future<void> showSitePicker(BuildContext context, WidgetRef ref, AppSettings settings, {VoidCallback? onManageGroups}) async {
+  final l10n = AppLocalizations.of(context)!;
+  final current = settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl;
+  // 分组来自用户配置（没配置过时就是「按类型自动分组」的结果），空分组不进弹层。
+  final groups = [for (final group in await ref.read(siteGroupsProvider.future)) if (group.hosts.isNotEmpty) group];
+  // 分组要 await 读出来，回来之后 context 可能已经失效（用户已经退出这一页）。
+  if (!context.mounted) return;
+  final hints = <String, String>{for (final site in javSites) if (site.requiresVerification) site.baseUrl: l10n.javSourceVerification};
+  final selected = await showOptionSettingsDialog<String>(
+    context: context,
+    title: l10n.site,
+    current: current,
+    groups: [for (final group in groups) OptionSettingGroup(title: siteGroupName(group, l10n), options: group.hosts)],
+    label: (value) => siteHostLabel(value, l10n),
+    optionDescription: (value) => hints[value] ?? '',
+    // 分组管理与「选站点」本来就是同一件事的两半（名字、顺序、谁在哪一组），所以入口
+    // 直接放在这份列表下面，而不是另开一张设置卡片 —— 否则用户得在两个入口之间猜。
+    footer: onManageGroups == null ? null : Builder(builder: (dialogContext) => Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+      onPressed: () { Navigator.pop(dialogContext); onManageGroups(); },
+      icon: const Icon(Icons.tune, size: 18),
+      label: Text(l10n.siteGroups),
+    ))),
+  );
+  if (selected == null || selected == current) return;
+  await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(baseUrl: selected, videoBaseUrl: settings.comicMode ? settings.videoBaseUrl : selected, useCustomMirrorSite: false, customMirrorSite: ''));
+  ref.invalidate(accountProvider);
+  resetHomeFeed(ref);
 }
 
 /// 新番预告的数据源：默认站点的预告表常年不可用，所以默认选「自动」，
@@ -158,38 +64,6 @@ class PreviewSourceSettingsPage extends ConsumerWidget {
     );
   }
 }
-
-class SuperResolutionSettingsPage extends ConsumerWidget {
-  const SuperResolutionSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final current = ref.watch(settingsProvider).valueOrNull?.superResolutionMode ?? SuperResolutionMode.off;
-    return _RadioSettingsPage<SuperResolutionMode>(
-      title: l10n.superResolution,
-      current: current,
-      options: SuperResolutionMode.values,
-      label: (value) => _superResolutionLabel(l10n, value),
-      description: (value) => _superResolutionDescription(l10n, value),
-      onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(superResolutionMode: value)),
-    );
-  }
-}
-
-String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) {
-      SuperResolutionMode.off => l10n.superResolutionOff,
-      SuperResolutionMode.efficiency => l10n.superResolutionEfficiency,
-      SuperResolutionMode.quality => l10n.superResolutionQuality,
-      SuperResolutionMode.natural => l10n.superResolutionNatural,
-    };
-
-String _superResolutionDescription(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) {
-      SuperResolutionMode.off => l10n.superResolutionOffDescription,
-      SuperResolutionMode.efficiency => l10n.superResolutionEfficiencyDescription,
-      SuperResolutionMode.quality => l10n.superResolutionQualityDescription,
-      SuperResolutionMode.natural => l10n.superResolutionNaturalDescription,
-    };
 
 class _RadioSettingsPage<T> extends StatelessWidget {
   const _RadioSettingsPage({required this.title, required this.current, required this.options, required this.label, required this.onChanged, this.description});
