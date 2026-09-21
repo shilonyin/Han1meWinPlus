@@ -536,7 +536,6 @@
   "colorWhite": "白色",
   "colorCustom": "自訂",
   "dynamicColor": "動態配色",
-  "dynamicColorFootnote": "動態配色僅支援安卓12及以上和桌面平台",
   "display": "顯示",
   "window": "視窗",
   "useSystemFont": "使用系統字型",

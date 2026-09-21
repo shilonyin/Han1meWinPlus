@@ -78,27 +78,6 @@ class SettingsSection extends StatelessWidget {
   }
 }
 
-/// 卡片外面的一段说明文字（脚注）。
-///
-/// 必须跟 [SettingsList] 用同一个最大宽度并一起居中：卡片是限宽居中的，说明文字要是
-/// 直接贴在页面左边，窗口越宽差得越多（全屏时卡片在中间、小字在最左边），看起来就是
-/// 「设置页的小字错位」。默认边距与分组标题一致（32），所以它正好对齐分组标题。
-class SettingsFootnote extends StatelessWidget {
-  const SettingsFootnote({super.key, required this.child, this.margin = const EdgeInsets.fromLTRB(32, 0, 32, 16), this.maxWidth = settingsListMaxWidth});
-
-  final Widget child;
-  final EdgeInsetsGeometry margin;
-  final double maxWidth;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Padding(padding: margin, child: child),
-        ),
-      );
-}
-
 /// A single settings row.
 class SettingsTile<T> extends StatelessWidget {
   const SettingsTile({super.key, required this.title, this.leading, this.description, this.value, this.trailing, this.bottom, this.onPressed, this.enabled = true})

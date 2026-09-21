@@ -537,7 +537,6 @@
   "colorWhite": "White",
   "colorCustom": "Custom",
   "dynamicColor": "Dynamic color",
-  "dynamicColorFootnote": "Dynamic color is only available on Android 12+ and desktop",
   "display": "Display",
   "window": "Window",
   "useSystemFont": "Use system font",

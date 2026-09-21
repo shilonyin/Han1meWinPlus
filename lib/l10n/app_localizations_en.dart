@@ -1627,10 +1627,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dynamicColor => 'Dynamic color';
 
   @override
-  String get dynamicColorFootnote =>
-      'Dynamic color is only available on Android 12+ and desktop';
-
-  @override
   String get display => 'Display';
 
   @override

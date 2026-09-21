@@ -8,7 +8,6 @@ import '../../core/window_chrome.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
-import 'settings_list.dart';
 import 'theme_scheme_page.dart';
 
 class ThemeSettingsPage extends ConsumerStatefulWidget {
@@ -64,10 +63,6 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
               ),
             ),
           ]),
-          SettingsFootnote(
-            child: Text(l10n.dynamicColorFootnote, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ),
-          const SizedBox(height: 16),
           SettingsCardList(title: l10n.display, children: [
               SettingsCardItem(
                 title: l10n.amoledMode,
@@ -86,7 +81,6 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
              ),
            ]),
           if (WindowChrome.isSupported) ...[
-            const SizedBox(height: 16),
             SettingsCardList(title: l10n.window, children: [
               SettingsCardItem(
                 title: l10n.useSystemTitleBar,

@@ -1576,9 +1576,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicColor => '动态配色';
 
   @override
-  String get dynamicColorFootnote => '动态配色仅支持安卓12及以上和桌面平台';
-
-  @override
   String get display => '显示';
 
   @override
@@ -3791,9 +3788,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get dynamicColor => '動態配色';
-
-  @override
-  String get dynamicColorFootnote => '動態配色僅支援安卓12及以上和桌面平台';
 
   @override
   String get display => '顯示';

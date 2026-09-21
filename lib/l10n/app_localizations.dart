@@ -2972,12 +2972,6 @@ abstract class AppLocalizations {
   /// **'Dynamic color'**
   String get dynamicColor;
 
-  /// No description provided for @dynamicColorFootnote.
-  ///
-  /// In en, this message translates to:
-  /// **'Dynamic color is only available on Android 12+ and desktop'**
-  String get dynamicColorFootnote;
-
   /// No description provided for @display.
   ///
   /// In en, this message translates to:
