@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../core/platform_service.dart';
 import '../../core/route_observer.dart';
@@ -576,10 +577,23 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
   Widget build(BuildContext context) {
     final keyframes = ref.watch(keyframesProvider(widget.video.id)).valueOrNull ?? const <int>[];
     final enabled = ref.watch(settingsProvider).valueOrNull?.keyframesEnabled ?? true;
-    final fullscreenTheme = Theme.of(context).copyWith(
+    // 全屏播放器固定走深色主题，而且要用跟 App 层同一份字体/配色设置：
+    // 之前只是把环境主题的颜色 copyWith 成黑色，浅色（白）主题下文字仍是深色、
+    // 在黑底上几乎看不见；弹层与抽屉的颜色也没跟着变。这里直接按 App 深色主题的
+    // 配方重建一份，只把舞台相关的面压成纯黑。
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final dark = appTheme(
+      null,
+      settings?.themeColor.seedColor(settings.customThemeColor) ?? const Color(0xfffb7299),
+      brightness: Brightness.dark,
+      useSystemFont: settings?.useSystemFont ?? false,
+      variant: settings?.themeColor.schemeVariant ?? DynamicSchemeVariant.tonalSpot,
+      neutralSurfaces: true,
+    );
+    final fullscreenTheme = dark.copyWith(
       scaffoldBackgroundColor: Colors.black,
       canvasColor: Colors.black,
-      colorScheme: Theme.of(context).colorScheme.copyWith(surface: Colors.black, surfaceContainerLowest: Colors.black),
+      colorScheme: dark.colorScheme.copyWith(surface: Colors.black, surfaceContainerLowest: Colors.black),
     );
     return Theme(
       data: fullscreenTheme,

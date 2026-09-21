@@ -465,8 +465,10 @@ class _MarqueeTitleState extends State<_MarqueeTitle> with SingleTickerProviderS
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
-        final style = const TextStyle(color: Colors.white, fontWeight: FontWeight.w600);
-        final painter = TextPainter(text: TextSpan(text: widget.title, style: style), maxLines: 1, textDirection: TextDirection.ltr)..layout();
+        // 量宽度时必须用环境里的文本样式（字体族/字重）和当前的文字缩放，
+        // 否则量出来的宽度和实际渲染不一致，跑马灯的位移会算错（标题被截断或滚过头）。
+        final style = DefaultTextStyle.of(context).style.merge(const TextStyle(color: Colors.white, fontWeight: FontWeight.w600));
+        final painter = TextPainter(text: TextSpan(text: widget.title, style: style), maxLines: 1, textDirection: TextDirection.ltr, textScaler: MediaQuery.textScalerOf(context))..layout();
         final width = painter.width;
         if (width <= constraints.maxWidth) return Text(widget.title, maxLines: 1, style: style);
         final distance = width - constraints.maxWidth + 24;

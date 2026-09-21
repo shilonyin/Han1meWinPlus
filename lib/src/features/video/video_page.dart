@@ -76,11 +76,18 @@ class _VideoPageState extends ConsumerState<VideoPage> {
         : _DetailBody(video: localVideo);
     // 播放页固定走「沉浸模式」（参考 b 站）：不管应用当前是浅色还是深色主题，
     // 整页都用深色 —— 播放器舞台纯黑、右侧简介/评论用深色中性面。
+    //
+    // 字体、配色变体、AMOLED 这些开关必须跟 App 层用同一份设置：这些也是全屏播放器
+    // 继承到的主题，漏掉任何一个都会让播放页/全屏的文字跟其它页面不一样
+    // （例如开了「使用系统字体」而这里还写死内置字体，看上去就是「字体异常」）。
     final settings = ref.watch(settingsProvider).valueOrNull;
     final immersive = appTheme(
       null,
       settings?.themeColor.seedColor(settings.customThemeColor) ?? const Color(0xfffb7299),
       brightness: Brightness.dark,
+      amoled: settings?.amoledMode ?? false,
+      useSystemFont: settings?.useSystemFont ?? false,
+      variant: settings?.themeColor.schemeVariant ?? DynamicSchemeVariant.tonalSpot,
       neutralSurfaces: true,
     );
     // 页面底色再压暗一档（#101113），与纯黑的播放器舞台拉开层次但不刺眼。

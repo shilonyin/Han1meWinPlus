@@ -30,6 +30,7 @@ class AppWindowFrame extends ConsumerWidget {
           valueListenable: WindowChrome.immersivePage,
           builder: (context, immersive, __) {
             // 播放页是沉浸页：标题栏一起走深色，别在纯黑播放页上方留一条浅色。
+            // 字体与配色开关跟 App 层保持一致，否则标题栏的字会跟应用其它地方不一样。
             Widget bar = const AppTitleBar();
             if (immersive) {
               bar = Theme(
@@ -37,6 +38,9 @@ class AppWindowFrame extends ConsumerWidget {
                   null,
                   settings.themeColor.seedColor(settings.customThemeColor),
                   brightness: Brightness.dark,
+                  amoled: settings.amoledMode,
+                  useSystemFont: settings.useSystemFont,
+                  variant: settings.themeColor.schemeVariant,
                   neutralSurfaces: true,
                 ),
                 child: bar,
