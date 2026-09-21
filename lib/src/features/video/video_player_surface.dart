@@ -420,11 +420,17 @@ class _VideoViewport extends ConsumerWidget {
         enabled: enhance,
         fill: fill,
         size: Size(constraints.maxWidth.isFinite ? constraints.maxWidth * dpr : 0, constraints.maxHeight.isFinite ? constraints.maxHeight * dpr : 0),
+        // 注意：这里**不能**给分支套 `Positioned.fill`：VideoOutputArea 是 InheritedWidget，
+        // 而 `Positioned`（ParentDataWidget）到 `Stack` 之间的路径上不允许出现 InheritedWidget
+        // 这类 ProxyWidget，定位数据不会生效 —— FittedBox 会拿到不受约束的布局，把
+        // 1778x1000 的画面按原尺寸画出来再被 Stack 裁掉，于是「裁剪填充 / 拉伸填充」
+        // 只剩下一块糊掉的色块（实测：颜色数从 1.4 万降到 90）。
+        // 不用 Positioned 也照样铺满：Stack 用了 StackFit.expand，非定位子节点拿到的是紧约束。
         child: switch (aspect) {
         VideoAspectRatio.auto => Center(child: AspectRatio(aspectRatio: ratio, child: VideoPlayer(controller))),
         VideoAspectRatio.ratio4x3 => Center(child: AspectRatio(aspectRatio: 4 / 3, child: FittedBox(fit: BoxFit.contain, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller))))),
-        VideoAspectRatio.crop => Positioned.fill(child: FittedBox(fit: BoxFit.cover, clipBehavior: Clip.hardEdge, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
-        VideoAspectRatio.stretch => Positioned.fill(child: FittedBox(fit: BoxFit.fill, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller)))),
+        VideoAspectRatio.crop => FittedBox(fit: BoxFit.cover, clipBehavior: Clip.hardEdge, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller))),
+        VideoAspectRatio.stretch => FittedBox(fit: BoxFit.fill, clipBehavior: Clip.hardEdge, child: SizedBox(width: ratio * 1000, height: 1000, child: VideoPlayer(controller))),
         },
       );
     });
