@@ -52,6 +52,7 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   bool _networkSettingsChanged(AppSettings current, AppSettings next) =>
       current.useBuiltInHosts != next.useBuiltInHosts ||
+      current.useAddressRanking != next.useAddressRanking ||
       current.useDoh != next.useDoh ||
       current.dohPreset != next.dohPreset ||
       current.dohCustomUrl != next.dohCustomUrl ||
@@ -60,7 +61,7 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       current.proxyMode != next.proxyMode ||
       current.customProxy != next.customProxy;
 
-  Future<void> _syncNetworkSettings(AppSettings settings) => Han1meHttpClient().setNetworkSettings(useBuiltInHosts: settings.useBuiltInHosts, useDoh: settings.useDoh, dohPreset: settings.dohPreset, dohCustomUrl: settings.dohCustomUrl, dohBootstrapIps: settings.dohBootstrapIps, dohTimeoutSeconds: settings.dohTimeoutSeconds, proxyMode: settings.proxyMode, customProxy: settings.customProxy);
+  Future<void> _syncNetworkSettings(AppSettings settings) => Han1meHttpClient().setNetworkSettings(useBuiltInHosts: settings.useBuiltInHosts, useDoh: settings.useDoh, dohPreset: settings.dohPreset, dohCustomUrl: settings.dohCustomUrl, dohBootstrapIps: settings.dohBootstrapIps, dohTimeoutSeconds: settings.dohTimeoutSeconds, proxyMode: settings.proxyMode, customProxy: settings.customProxy, useAddressRanking: settings.useAddressRanking);
 
   Future<void> setPreferredQuality(String quality) async {
     await saveChanges((current) => current.copyWith(preferredQuality: _qualityInt(quality)));

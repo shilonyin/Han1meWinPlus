@@ -92,6 +92,7 @@ class AppSettings {
     this.useCustomMirrorSite = false,
     this.customMirrorSite = '',
     this.appendCustomMirrorPath = true,
+    this.useAddressRanking = true,
     this.useDoh = false,
     this.dohPreset = 'alidns',
     this.dohCustomUrl = '',
@@ -173,6 +174,8 @@ class AppSettings {
   final bool useCustomMirrorSite;
   final String customMirrorSite;
   final bool appendCustomMirrorPath;
+  /// 是否按实测延迟自动优选内置候选地址（见 `AddressRanker`）。关闭则回到列表原顺序（IPv4 优先）。
+  final bool useAddressRanking;
   final bool useDoh;
   final String dohPreset;
   final String dohCustomUrl;
@@ -279,6 +282,7 @@ class AppSettings {
         'useCustomMirrorSite': useCustomMirrorSite,
         'customMirrorSite': customMirrorSite,
         'appendCustomMirrorPath': appendCustomMirrorPath,
+        'useAddressRanking': useAddressRanking,
         'useDoh': useDoh,
         'dohPreset': dohPreset,
         'dohCustomUrl': dohCustomUrl,
@@ -358,6 +362,7 @@ class AppSettings {
         useCustomMirrorSite: json['useCustomMirrorSite'] as bool? ?? false,
         customMirrorSite: _mirrorUrl(json['customMirrorSite'] as String?),
         appendCustomMirrorPath: json['appendCustomMirrorPath'] as bool? ?? true,
+        useAddressRanking: json['useAddressRanking'] as bool? ?? true,
         useDoh: json['useDoh'] as bool? ?? false,
         dohPreset: _dohPreset(json['dohPreset'] as String?),
         dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
@@ -492,6 +497,7 @@ class AppSettings {
     bool? useCustomMirrorSite,
     String? customMirrorSite,
     bool? appendCustomMirrorPath,
+    bool? useAddressRanking,
     bool? useDoh,
     String? dohPreset,
     String? dohCustomUrl,
@@ -570,6 +576,7 @@ class AppSettings {
         useCustomMirrorSite: useCustomMirrorSite ?? this.useCustomMirrorSite,
         customMirrorSite: customMirrorSite ?? this.customMirrorSite,
         appendCustomMirrorPath: appendCustomMirrorPath ?? this.appendCustomMirrorPath,
+        useAddressRanking: useAddressRanking ?? this.useAddressRanking,
         useDoh: useDoh ?? this.useDoh,
         dohPreset: dohPreset ?? this.dohPreset,
         dohCustomUrl: dohCustomUrl ?? this.dohCustomUrl,

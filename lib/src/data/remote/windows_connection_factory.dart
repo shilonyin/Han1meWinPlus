@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'address_ranker.dart';
 
 class WindowsConnectionFactory {
   static const hanimeHosts = {'hanime1.me', 'hanime1.com', 'hanimeone.me'};
@@ -26,13 +29,17 @@ class WindowsConnectionFactory {
   /// 它们连不上时仍会回退到系统解析（`_connect` 里把域名接在最后）。
   static const imageCdnAddresses = ['89.187.187.14', '89.187.187.10', '89.187.187.19'];
 
-  /// host → 实测可用的地址。getchu 是日本源站，实测走系统 DNS / 代理都要 ~1.9s，
-  /// 直连下面这个地址只要 0.5s（参考上游用的另一个 210.155.150.145 实测已超时，不要加）。
+  /// host → 实测可用的地址。
+  ///
+  /// getchu 是日本源站，全站只有 `210.155.150.145` / `.166` 两个地址，而且质量极不稳定：
+  /// 2026-09-15 实测 `.166` 直连 0.5s（`.145` 超时），到 09-21 就完全反了过来 —— `.166`
+  /// 直接连不上、`.145` 能通但整页要 8.2s，而**走代理只要 1.79s**。所以两个都放进来，
+  /// 交给 `AddressRanker` 按实测延迟挑，别再手工判断哪个快（判断一次就过期一次）。
   static const builtInHosts = <String, List<String>>{
     'hanime1.me': builtInAddresses,
     'hanime1.com': builtInAddresses,
     'hanimeone.me': builtInAddresses,
-    'www.getchu.com': ['210.155.150.166'],
+    'www.getchu.com': ['210.155.150.145', '210.155.150.166'],
     'vdownload.hembed.com': imageCdnAddresses,
   };
 
@@ -58,7 +65,12 @@ class WindowsConnectionFactory {
     if (proxyHost != null) return Socket.startConnect(proxyHost, proxyPort ?? uri.port);
     final port = uri.hasPort ? uri.port : (uri.isScheme('https') ? 443 : 80);
     final builtIn = useBuiltInHosts ? builtInHosts[uri.host] : null;
-    if (builtIn != null) return _connect(uri, [...builtIn, uri.host], port);
+    if (builtIn != null) {
+      // 后台预热探测：只有「没有数据」或「数据已过期」的 host 才会真的发起，
+      // 而且不 await——本次请求仍按当前已知的排序走，不会因为探测而变慢。
+      unawaited(AddressRanker.instance.warmUp(builtInHosts, allowBadCertificate: hanimeHosts.contains));
+      return _connect(uri, [...builtIn, uri.host], port);
+    }
     if (!useDoh) return _startConnect(uri.host, port);
     try {
       final addresses = await _DohResolver(
@@ -74,31 +86,33 @@ class WindowsConnectionFactory {
 
   Future<ConnectionTask<Socket>> _connect(Uri uri, List<String> addresses, int port) async {
     final allowBadCertificate = useBuiltInHosts && hanimeHosts.contains(uri.host);
+    final ranker = AddressRanker.instance;
     Object? lastError;
     StackTrace? lastStackTrace;
-    // IPv4 first: on some networks IPv6 is a black hole (the connect hangs until
-    // it times out), and the IPv6 edges are not guaranteed to serve every site.
-    // Try the candidates in order instead of rotating the start index — rotating
-    // just means a request randomly dials an edge that cannot serve the site.
-    final ordered = [
-      ...addresses.where((address) => !address.contains(':')),
-      ...addresses.where((address) => address.contains(':')),
-    ];
-    for (final address in ordered) {
+    // 候选顺序来自「延迟探测 + 自动选优」：实测快的排前面、连不上的沉到最后；没有数据时
+    // 退回原来的顺序（IPv4 优先——有些网络上 IPv6 是黑洞，连接会一直挂到超时，而且 IPv6
+    // 边缘不保证服务所有站点）。依旧不轮换起始下标：轮换只会让请求随机撞上不能服务该站
+    // 点的边缘。
+    for (final address in ranker.order(uri.host, addresses)) {
       Socket? plain;
+      final stopwatch = Stopwatch()..start();
       try {
         if (address == uri.host) return _startConnect(uri.host, port);
         // 逐个候选探测用短超时：候选里只要有一个黑洞地址，长超时就会让整次请求
         // 卡满设置里的秒数（默认 10s）才轮到下一个——实测内置列表里就踩过这种坑。
-        plain = await Socket.connect(address, port, timeout: const Duration(seconds: 4));
+        plain = await Socket.connect(address, port, timeout: AddressRanker.probeTimeout);
         final secure = await SecureSocket.secure(
           plain,
           host: uri.host,
           onBadCertificate: allowBadCertificate ? (_) => true : null,
         );
+        // 真实耗时比后台探测更贴近当前时刻，直接喂回去当这次的最优证据。
+        ranker.recordSuccess(uri.host, address, stopwatch.elapsed);
         return ConnectionTask.fromSocket(Future.value(secure), secure.destroy);
       } catch (error, stackTrace) {
         plain?.destroy();
+        // 把坏地址沉底，同一个节点就不必在每次请求里重新烧一遍超时。
+        ranker.recordFailure(uri.host, address);
         lastError = error;
         lastStackTrace = stackTrace;
       }

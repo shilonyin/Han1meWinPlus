@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
@@ -11,24 +10,40 @@ import '../../data/remote/jav/jav_api.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
+import 'selection_settings_pages.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
+import 'site_diagnostics_page.dart';
+import 'site_groups_page.dart';
 
-class NetworkSettingsPage extends ConsumerWidget {
+class NetworkSettingsPage extends ConsumerStatefulWidget {
   const NetworkSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NetworkSettingsPage> createState() => _NetworkSettingsPageState();
+}
+
+class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
+  /// 「站点可用性诊断」直接在这块右侧内容区里切换显示，而不是 push 一个全屏页：
+  /// 设置是「左分类 + 右内容」的两栏结构，push 会把左侧分类栏整个盖住，
+  /// 退出后还得重新点一次分类才能回到这里。
+  var _showDiagnostics = false;
+  var _showSiteGroups = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showDiagnostics) return SiteDiagnosticsPage(onBack: () => setState(() => _showDiagnostics = false));
+    if (_showSiteGroups) return SettingsSubPageScope(onBack: () => setState(() => _showSiteGroups = false), child: const SiteGroupsPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(appBar: AppBar(title: Text(l10n.networkSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.general, children: [
-        SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Icons.language_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/site')),
+        SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Icons.language_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => showSitePicker(context, ref, settings, onManageGroups: () => setState(() => _showSiteGroups = true))),
        SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Icons.link_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
-       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),
-       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Icons.vpn_lock_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showProxySettings(context, settings, controller)),
+       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),        SettingsCardItem(title: l10n.siteDiagnostics, subtitle: l10n.siteDiagnosticsDescription, leading: const Icon(Icons.network_check_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showDiagnostics = true)),       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Icons.vpn_lock_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showProxySettings(context, settings, controller)),
        SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Icons.security_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
     ]));

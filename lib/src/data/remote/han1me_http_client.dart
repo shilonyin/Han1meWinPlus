@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart' as webview;
 
 import '../../core/desktop_platform.dart';
+import 'address_ranker.dart';
 import 'windows_http_overrides.dart';
 
 class Han1meHttpResponse {
@@ -59,7 +60,9 @@ class Han1meHttpClient {
     await clearCookies();
   }
 
-  Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds, String proxyMode = 'system', String customProxy = ''}) async {
+  Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds, String proxyMode = 'system', String customProxy = '', bool useAddressRanking = true}) async {
+    // 地址优选器是全局单例（连接工厂在同步路径上要用它排序），设置在这里统一下发。
+    AddressRanker.instance.enabled = useAddressRanking;
     if (_isDesktop) {
       HttpOverrides.global = WindowsHttpOverrides(
         proxy: await WindowsHttpOverrides.resolveRule(mode: proxyMode, custom: customProxy),

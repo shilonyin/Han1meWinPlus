@@ -15,5 +15,6 @@ Future<void> bootstrapDesktopNetwork([AppSettings? settings]) async {
     dohTimeoutSeconds: resolved.dohTimeoutSeconds,
     proxyMode: resolved.proxyMode,
     customProxy: resolved.customProxy,
+    useAddressRanking: resolved.useAddressRanking,
   );
 }
