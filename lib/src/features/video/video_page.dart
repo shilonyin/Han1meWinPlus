@@ -206,9 +206,16 @@ class _CompactVideoLayout extends StatelessWidget {
       );
 }
 
-/// 播放器 / 内容栏的宽度比例（与 Row 的 flex 一致），以及手把尺寸
-const int _playerFlex = 3;
-const int _sidebarFlex = 1;
+/// 右侧内容栏宽度：参考 b 站（1920 下约 336px）定上限，窗口再宽也不会越拉越宽 ——
+/// 之前按 1/4 弹性算，全屏时能到 600+ 逻辑像素，播放器反被挤窄、上下黑边更多。
+const double _sidebarWidth = 336;
+const double _sidebarMinWidth = 280;
+/// 播放器盒子固定 16:9（与 b 站一致）。
+///
+/// 盒子不再拉满整窗高度：那样 16:9 的片子被按宽度铺满后，播放器里上下会多出一大條
+/// 纯黑（窗口越高越多）。现在盒子跟着 16:9 走，画面外面留的是页面底色，看着就是
+/// 「播放器 + 页面」，而不是「播放器里包着黑边」。
+const double _playerAspectRatio = 16 / 9;
 const double _sidebarHandleWidth = 36;
 
 class _TabletVideoLayout extends StatelessWidget {
@@ -225,8 +232,10 @@ class _TabletVideoLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
-          // 手把骑在视频右缘上，所以要放在整页的 Stack 里（侧栏自己的 Stack 会把手把挡在裁剪外）
-          final videoWidth = (constraints.maxWidth - 1) * _playerFlex / (_playerFlex + _sidebarFlex);
+          // 内容栏宽度：窗口窄时给足 280，宽了之后封顶在 336，不会无限变宽。
+          final sidebarWidth = (constraints.maxWidth * .26).clamp(_sidebarMinWidth, _sidebarWidth);
+          // 播放器区域宽度（手把要骑在它的右缘上）
+          final playerWidth = sidebarCollapsed ? constraints.maxWidth : constraints.maxWidth - sidebarWidth - 1;
           return Stack(
             clipBehavior: Clip.none,
             children: [
@@ -234,22 +243,27 @@ class _TabletVideoLayout extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: sidebarCollapsed ? 1 : _playerFlex,
                       child: MouseRegion(
                         onEnter: (_) => onPlayerHover(true),
                         onExit: (_) => onPlayerHover(false),
-                        // 舞台纯黑：播放页是沉浸页，不跟随应用主题（见 VideoPage.build）。
-                        child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode)))),
+                        // 播放器盒子固定 16:9 并居中：盒子本身仍是纯黑（非 16:9 的片子在里面
+                        // 居中留边），上下多出来的那部分是页面底色，不是播放器的黑边。
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: _playerAspectRatio,
+                            child: ColoredBox(color: Colors.black, child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))),
+                          ),
+                        ),
                       ),
                     ),
                     const VerticalDivider(width: 1),
-                    if (!sidebarCollapsed) Expanded(flex: _sidebarFlex, child: _VideoTabsView(video: video, scrollBehavior: scrollBehavior, showPlayer: false)),
+                    if (!sidebarCollapsed) SizedBox(width: sidebarWidth, child: _VideoTabsView(video: video, scrollBehavior: scrollBehavior, showPlayer: false)),
                   ],
                 ),
               ),
               Positioned(
                 // 展开时骑在视频右缘；收起后贴窗口右缘、直接叠在画面上（不再留窄栏）
-                left: sidebarCollapsed ? null : videoWidth - _sidebarHandleWidth / 2,
+                left: sidebarCollapsed ? null : playerWidth - _sidebarHandleWidth / 2,
                 right: sidebarCollapsed ? 8 : null,
                 top: 0,
                 bottom: 0,
