@@ -99,7 +99,9 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                     child: Semantics(
                       header: true,
                       child: DefaultTextStyle.merge(
-                        style: textTheme.titleSmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w600),
+                        // 分组标题用中性强文本色：主题色要留给「选中 / 悬停」的条目，
+                        // 两者同色时分不清哪个是分类、哪个是当前页。
+                        style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w600),
                         child: Text(sections[group].$1),
                       ),
                     ),
@@ -192,7 +194,8 @@ class _SettingsCategoryList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    Text sectionTitle(String value) => Text(value, style: TextStyle(color: Theme.of(context).colorScheme.primary));
+    // 与宽窗布局一致：分类标题用中性强文本色，不跟选中项抢主题色。
+    Text sectionTitle(String value) => Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface));
     final sections = _settingsSections(l10n);
     return Scaffold(
       appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null, title: Text(l10n.settings)),
