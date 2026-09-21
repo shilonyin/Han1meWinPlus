@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -38,26 +39,31 @@ class VideoPlayerSurface extends ConsumerStatefulWidget {
   ConsumerState<VideoPlayerSurface> createState() => _VideoPlayerSurfaceState();
 }
 
+/// 滚轮调音量的单次步长：一个滚轮刻度 = 5%。
+const double _volumeScrollStep = .05;
+/// 把滚轮 delta 换算成「几个刻度」的参考量。
+/// 一次事件最多按一个刻度计算，所以不管鼠标/引擎上报的每刻度 delta 是多少，
+/// 一个刻度都稳定对应 5%；高精度滚轮的 delta 更小，按比例得到更细的步长。
+const double _scrollUnitsPerNotch = 53;
+
 class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   bool _showControls = true;
   bool _locked = false;
-  double? _dragStartX;
-  double? _dragStartY;
   _DragDirection? _dragDirection;
   Duration? _seekStartPosition;
-  double _brightness = 1;
-  double _volume = 1;
   _Adjustment? _adjustment;
   Timer? _hideTimer;
   double? _speedBeforeLongPress;
   /// 鼠标是否停在播放区域里（含底部控制按钮所在的区域）。
   /// 桌面端只要鼠标在画面里就保持控制条显示，移到窗口外才按超时隐藏。
   bool _pointerInside = false;
+  /// 滚轮调音量后画面中央显示的白色音量提示（0~1，null 表示不显示）。
+  double? _volumeHud;
+  Timer? _volumeHudTimer;
 
   @override
   void initState() {
     super.initState();
-    _readLevels();
     unawaited(PlaybackSpeedPolicy.initialize());
     WidgetsBinding.instance.addPostFrameCallback((_) => _restartTimer());
   }
@@ -65,12 +71,8 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _volumeHudTimer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _readLevels() async {
-    final levels = await Future.wait([PlatformService.screenBrightness(), PlatformService.volume()]);
-    if (mounted) setState(() { _brightness = levels[0]; _volume = levels[1]; });
   }
 
   void _restartTimer() {
@@ -96,6 +98,32 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   void _holdControls() {
     _hideTimer?.cancel();
     if (!_showControls && !_locked) setState(() => _showControls = true);
+  }
+
+  /// 鼠标滚轮调音量：滚轮直接改播放器音量，并在画面中央弹一个白底提示。
+  ///
+  /// 用 pointerSignalResolver 抢先认领事件，免得同一个滚轮既调音量又把外层列表滚起来。
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
+    if (_locked) return;
+    final controller = widget.controller.value;
+    if (controller == null || !controller.value.isInitialized) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (resolved) {
+      final scroll = resolved as PointerScrollEvent;
+      // 上滚加、下滚减
+      final step = (-scroll.scrollDelta.dy / _scrollUnitsPerNotch * _volumeScrollStep).clamp(-_volumeScrollStep, _volumeScrollStep);
+      if (step == 0) return;
+      final next = (controller.value.volume + step).clamp(0.0, 1.0);
+      if (next != controller.value.volume) unawaited(controller.setVolume(next));
+      // 已经到顶 / 到底也要显示提示，让用户看到当前音量就是 100% 或 0%
+      _showVolumeHud(next);
+    });
+  }
+
+  void _showVolumeHud(double volume) {
+    _volumeHudTimer?.cancel();
+    setState(() => _volumeHud = volume);
+    _volumeHudTimer = Timer(const Duration(milliseconds: 900), () { if (mounted) setState(() => _volumeHud = null); });
   }
 
   void _toggleControls() { if (_locked) return; setState(() => _showControls = !_showControls); _restartTimer(); }
@@ -140,50 +168,29 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   }
 
   void _dragStart(DragStartDetails details) {
-    _dragStartX = details.localPosition.dx;
-    _dragStartY = details.localPosition.dy;
     _dragDirection = null;
     _seekStartPosition = widget.controller.value?.value.position;
   }
 
+  /// 只处理横向拖动（快进 / 快退）。竖向的「左半屏亮度 / 右半屏音量」调节已移除：
+  /// 桌面端亮度是空实现，音量在控制条上有独立入口，留在画面上只会误触。
   void _dragUpdate(DragUpdateDetails details) {
-    final startX = _dragStartX;
-    if (startX == null || _locked) return;
+    if (_locked) return;
     final controller = widget.controller.value;
     if (controller == null) return;
     final size = context.size ?? MediaQuery.sizeOf(context);
     final direction = _dragDirection ??= details.delta.dx.abs() > details.delta.dy.abs() ? _DragDirection.horizontal : _DragDirection.vertical;
-    if (direction == _DragDirection.horizontal) {
-      final duration = controller.value.duration;
-      final sensitivity = ref.read(settingsProvider).valueOrNull?.seekSensitivity ?? .35;
-      if (duration != Duration.zero) {
-        final position = (controller.value.position.inMilliseconds + details.delta.dx / size.width * duration.inMilliseconds * sensitivity).round().clamp(0, duration.inMilliseconds).toInt();
-        controller.seekTo(Duration(milliseconds: position));
-        final startMs = _seekStartPosition?.inMilliseconds ?? position;
-        setState(() => _adjustment = _Adjustment.seek(position - startMs, Duration(milliseconds: position), duration));
-      }
-      return;
-    }
-    final value = (startX < size.width / 2 ? _brightness : _volume) - details.delta.dy / size.height;
-    if (startX < size.width / 2) { _brightness = value.clamp(0.01, 1).toDouble(); PlatformService.setScreenBrightness(_brightness); setState(() => _adjustment = _Adjustment.brightness(_brightness)); }
-    else {
-      _volume = value.clamp(0, 1).toDouble();
-      // 桌面端的平台音量接口是空实现，直接改播放器音量才有效
-      if (Platform.isAndroid || Platform.isIOS) {
-        PlatformService.setVolume(_volume);
-      } else {
-        unawaited(_applyVolume(controller, _volume));
-      }
-      setState(() => _adjustment = _Adjustment.volume(_volume));
-    }
+    if (direction != _DragDirection.horizontal) return;
+    final duration = controller.value.duration;
+    if (duration == Duration.zero) return;
+    final sensitivity = ref.read(settingsProvider).valueOrNull?.seekSensitivity ?? .35;
+    final position = (controller.value.position.inMilliseconds + details.delta.dx / size.width * duration.inMilliseconds * sensitivity).round().clamp(0, duration.inMilliseconds).toInt();
+    controller.seekTo(Duration(milliseconds: position));
+    final startMs = _seekStartPosition?.inMilliseconds ?? position;
+    setState(() => _adjustment = _Adjustment.seek(position - startMs, Duration(milliseconds: position), duration));
   }
 
-  Future<void> _applyVolume(VideoPlayerController controller, double volume) async {
-    try {
-      if ((controller.value.volume - volume).abs() > .001) await controller.setVolume(volume);
-    } catch (_) {}
-  }
-  void _dragEnd(DragEndDetails details) { _dragStartX = null; _dragStartY = null; _dragDirection = null; _seekStartPosition = null; Future<void>.delayed(const Duration(milliseconds: 700), () { if (mounted) setState(() => _adjustment = null); }); }
+  void _dragEnd(DragEndDetails details) { _dragDirection = null; _seekStartPosition = null; Future<void>.delayed(const Duration(milliseconds: 700), () { if (mounted) setState(() => _adjustment = null); }); }
 
   Future<void> _enterPictureInPicture(VideoPlayerController controller) async {
     var entered = false;
@@ -203,7 +210,10 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
         if (controller == null || !controller.value.isInitialized) {
           return const Center(child: M3ELoadingIndicator(color: Colors.white));
         }
-        return MouseRegion(
+        return Listener(
+          // 滚轮调音量：挂在最外层，画面、控制条、顶部操作条上的滚轮都生效
+          onPointerSignal: _onPointerSignal,
+          child: MouseRegion(
           // 悬停在画面（包括底部控制条、顶部操作条）上时保持显示，移出去才重新计时
           onEnter: (_) => _setPointerInside(true),
           onHover: (_) => _holdControls(),
@@ -218,6 +228,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
             onPanUpdate: _dragUpdate,
             onPanEnd: _dragEnd,
             child: Stack(fit: StackFit.expand, children: [
+              // 播放页是沉浸页（不跟随应用主题），画面外框固定黑。
               const ColoredBox(color: Colors.black),
               _VideoViewport(controller: controller),
               ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => value.isBuffering ? const Center(child: M3ELoadingIndicator(color: Colors.white)) : const SizedBox.shrink()),
@@ -273,15 +284,29 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                 ),
               if (_showControls && widget.fullscreen && !_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.lockControls, onPressed: () => setState(() => _locked = true), icon: const Icon(Icons.lock_open_outlined))),
               if (widget.fullscreen && widget.keyframes.isNotEmpty) _KeyframeCountdown(controller: controller, keyframes: widget.keyframes),
-              if (_adjustment != null)
-                switch (_adjustment!.kind) {
-                  _AdjustmentKind.brightness => Positioned(top: 72, left: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
-                  _AdjustmentKind.volume => Positioned(top: 72, right: 16, child: _AdjustmentHud(adjustment: _adjustment!)),
-                  _ => Positioned(top: 72, left: 0, right: 0, child: Center(child: _AdjustmentHud(adjustment: _adjustment!))),
+              if (_adjustment != null) Positioned(top: 72, left: 0, right: 0, child: Center(child: _AdjustmentHud(adjustment: _adjustment!))),
+              // 滚轮调音量的白底提示：固定在画面正中，独立于控制条的显示/隐藏
+              if (_volumeHud != null) Center(child: _VolumeHud(volume: _volumeHud!)),
+              // 暂停时右下角常驻一个标记：白底圆角 + 黑色暂停图标。
+              // 控制条显示着的时候右下角被它占着，所以此时把标记抬到控制条上方。
+              ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: controller,
+                builder: (context, value, _) {
+                  final paused = !value.isPlaying && !value.isCompleted && value.duration > Duration.zero;
+                  return AnimatedPositioned(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    right: 12,
+                    bottom: paused && _showControls && !_locked ? 104 : 16,
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(duration: const Duration(milliseconds: 180), opacity: paused ? 1 : 0, child: const _PausedBadge()),
+                    ),
+                  );
                 },
+              ),
             ]),
           ),
-        );
+        ));
       },
     );
   }
@@ -450,11 +475,9 @@ class _MarqueeTitleState extends State<_MarqueeTitle> with SingleTickerProviderS
 }
 
 enum _DragDirection { horizontal, vertical }
-enum _AdjustmentKind { brightness, volume, speed, seek }
+enum _AdjustmentKind { speed, seek }
 class _Adjustment {
   const _Adjustment(this.kind, this.value, {this.delta, this.position, this.duration});
-  factory _Adjustment.brightness(double value) => _Adjustment(_AdjustmentKind.brightness, value);
-  factory _Adjustment.volume(double value) => _Adjustment(_AdjustmentKind.volume, value);
   factory _Adjustment.speed(double value) => _Adjustment(_AdjustmentKind.speed, value);
   factory _Adjustment.seek(int delta, Duration position, Duration duration) => _Adjustment(_AdjustmentKind.seek, 0, delta: delta, position: position, duration: duration);
   final _AdjustmentKind kind;
@@ -472,7 +495,6 @@ class _AdjustmentHud extends StatelessWidget {
   Widget build(BuildContext context) => switch (adjustment.kind) {
         _AdjustmentKind.seek => _seekCard(),
         _AdjustmentKind.speed => _pill(Text('${adjustment.value}x', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        _ => _levelCard(),
       };
 
   Widget _pill(Widget child) => DecoratedBox(
@@ -495,47 +517,44 @@ class _AdjustmentHud extends StatelessWidget {
     ]));
   }
 
-  Widget _levelCard() {
-    final brightness = adjustment.kind == _AdjustmentKind.brightness;
-    final level = adjustment.value.clamp(0, 1).toDouble();
-    return _pill(Row(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(
-        width: 180,
-        height: 56,
-        child: IgnorePointer(
-          child: M3ESlider(
-            value: level,
-            onChanged: (_) {},
-            icon: Icon(brightness ? Icons.brightness_6 : Icons.volume_up, size: 20),
-            trailingIcon: false,
-            decoration: M3ESliderDecoration(
-              trackHeight: 44,
-              trackCornerRadius: 22,
-              thumbWidth: 6,
-              thumbHeight: 56,
-              trackIconSize: 20,
-              trackIconActiveColor: Colors.white,
-              trackIconInactiveColor: Colors.white70,
-              colors: M3ESliderColors(
-                thumbColor: Colors.white,
-                activeTrackColor: Colors.white,
-                inactiveTrackColor: Colors.white.withValues(alpha: 0.25),
-                disabledThumbColor: Colors.white,
-                disabledActiveTrackColor: Colors.white,
-                disabledInactiveTrackColor: Colors.white.withValues(alpha: 0.25),
-                activeTickColor: Colors.transparent,
-                inactiveTickColor: Colors.transparent,
-                disabledActiveTickColor: Colors.transparent,
-                disabledInactiveTickColor: Colors.transparent,
-              ),
-            ),
+}
+
+/// 滚轮调音量的提示：白底圆角卡片 + 喇叭图标 + 百分比。
+class _VolumeHud extends StatelessWidget {
+  const _VolumeHud({required this.volume});
+  final double volume;
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (volume.clamp(0.0, 1.0) * 100).round();
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(percent <= 0 ? Icons.volume_off : (percent < 50 ? Icons.volume_down : Icons.volume_up), color: Colors.black, size: 26),
+              const SizedBox(width: 10),
+              Text('$percent%', style: const TextStyle(color: Colors.black, fontSize: 22, height: 1, fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
+            ],
           ),
         ),
       ),
-      const SizedBox(width: 12),
-      Text('${(level * 100).round()}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-    ]));
+    );
   }
+}
+
+/// 暂停时右下角的常驻标记：白底圆角卡片 + 黑色三角播放图标（B 站那种）。
+class _PausedBadge extends StatelessWidget {
+  const _PausedBadge();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.all(Radius.circular(10))),
+        child: Padding(padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10), child: Icon(Icons.play_arrow, color: Colors.black, size: 28)),
+      );
 }
 
 class _KeyframeCountdown extends StatelessWidget {
