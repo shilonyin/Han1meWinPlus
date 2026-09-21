@@ -191,14 +191,13 @@ class _AboutHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 横版锁标是一体图（图标 + 字标），直接整张显示 —— 字标是设计稿里的专用
         // 字形，用系统字体拼字会走样（与 README / 安装包使用同一份资源）。
         Image.asset('assets/logo_lockup.png', height: 58, filterQuality: FilterQuality.high, semanticLabel: appName),
-        if (version.isNotEmpty) ...[const SizedBox(height: 8), Text(version, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.outline))],
+        if (version.isNotEmpty) ...[const SizedBox(height: 10), _VersionBadge(version: version)],
         const SizedBox(height: 16),
         Text(l10n.thirdPartyClient, style: theme.textTheme.bodyLarge),
         const SizedBox(height: 18),
@@ -210,6 +209,34 @@ class _AboutHeader extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// 关于页的版本号：描边胶囊 + 品牌色加粗字，比原来那行贴着 logo 的浅灰小字醒目得多。
+/// 沿用这个界面既有的视觉约定：只用描边和变色，不铺底色块。
+class _VersionBadge extends StatelessWidget {
+  const _VersionBadge({required this.version});
+
+  final String version;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border.all(color: colorScheme.outlineVariant), borderRadius: BorderRadius.circular(999)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.sell_outlined, size: 14, color: colorScheme.primary),
+            const SizedBox(width: 6),
+            Text('v$version', style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700, letterSpacing: .4)),
+          ],
+        ),
+      ),
     );
   }
 }
