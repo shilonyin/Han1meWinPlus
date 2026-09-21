@@ -47,6 +47,14 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 
 ## 应用截图
 
+| 首页（分区浏览） | 搜索结果 |
+| --- | --- |
+| ![首页](docs/screenshots/home.jpg) | ![搜索结果](docs/screenshots/search.jpg) |
+
+| 我的（稍后观看 / 收藏 / 播放清单 / 订阅） | 新番预告 |
+| --- | --- |
+| ![我的](docs/screenshots/library.jpg) | ![新番预告](docs/screenshots/previews.jpg) |
+
 | 外观设置 | 播放设置 |
 | --- | --- |
 | ![外观设置](docs/screenshots/appearance.png) | ![播放设置](docs/screenshots/player-settings.png) |
@@ -55,7 +63,7 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 | --- | --- |
 | ![网络设置](docs/screenshots/network.png) | ![站点可用性诊断](docs/screenshots/diagnostics.png) |
 
-> 截图仅包含界面设置页，不含任何影片内容。
+> 截图中的影片封面与账号信息均已做模糊处理。
 
 ## 与上游的关系
 
