@@ -162,7 +162,12 @@ class _ArtistRow extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.push('/search', extra: SearchRouteRequest(initialUrl: Uri(path: '/search', queryParameters: {'query': video.artist!}).toString())),
+          // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
+          // 那时搜索页会退化成「没有关键词」的页，看起来就是点了作者没内容。
+          onTap: () {
+            final url = Uri(path: '/search', queryParameters: {'query': video.artist!}).toString();
+            context.push(url, extra: SearchRouteRequest(initialUrl: url));
+          },
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -302,7 +307,14 @@ class _TagListState extends ConsumerState<_TagList> {
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           labelPadding: EdgeInsets.zero,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          onPressed: () => context.push('/search', extra: SearchRouteRequest(initialUrl: tags[index].href ?? Uri(path: '/search', queryParameters: {'tags[]': tags[index].name}).toString())),
+          // 同上：条件要放进 URL，不能只靠 `extra`。
+          onPressed: () {
+            final href = tags[index].href;
+            final uri = href == null ? Uri(path: '/search', queryParameters: {'tags[]': tags[index].name}) : Uri.parse(href);
+            // 只取路径与查询参数：站点地址（可能是绝对 URL）不能直接交给 go_router 匹配。
+            final url = Uri(path: uri.path, queryParameters: uri.queryParameters.isEmpty ? {'tags[]': tags[index].name} : uri.queryParameters).toString();
+            context.push(url, extra: SearchRouteRequest(initialUrl: url));
+          },
         ),
       IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Icons.add), onPressed: enabled ? () => _editTags('add') : null),
       IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Icons.remove), onPressed: enabled ? () => _editTags('remove') : null),

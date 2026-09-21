@@ -314,7 +314,10 @@ class _ArtistStrip extends StatelessWidget {
             label: artist.name,
             avatarUrl: artist.avatarUrl,
             onTap: () => onSelected(selected ? null : key),
-            onLongPress: () => context.push('/search', extra: SearchRouteRequest(initialUrl: Uri(path: '/search', queryParameters: {'query': artist.name}).toString())),
+            onLongPress: () {
+              final url = Uri(path: '/search', queryParameters: {'query': artist.name}).toString();
+              context.push(url, extra: SearchRouteRequest(initialUrl: url));
+            },
           );
         },
       ),

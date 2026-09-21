@@ -23,6 +23,7 @@ import '../features/previews/previews_page.dart';
 import '../features/checkin/check_in_page.dart';
 import '../features/search/search_page.dart';
 import '../features/settings/about_page.dart';
+import '../features/settings/site_diagnostics_page.dart';
 import '../features/settings/storage_settings_page.dart';
 import '../features/settings/backup_settings_page.dart';
 import '../features/settings/cloudflare_page.dart';
@@ -36,7 +37,6 @@ import '../features/settings/network_settings_page.dart';
 import '../features/settings/playback_settings_page.dart';
 import '../features/settings/player_settings_page.dart';
 import '../features/settings/recommendation_settings_page.dart';
-import '../features/settings/selection_settings_pages.dart';
 import '../features/settings/settings_page.dart';
 import '../features/settings/theme_settings_page.dart';
 import '../features/settings/webdav_settings_page.dart';
@@ -66,7 +66,10 @@ class AppRouter {
                   GoRoute(path: 'previews/getchu/detail/:id', builder: (context, state) => GetchuPreviewDetailPage(id: state.pathParameters['id']!)),
                   GoRoute(path: 'previews/getchu/:month', builder: (context, state) => GetchuPreviewPage(month: state.pathParameters['month']!)),
                   GoRoute(path: 'previews/:month', builder: (context, state) => PreviewsPage(month: state.pathParameters['month']!)),
-                  GoRoute(path: 'search', builder: _searchRouteBuilder),
+                  // 搜索页挂在**根导航器**上（全屏）：它会被视频页这类顶层全屏页面打开，
+                  // 而从顶层 push 一个 shell 分支内的路由时 go_router 不会构建页面
+                  // （实测连 builder 都不会被调用）。挂在根上与当前栈无关，返回也能回到原页面。
+                  GoRoute(path: 'search', parentNavigatorKey: navigatorKey, builder: _searchRouteBuilder),
                   GoRoute(path: 'mine', builder: (context, state) => const AccountPage()),
                 ],
               ),
@@ -114,6 +117,7 @@ class AppRouter {
         GoRoute(path: '/settings/layout', builder: (context, state) => const LayoutSettingsPage()),
         GoRoute(path: '/settings/layout/home-categories', builder: (context, state) => const HomeCategoriesPage()),
         GoRoute(path: '/settings/network', builder: (context, state) => const NetworkSettingsPage()),
+        GoRoute(path: '/settings/network/diagnostics', builder: (context, state) => const SiteDiagnosticsPage()),
         GoRoute(path: '/settings/recommendations', builder: (context, state) => const RecommendationSettingsPage()),
         GoRoute(path: '/settings/recommendations/titles', builder: (context, state) => const VideoTitleFilterPage()),
         GoRoute(path: '/settings/recommendations/authors', builder: (context, state) => const AuthorFilterPage()),
@@ -122,11 +126,6 @@ class AppRouter {
         GoRoute(path: '/settings/storage', builder: (context, state) => const StorageSettingsPage()),
         GoRoute(path: '/settings/storage/backup', builder: (context, state) => const BackupSettingsPage()),
         GoRoute(path: '/settings/language', builder: (context, state) => const LanguageSettingsPage()),
-        GoRoute(path: '/settings/site', builder: (context, state) => const SiteSettingsPage()),
-        GoRoute(path: '/settings/player/decoder', builder: (context, state) => const DecoderSettingsPage()),
-        GoRoute(path: '/settings/player/renderer', builder: (context, state) => const RendererSettingsPage()),
-        GoRoute(path: '/settings/player/hardware-decoder', builder: (context, state) => const HardwareDecoderSettingsPage()),
-        GoRoute(path: '/settings/player/super-resolution', builder: (context, state) => const SuperResolutionSettingsPage()),
         GoRoute(path: '/cloudflare', builder: (context, state) => CloudflarePage(initialUrl: state.extra as String?)),
         GoRoute(path: '/comments/:type/:id', builder: (context, state) => CommentsPage(id: state.pathParameters['id']!, type: state.pathParameters['type']!, title: state.extra as String? ?? '')),
         GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
