@@ -1,6 +1,10 @@
 # Han1meWinPlus
 
 <p align="center">
+  <a href="README.en.md">English</a> · <b>简体中文</b>
+</p>
+
+<p align="center">
   <img src="assets/logo.png" alt="Han1meWinPlus Logo" width="160">
 </p>
 
