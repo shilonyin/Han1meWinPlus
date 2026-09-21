@@ -126,7 +126,7 @@ class _SettingsPanesState extends State<_SettingsPanes> {
   }
 }
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
   final IconData icon;
@@ -135,27 +135,45 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> {
+  var _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final foreground = selected ? colorScheme.onSecondaryContainer : colorScheme.onSurfaceVariant;
+    // 选中与悬停都靠「左侧竖条 + 文字/图标变色」表示，不铺底色块 —— 底色块比图标还抢眼。
+    final highlighted = widget.selected || _hovered;
+    final foreground = highlighted ? colorScheme.primary : colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: Material(
-        color: selected ? colorScheme.secondaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(28),
-        clipBehavior: Clip.antiAlias,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(28),
+          // 不能出现矩形水波纹，否则悬停/点击会冒出底色块。
+          hoverColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
           child: SizedBox(
             height: 56,
             child: Row(
               children: [
-                const SizedBox(width: 16),
-                Icon(icon, size: 24, color: foreground),
+                // 选中竖条：常驻占位，避免选中时内容左右跳动。
+                SizedBox(
+                  width: 3,
+                  child: widget.selected ? Center(child: Container(width: 3, height: 18, decoration: BoxDecoration(color: colorScheme.primary, borderRadius: BorderRadius.circular(2)))) : null,
+                ),
+                const SizedBox(width: 13),
+                Icon(widget.icon, size: 24, color: foreground),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(label, style: textTheme.labelLarge?.copyWith(color: foreground), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(widget.label, style: textTheme.labelLarge?.copyWith(color: foreground, fontWeight: widget.selected ? FontWeight.w600 : null), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 12),
               ],

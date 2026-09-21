@@ -276,36 +276,48 @@ class _AboutItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, size: 20, color: colorScheme.onSecondaryContainer),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+    // 与设置行同一套规矩：悬停只把文字与图标染主题色，不铺底色块。
+    return SettingsHoverTracker(
+      enabled: onTap != null,
+      child: Builder(
+        builder: (context) {
+          final hovered = SettingsHoverScope.of(context);
+          return InkWell(
+            onTap: onTap,
+            hoverColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
                 children: [
-                  Text(title, style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface)),
-                  if (subtitle case final text?) ...[
-                    const SizedBox(height: 2),
-                    Text(text, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                  ],
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(10)),
+                    child: Icon(icon, size: 20, color: colorScheme.onSecondaryContainer),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: theme.textTheme.bodyLarge?.copyWith(color: hovered ? colorScheme.primary : colorScheme.onSurface)),
+                        if (subtitle case final text?) ...[
+                          const SizedBox(height: 2),
+                          Text(text, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  trailing ?? Icon(inApp ? Icons.chevron_right : Icons.open_in_new, size: 18, color: hovered ? colorScheme.primary : colorScheme.onSurfaceVariant),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            trailing ?? Icon(inApp ? Icons.chevron_right : Icons.open_in_new, size: 18, color: colorScheme.onSurfaceVariant),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -144,50 +144,96 @@ class SettingsTile<T> extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final secondary = enabled ? colorScheme.onSurfaceVariant : colorScheme.onSurface.withValues(alpha: 0.38);
-    return InkWell(
-      onTap: _tapHandler(context),
-      onHighlightChanged: _SplitListRow.pressReporterOf(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 32),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _TileLabel(title: title, leading: leading, description: description, secondary: secondary),
-                  ),
-                  if (value != null) ...[
-                    const SizedBox(width: 12),
-                    DefaultTextStyle.merge(
-                      style: textTheme.bodyMedium?.copyWith(color: secondary),
-                      child: value!,
+    // 悬停/按下不再铺底色块，改为把图标与标题染成主题色
+    // （与主侧栏、设置分类栏一套规矩：底色块比图标还抢眼）。
+    return SettingsHoverTracker(
+      enabled: enabled,
+      child: InkWell(
+        onTap: _tapHandler(context),
+        onHighlightChanged: _SplitListRow.pressReporterOf(context),
+        hoverColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 32),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _TileLabel(title: title, leading: leading, description: description, secondary: secondary),
                     ),
+                    if (value != null) ...[
+                      const SizedBox(width: 12),
+                      DefaultTextStyle.merge(
+                        style: textTheme.bodyMedium?.copyWith(color: secondary),
+                        child: value!,
+                      ),
+                    ],
+                    if (trailing != null) ...[
+                      const SizedBox(width: 8),
+                      IconTheme.merge(data: IconThemeData(color: secondary), child: trailing!),
+                    ],
+                    if (onToggle != null) ...[
+                      const SizedBox(width: 12),
+                      Switch(value: initialValue ?? false, onChanged: enabled ? onToggle : null),
+                    ],
+                    if (radioValue != null) ...[
+                      const SizedBox(width: 12),
+                      _RadioDot(selected: radioValue == groupValue, enabled: enabled),
+                    ],
                   ],
-                  if (trailing != null) ...[
-                    const SizedBox(width: 8),
-                    IconTheme.merge(data: IconThemeData(color: secondary), child: trailing!),
-                  ],
-                  if (onToggle != null) ...[
-                    const SizedBox(width: 12),
-                    Switch(value: initialValue ?? false, onChanged: enabled ? onToggle : null),
-                  ],
-                  if (radioValue != null) ...[
-                    const SizedBox(width: 12),
-                    _RadioDot(selected: radioValue == groupValue, enabled: enabled),
-                  ],
-                ],
+                ),
               ),
-            ),
-            if (bottom != null) ...[
-              const SizedBox(height: 4),
-              bottom!,
+              if (bottom != null) ...[
+                const SizedBox(height: 4),
+                bottom!,
+              ],
             ],
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// 行内悬停状态：子节点（标题/图标）据此变色。
+/// 目前只有一种反馈方式 —— 变主题色，不铺底色块。
+class SettingsHoverScope extends InheritedWidget {
+  const SettingsHoverScope({required this.hovered, required super.child, super.key});
+
+  final bool hovered;
+
+  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SettingsHoverScope>()?.hovered ?? false;
+
+  @override
+  bool updateShouldNotify(SettingsHoverScope oldWidget) => oldWidget.hovered != hovered;
+}
+
+/// 把鼠标悬停状态广播给子树（见 [SettingsHoverScope]）。
+class SettingsHoverTracker extends StatefulWidget {
+  const SettingsHoverTracker({required this.enabled, required this.child, super.key});
+
+  final bool enabled;
+  final Widget child;
+
+  @override
+  State<SettingsHoverTracker> createState() => _SettingsHoverTrackerState();
+}
+
+class _SettingsHoverTrackerState extends State<SettingsHoverTracker> {
+  var _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: SettingsHoverScope(hovered: _hovered, child: widget.child),
     );
   }
 }
@@ -204,10 +250,12 @@ class _TileLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    // 悬停时图标与标题染主题色 —— 这是行内唯一的交互反馈。
+    final hovered = SettingsHoverScope.of(context);
     return Row(
       children: [
         if (leading != null) ...[
-          IconTheme.merge(data: IconThemeData(size: 24, color: secondary), child: leading!),
+          IconTheme.merge(data: IconThemeData(size: 24, color: hovered ? colorScheme.primary : secondary), child: leading!),
           const SizedBox(width: 16),
         ],
         Expanded(
@@ -216,7 +264,7 @@ class _TileLabel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DefaultTextStyle.merge(
-                style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+                style: textTheme.bodyLarge?.copyWith(color: hovered ? colorScheme.primary : colorScheme.onSurface),
                 child: title,
               ),
               if (description != null) ...[
