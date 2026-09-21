@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 
-class CommentSettingsPage extends ConsumerWidget {
+class CommentSettingsPage extends ConsumerStatefulWidget {
   const CommentSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CommentSettingsPage> createState() => _CommentSettingsPageState();
+}
+
+class _CommentSettingsPageState extends ConsumerState<CommentSettingsPage> {
+  /// 二级页在右侧内容区里切换显示，而不是 push 一个全屏路由（见 [SettingsSubPageScope]）。
+  String? _subPage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_subPage == 'keywords') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const CommentKeywordsPage());
+    if (_subPage == 'users') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const CommentUserFilterPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
@@ -19,8 +29,8 @@ class CommentSettingsPage extends ConsumerWidget {
     return Scaffold(appBar: AppBar(title: Text(l10n.commentSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.comments, children: [
          SettingsCardItem(title: l10n.enableComments, leading: const Icon(Icons.forum_outlined), trailing: Switch(value: settings.commentsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(commentsEnabled: value)))),
-          SettingsCardItem(title: l10n.commentKeywordFilter, subtitle: l10n.commentKeywordFilterDescription, leading: const Icon(Icons.block_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommentKeywordsPage()))),
-          SettingsCardItem(title: l10n.commentUserFilter, subtitle: l10n.commentUserFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/comments/users')),
+          SettingsCardItem(title: l10n.commentKeywordFilter, subtitle: l10n.commentKeywordFilterDescription, leading: const Icon(Icons.block_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'keywords')),
+          SettingsCardItem(title: l10n.commentUserFilter, subtitle: l10n.commentUserFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'users')),
        ]),
     ]));
   }
@@ -52,7 +62,7 @@ class _CommentFilterEditorState extends State<_CommentFilterEditor> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.title)),
+        appBar: AppBar(leading: settingsSubPageBack(context), title: Text(widget.title)),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -89,7 +99,7 @@ class _CommentKeywordsPageState extends ConsumerState<CommentKeywordsPage> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.commentKeywordFilter)), body: Padding(
+    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.commentKeywordFilter)), body: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         TextField(controller: _input, textInputAction: TextInputAction.done, onSubmitted: (_) => _add(settings.blockedCommentKeywords), decoration: InputDecoration(labelText: l10n.keyword)),

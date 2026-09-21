@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -11,21 +10,31 @@ import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
+import 'settings_sub_page.dart';
 
-class WebDavSettingsPage extends ConsumerWidget {
+class WebDavSettingsPage extends ConsumerStatefulWidget {
   const WebDavSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WebDavSettingsPage> createState() => _WebDavSettingsPageState();
+}
+
+class _WebDavSettingsPageState extends ConsumerState<WebDavSettingsPage> {
+  /// 二级页在右侧内容区里切换显示，而不是 push 一个全屏路由（见 [SettingsSubPageScope]）。
+  var _showConfiguration = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showConfiguration) return SettingsSubPageScope(onBack: () => setState(() => _showConfiguration = false), child: const WebDavConfigurationPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.webDavSettings)), body: ListView(children: [SettingsCardList(title: l10n.webDav, children: [
+    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavSettings)), body: ListView(children: [SettingsCardList(title: l10n.webDav, children: [
       SettingsCardItem(title: l10n.webDavSync, leading: const Icon(Icons.cloud_sync_outlined), trailing: Switch(value: settings.webDavEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(webDavEnabled: value, webDavHistorySync: value ? current.webDavHistorySync : false, webDavFavoriteSync: value ? current.webDavFavoriteSync : false)))),
       SettingsCardItem(title: l10n.watchHistorySync, leading: const Icon(Icons.history_outlined), trailing: Switch(value: settings.webDavHistorySync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavHistorySync: value)) : null)),
       SettingsCardItem(title: l10n.favoriteSync, leading: const Icon(Icons.favorite_outline), trailing: Switch(value: settings.webDavFavoriteSync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavFavoriteSync: value)) : null)),
-      SettingsCardItem(title: l10n.webDavConfiguration, leading: const Icon(Icons.settings_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/webdav/configuration')),
+      SettingsCardItem(title: l10n.webDavConfiguration, leading: const Icon(Icons.settings_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showConfiguration = true)),
       SettingsCardItem(title: l10n.syncWatchHistoryNow, leading: const Icon(Icons.sync_outlined), onTap: () => _sync(context, ref, settings)),
     ])]));
   }
@@ -85,7 +94,7 @@ class _WebDavConfigurationPageState extends ConsumerState<WebDavConfigurationPag
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.webDavConfiguration)), body: Padding(padding: const EdgeInsets.all(16), child: Column(children: [TextField(controller: _url, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.webDavUrl)), const SizedBox(height: 12), TextField(controller: _username, decoration: InputDecoration(labelText: l10n.username)), const SizedBox(height: 12), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: l10n.password)), const Spacer(), FilledButton(onPressed: _save, child: Text(l10n.save))])));
+    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavConfiguration)), body: Padding(padding: const EdgeInsets.all(16), child: Column(children: [TextField(controller: _url, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.webDavUrl)), const SizedBox(height: 12), TextField(controller: _username, decoration: InputDecoration(labelText: l10n.username)), const SizedBox(height: 12), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: l10n.password)), const Spacer(), FilledButton(onPressed: _save, child: Text(l10n.save))])));
   }
 
   Future<void> _save() async {

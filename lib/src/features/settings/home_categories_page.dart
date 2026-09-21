@@ -8,6 +8,7 @@ import '../../domain/models/video.dart';
 import '../explore/explore_controller.dart';
 import '../explore/explore_page.dart';
 import 'settings_controller.dart';
+import 'settings_sub_page.dart';
 
 /// 顶栏「快捷分类」的数量上限。
 const int maxHomeQuickCategories = 6;
@@ -48,7 +49,7 @@ class HomeCategoriesPage extends ConsumerWidget {
     void save(List<String> titles) => controller.saveChanges((current) => current.copyWith(homeQuickCategories: titles));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.homeQuickCategories)),
+      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.homeQuickCategories)),
       // 用 Sliver 组合而不是 ReorderableListView 的 header/footer：后者的 footer 区域
       // 在桌面端收不到指针事件，导致「可选分类」点不动。
       body: CustomScrollView(

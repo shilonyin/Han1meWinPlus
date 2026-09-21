@@ -1,32 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
+import 'settings_sub_page.dart';
 
-class RecommendationSettingsPage extends ConsumerWidget {
+class RecommendationSettingsPage extends ConsumerStatefulWidget {
   const RecommendationSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecommendationSettingsPage> createState() => _RecommendationSettingsPageState();
+}
+
+class _RecommendationSettingsPageState extends ConsumerState<RecommendationSettingsPage> {
+  /// 二级页在右侧内容区里切换显示，而不是 push 一个全屏路由（见 [SettingsSubPageScope]）。
+  String? _subPage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_subPage == 'titles') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const VideoTitleFilterPage());
+    if (_subPage == 'authors') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const AuthorFilterPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.recommendationFilters)),
+      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.recommendationFilters)),
       body: ListView(
         children: [
           SettingsCardList(
             title: l10n.filters,
             children: [
-              SettingsCardItem(title: l10n.videoTitleKeywordFilter, subtitle: l10n.videoTitleKeywordFilterDescription, leading: const Icon(Icons.title_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/recommendations/titles')),
+              SettingsCardItem(title: l10n.videoTitleKeywordFilter, subtitle: l10n.videoTitleKeywordFilterDescription, leading: const Icon(Icons.title_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'titles')),
               SettingsMenuItem(title: l10n.minimumVideoDuration, leading: const Icon(Icons.timer_outlined), value: settings.minimumVideoDurationSeconds, options: const [0, 30, 60, 90, 120, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : l10n.seconds(value), onSelected: (value) => _selectCustom(context, value, settings.minimumVideoDurationSeconds, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoDurationSeconds: result)))),
               SettingsMenuItem(title: l10n.minimumVideoViews, leading: const Icon(Icons.visibility_outlined), value: settings.minimumVideoViews, options: const [0, 50, 100, 500, 1000, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : '$value', onSelected: (value) => _selectCustom(context, value, settings.minimumVideoViews, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoViews: result)))),
-              SettingsCardItem(title: l10n.authorFilter, subtitle: l10n.authorFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/recommendations/authors')),
+              SettingsCardItem(title: l10n.authorFilter, subtitle: l10n.authorFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'authors')),
               SettingsCardItem(title: l10n.exemptSubscribedAuthors, subtitle: l10n.exemptSubscribedAuthorsDescription, leading: const Icon(Icons.person_add_alt_1_outlined), trailing: Switch(value: settings.exemptSubscribedAuthors, onChanged: (value) => controller.saveChanges((current) => current.copyWith(exemptSubscribedAuthors: value)))),
               SettingsCardItem(title: l10n.applyFiltersToRelated, subtitle: l10n.applyFiltersToRelatedDescription, leading: const Icon(Icons.video_library_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToRelated, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToRelated: value)))),
               SettingsCardItem(title: l10n.applyFiltersToSearch, subtitle: l10n.applyFiltersToSearchDescription, leading: const Icon(Icons.manage_search_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToSearch, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToSearch: value)))),
@@ -114,7 +124,7 @@ class _StringFilterPageState extends State<_StringFilterPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.title)),
+        appBar: AppBar(leading: settingsSubPageBack(context), title: Text(widget.title)),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

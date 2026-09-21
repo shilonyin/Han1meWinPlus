@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/cache_cleaner.dart';
@@ -14,8 +13,10 @@ import '../../core/platform_paths.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../shared/app_toast.dart';
+import 'backup_settings_page.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 
 /// 「存储」：下载、缓存与备份 —— 磁盘相关的设置都收在这里。
 class StorageSettingsPage extends ConsumerStatefulWidget {
@@ -27,6 +28,9 @@ class StorageSettingsPage extends ConsumerStatefulWidget {
 
 class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
   int? _cacheSize;
+
+  /// 二级页在右侧内容区里切换显示，而不是 push 一个全屏路由（见 [SettingsSubPageScope]）。
+  var _showBackup = false;
 
   @override
   void initState() {
@@ -41,6 +45,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showBackup) return SettingsSubPageScope(onBack: () => setState(() => _showBackup = false), child: const BackupSettingsPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
@@ -59,7 +64,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
           SettingsCardItem(title: l10n.clearCache, subtitle: cacheSize == null ? l10n.clearCacheDescription : l10n.cacheUsage(CacheCleaner.formatSize(cacheSize)), leading: const Icon(Icons.cleaning_services_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => unawaited(_clearCache())),
         ]),
         SettingsCardList(title: l10n.backupSettings, children: [
-          SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Icons.archive_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/settings/storage/backup')),
+          SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Icons.archive_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showBackup = true)),
         ]),
       ]),
     );

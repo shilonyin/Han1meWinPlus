@@ -10,6 +10,7 @@ import '../../data/local/library_repository.dart';
 import '../../data/local/watch_repository.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
+import 'settings_sub_page.dart';
 
 final backupServiceProvider = Provider((_) => BackupService(JsonStore()));
 
@@ -27,7 +28,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.backupSettings)),
+      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.backupSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
