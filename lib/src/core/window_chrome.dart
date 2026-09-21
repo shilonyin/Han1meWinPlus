@@ -22,6 +22,24 @@ class WindowChrome {
   /// Lets immersive pages (the full screen player) hide the in-app title bar.
   static final ValueNotifier<bool> visible = ValueNotifier(true);
 
+  /// 正在显示沉浸页（播放页）时为真：应用内标题栏也跟着走深色，
+  /// 免得浅色主题下出现「浅色标题栏 + 全黑播放页」的割裂感。
+  ///
+  /// 播放页之间会用 `pushReplacement` 互跳（下一集 / 换集），新旧页面的
+  /// initState / dispose 顺序不确定，所以用计数而不是布尔值。
+  static final ValueNotifier<bool> immersivePage = ValueNotifier(false);
+  static int _immersivePages = 0;
+
+  static void enterImmersivePage() {
+    _immersivePages++;
+    immersivePage.value = _immersivePages > 0;
+  }
+
+  static void leaveImmersivePage() {
+    if (_immersivePages > 0) _immersivePages--;
+    immersivePage.value = _immersivePages > 0;
+  }
+
   static Future<void> bind() async {
     if (!isSupported) return;
     try {

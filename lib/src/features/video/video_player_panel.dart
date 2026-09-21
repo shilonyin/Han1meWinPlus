@@ -576,10 +576,18 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
   Widget build(BuildContext context) {
     final keyframes = ref.watch(keyframesProvider(widget.video.id)).valueOrNull ?? const <int>[];
     final enabled = ref.watch(settingsProvider).valueOrNull?.keyframesEnabled ?? true;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      endDrawer: VideoKeyframeDrawer(video: widget.video, controller: widget.controller),
-       body: SafeArea(child: Builder(builder: (scaffoldContext) => VideoPlayerSurface(controller: widget.controller, quality: widget.quality, video: widget.video, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, fullscreen: true, onFullscreen: () async => Navigator.of(context).pop(), onBack: () => Navigator.of(context).pop(), onEpisodeSelected: widget.onEpisodeSelected, onNext: widget.onNext, keyframes: enabled ? keyframes : const [], onKeyframes: enabled ? () => Scaffold.of(scaffoldContext).openEndDrawer() : null, onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null))),
+    final fullscreenTheme = Theme.of(context).copyWith(
+      scaffoldBackgroundColor: Colors.black,
+      canvasColor: Colors.black,
+      colorScheme: Theme.of(context).colorScheme.copyWith(surface: Colors.black, surfaceContainerLowest: Colors.black),
+    );
+    return Theme(
+      data: fullscreenTheme,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        endDrawer: VideoKeyframeDrawer(video: widget.video, controller: widget.controller),
+        body: SafeArea(child: Builder(builder: (scaffoldContext) => VideoPlayerSurface(controller: widget.controller, quality: widget.quality, video: widget.video, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, fullscreen: true, onFullscreen: () async => Navigator.of(context).pop(), onBack: () => Navigator.of(context).pop(), onEpisodeSelected: widget.onEpisodeSelected, onNext: widget.onNext, keyframes: enabled ? keyframes : const [], onKeyframes: enabled ? () => Scaffold.of(scaffoldContext).openEndDrawer() : null, onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null))),
+      ),
     );
   }
 

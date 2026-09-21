@@ -5,10 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_theme.dart';
+import '../../core/window_chrome.dart';
 import '../../data/local/library_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
+import '../settings/settings_controller.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
@@ -32,14 +35,34 @@ void _playEpisode(BuildContext context, VideoCard episode) {
   context.pushReplacement('/video/${episode.id}');
 }
 
-class VideoPage extends ConsumerWidget {
+class VideoPage extends ConsumerStatefulWidget {
   const VideoPage({super.key, required this.id, this.localVideo});
 
   final String id;
   final VideoDetail? localVideo;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VideoPage> createState() => _VideoPageState();
+}
+
+class _VideoPageState extends ConsumerState<VideoPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 播放页是沉浸页：让应用内标题栏也跟着变深（见 WindowChrome.immersivePage）。
+    WindowChrome.enterImmersivePage();
+  }
+
+  @override
+  void dispose() {
+    WindowChrome.leaveImmersivePage();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final id = widget.id;
+    final localVideo = widget.localVideo;
     Widget withBackButton(Widget child) => Stack(children: [child, const SafeArea(child: Padding(padding: EdgeInsets.all(8), child: BackButton()))]);
     final content = localVideo == null
         ? ref.watch(videoDetailProvider(id)).when(
@@ -50,8 +73,18 @@ class VideoPage extends ConsumerWidget {
                 return _DetailBody(video: video);
               },
             )
-        : _DetailBody(video: localVideo!);
-    return Scaffold(backgroundColor: Theme.of(context).colorScheme.surface, body: content);
+        : _DetailBody(video: localVideo);
+    // 播放页固定走「沉浸模式」（参考 b 站）：不管应用当前是浅色还是深色主题，
+    // 整页都用深色 —— 播放器舞台纯黑、右侧简介/评论用深色中性面。
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final immersive = appTheme(
+      null,
+      settings?.themeColor.seedColor(settings.customThemeColor) ?? const Color(0xfffb7299),
+      brightness: Brightness.dark,
+      neutralSurfaces: true,
+    );
+    // 页面底色再压暗一档（#101113），与纯黑的播放器舞台拉开层次但不刺眼。
+    return Theme(data: immersive, child: Scaffold(backgroundColor: immersive.colorScheme.surfaceContainerLowest, body: content));
   }
 }
 
@@ -198,6 +231,7 @@ class _TabletVideoLayout extends StatelessWidget {
                       child: MouseRegion(
                         onEnter: (_) => onPlayerHover(true),
                         onExit: (_) => onPlayerHover(false),
+                        // 舞台纯黑：播放页是沉浸页，不跟随应用主题（见 VideoPage.build）。
                         child: ColoredBox(color: Colors.black, child: Center(child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode)))),
                       ),
                     ),

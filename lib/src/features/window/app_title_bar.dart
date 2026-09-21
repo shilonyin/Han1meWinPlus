@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_theme.dart';
 import '../../core/window_chrome.dart';
 import '../settings/settings_controller.dart';
 
@@ -25,7 +26,25 @@ class AppWindowFrame extends ConsumerWidget {
       valueListenable: WindowChrome.visible,
       builder: (context, visible, _) {
         if (settings == null || settings.useSystemTitleBar || !visible) return child;
-        return Column(children: [const AppTitleBar(), Expanded(child: child)]);
+        return ValueListenableBuilder<bool>(
+          valueListenable: WindowChrome.immersivePage,
+          builder: (context, immersive, __) {
+            // 播放页是沉浸页：标题栏一起走深色，别在纯黑播放页上方留一条浅色。
+            Widget bar = const AppTitleBar();
+            if (immersive) {
+              bar = Theme(
+                data: appTheme(
+                  null,
+                  settings.themeColor.seedColor(settings.customThemeColor),
+                  brightness: Brightness.dark,
+                  neutralSurfaces: true,
+                ),
+                child: bar,
+              );
+            }
+            return Column(children: [bar, Expanded(child: child)]);
+          },
+        );
       },
     );
   }
