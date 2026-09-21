@@ -1,0 +1,36 @@
+name: 功能建议
+description: 希望增加或调整的功能
+title: "[建议] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提想法！说明「想解决什么问题」比只描述「想加什么按钮」更有帮助。
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景
+      description: 你当时在做什么、遇到了什么不方便的地方
+      placeholder: 我在 xxx 的时候，需要 xxx，现在只能 xxx
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 希望的效果
+      description: 如果能想到实现方式，也可以简单描述
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 现有的替代做法
+      description: 目前你是怎么绕过这个问题的（如果有）
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认
+      options:
+        - label: 我搜索过已有 Issue 与 Discussions，确认没有重复

@@ -1,0 +1,55 @@
+name: 安装 / 运行问题
+description: 安装失败、打不开、被杀毒软件拦截、界面空白等
+title: "[安装运行] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这类问题大多与系统环境有关，请务必附上杀毒软件与下面的环境信息。
+  - type: input
+    id: app_version
+    attributes:
+      label: 应用版本
+      description: 能打开应用时在「设置 → 关于」查看；打不开请填下载的文件名或版本号
+      placeholder: 1.1.21
+    validations:
+      required: true
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: 安装方式
+      options:
+        - 安装版（Han1meWinPlus-Setup.exe）
+        - 免安装版（Han1meWinPlus-windows-x64.zip）
+        - 自己编译
+    validations:
+      required: true
+  - type: input
+    id: windows_version
+    attributes:
+      label: Windows 版本与系统架构
+      placeholder: Windows 10 22H2 x64
+    validations:
+      required: true
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 具体现象
+      description: 例如：安装程序一闪而过 / 双击无反应 / 提示缺少 dll / 启动后窗口空白
+    validations:
+      required: true
+  - type: textarea
+    id: tries
+    attributes:
+      label: 已经尝试过的做法
+      description: 例如换用免安装版、关闭杀毒软件、以管理员身份运行
+    validations:
+      required: false
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或错误信息
+      description: 可以直接把图片拖进来
+      render: text
+    validations:
+      required: false

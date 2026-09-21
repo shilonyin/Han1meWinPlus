@@ -1,0 +1,71 @@
+name: Bug 反馈
+description: 应用崩溃、报错、界面或播放异常
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量把下面几项填全，信息越具体，定位越快。
+        如果是「装不上 / 打不开」这类问题，请改用「安装 / 运行问题」模板。
+  - type: input
+    id: app_version
+    attributes:
+      label: 应用版本
+      description: 在「设置 → 关于」里可以看到，例如 1.1.21
+      placeholder: 1.1.21
+    validations:
+      required: true
+  - type: input
+    id: windows_version
+    attributes:
+      label: Windows 版本
+      description: 在「设置 → 系统 → 关于」里可以看到
+      placeholder: Windows 11 23H2 (22631.4169)
+    validations:
+      required: true
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: 安装方式
+      options:
+        - 安装版（Han1meWinPlus-Setup.exe）
+        - 免安装版（Han1meWinPlus-windows-x64.zip）
+        - 自己编译
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从打开应用开始，把出问题前的每一步都写出来
+      placeholder: |
+        1. 打开应用，进入 xxx
+        2. 点击 xxx
+        3. 出现 xxx
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 期望结果与实际结果
+      placeholder: |
+        期望：xxx
+        实际：xxx
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或日志
+      description: 可以直接把图片拖进来。播放类问题建议在「设置 → 播放设置 → 播放器设置」的自定义参数里加上 `log-file=<日志路径>`，复现后附上该日志文件。
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认
+      options:
+        - label: 我已经在最新版本上确认过（或在最新版上也能复现）
+        - label: 我搜索过已有 Issue，确认没有重复
+        - label: 问题只与 Windows 端有关（通用问题会提交到上游仓库）

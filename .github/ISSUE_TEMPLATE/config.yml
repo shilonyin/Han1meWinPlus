@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 使用交流 / 想法讨论
+    url: https://github.com/shilonyin/Han1meWinPlus/discussions
+    about: 用法交流、配置分享、还没想清楚是不是 bug 的疑问，都可以发到这里
+  - name: 下载与更新日志
+    url: https://github.com/shilonyin/Han1meWinPlus/releases
+    about: 查看每个版本的更新内容、下载安装包与免安装包
+  - name: 上游项目（Han1mePlus）
+    url: https://github.com/1wc10086/Han1mePlus/issues
+    about: 与 Windows 无关的通用问题请提交到上游仓库

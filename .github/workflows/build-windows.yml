@@ -99,6 +99,18 @@ jobs:
         run: |
           Compress-Archive -Path 'build\windows\x64\runner\Release\*' -DestinationPath 'build\Han1meWinPlus-windows-x64.zip' -Force
 
+      # 生成 SHA256 校验文件，方便用户核对下载是否完整（同时会写进发布说明）
+      - name: Build SHA256 checksums
+        shell: pwsh
+        run: |
+          $files = @('build\Han1meWinPlus-Setup.exe', 'build\Han1meWinPlus-windows-x64.zip')
+          $lines = foreach ($f in $files) {
+            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  " + (Split-Path $f -Leaf)
+          }
+          $lines | Set-Content 'build\SHA256SUMS.txt' -Encoding utf8NoBOM
+          Get-Content 'build\SHA256SUMS.txt'
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -111,6 +123,13 @@ jobs:
         with:
           name: Han1meWinPlus-windows-x64-portable
           path: build/Han1meWinPlus-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: Han1meWinPlus-SHA256SUMS
+          path: build/SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -154,6 +173,17 @@ jobs:
           $sections = ($groups.GetEnumerator() | Where-Object { $_.Value.Count -gt 0 } | ForEach-Object { "## $($_.Key)" + [Environment]::NewLine + [Environment]::NewLine + ($_.Value -join [Environment]::NewLine) }) -join ([Environment]::NewLine + [Environment]::NewLine)
           if ([string]::IsNullOrWhiteSpace($sections)) { $sections = '## 改进' + [Environment]::NewLine + [Environment]::NewLine + '- 仅版本号变更' }
 
+          # 产物清单：体积 + 校验值（方便用户核对下载完整性）
+          # 注意：PowerShell 里逗号(,)的优先级高于加号(+)，所以不能在 @( ) 数组字面量里
+          # 直接写 'a' + $x + 'b' —— 那会被解析成「数组 + 字符串 = 数组追加元素」，
+          # -join 之后每段会各占一行。这里改用 foreach 逐行生成字符串。
+          $sumRows = foreach ($f in @((Get-Item 'build\Han1meWinPlus-Setup.exe'), (Get-Item 'build\Han1meWinPlus-windows-x64.zip'))) {
+            $size = [math]::Round($f.Length / 1MB, 2)
+            $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "| $($f.Name) | $size MB | $hash |"
+          }
+          $sumTable = (@('| 文件 | 体积 | SHA256 |', '| --- | --- | --- |') + $sumRows) -join [Environment]::NewLine
+
           $notes = @"
           ## Han1meWinPlus $env:TAG
 
@@ -165,13 +195,26 @@ jobs:
 
           ## 下载
 
-          - 安装版：``Han1meWinPlus-Setup.exe``
-          - 免安装：``Han1meWinPlus-windows-x64.zip``
+          $sumTable
+
+          **系统要求**：Windows 10（1809 及以上）/ Windows 11，64 位。
+
+          ## 安装
+
+          1. 下载 ``Han1meWinPlus-Setup.exe``，双击安装
+          2. 首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下：点「更多信息」→「仍要运行」即可
+          3. 不想安装就用 ``Han1meWinPlus-windows-x64.zip``，解压后直接运行 ``han1me_win_plus.exe``
+
+          ## 已知问题
+
+          - 安装包未做代码签名，SmartScreen 或杀毒软件可能误报
+          - 部分站点图片 CDN 响应较慢，首屏封面可能需要等待，之后会走本地缓存
+          - 仅维护 Windows，其他平台不在本分支的范围内
 
           ## 说明
 
           基于上游 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 Windows 专修分支。
-          未做代码签名，首次运行可能出现「未知发布者」提示。
+          应用数据保存在 ``%APPDATA%\han1me_win_plus\``，覆盖安装或升级不会丢失。
           "@
 
           $notesPath = Join-Path $env:RUNNER_TEMP_DIR 'release-notes.md'
@@ -181,6 +224,7 @@ jobs:
           gh release create $env:TAG `
             build/Han1meWinPlus-Setup.exe `
             build/Han1meWinPlus-windows-x64.zip `
+            build/SHA256SUMS.txt `
             --title "Han1meWinPlus $env:TAG" `
             --notes-file $notesPath `
             --verify-tag
