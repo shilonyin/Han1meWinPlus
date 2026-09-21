@@ -71,7 +71,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         // 主题切换（含跟随系统、amoled）时让整套配色平滑过渡，而不是瞬间跳变。
         themeAnimationDuration: const Duration(milliseconds: 320),
         themeAnimationCurve: Curves.easeInOut,
-        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant),
+        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,
           settings.themeColor.seedColor(settings.customThemeColor),
@@ -79,6 +79,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
           amoled: settings.amoledMode,
           useSystemFont: settings.useSystemFont,
           variant: settings.themeColor.schemeVariant,
+          neutralSurfaces: settings.themeColor.neutralSurfaces,
         ),
       ),
     );

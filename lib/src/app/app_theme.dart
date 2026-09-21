@@ -34,8 +34,9 @@ const _pageTransitionsTheme = PageTransitionsTheme(
   },
 );
 
-ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot}) {
+ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot, bool neutralSurfaces = false}) {
   var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness, dynamicSchemeVariant: variant);
+  if (neutralSurfaces) scheme = _neutralSurfaces(scheme, brightness);
   if (amoled) {
     scheme = scheme.copyWith(
       surface: Colors.black,
@@ -96,6 +97,43 @@ extension AppThemeColorSeed on AppThemeColor {
   /// 配色变体：白色主题用 fidelity（主色忠于种子、中性面近白），其余走默认 tonalSpot。
   DynamicSchemeVariant get schemeVariant => this == AppThemeColor.white ? DynamicSchemeVariant.fidelity : DynamicSchemeVariant.tonalSpot;
 
+  /// 是否把中性面换成中性灰（参考 bilibili 的「白底 + 浅灰卡片」）。
+  bool get neutralSurfaces => this == AppThemeColor.white;
+
   /// 色板上那个圆的颜色：白色主题画白底（它的粉只体现在高亮色上）。
   Color swatchColor(String customColor) => this == AppThemeColor.white ? const Color(0xffffffff) : seedColor(customColor);
 }
+
+/// 「白底 + 灰卡片 + 品牌色点缀」的中性面（参考 bilibili）。
+///
+/// fidelity 变体虽然让主色忠于种子，但会把 surface 系列一并染上种子的淡粉；
+/// 这里把中性角色换成固定灰阶，只留 primary / secondary 等强调色是品牌色。
+ColorScheme _neutralSurfaces(ColorScheme scheme, Brightness brightness) => brightness == Brightness.light
+    ? scheme.copyWith(
+        surface: const Color(0xffffffff),
+        surfaceContainerLowest: const Color(0xffffffff),
+        surfaceContainerLow: const Color(0xfff6f7f8),
+        surfaceContainer: const Color(0xfff1f2f3),
+        surfaceContainerHigh: const Color(0xffecedee),
+        surfaceContainerHighest: const Color(0xffe7e8ea),
+        onSurface: const Color(0xff18191c),
+        onSurfaceVariant: const Color(0xff61666d),
+        outline: const Color(0xffc9ccd0),
+        outlineVariant: const Color(0xffe3e5e7),
+        secondaryContainer: const Color(0xfff1f2f3),
+        onSecondaryContainer: const Color(0xff18191c),
+      )
+    : scheme.copyWith(
+        surface: const Color(0xff17181a),
+        surfaceContainerLowest: const Color(0xff101113),
+        surfaceContainerLow: const Color(0xff1e1f21),
+        surfaceContainer: const Color(0xff242527),
+        surfaceContainerHigh: const Color(0xff2a2b2e),
+        surfaceContainerHighest: const Color(0xff303134),
+        onSurface: const Color(0xffe5e7eb),
+        onSurfaceVariant: const Color(0xffa2a6ad),
+        outline: const Color(0xff5a5d63),
+        outlineVariant: const Color(0xff3a3c40),
+        secondaryContainer: const Color(0xff2a2b2e),
+        onSecondaryContainer: const Color(0xffe5e7eb),
+      );

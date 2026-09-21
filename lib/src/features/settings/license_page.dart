@@ -11,11 +11,12 @@ class AppLicensePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final version = ref.watch(packageInfoProvider).valueOrNull?.version ?? '';
     // LicensePage 默认不画图标（Flutter 里的 _defaultApplicationIcon 直接返回 null），
-    // 显式给上应用图标，免得这一页只有文字、跟关于页两张皮。
+    // 这里放设计稿的整张锁标（图标 + 字标）—— 所以 applicationName 留空，
+    // 否则锁标里的字标与它上面那行同名文字会重复。
     return LicensePage(
-      applicationName: appName,
+      applicationName: '',
       applicationVersion: version,
-      applicationIcon: Image.asset('assets/logo.png', width: 96, height: 96, filterQuality: FilterQuality.high),
+      applicationIcon: Image.asset('assets/logo_lockup.png', height: 56, filterQuality: FilterQuality.high, semanticLabel: appName),
     );
   }
 }
