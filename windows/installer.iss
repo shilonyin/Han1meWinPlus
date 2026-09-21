@@ -17,6 +17,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\han1me_win_plus.exe
+; 安装程序自身的图标（与应用图标同一份，路径相对本文件所在目录）
+SetupIconFile=runner\resources\app_icon.ico
 CloseApplications=yes
 RestartApplications=no
 
