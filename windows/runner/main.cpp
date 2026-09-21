@@ -1,11 +1,14 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <dwmapi.h>
+#include <gdiplus.h>
 #include <windows.h>
 
 #include <fcntl.h>
 #include <io.h>
 #include <stdio.h>
 
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -63,6 +66,14 @@ int DpiScale(int value, UINT dpi) {
 // Splash icon side length (logical px). app_icon.ico ships 16-256 px images,
 // so the DPI-scaled request resolves to a crisp source.
 constexpr int kSplashIconSide = 64;
+// Height of the design lockup (icon + wordmark) drawn on the splash, in logical
+// px; the image keeps its aspect ratio and is centred.
+constexpr int kSplashLogoHeight = 56;
+// Minimum time the splash stays visible. The engine is ready in a couple of
+// hundred milliseconds on an idle machine, so without a floor the lockup only
+// flashes by.
+constexpr int kSplashMinDurationMs = 1300;
+constexpr UINT_PTR kSplashTimerId = 1;
 
 bool SystemPrefersDarkApps() {
   DWORD use_light = 1;
@@ -71,12 +82,43 @@ bool SystemPrefersDarkApps() {
   return status == ERROR_SUCCESS && use_light == 0;
 }
 
+// Older SDK headers may not define these DWM attributes; the values match the
+// Windows 11 SDK.
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#ifndef DWMWA_BORDER_COLOR
+#define DWMWA_BORDER_COLOR 34
+#endif
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+#ifndef DWMWA_TEXT_COLOR
+#define DWMWA_TEXT_COLOR 36
+#endif
+
 // Follow the system light/dark preference and use an M3 surface color so the
 // window does not visibly jump when the first Flutter frame lands.
 HBRUSH WindowBackgroundBrush() {
   static HBRUSH brush = nullptr;
   if (brush == nullptr) brush = CreateSolidBrush(SystemPrefersDarkApps() ? RGB(28, 27, 32) : RGB(253, 248, 255));
   return brush;
+}
+
+// During the splash the window still shows the native caption bar (the in-app
+// one is only installed once Flutter is up). Tint the caption, its text and the
+// window border with the same colour as the client area, otherwise a system
+// coloured bar sits on top of an identically framed dark screen. Windows 10 does
+// not support these attributes (the calls simply fail) and keeps its default.
+void ApplySplashCaptionColors(HWND window) {
+  const auto dark = SystemPrefersDarkApps();
+  const auto background = dark ? RGB(28, 27, 32) : RGB(253, 248, 255);
+  const auto text = dark ? RGB(233, 236, 241) : RGB(28, 27, 32);
+  const BOOL use_dark = dark ? TRUE : FALSE;
+  DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, &use_dark, sizeof(use_dark));
+  DwmSetWindowAttribute(window, DWMWA_CAPTION_COLOR, &background, sizeof(background));
+  DwmSetWindowAttribute(window, DWMWA_TEXT_COLOR, &text, sizeof(text));
+  DwmSetWindowAttribute(window, DWMWA_BORDER_COLOR, &background, sizeof(background));
 }
 
 // Loaded once and cached: dragging a resize repaints the splash many times.
@@ -103,6 +145,70 @@ void DrawStartupIcon(HDC dc, const RECT& client, HINSTANCE instance, UINT dpi) {
   DrawIconEx(dc, (client.right - side) / 2, (client.bottom - side) / 2, icon, side, side, 0, nullptr, DI_NORMAL);
 }
 
+// GDI+ is only used by the splash: the engine has not started yet, so Flutter's
+// image decoding is not available and the lockup is a PNG asset.
+struct GdiPlusSession {
+  ULONG_PTR token = 0;
+  bool ready = false;
+  GdiPlusSession() {
+    Gdiplus::GdiplusStartupInput input;
+    ready = Gdiplus::GdiplusStartup(&token, &input, nullptr) == Gdiplus::Ok;
+  }
+  ~GdiPlusSession() {
+    if (ready) Gdiplus::GdiplusShutdown(token);
+  }
+};
+
+GdiPlusSession& SplashGdiPlus() {
+  static GdiPlusSession session;
+  return session;
+}
+
+std::filesystem::path ExecutableDirectory() {
+  std::wstring buffer(MAX_PATH, L'\0');
+  const auto length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+  buffer.resize(length);
+  return std::filesystem::path(buffer).parent_path();
+}
+
+// The design lockup ships with the Flutter assets, next to the executable under
+// data/flutter_assets/assets. Both background variants are cached; the dark one
+// has a light wordmark, otherwise it would be invisible on a dark splash.
+Gdiplus::Image* StartupLockup(bool dark) {
+  static Gdiplus::Image* light = nullptr;
+  static Gdiplus::Image* dark_image = nullptr;
+  static bool light_failed = false;
+  static bool dark_failed = false;
+  auto*& image = dark ? dark_image : light;
+  bool& failed = dark ? dark_failed : light_failed;
+  if (image != nullptr || failed) return image;
+  const auto name = dark ? L"logo_lockup_dark.png" : L"logo_lockup.png";
+  const auto path = (ExecutableDirectory() / L"data" / L"flutter_assets" / L"assets" / name).wstring();
+  auto* loaded = new Gdiplus::Image(path.c_str());
+  if (loaded->GetLastStatus() != Gdiplus::Ok) {
+    delete loaded;
+    failed = true;
+    return nullptr;
+  }
+  image = loaded;
+  return image;
+}
+
+// Draws the design lockup; falls back to the square app icon if the PNG cannot
+// be loaded.
+void DrawStartupLogo(HDC dc, const RECT& client, HINSTANCE instance, UINT dpi) {
+  auto* image = SplashGdiPlus().ready ? StartupLockup(SystemPrefersDarkApps()) : nullptr;
+  if (image == nullptr) {
+    DrawStartupIcon(dc, client, instance, dpi);
+    return;
+  }
+  const auto height = DpiScale(kSplashLogoHeight, dpi);
+  const auto width = static_cast<int>(std::lround(static_cast<double>(height) * image->GetWidth() / image->GetHeight()));
+  Gdiplus::Graphics graphics(dc);
+  graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+  graphics.DrawImage(image, Gdiplus::Rect((client.right - width) / 2, (client.bottom - height) / 2, width, height));
+}
+
 // Bring the instance that is already running to the front.
 void ActivateExistingWindow() {
   const auto window = FindWindowW(kWindowClassName, nullptr);
@@ -118,6 +224,9 @@ struct AppWindow {
   std::unique_ptr<flutter::FlutterViewController> controller;
   HINSTANCE instance = nullptr;
   UINT splash_dpi = 96;
+  // Whether the splash is still on screen (until kSplashMinDurationMs elapses
+  // the Flutter view is deliberately kept behind it).
+  bool splash_visible = true;
 };
 
 void ConfigureWebViewUserDataFolder() {
@@ -173,8 +282,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
       // moves the splash icon, so filling only the newly exposed strip would
       // leave the previous one behind in the old position.
       FillRect(dc, &client, WindowBackgroundBrush());
-      if (app != nullptr && app->controller == nullptr && app->instance != nullptr) {
-        DrawStartupIcon(dc, client, app->instance, app->splash_dpi);
+      if (app != nullptr && app->splash_visible && app->instance != nullptr) {
+        DrawStartupLogo(dc, client, app->instance, app->splash_dpi);
       }
       EndPaint(window, &state);
       return 0;
@@ -183,6 +292,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
       if (app == nullptr || app->controller == nullptr) return 0;
       const auto child = app->controller->view()->GetNativeWindow();
       MoveWindow(child, 0, 0, LOWORD(lparam), HIWORD(lparam), TRUE);
+      return 0;
+    }
+    case WM_TIMER: {
+      // The minimum splash time elapsed: reveal the Flutter view that was kept
+      // hidden behind the splash.
+      if (wparam != kSplashTimerId || app == nullptr || app->controller == nullptr) return 0;
+      KillTimer(window, kSplashTimerId);
+      app->splash_visible = false;
+      const auto child = app->controller->view()->GetNativeWindow();
+      ShowWindow(child, SW_SHOW);
+      InvalidateRect(window, nullptr, FALSE);
+      SetFocus(child);
       return 0;
     }
     case WM_DESTROY:
@@ -219,10 +340,13 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   const auto height = DpiScale(720, dpi);
   const auto window = CreateWindow(kWindowClassName, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
+  // Tint the native caption before it is first painted, so it matches the splash.
+  ApplySplashCaptionColors(window);
 
   // Engine startup loads flutter_windows.dll plus the AOT snapshot and brings up
   // the Dart VM, which takes over a second. The window already exists at this
   // point, so show the splash now instead of leaving the screen blank.
+  const auto splash_started = GetTickCount64();
   ShowWindow(window, show_command);
   UpdateWindow(window);
 
@@ -245,12 +369,21 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   // keeps the old screen coordinates, so stretch it over the client area here.
   GetClientRect(window, &bounds);
   MoveWindow(flutter_view, 0, 0, bounds.right, bounds.bottom, TRUE);
-  // The Flutter view now covers the startup splash. Repaint the parent once so
-  // the icon cannot linger in any area the view does not paint yet (the engine
-  // still has to render its first frame).
+  // The Flutter view would cover the splash right away. Keep it hidden until the
+  // minimum splash time has passed so the design lockup is actually readable
+  // (on an idle machine the engine is ready in a couple of hundred ms).
+  const auto splash_elapsed = static_cast<int>(GetTickCount64() - splash_started);
+  if (splash_elapsed < kSplashMinDurationMs) {
+    ShowWindow(flutter_view, SW_HIDE);
+    SetTimer(window, kSplashTimerId, static_cast<UINT>(kSplashMinDurationMs - splash_elapsed), nullptr);
+  } else {
+    app.splash_visible = false;
+    SetFocus(flutter_view);
+  }
+  // Repaint the parent once so the logo cannot linger in any area the view does
+  // not paint yet (the engine still has to render its first frame).
   InvalidateRect(window, nullptr, FALSE);
   UpdateWindow(window);
-  SetFocus(flutter_view);
   app.controller->engine()->SetNextFrameCallback([window]() { ShowWindow(window, SW_SHOWNORMAL); });
   app.controller->ForceRedraw();
 

@@ -84,6 +84,8 @@ flutter:
     - assets/logo_lockup.png
     # 紧凑版：图标:字标 = 1.5:1（设计稿是 2.4:1），专给 34px 高的标题栏用
     - assets/logo_lockup_compact.png
+    # 深色背景用的锁标（字标改浅色、图标不变）：Windows 原生启动画面按系统深浅色二选一
+    - assets/logo_lockup_dark.png
     - assets/search_options/
     - assets/shaders/
     # 字体许可协议要求随字体副本一并保留协议原文，故作为资源打进安装包。

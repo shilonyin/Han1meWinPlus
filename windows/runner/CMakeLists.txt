@@ -23,5 +23,8 @@ if(DEFINED FLUTTER_VERSION)
 endif()
 
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
+# The splash screen decodes the design lockup (PNG) with GDI+ and tints the
+# native caption bar with DWM.
+target_link_libraries(${BINARY_NAME} PRIVATE gdiplus dwmapi)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 add_dependencies(${BINARY_NAME} flutter_assemble)
