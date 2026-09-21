@@ -195,24 +195,10 @@ class _AboutHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 横版锁标：图标在文字左侧（与 README / 安装包使用同一份资源）
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset('assets/logo.png', width: 48, height: 48, filterQuality: FilterQuality.high),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(appName, style: theme.textTheme.headlineMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700)),
-                  if (version.isNotEmpty) ...[const SizedBox(height: 2), Text(version, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.outline))],
-                ],
-              ),
-            ),
-          ],
-        ),
+        // 横版锁标是一体图（图标 + 字标），直接整张显示 —— 字标是设计稿里的专用
+        // 字形，用系统字体拼字会走样（与 README / 安装包使用同一份资源）。
+        Image.asset('assets/logo_lockup.png', height: 46, filterQuality: FilterQuality.high, semanticLabel: appName),
+        if (version.isNotEmpty) ...[const SizedBox(height: 8), Text(version, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.outline))],
         const SizedBox(height: 16),
         Text(l10n.thirdPartyClient, style: theme.textTheme.bodyLarge),
         const SizedBox(height: 18),

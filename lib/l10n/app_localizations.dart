@@ -966,7 +966,7 @@ abstract class AppLocalizations {
   /// No description provided for @about.
   ///
   /// In en, this message translates to:
-  /// **'About Han1meWinPlus'**
+  /// **'About'**
   String get about;
 
   /// No description provided for @aboutDescription.

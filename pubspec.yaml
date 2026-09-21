@@ -80,6 +80,8 @@ flutter:
           weight: 400
   assets:
     - assets/logo.png
+    # 设计稿的字标不是系统字体，必须整张图显示，不能拿图标 + 文字拼
+    - assets/logo_lockup.png
     - assets/search_options/
     - assets/shaders/
     # 字体许可协议要求随字体副本一并保留协议原文，故作为资源打进安装包。
