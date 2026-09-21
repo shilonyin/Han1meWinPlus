@@ -6,6 +6,13 @@ on:
   push:
     branches: [win]
     tags: ['v*']
+    # 纯文档改动（README / 截图 / 许可证）不必触发 12 分钟的 Windows 构建：
+    # 既省时间，也避免「连续推两次 → 前一次被 concurrency 取消 → 构建徽章变红」。
+    # GitHub 不对 tag 推送应用路径过滤（官方文档明示），所以发版构建不受影响。
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   pull_request:
     branches: [win]
   workflow_dispatch:
