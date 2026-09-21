@@ -136,13 +136,28 @@ jobs:
             $range = "$previous..$env:TAG"
             $compare = "**完整对比**: https://github.com/$env:REPO/compare/$previous...$env:TAG"
           }
-          $changes = (git log $range --no-merges --pretty=format:'- %s (`%h`)') -join "`n"
-          if ([string]::IsNullOrWhiteSpace($changes)) { $changes = '- 仅版本号变更' }
+          # 按提交类型分组（新功能 / 改进 / 修复）：发布说明是给用户读的，分组比把标题
+          # 平铺成一列好扫读。按 Conventional Commits 前缀归类，前缀会从标题里去掉。
+          $groups = [ordered]@{ '新功能' = @(); '改进' = @(); '修复' = @() }
+          foreach ($line in (git log $range --no-merges --pretty=format:'%s')) {
+            $text = $line.Trim()
+            if ([string]::IsNullOrWhiteSpace($text)) { continue }
+            $bucket = '改进'
+            if ($text -match '^(feat|feature)\s*(\(|:|：)') { $bucket = '新功能' }
+            elseif ($text -match '^(fix|bugfix|hotfix|perf)\s*(\(|:|：)') { $bucket = '修复' }
+            # 去掉类型前缀只留正文；没有前缀的提交原样归入「改进」
+            $clean = $text -replace '^(feat|feature|fix|bugfix|hotfix|perf|refactor|chore|docs|style|test|build|ci)\s*(\([^)]*\))?\s*[:：]\s*', ''
+            $groups[$bucket] += "- $clean"
+          }
+          $sections = ($groups.GetEnumerator() | Where-Object { $_.Value.Count -gt 0 } | ForEach-Object { "## $($_.Key)" + [Environment]::NewLine + [Environment]::NewLine + ($_.Value -join [Environment]::NewLine) }) -join ([Environment]::NewLine + [Environment]::NewLine)
+          if ([string]::IsNullOrWhiteSpace($sections)) { $sections = '## 改进' + [Environment]::NewLine + [Environment]::NewLine + '- 仅版本号变更' }
 
           $notes = @"
-          ## 更新内容
+          ## Han1meWinPlus $env:TAG
 
-          $changes
+          已经在运行旧版本？应用内会自动提示更新，也可在 设置 → 关于 手动检查。
+
+          $sections
 
           $compare
 
