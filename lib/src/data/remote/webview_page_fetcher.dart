@@ -231,7 +231,7 @@ class WebViewPageFetcher {
   static bool isChallengeBody(String? body) {
     if (body == null || body.isEmpty) return false;
     return RegExp(
-      r'Just a moment|cf-chl-|Sorry, you have been blocked|Attention Required|Verifying you are human|正在进行安全验证|請稍候|请稍候',
+      r'Just a moment|cf-chl-|Sorry, you have been blocked|Attention Required|Verifying you are human|Checking your browser|正在进行安全验证|請稍候|请稍候',
       caseSensitive: false,
     ).hasMatch(body);
   }

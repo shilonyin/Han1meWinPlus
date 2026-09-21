@@ -15,6 +15,7 @@ import '../../data/remote/han1me_api.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
+import '../../domain/video_metrics.dart';
 import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
@@ -119,7 +120,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final text = value.trim();
     _searchController.text = text;
     _closeSearch();
-    context.push('/search', extra: SearchRouteRequest(initialQuery: SearchQuery(text: text)));
+    final url = Uri(path: '/search', queryParameters: {'query': text}).toString();
+    context.push(url, extra: SearchRouteRequest(initialUrl: url));
   }
 
   @override
@@ -310,7 +312,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 maxHeight: (MediaQuery.sizeOf(context).height - 100).clamp(240.0, 640.0),
                 onSelected: (query) {
                   _closeSearch();
-                  context.push('/search', extra: SearchRouteRequest(initialQuery: query));
+                  final url = query.toUri().toString();
+                  context.push(url, extra: SearchRouteRequest(initialUrl: url));
                 },
               ),
             ),
@@ -539,13 +542,15 @@ bool _visible(VideoCard video, AppSettings? settings, Set<String> subscribed) {
   if (!(settings.exemptSubscribedAuthors && subscribedAuthor)) {
     if (settings.blockedVideoTitleKeywords.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase()))) return false;
     if (settings.blockedAuthors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase()))) return false;
-    if (_durationSeconds(video.duration) < settings.minimumVideoDurationSeconds || _viewsCount(video.views) < settings.minimumVideoViews) return false;
+    // 站点没给时长/播放量时按「未知」处理，不参与过滤：按 0 判会把 AV 源的卡片整页
+    // 滤光（它们本来就不带这些字段），表现是「搜索结果永远为空」。
+    final seconds = videoDurationSeconds(video.duration);
+    if (seconds != null && seconds < settings.minimumVideoDurationSeconds) return false;
+    final views = videoViews(video.views);
+    if (views != null && views < settings.minimumVideoViews) return false;
   }
   return true;
 }
-
-int _durationSeconds(String? text) => (text?.split(':').map(int.tryParse).toList() ?? const <int?>[]).fold<int>(0, (total, unit) => unit == null ? total : total * 60 + unit);
-int _viewsCount(String? text) => int.tryParse(RegExp(r'[\d,.]+').firstMatch(text ?? '')?.group(0)?.replaceAll(',', '') ?? '') ?? 0;
 
 class _HomeScroll extends ConsumerStatefulWidget {
   const _HomeScroll({this.featured, required this.sections, this.showHeader = true});
@@ -637,6 +642,15 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
   var _lastAttempt = DateTime.fromMillisecondsSinceEpoch(0);
   var _retryDelay = Duration.zero;
 
+  /// 每次「换分区 / 刷新」都会自增。切分区时这个 State 是被复用的，而上一分区的分页
+  /// 请求还在飞 —— 不作废它的话，它回来会 setState 把旧分区的数据追加进新分区（表现为
+  /// 「切分区后有概率混进别的分区的影片」），而且随后还会以新分区的 key 写进分页缓存，
+  /// 把污染固化下来（切换几次都还在）。
+  var _generation = 0;
+
+  /// 上一次重接分页时所在的站点，用来识别 [didUpdateWidget] 里的「换了站点」。
+  String? _siteKey;
+
   /// Unknown until the first extra page comes back, so the first probe always
   /// gets a chance to ask for it.
   bool get _hasMore => widget.section.moreUrl != null && (_totalPages == null || _page < _totalPages!);
@@ -657,7 +671,10 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     super.didUpdateWidget(oldWidget);
     // The parent rebuilds the section objects on every build, so identity is
     // taken from the "more" link and the first card instead of the object.
-    final changed = oldWidget.section.moreUrl != widget.section.moreUrl || oldWidget.section.videos.firstOrNull?.id != widget.section.videos.firstOrNull?.id;
+    // 站点变化也要按「换了分区」处理：两个站的分区有可能同名且 moreUrl 相同（例如都叫
+    // `/newest`），只比对 moreUrl 与首卡片 id 会漏掉这种情况。
+    final siteChanged = _siteKey != null && _siteKey != _site;
+    final changed = siteChanged || oldWidget.section.moreUrl != widget.section.moreUrl || oldWidget.section.videos.firstOrNull?.id != widget.section.videos.firstOrNull?.id;
     // 切到另一个分区：接上它之前滚动加载过的分页（没有就从第一页开始），
     // 不要把数据丢掉，否则切回来又要逐页重新加载。
     if (changed) {
@@ -669,10 +686,22 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     }
   }
 
-  String get _cacheKey => widget.section.moreUrl ?? widget.section.title;
+  /// 当前站点（`homeBaseUrl` 已含镜像与漫画模式的解析结果）。
+  String get _site => ref.read(settingsProvider).valueOrNull?.homeBaseUrl ?? '';
+
+  /// 分页缓存的 key **必须带上站点**：不同站点的 moreUrl 可能撞车（例如都叫
+  /// `/search?genre=xxx`），只按 moreUrl 缓存的话，切换站点后新站点的分区会读到上一个
+  /// 站点滚动加载过的分页 —— 表现就是「换站后首页某些分区混进另一个站点的影片」。
+  /// 带上站点后各站的分页天然隔离，切回来也还能接上原来的进度。
+  String get _cacheKey => '$_site|${widget.section.moreUrl ?? widget.section.title}';
 
   /// 接上本分区之前加载过的分页；没有缓存时回到「只有第一页」的状态。
   void _restorePages() {
+    // 作废上一分区还在飞的请求，并把它的 loading 占用放掉 —— 否则新分区的补抓
+    // （[_loadFirstPageIfNeeded] 里的 `_loading` 判断）会被这个旧占用挡掉。
+    _generation++;
+    _loading = false;
+    _siteKey = _site;
     final cached = _sectionPageCache[_cacheKey];
     if (cached == null) {
       _videos = widget.section.videos;
@@ -691,6 +720,8 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
   /// 回到「只有第一页数据」的状态：刷新时把滚动累积的额外分页清掉，
   /// 顺带清掉失败标记与退避，让这一行重新有机会加载。
   void _reloadFromFirstPage({bool notify = true}) {
+    _generation++;
+    _loading = false;
     _sectionPageCache.remove(_cacheKey);
     _videos = widget.section.videos;
     _page = 1;
@@ -732,6 +763,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     if (!replace && !_hasMore) return;
     // 上次失败后先退避一小会儿：probe 每次被重建都会来问一次，不能立刻打爆站点。
     if (DateTime.now().difference(_lastAttempt) < _retryDelay) return;
+    final generation = _generation;
     _lastAttempt = DateTime.now();
     setState(() {
       _loading = true;
@@ -752,7 +784,8 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
             type: query.type,
             page: page,
           );
-      if (!mounted) return;
+      // 请求期间可能已经切了分区：这份结果属于上一个分区，必须丢掉。
+      if (!mounted || generation != _generation) return;
       final subscribed = ref.read(libraryProvider).valueOrNull?.artists.map((artist) => artist.name.toLowerCase()).toSet() ?? <String>{};
       final current = ref.read(settingsProvider).valueOrNull;
       final known = replace ? const <String>{} : _videos.map((video) => video.id).toSet();
@@ -769,15 +802,14 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
       unawaited(_prefetch(extra));
     } catch (error) {
       debugPrint('[home] load failed: $error');
+      // 过期的失败也不该记到新分区头上（否则新分区会莫名其妙地显示「重试」）。
+      if (generation != _generation) return;
       final seconds = _retryDelay == Duration.zero ? 2 : _retryDelay.inSeconds * 2;
       _retryDelay = Duration(seconds: seconds > 30 ? 30 : seconds);
       if (mounted) setState(() => _failed = true);
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      } else {
-        _loading = false;
-      }
+      // 过期请求不能动 _loading：它已经归新分区的请求管了。
+      if (generation == _generation && mounted) setState(() => _loading = false);
     }
   }
 

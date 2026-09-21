@@ -61,6 +61,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final notifier = ref.read(searchQueryProvider(request).notifier);
     final options = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final baseUrl = ref.watch(settingsProvider.select((settings) => settings.valueOrNull?.resolvedBaseUrl ?? ''));
+    final javSource = javSiteFor(baseUrl) != null;
     final l10n = AppLocalizations.of(context)!;
     ref.listen<SearchQuery>(searchQueryProvider(request), (previous, next) {
       if (previous != next && next.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(next));
@@ -96,7 +97,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         children: [
           // AV 视频源只有关键词搜索（没有 hanime1 那套分类/排序/标签筛选），
           // 所以整行筛选控件直接不渲染，避免点了没效果的假控件。
-          if (javSiteFor(baseUrl) == null) ...[
+          if (!javSource) ...[
             _GenreTabs(options: options, query: query, notifier: notifier),
             _SortRow(options: options, query: query, notifier: notifier),
           ],
@@ -107,17 +108,36 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   loading: () => const Center(child: M3EContainedLoadingIndicator()),
                   error: (error, stackTrace) => _ErrorView(error: error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
                   data: (page) => page.items.isEmpty
-                      ? _EmptyState(message: l10n.noSearchResults)
-                      : VideoCardGrid(
-                          videos: page.items,
-                          cardsPerRow: _searchColumns,
-                          horizontal: true,
-                          controller: _scrollController,
-                          itemBuilder: (context, index, video, _) => VideoCardTile(
-                            video: video,
-                            horizontal: true,
-                            onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
-                          ),
+                      // AV 源没有标签/分类筛选，从历史里带过来的条件会被清掉，空结果的原因
+                      // 就变成「还没输关键词」，直接说清楚，别报成「没有找到匹配的视频」。
+                      ? _EmptyState(message: javSource && query.text.trim().isEmpty && query.genre.isEmpty ? l10n.javSourceSearchHint : l10n.noSearchResults)
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 没输关键词时这页给的是推荐内容，加个小标题说明一下来源，
+                            // 免得被当成搜索结果的兜底。
+                            if (query.text.trim().isEmpty && query.genre.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                                child: Text(
+                                  l10n.recommendedVideos,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            Expanded(
+                              child: VideoCardGrid(
+                                videos: page.items,
+                                cardsPerRow: _searchColumns,
+                                horizontal: true,
+                                controller: _scrollController,
+                                itemBuilder: (context, index, video, _) => VideoCardTile(
+                                  video: video,
+                                  horizontal: true,
+                                  onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                 ),
                 Positioned(

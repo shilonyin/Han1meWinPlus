@@ -202,6 +202,10 @@ class JavApi {
         final card = _card(site, element);
         if (card != null) items.add(card);
       }
+      // 卡片容器的 class 是站点改版最爱动的地方，一失配整页就成「没有结果」
+      // （实测 missav 搜索页已不再输出 `div.thumbnail.group`）。这里按详情页
+      // 链接再兜一次底，别让页面明明有内容却显示成空的。
+      if (items.isEmpty) items.addAll(_fallbackCards(site, document));
     }
     final totalPages = _totalPages(document, target);
     return SearchResult(items: items, page: page, totalPages: totalPages < page ? page : totalPages);
@@ -271,6 +275,31 @@ class JavApi {
       views: _pickText(element, _viewsSelectors(site)),
       uploadTime: _pickText(element, _dateSelectors(site)),
     );
+  }
+
+  /// 兜底解析：主选择器一个都没命中时，改用「指向详情页的链接」反推卡片容器。
+  ///
+  /// 详情页链接的形态比卡片 class 稳定得多。所以退一步：先认链接、再向上找**含
+  /// `<img>` 的祖先**当容器，最后仍交给 [_card] 解析；只有解析出的 id 与链接一致
+  /// 才采纳，避免把导航、页码这类纯文字链接错认成卡片。
+  List<VideoCard> _fallbackCards(JavSite site, dom.Document document) {
+    final cards = <String, VideoCard>{};
+    for (final anchor in document.querySelectorAll('a[href]')) {
+      final href = anchor.attributes['href'];
+      if (href == null) continue;
+      final id = _idFromHref(site, href);
+      if (id.isEmpty || cards.containsKey(id)) continue;
+      dom.Element? container = anchor.parent;
+      for (var depth = 0; container != null && depth < 4; depth++) {
+        if (container.querySelector('img') != null) {
+          final card = _card(site, container);
+          if (card != null && card.id == id) cards[id] = card;
+          break;
+        }
+        container = container.parent;
+      }
+    }
+    return cards.values.toList();
   }
 
   /// xhamster 的卡片：**用 DOM 决定「有哪些可播的视频」，用内联 JSON 补全字段**。
@@ -893,7 +922,10 @@ class JavApi {
 
   // ------------------------------------------------------------------ 通用
 
-  Future<dom.Document> _document(String url, {String? referer}) async => html_parser.parse((await _fetch(url, referer: referer)).body);
+  Future<dom.Document> _document(String url, {String? referer}) async {
+    final response = await _fetch(url, referer: referer);
+    return html_parser.parse(response.body);
+  }
 
   /// 取一个页面。先用 Dart 的 HttpClient（快），被 Cloudflare 拦下时改用真实 Chromium。
   ///
@@ -943,7 +975,10 @@ class JavApi {
   /// 所以再补一层「响应体里带挑战页特征」的判断。
   static bool _isChallenge(int? statusCode, Map<String, List<String>> headers, String body) {
     if (Han1meApi.isCloudflareResponse(statusCode, headers, body)) return true;
-    return (statusCode == 403 || statusCode == 503) && RegExp(r'Just a moment|cf-chl-|challenge-platform|__cf_chl', caseSensitive: false).hasMatch(body);
+    if (statusCode == 403 || statusCode == 503) return RegExp(r'Just a moment|cf-chl-|challenge-platform|__cf_chl', caseSensitive: false).hasMatch(body);
+    // 有些站点被拦时给的是 200 + 一张屏蔽/验证页。只按状态码判会漏掉它，后面的解析
+    // 就得到 0 条，界面误报成「没有找到匹配的视频」——所以这里再按页面特征兜一次。
+    return WebViewPageFetcher.isChallengeBody(body);
   }
 
   String _absolute(String baseUrl, String? path) {
