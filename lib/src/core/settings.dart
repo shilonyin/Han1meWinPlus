@@ -8,7 +8,7 @@ import 'video_decoders.dart';
 
 enum AppThemeMode { system, light, dark }
 
-enum AppThemeColor { rose, blue, teal, amber, green, orange, indigo, pink, purple, custom }
+enum AppThemeColor { rose, blue, teal, amber, green, orange, indigo, pink, purple, white, custom }
 
 enum AppLanguage { system, simplifiedChinese, traditionalChinese, english }
 

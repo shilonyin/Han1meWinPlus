@@ -1567,6 +1567,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get colorPurple => '紫色';
 
   @override
+  String get colorWhite => '白色';
+
+  @override
   String get colorCustom => '自定义';
 
   @override
@@ -3779,6 +3782,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get colorPurple => '紫色';
+
+  @override
+  String get colorWhite => '白色';
 
   @override
   String get colorCustom => '自訂';

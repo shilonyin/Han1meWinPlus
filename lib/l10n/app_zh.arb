@@ -534,6 +534,7 @@
   "colorIndigo": "靛蓝色",
   "colorPink": "粉红色",
   "colorPurple": "紫色",
+  "colorWhite": "白色",
   "colorCustom": "自定义",
   "dynamicColor": "动态配色",
   "dynamicColorFootnote": "动态配色仅支持安卓12及以上和桌面平台",

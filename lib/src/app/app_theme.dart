@@ -85,6 +85,9 @@ extension AppThemeColorSeed on AppThemeColor {
         AppThemeColor.indigo => const Color(0xff4a5f9e),
         AppThemeColor.pink => const Color(0xff9c3c66),
         AppThemeColor.purple => const Color(0xff6d3f90),
+        // 纯白种子：色度 0，fromSeed 得到的是一整套灰阶（浅色主题主色 ≈ 中灰、
+        // 深色主题主色 ≈ 浅灰），即“黑白/无彩”那套配色。
+        AppThemeColor.white => const Color(0xffffffff),
         AppThemeColor.custom => Color(int.parse('ff$customColor', radix: 16)),
       };
 }

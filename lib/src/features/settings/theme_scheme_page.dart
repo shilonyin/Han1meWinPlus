@@ -98,6 +98,7 @@ String themeColorLabel(AppLocalizations l10n, AppThemeColor color) => switch (co
       AppThemeColor.indigo => l10n.colorIndigo,
       AppThemeColor.pink => l10n.colorPink,
       AppThemeColor.purple => l10n.colorPurple,
+      AppThemeColor.white => l10n.colorWhite,
       AppThemeColor.custom => l10n.colorCustom,
     };
 
