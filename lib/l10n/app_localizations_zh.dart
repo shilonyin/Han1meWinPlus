@@ -153,6 +153,184 @@ class AppLocalizationsZh extends AppLocalizations {
       '为 Hanime1 域名使用内置的 Cloudflare 地址，并自动回退到系统 DNS';
 
   @override
+  String get addressLatency => '地址延迟优选';
+
+  @override
+  String get addressLatencyDescription => '并发探测内置候选地址的建连耗时，按实测延迟优选；仅在不使用代理时生效';
+
+  @override
+  String get addressLatencyProxyNotice => '当前请求走代理，内置地址不参与，以下为直连探测结果，仅供参考';
+
+  @override
+  String get addressLatencyProbe => '重新测速';
+
+  @override
+  String get addressLatencyUnavailable => '不可用';
+
+  @override
+  String get addressLatencyNotProbed => '未探测';
+
+  @override
+  String addressLatencyLastProbed(Object time) {
+    return '上次探测：$time';
+  }
+
+  @override
+  String get addressLatencyDone => '测速完成';
+
+  @override
+  String get addressGroupSite => 'Hanime1 站点';
+
+  @override
+  String get addressGroupImageCdn => '图片 CDN';
+
+  @override
+  String get addressGroupGetchu => 'Getchu 预告源';
+
+  @override
+  String get siteDiagnostics => '站点可用性诊断';
+
+  @override
+  String get siteDiagnosticsDescription =>
+      '检测当前站点的 DNS、连接、证书、页面结构与登录状态，帮助定位常见问题';
+
+  @override
+  String get siteGroups => '站点分组';
+
+  @override
+  String get siteGroupsDescription => '给站点列表分组：可改名、调整顺序、把站点挪到别的分组；未设置时按类型自动归类';
+
+  @override
+  String get siteGroupAdd => '新增分组';
+
+  @override
+  String get siteGroupName => '分组名称';
+
+  @override
+  String get siteGroupNameHint => '留空则使用默认名称';
+
+  @override
+  String get siteGroupRename => '重命名分组';
+
+  @override
+  String get siteGroupMoveTo => '移动到';
+
+  @override
+  String get siteGroupEmpty => '这个分组里还没有站点';
+
+  @override
+  String siteGroupDeleteHint(Object name) {
+    return '将删除「$name」，组内站点会并入第一个分组';
+  }
+
+  @override
+  String siteHostsCount(int count) {
+    return '$count 个站点';
+  }
+
+  @override
+  String get diagnose => '重新诊断';
+
+  @override
+  String get diagnosticDns => 'DNS 解析';
+
+  @override
+  String get diagnosticConnectivity => '连接可用性';
+
+  @override
+  String get diagnosticCertificate => 'SSL 证书';
+
+  @override
+  String get diagnosticSite => '站点状态';
+
+  @override
+  String get diagnosticLogin => '登录状态';
+
+  @override
+  String get diagnosticOk => '正常';
+
+  @override
+  String get diagnosticFail => '异常';
+
+  @override
+  String get diagnosticSkipped => '跳过';
+
+  @override
+  String diagnosticDnsOk(Object host, Object addresses) {
+    return '域名 $host 解析成功：$addresses';
+  }
+
+  @override
+  String diagnosticDnsFail(Object host) {
+    return '无法解析域名 $host';
+  }
+
+  @override
+  String diagnosticHttpOk(int code) {
+    return 'HTTP $code，站点可达';
+  }
+
+  @override
+  String diagnosticHttpFail(int code) {
+    return 'HTTP $code，访问被拒绝';
+  }
+
+  @override
+  String diagnosticError(Object detail) {
+    return '检测失败：$detail';
+  }
+
+  @override
+  String diagnosticCertificateOk(Object issuer) {
+    return '证书有效，颁发者：$issuer';
+  }
+
+  @override
+  String get diagnosticCertificateNone => '未取得证书信息';
+
+  @override
+  String diagnosticSiteOk(Object url) {
+    return '页面结构正常：$url';
+  }
+
+  @override
+  String diagnosticSiteFail(int code) {
+    return 'HTTP $code，站点异常';
+  }
+
+  @override
+  String get diagnosticSiteStructure => '页面结构不符合预期，可能是镜像站已失效或站点改版';
+
+  @override
+  String diagnosticLoginSaved(Object name) {
+    return '已保存账号：$name';
+  }
+
+  @override
+  String get diagnosticLoginSkipped => '未登录，跳过登录检测';
+
+  @override
+  String get suggestionLabel => '建议';
+
+  @override
+  String get suggestionCloudflare =>
+      '请求被服务端拒绝，可能是 Cloudflare 校验或地区限制，请切换网络环境或更换镜像站地址';
+
+  @override
+  String get suggestionDns => '系统 DNS 可能被污染，建议开启「使用内置 Hosts」或改用 DNS over HTTPS';
+
+  @override
+  String get suggestionTimeout => '服务器响应过慢或网络不通，请检查网络后重试';
+
+  @override
+  String get suggestionSite => '站点返回异常，请尝试更换镜像站地址';
+
+  @override
+  String addressLatencyPreferred(Object address, int ms) {
+    return '当前优选：$address（$ms ms）';
+  }
+
+  @override
   String get proxy => '代理';
 
   @override
@@ -370,6 +548,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noSearchResults => '没有找到匹配的视频';
+
+  @override
+  String get javSourceSearchHint => 'AV 源只支持关键词搜索，请输入关键词';
+
+  @override
+  String get recommendedVideos => '推荐视频';
 
   @override
   String category(Object value) {
@@ -2183,6 +2367,184 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
       '為 Hanime1 網域使用內建的 Cloudflare 位址，並自動回退到系統 DNS';
 
   @override
+  String get addressLatency => '位址延遲優選';
+
+  @override
+  String get addressLatencyDescription => '並發探測內建候選位址的建連耗時，按實測延遲優選；僅在不使用代理時生效';
+
+  @override
+  String get addressLatencyProxyNotice => '目前請求走代理，內建位址不參與，以下為直連探測結果，僅供參考';
+
+  @override
+  String get addressLatencyProbe => '重新測速';
+
+  @override
+  String get addressLatencyUnavailable => '不可用';
+
+  @override
+  String get addressLatencyNotProbed => '未探測';
+
+  @override
+  String addressLatencyLastProbed(Object time) {
+    return '上次探測：$time';
+  }
+
+  @override
+  String get addressLatencyDone => '測速完成';
+
+  @override
+  String get addressGroupSite => 'Hanime1 站點';
+
+  @override
+  String get addressGroupImageCdn => '圖片 CDN';
+
+  @override
+  String get addressGroupGetchu => 'Getchu 預告源';
+
+  @override
+  String get siteDiagnostics => '站點可用性診斷';
+
+  @override
+  String get siteDiagnosticsDescription =>
+      '檢測目前站點的 DNS、連線、憑證、頁面結構與登入狀態，協助定位常見問題';
+
+  @override
+  String get siteGroups => '站點分組';
+
+  @override
+  String get siteGroupsDescription => '給站點列表分組：可改名、調整順序、把站點移到別的分組；未設定時按類型自動歸類';
+
+  @override
+  String get siteGroupAdd => '新增分組';
+
+  @override
+  String get siteGroupName => '分組名稱';
+
+  @override
+  String get siteGroupNameHint => '留空則使用預設名稱';
+
+  @override
+  String get siteGroupRename => '重新命名分組';
+
+  @override
+  String get siteGroupMoveTo => '移動到';
+
+  @override
+  String get siteGroupEmpty => '這個分組裡還沒有站點';
+
+  @override
+  String siteGroupDeleteHint(Object name) {
+    return '將刪除「$name」，組內站點會併入第一個分組';
+  }
+
+  @override
+  String siteHostsCount(int count) {
+    return '$count 個站點';
+  }
+
+  @override
+  String get diagnose => '重新診斷';
+
+  @override
+  String get diagnosticDns => 'DNS 解析';
+
+  @override
+  String get diagnosticConnectivity => '連線可用性';
+
+  @override
+  String get diagnosticCertificate => 'SSL 憑證';
+
+  @override
+  String get diagnosticSite => '站點狀態';
+
+  @override
+  String get diagnosticLogin => '登入狀態';
+
+  @override
+  String get diagnosticOk => '正常';
+
+  @override
+  String get diagnosticFail => '異常';
+
+  @override
+  String get diagnosticSkipped => '跳過';
+
+  @override
+  String diagnosticDnsOk(Object host, Object addresses) {
+    return '網域 $host 解析成功：$addresses';
+  }
+
+  @override
+  String diagnosticDnsFail(Object host) {
+    return '無法解析網域 $host';
+  }
+
+  @override
+  String diagnosticHttpOk(int code) {
+    return 'HTTP $code，站點可達';
+  }
+
+  @override
+  String diagnosticHttpFail(int code) {
+    return 'HTTP $code，存取被拒絕';
+  }
+
+  @override
+  String diagnosticError(Object detail) {
+    return '檢測失敗：$detail';
+  }
+
+  @override
+  String diagnosticCertificateOk(Object issuer) {
+    return '憑證有效，簽發者：$issuer';
+  }
+
+  @override
+  String get diagnosticCertificateNone => '未取得憑證資訊';
+
+  @override
+  String diagnosticSiteOk(Object url) {
+    return '頁面結構正常：$url';
+  }
+
+  @override
+  String diagnosticSiteFail(int code) {
+    return 'HTTP $code，站點異常';
+  }
+
+  @override
+  String get diagnosticSiteStructure => '頁面結構不符預期，可能是鏡像站已失效或站點改版';
+
+  @override
+  String diagnosticLoginSaved(Object name) {
+    return '已儲存帳號：$name';
+  }
+
+  @override
+  String get diagnosticLoginSkipped => '未登入，跳過登入檢測';
+
+  @override
+  String get suggestionLabel => '建議';
+
+  @override
+  String get suggestionCloudflare =>
+      '請求被伺服器拒絕，可能是 Cloudflare 驗證或地區限制，請切換網路環境或更換鏡像站位址';
+
+  @override
+  String get suggestionDns => '系統 DNS 可能被污染，建議開啟「使用內建 Hosts」或改用 DNS over HTTPS';
+
+  @override
+  String get suggestionTimeout => '伺服器回應過慢或網路不通，請檢查網路後重試';
+
+  @override
+  String get suggestionSite => '站點回應異常，請嘗試更換鏡像站位址';
+
+  @override
+  String addressLatencyPreferred(Object address, int ms) {
+    return '目前優選：$address（$ms ms）';
+  }
+
+  @override
   String get proxy => '代理';
 
   @override
@@ -2400,6 +2762,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get noSearchResults => '沒有找到符合的影片';
+
+  @override
+  String get javSourceSearchHint => 'AV 源只支援關鍵字搜尋，請輸入關鍵字';
+
+  @override
+  String get recommendedVideos => '推薦影片';
 
   @override
   String category(Object value) {

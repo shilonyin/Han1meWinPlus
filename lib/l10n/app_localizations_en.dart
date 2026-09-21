@@ -157,6 +157,193 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use built-in Cloudflare addresses for Hanime1 domains, falling back to system DNS automatically';
 
   @override
+  String get addressLatency => 'Address Latency';
+
+  @override
+  String get addressLatencyDescription =>
+      'Probes the built-in candidate addresses concurrently and prefers the fastest one; only applies when no proxy is used';
+
+  @override
+  String get addressLatencyProxyNotice =>
+      'Requests currently go through a proxy, so the built-in addresses are not used; the figures below are direct-connection probes and for reference only';
+
+  @override
+  String get addressLatencyProbe => 'Test again';
+
+  @override
+  String get addressLatencyUnavailable => 'Unavailable';
+
+  @override
+  String get addressLatencyNotProbed => 'Not probed';
+
+  @override
+  String addressLatencyLastProbed(Object time) {
+    return 'Last probed: $time';
+  }
+
+  @override
+  String get addressLatencyDone => 'Speed test finished';
+
+  @override
+  String get addressGroupSite => 'Hanime1 site';
+
+  @override
+  String get addressGroupImageCdn => 'Image CDN';
+
+  @override
+  String get addressGroupGetchu => 'Getchu previews';
+
+  @override
+  String get siteDiagnostics => 'Site Diagnostics';
+
+  @override
+  String get siteDiagnosticsDescription =>
+      'Checks DNS, connectivity, certificate, page structure and login state of the current site to help locate common problems';
+
+  @override
+  String get siteGroups => 'Site Groups';
+
+  @override
+  String get siteGroupsDescription =>
+      'Group the site list: rename groups, reorder them and move sites between groups; sites are categorised by type until you customise them';
+
+  @override
+  String get siteGroupAdd => 'Add group';
+
+  @override
+  String get siteGroupName => 'Group name';
+
+  @override
+  String get siteGroupNameHint => 'Leave empty to use the default name';
+
+  @override
+  String get siteGroupRename => 'Rename group';
+
+  @override
+  String get siteGroupMoveTo => 'Move to';
+
+  @override
+  String get siteGroupEmpty => 'No sites in this group yet';
+
+  @override
+  String siteGroupDeleteHint(Object name) {
+    return '\"$name\" will be deleted and its sites merged into the first group';
+  }
+
+  @override
+  String siteHostsCount(int count) {
+    return '$count sites';
+  }
+
+  @override
+  String get diagnose => 'Run diagnostics';
+
+  @override
+  String get diagnosticDns => 'DNS Lookup';
+
+  @override
+  String get diagnosticConnectivity => 'Connectivity';
+
+  @override
+  String get diagnosticCertificate => 'SSL Certificate';
+
+  @override
+  String get diagnosticSite => 'Site Status';
+
+  @override
+  String get diagnosticLogin => 'Login Status';
+
+  @override
+  String get diagnosticOk => 'OK';
+
+  @override
+  String get diagnosticFail => 'Failed';
+
+  @override
+  String get diagnosticSkipped => 'Skipped';
+
+  @override
+  String diagnosticDnsOk(Object host, Object addresses) {
+    return 'Resolved $host: $addresses';
+  }
+
+  @override
+  String diagnosticDnsFail(Object host) {
+    return 'Could not resolve $host';
+  }
+
+  @override
+  String diagnosticHttpOk(int code) {
+    return 'HTTP $code, the site is reachable';
+  }
+
+  @override
+  String diagnosticHttpFail(int code) {
+    return 'HTTP $code, access denied';
+  }
+
+  @override
+  String diagnosticError(Object detail) {
+    return 'Check failed: $detail';
+  }
+
+  @override
+  String diagnosticCertificateOk(Object issuer) {
+    return 'Certificate valid, issued by $issuer';
+  }
+
+  @override
+  String get diagnosticCertificateNone =>
+      'No certificate information available';
+
+  @override
+  String diagnosticSiteOk(Object url) {
+    return 'Page structure looks correct: $url';
+  }
+
+  @override
+  String diagnosticSiteFail(int code) {
+    return 'HTTP $code, the site is unavailable';
+  }
+
+  @override
+  String get diagnosticSiteStructure =>
+      'Unexpected page structure; the mirror may be dead or the site was redesigned';
+
+  @override
+  String diagnosticLoginSaved(Object name) {
+    return 'Saved account: $name';
+  }
+
+  @override
+  String get diagnosticLoginSkipped =>
+      'Not signed in, skipping the login check';
+
+  @override
+  String get suggestionLabel => 'Suggestion';
+
+  @override
+  String get suggestionCloudflare =>
+      'The server rejected the request; this is usually a Cloudflare challenge or a region restriction — try another network or mirror address';
+
+  @override
+  String get suggestionDns =>
+      'System DNS may be poisoned; enable \"Use Built-in Hosts\" or switch to DNS over HTTPS';
+
+  @override
+  String get suggestionTimeout =>
+      'The server is too slow or unreachable; check your network and retry';
+
+  @override
+  String get suggestionSite =>
+      'The site responded abnormally; try another mirror address';
+
+  @override
+  String addressLatencyPreferred(Object address, int ms) {
+    return 'Preferred: $address ($ms ms)';
+  }
+
+  @override
   String get proxy => 'Proxy';
 
   @override
@@ -383,6 +570,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSearchResults => 'No matching videos found';
+
+  @override
+  String get javSourceSearchHint =>
+      'This AV source supports keyword search only — please type a keyword';
+
+  @override
+  String get recommendedVideos => 'Recommended';
 
   @override
   String category(Object value) {

@@ -381,6 +381,306 @@ abstract class AppLocalizations {
   /// **'Use built-in Cloudflare addresses for Hanime1 domains, falling back to system DNS automatically'**
   String get useBuiltInHostsDescription;
 
+  /// No description provided for @addressLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Latency'**
+  String get addressLatency;
+
+  /// No description provided for @addressLatencyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Probes the built-in candidate addresses concurrently and prefers the fastest one; only applies when no proxy is used'**
+  String get addressLatencyDescription;
+
+  /// No description provided for @addressLatencyProxyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests currently go through a proxy, so the built-in addresses are not used; the figures below are direct-connection probes and for reference only'**
+  String get addressLatencyProxyNotice;
+
+  /// No description provided for @addressLatencyProbe.
+  ///
+  /// In en, this message translates to:
+  /// **'Test again'**
+  String get addressLatencyProbe;
+
+  /// No description provided for @addressLatencyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get addressLatencyUnavailable;
+
+  /// No description provided for @addressLatencyNotProbed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not probed'**
+  String get addressLatencyNotProbed;
+
+  /// No description provided for @addressLatencyLastProbed.
+  ///
+  /// In en, this message translates to:
+  /// **'Last probed: {time}'**
+  String addressLatencyLastProbed(Object time);
+
+  /// No description provided for @addressLatencyDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed test finished'**
+  String get addressLatencyDone;
+
+  /// No description provided for @addressGroupSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Hanime1 site'**
+  String get addressGroupSite;
+
+  /// No description provided for @addressGroupImageCdn.
+  ///
+  /// In en, this message translates to:
+  /// **'Image CDN'**
+  String get addressGroupImageCdn;
+
+  /// No description provided for @addressGroupGetchu.
+  ///
+  /// In en, this message translates to:
+  /// **'Getchu previews'**
+  String get addressGroupGetchu;
+
+  /// No description provided for @siteDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Site Diagnostics'**
+  String get siteDiagnostics;
+
+  /// No description provided for @siteDiagnosticsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Checks DNS, connectivity, certificate, page structure and login state of the current site to help locate common problems'**
+  String get siteDiagnosticsDescription;
+
+  /// No description provided for @siteGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Site Groups'**
+  String get siteGroups;
+
+  /// No description provided for @siteGroupsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Group the site list: rename groups, reorder them and move sites between groups; sites are categorised by type until you customise them'**
+  String get siteGroupsDescription;
+
+  /// No description provided for @siteGroupAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add group'**
+  String get siteGroupAdd;
+
+  /// No description provided for @siteGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Group name'**
+  String get siteGroupName;
+
+  /// No description provided for @siteGroupNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use the default name'**
+  String get siteGroupNameHint;
+
+  /// No description provided for @siteGroupRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename group'**
+  String get siteGroupRename;
+
+  /// No description provided for @siteGroupMoveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to'**
+  String get siteGroupMoveTo;
+
+  /// No description provided for @siteGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sites in this group yet'**
+  String get siteGroupEmpty;
+
+  /// No description provided for @siteGroupDeleteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" will be deleted and its sites merged into the first group'**
+  String siteGroupDeleteHint(Object name);
+
+  /// No description provided for @siteHostsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sites'**
+  String siteHostsCount(int count);
+
+  /// No description provided for @diagnose.
+  ///
+  /// In en, this message translates to:
+  /// **'Run diagnostics'**
+  String get diagnose;
+
+  /// No description provided for @diagnosticDns.
+  ///
+  /// In en, this message translates to:
+  /// **'DNS Lookup'**
+  String get diagnosticDns;
+
+  /// No description provided for @diagnosticConnectivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Connectivity'**
+  String get diagnosticConnectivity;
+
+  /// No description provided for @diagnosticCertificate.
+  ///
+  /// In en, this message translates to:
+  /// **'SSL Certificate'**
+  String get diagnosticCertificate;
+
+  /// No description provided for @diagnosticSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Site Status'**
+  String get diagnosticSite;
+
+  /// No description provided for @diagnosticLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login Status'**
+  String get diagnosticLogin;
+
+  /// No description provided for @diagnosticOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get diagnosticOk;
+
+  /// No description provided for @diagnosticFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get diagnosticFail;
+
+  /// No description provided for @diagnosticSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get diagnosticSkipped;
+
+  /// No description provided for @diagnosticDnsOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved {host}: {addresses}'**
+  String diagnosticDnsOk(Object host, Object addresses);
+
+  /// No description provided for @diagnosticDnsFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not resolve {host}'**
+  String diagnosticDnsFail(Object host);
+
+  /// No description provided for @diagnosticHttpOk.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP {code}, the site is reachable'**
+  String diagnosticHttpOk(int code);
+
+  /// No description provided for @diagnosticHttpFail.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP {code}, access denied'**
+  String diagnosticHttpFail(int code);
+
+  /// No description provided for @diagnosticError.
+  ///
+  /// In en, this message translates to:
+  /// **'Check failed: {detail}'**
+  String diagnosticError(Object detail);
+
+  /// No description provided for @diagnosticCertificateOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate valid, issued by {issuer}'**
+  String diagnosticCertificateOk(Object issuer);
+
+  /// No description provided for @diagnosticCertificateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No certificate information available'**
+  String get diagnosticCertificateNone;
+
+  /// No description provided for @diagnosticSiteOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Page structure looks correct: {url}'**
+  String diagnosticSiteOk(Object url);
+
+  /// No description provided for @diagnosticSiteFail.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP {code}, the site is unavailable'**
+  String diagnosticSiteFail(int code);
+
+  /// No description provided for @diagnosticSiteStructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Unexpected page structure; the mirror may be dead or the site was redesigned'**
+  String get diagnosticSiteStructure;
+
+  /// No description provided for @diagnosticLoginSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved account: {name}'**
+  String diagnosticLoginSaved(Object name);
+
+  /// No description provided for @diagnosticLoginSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in, skipping the login check'**
+  String get diagnosticLoginSkipped;
+
+  /// No description provided for @suggestionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion'**
+  String get suggestionLabel;
+
+  /// No description provided for @suggestionCloudflare.
+  ///
+  /// In en, this message translates to:
+  /// **'The server rejected the request; this is usually a Cloudflare challenge or a region restriction — try another network or mirror address'**
+  String get suggestionCloudflare;
+
+  /// No description provided for @suggestionDns.
+  ///
+  /// In en, this message translates to:
+  /// **'System DNS may be poisoned; enable \"Use Built-in Hosts\" or switch to DNS over HTTPS'**
+  String get suggestionDns;
+
+  /// No description provided for @suggestionTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is too slow or unreachable; check your network and retry'**
+  String get suggestionTimeout;
+
+  /// No description provided for @suggestionSite.
+  ///
+  /// In en, this message translates to:
+  /// **'The site responded abnormally; try another mirror address'**
+  String get suggestionSite;
+
+  /// No description provided for @addressLatencyPreferred.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred: {address} ({ms} ms)'**
+  String addressLatencyPreferred(Object address, int ms);
+
   /// No description provided for @proxy.
   ///
   /// In en, this message translates to:
@@ -782,6 +1082,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching videos found'**
   String get noSearchResults;
+
+  /// No description provided for @javSourceSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This AV source supports keyword search only — please type a keyword'**
+  String get javSourceSearchHint;
+
+  /// No description provided for @recommendedVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get recommendedVideos;
 
   /// No description provided for @category.
   ///
