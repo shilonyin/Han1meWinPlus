@@ -85,8 +85,9 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
               const SizedBox(width: 14),
               // 左上角整张锁标（图标 + 字标一体，和关于页 / README 同源）。
               // 标题栏只有 34px 高：按设计稿比例（图标:字标 = 2.4:1）显示时字标只剩
-              // 8~11px，改用紧凑版（1.5:1）—— 字标约 13px，图标 20px，上下各留 7px。
-              Image.asset('assets/logo_lockup_compact.png', height: 20, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
+              // 8~11px，改用紧凑版（1.5:1）—— 16px 高时图标 16px、字标约 11px，
+              // 与 Windows 标题栏图标的常规尺寸一致。
+              Image.asset('assets/logo_lockup_compact.png', height: 16, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
               const Spacer(),
               _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Icons.remove, iconSize: 16),
               _TitleBarButton(
