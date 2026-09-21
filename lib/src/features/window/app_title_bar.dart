@@ -83,6 +83,9 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
           child: Row(
             children: [
               const SizedBox(width: 14),
+              // 左上角的应用图标，与标题文字同一行
+              Image.asset('assets/logo.png', width: 16, height: 16, filterQuality: FilterQuality.high),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   l10n.appTitle,
