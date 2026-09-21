@@ -142,6 +142,8 @@ jobs:
           foreach ($line in (git log $range --no-merges --pretty=format:'%s')) {
             $text = $line.Trim()
             if ([string]::IsNullOrWhiteSpace($text)) { continue }
+            # 版本号提交不进发布说明（它只负责把 pubspec 的版本号推上去）
+            if ($text -match '^chore\s*\(\s*release\s*\)') { continue }
             $bucket = '改进'
             if ($text -match '^(feat|feature)\s*(\(|:|：)') { $bucket = '新功能' }
             elseif ($text -match '^(fix|bugfix|hotfix|perf)\s*(\(|:|：)') { $bucket = '修复' }
