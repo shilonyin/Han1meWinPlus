@@ -33,7 +33,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_showDiagnostics) return SiteDiagnosticsPage(onBack: () => setState(() => _showDiagnostics = false));
+    if (_showDiagnostics) return SettingsSubPageScope(onBack: () => setState(() => _showDiagnostics = false), child: const SiteDiagnosticsPage());
     if (_showSiteGroups) return SettingsSubPageScope(onBack: () => setState(() => _showSiteGroups = false), child: const SiteGroupsPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));

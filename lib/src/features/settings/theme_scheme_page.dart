@@ -66,7 +66,7 @@ class _ThemeSchemeDialog extends ConsumerWidget {
                   for (final color in presets)
                     _Swatch(
                       color: color.seedColor(settings.customThemeColor),
-                      label: _label(l10n, color),
+                      label: themeColorLabel(l10n, color),
                       selected: !settings.useMonetColors && settings.themeColor == color,
                       onTap: () => controller.saveChanges((current) => current.copyWith(useMonetColors: false, themeColor: color)),
                     ),
@@ -87,7 +87,8 @@ class _ThemeSchemeDialog extends ConsumerWidget {
   }
 }
 
-String _label(AppLocalizations l10n, AppThemeColor color) => switch (color) {
+/// 配色方案的名称。公开给设置页当行副标题用（与「站点 / 代理」行的写法一致）。
+String themeColorLabel(AppLocalizations l10n, AppThemeColor color) => switch (color) {
       AppThemeColor.rose => l10n.colorRose,
       AppThemeColor.blue => l10n.colorBlue,
       AppThemeColor.teal => l10n.colorTeal,

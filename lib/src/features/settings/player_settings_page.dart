@@ -9,6 +9,7 @@ import '../../core/video_decoders.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 
 class PlayerSettingsPage extends ConsumerWidget {
   const PlayerSettingsPage({super.key});
@@ -21,7 +22,7 @@ class PlayerSettingsPage extends ConsumerWidget {
     final controller = ref.read(settingsProvider.notifier);
     final libmpv = settings.playerEngine == PlayerEngine.libMpv;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.playerSettings)),
+      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.playerSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [

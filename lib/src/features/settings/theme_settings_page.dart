@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../core/window_chrome.dart';
+import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'theme_scheme_page.dart';
@@ -29,29 +30,19 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
           SettingsCardList(title: l10n.appearance, children: [
+            // 行形态统一：当前值放在 subtitle，尾部用 chevron_right 表示「点开可选」。
             SettingsCardItem(
               title: l10n.themeMode,
+              subtitle: _themeModeLabel(l10n, settings.themeMode),
               leading: const Icon(Icons.brightness_auto_outlined),
-              trailing: Text(switch (settings.themeMode) { AppThemeMode.system => l10n.followSystem, AppThemeMode.light => l10n.light, AppThemeMode.dark => l10n.dark }),
-              onTap: () async {
-                final selected = await showModalBottomSheet<AppThemeMode>(
-                  context: context,
-                  builder: (sheetContext) => SafeArea(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      for (final mode in AppThemeMode.values)
-                        ListTile(
-                          title: Text(switch (mode) { AppThemeMode.system => l10n.followSystem, AppThemeMode.light => l10n.light, AppThemeMode.dark => l10n.dark }),
-                          onTap: () => Navigator.pop(sheetContext, mode),
-                        ),
-                    ]),
-                  ),
-                );
-                if (selected != null) await controller.saveChanges((current) => current.copyWith(themeMode: selected));
-              },
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _pickThemeMode(context, controller, settings),
             ),
             SettingsCardItem(
               title: l10n.colorScheme,
+              subtitle: settings.useMonetColors ? l10n.dynamicColor : themeColorLabel(l10n, settings.themeColor),
               leading: const Icon(Icons.palette_outlined),
+              trailing: const Icon(Icons.chevron_right),
               onTap: () => showThemeSchemeDialog(context),
             ),
             SettingsCardItem(
@@ -109,5 +100,26 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
       ),
     );
   }
+
+  /// 三个单选项走统一的弹层（和硬件解码器 / 代理 / 超分辨率一致），
+  /// 原来是裸的 showModalBottomSheet + ListTile，看着跟别处不是一套。
+  Future<void> _pickThemeMode(BuildContext context, SettingsController controller, AppSettings settings) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showOptionSettingsDialog<AppThemeMode>(
+      context: context,
+      title: l10n.themeMode,
+      current: settings.themeMode,
+      options: AppThemeMode.values,
+      label: (mode) => _themeModeLabel(l10n, mode),
+    );
+    if (selected == null || selected == settings.themeMode) return;
+    await controller.saveChanges((current) => current.copyWith(themeMode: selected));
+  }
 }
+
+String _themeModeLabel(AppLocalizations l10n, AppThemeMode mode) => switch (mode) {
+      AppThemeMode.system => l10n.followSystem,
+      AppThemeMode.light => l10n.light,
+      AppThemeMode.dark => l10n.dark,
+    };
 

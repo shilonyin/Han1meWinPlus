@@ -11,6 +11,7 @@ import '../../data/remote/windows_connection_factory.dart';
 import '../../data/remote/windows_http_overrides.dart';
 import '../account/account_controller.dart';
 import 'settings_controller.dart';
+import 'settings_sub_page.dart';
 
 /// 候选地址分组：Hanime1 的三个域名共用同一批 Cloudflare 边缘地址（同一个 List 常量），
 /// 合成一组展示，免得同一个地址列表在页面上重复三遍。
@@ -27,11 +28,7 @@ String _addressGroupLabel(AppLocalizations l10n, String host) => switch (host) {
 /// 所有请求都走 [Han1meHttpClient]，所以用的是当前真实生效的网络设置（代理模式、内置
 /// Hosts、DoH）—— 结论与真实加载路径一致，这是这一页存在的意义。
 class SiteDiagnosticsPage extends ConsumerStatefulWidget {
-  const SiteDiagnosticsPage({super.key, this.onBack});
-
-  /// 非空时标题栏用这个回调当返回按钮（嵌在设置页右侧内容区时用），
-  /// 为空则走路由默认返回（宽窗深链或窄窗 push 进来的情况）。
-  final VoidCallback? onBack;
+  const SiteDiagnosticsPage({super.key});
 
   @override
   ConsumerState<SiteDiagnosticsPage> createState() => _SiteDiagnosticsPageState();
@@ -94,7 +91,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(leading: widget.onBack == null ? null : BackButton(onPressed: widget.onBack), title: Text(l10n.siteDiagnostics)),
+      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.siteDiagnostics)),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
         Text(l10n.siteDiagnosticsDescription, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)),
         const SizedBox(height: 12),
