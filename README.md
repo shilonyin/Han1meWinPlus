@@ -9,7 +9,9 @@
 </p>
 
 <p align="center">
-  基于 Material Design 3 设计语言，使用 Dart & Flutter 构建的 Hanime1 第三方客户端 —— <b>Windows 专修分支</b>
+  <b>专为 Windows 10 / 11 优化的 Hanime1 客户端</b><br>
+  硬件解码 · 超分辨率 · 安装包 + 免安装版 · 内置自动更新<br>
+  <sub>基于 Flutter 与 Material Design 3 构建 · Han1mePlus 的 Windows 专修分支</sub>
 </p>
 
 <p align="center">
@@ -41,13 +43,12 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 
 ## 功能
 
-- **Windows 桌面体验**：原生窗口、自绘标题栏、窗口/全屏切换、多显示器与高 DPI 适配
-- **播放器**：基于 libmpv，支持硬件解码（d3d11va / dxva2 / nvdec）、多档超分辨率（Anime4K、EWA Lanczos）、关键帧跳转、缓冲区间显示、自动记忆播放进度
-- **网络适配**：内置直连地址、站点可用性诊断（DNS / 连接 / 证书 / 页面结构 / 登录状态）、候选地址延迟探测与自动选优、系统代理 / 直连 / 自定义代理、自定义镜像站
+- **Windows 专属**：原生窗口与自绘标题栏、窗口 / 全屏切换、多显示器与高 DPI 适配、安装包 + 免安装版、应用内自动更新（可走镜像）
+- **播放器**：libmpv + 硬件解码（d3d11va / dxva2 / nvdec）+ 多档超分辨率（Anime4K、EWA Lanczos）+ 关键帧跳转、缓冲区间显示、播放进度记忆
+- **网络**：内置直连地址、站点诊断（DNS / 连接 / 证书 / 页面结构 / 登录）、延迟探测自动选优、系统代理 / 直连 / 自定义代理、自定义镜像站
 - **浏览与搜索**：首页分区、分类与标签筛选、多条件排序、搜索建议与搜索历史
-- **本地功能**：稍后观看、喜欢的影片、播放清单、观看历史、离线下载、追番订阅
-- **界面**：Material Design 3、动态取色、浅色 / 深色 / AMOLED 模式、内置 HarmonyOS Sans 字体、界面语言 中（简 / 繁）/ 英
-- **安装与更新**：提供安装包与免安装压缩包，应用内自动检查更新并支持镜像回退
+- **本地库**：稍后观看、喜欢的影片、播放清单、观看历史、离线下载、追番订阅
+- **界面**：Material Design 3、动态取色、浅色 / 深色 / AMOLED、内置 HarmonyOS Sans、界面语言 中（简 / 繁）/ 英
 
 ## 应用截图
 
@@ -71,6 +72,8 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 
 ## 与上游的关系
 
+**Windows 用户请直接用本仓库** —— 上游不维护 Windows 专属优化，Windows 端的窗口、播放器、安装包与更新流程都在这里。
+
 - 上游仓库：[1wc10086/Han1mePlus](https://github.com/1wc10086/Han1mePlus)（AGPL-3.0）
 - 本仓库为其派生作品，同样遵循 AGPL v3.0
 - 同步上游：`git fetch upstream && git merge upstream/main`
@@ -85,22 +88,24 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 | Windows 安装包 | 视上游情况 | 每次发版提供安装包与免安装包 |
 | Windows 更新流程 | 通用 | 专门适配（应用内检查更新 + 镜像回退） |
 
-**Windows 用户请直接使用本仓库**（上游的 Windows 支持不在本分支的维护范围内）；Android 等其他平台请使用上游项目。
+Android 等其他平台请使用上游项目。
 
 ## 下载
 
-前往 [Releases](../../releases/latest) 页面下载最新版：
+### 推荐：安装版
 
-| 文件 | 说明 |
-| --- | --- |
-| `Han1meWinPlus-Setup.exe` | 安装版：开始菜单快捷方式 + 可卸载（推荐） |
-| `Han1meWinPlus-windows-x64.zip` | 免安装版：解压后直接运行 `han1me_win_plus.exe` |
-| `SHA256SUMS.txt` | 校验文件：安装包与免安装包的 SHA256，用于核对下载是否完整（内容也会附在 Release 说明里） |
+**[Han1meWinPlus-Setup.exe](../../releases/latest)** —— 带开始菜单快捷方式，可正常卸载（[直接下载](../../releases/latest/download/Han1meWinPlus-Setup.exe)）
+
+免安装版：`Han1meWinPlus-windows-x64.zip` —— 解压即用，运行 `han1me_win_plus.exe`（[直接下载](../../releases/latest/download/Han1meWinPlus-windows-x64.zip)）
+
+> 首次运行出现「未知发布者」是正常现象（安装包未做代码签名），点「更多信息 → 仍要运行」即可；免安装版不经过安装流程，不会被拦。
 
 - **系统要求**：Windows 10（1809 及以上）/ Windows 11，64 位
-- **关于「未知发布者」**：安装包未做代码签名，首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下，点「更多信息」→「仍要运行」即可；也可以直接用免安装版
+- **校验下载**：同版本提供 `SHA256SUMS.txt`（内容也附在 Release 说明里），可在 PowerShell 里用 `certutil -hashfile <文件名> SHA256` 核对
 - **数据目录**：`%APPDATA%\han1me_win_plus\`，覆盖安装或升级不会丢失，卸载时也不会自动删除（需要清理请手动删除该目录）
 - **升级**：已经在用旧版本时，应用内会自动提示更新，也可以在 设置 → 关于 里手动检查
+
+全部历史版本与更新日志见 [Releases](../../releases) 页面。
 
 ## 项目状态
 
@@ -138,13 +143,46 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 </details>
 
 <details>
-<summary>卸载会删掉我的数据吗？</summary>
+<summary>卸载会删掉我的数据吗？更新后数据还在吗？</summary>
 
-不会。数据在 `%APPDATA%\han1me_win_plus\`，卸载不会删除；需要彻底清理请手动删除该目录。
+不会。数据都在 `%APPDATA%\han1me_win_plus\`（账号、追番、观看历史、收藏、播放清单），覆盖安装与升级都不会动它，卸载也不会删除；需要彻底清理请手动删除该目录。
+
+</details>
+
+<details>
+<summary>硬件解码不生效、播放花屏或黑屏？</summary>
+
+设置 → 播放设置 里有「硬件解码」开关与「硬件解码器」选项，默认是 `auto-safe`。遇到花屏 / 绿屏 / 黑屏可以这样试：
+
+1. 把「硬件解码器」换成 `d3d11va-copy` 或 `dxva2-copy`（copy 模式兼容性更好，代价是多一次内存拷贝）
+2. 仍然异常就关掉「硬件解码」改用软解（更吃 CPU，但兼容性最好）
+
+如果某个解码器在你的显卡上明显更稳，欢迎回来报一下显卡型号与驱动版本。
+
+</details>
+
+<details>
+<summary>怎么设置代理或镜像站？</summary>
+
+都在 设置 → 网络设置 里：
+
+- **代理**：跟随系统 / 直连 / 自定义地址（`host:port`）。保存后界面请求与播放器（libmpv）会使用同一套代理
+- **站点**：切换视频源站点，弹层底部的「站点分组」可以自定义分组名称与排序
+- **自定义镜像站**：填入镜像地址后可点「测试连接」验证是否能正常解析
+
+</details>
+
+<details>
+<summary>窗口拉窄后左侧栏消失、界面变成手机式布局？</summary>
+
+这是预期行为：窗口最短边小于 600 逻辑像素时会自动切到紧凑布局，侧栏收进抽屉，把窗口拉宽即恢复。
+若出现窗口位置错位、退出全屏后没还原，请先升级到最新版（最近修复过这类问题）；仍异常请带截图提 Issue。
 
 </details>
 
 ## 从源码构建
+
+> **必须使用 Flutter ≥ 3.47.0**（`m3e_core: ^1.1.1` 的约束），`.fvmrc` 已锁定为 `3.47.4`，建议使用相同版本构建。Flutter 版本偏低时 `flutter pub get` 会直接解析失败，与业务代码无关。
 
 ```bash
 flutter pub get
@@ -158,8 +196,6 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 ```
 
 > `/DMyAppVersion=` 用于把版本号写进安装包，省略时会用 `installer.iss` 里的内置默认值，建议总是显式传入（CI 就是这么做的）。
-
-> 本分支的依赖要求 **Flutter ≥ 3.47.0**（`m3e_core: ^1.1.1` 的约束），`.fvmrc` 已锁定为 `3.47.4`，建议使用相同版本构建。Flutter 版本偏低时 `flutter pub get` 会直接解析失败，与业务代码无关。
 
 ## 发布新版本
 
@@ -183,19 +219,20 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 ## 如何贡献
 
-> [!Important]
-> **本项目仅由我个人维护，且打算继续保持这种状态。** 
+本项目目前由个人维护。欢迎提 Issue 和功能建议，代码贡献请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 > [!TIP]
-> **​在 Issue 中提交建议**： 随时欢迎分享你的想法！
+> **在 Issue 中提交建议**： 随时欢迎分享你的想法！
 
 > [!NOTE]
 > **分享想法与建议**： 如果你觉得缺少某个功能，或者有什么有意思的想法，欢迎随时新建一个 Issue。
 
 > [!WARNING]
-> **​反馈 Bug**： 遇到了应用崩溃或运行异常？请创建一个 Issue 并尽可能提供详细信息，以便我排查和解决问题。
+> **反馈 Bug**： 遇到了应用崩溃或运行异常？请创建一个 Issue 并尽可能提供详细信息，以便我排查和解决问题。
 
-想提交代码？请先看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **功能建议 / 使用问题**：新建 [Issue](../../issues/new/choose) 或到 [Discussions](../../discussions) 聊聊
+- **Bug 反馈**：附上系统版本与应用版本（设置 → 关于）、复现步骤与截图，能大幅提高定位效率
+- 与 Windows 无关的通用问题请提到[上游仓库](https://github.com/1wc10086/Han1mePlus/issues)
 
 ## 开源协议
 

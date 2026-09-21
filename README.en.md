@@ -9,7 +9,9 @@
 </p>
 
 <p align="center">
-  A third-party Hanime1 client built with Dart &amp; Flutter, following Material Design 3 — <b>a Windows-focused fork</b>
+  <b>A Hanime1 client built for Windows 10 / 11</b><br>
+  Hardware decoding · Super-resolution · Installer + portable build · Built-in updater<br>
+  <sub>Built with Flutter and Material Design 3 · a Windows-focused fork of Han1mePlus</sub>
 </p>
 
 <p align="center">
@@ -41,13 +43,12 @@ Only Windows is maintained in this branch, and the work concentrates on the Wind
 
 ## Features
 
-- **Windows desktop experience**: native window, custom title bar, windowed / full-screen switching, multi-monitor and high-DPI support
-- **Player**: built on libmpv, with hardware decoding (d3d11va / dxva2 / nvdec), several super-resolution modes (Anime4K, EWA Lanczos), keyframe jumping, a buffered-range indicator on the progress bar, and automatic playback-position memory
-- **Networking**: built-in direct-connect addresses, site diagnostics (DNS / connection / TLS certificate / page structure / sign-in state), latency probing with automatic address ranking, system proxy / direct / custom proxy, custom mirrors
+- **Windows-specific**: native window and custom title bar, windowed / full-screen switching, multi-monitor and high-DPI support, installer + portable build, in-app updater (with mirror fallback)
+- **Player**: libmpv + hardware decoding (d3d11va / dxva2 / nvdec) + several super-resolution modes (Anime4K, EWA Lanczos) + keyframe jumping, buffered-range indicator, playback-position memory
+- **Networking**: built-in direct-connect addresses, site diagnostics (DNS / connection / certificate / page structure / sign-in), latency probing with automatic ranking, system proxy / direct / custom proxy, custom mirrors
 - **Browsing & search**: home sections, category and tag filters, multi-criteria sorting, search suggestions and search history
 - **Local library**: watch later, liked videos, playlists, watch history, offline downloads, subscriptions
-- **Interface**: Material Design 3, dynamic color, light / dark / AMOLED themes, bundled HarmonyOS Sans font, UI available in Simplified Chinese / Traditional Chinese / English
-- **Install & update**: installer and portable builds, in-app update checks with mirror fallback
+- **Interface**: Material Design 3, dynamic color, light / dark / AMOLED, bundled HarmonyOS Sans, UI in Simplified Chinese / Traditional Chinese / English
 
 ## Screenshots
 
@@ -71,6 +72,8 @@ Only Windows is maintained in this branch, and the work concentrates on the Wind
 
 ## Relationship to upstream
 
+**Windows users should use this repository** — upstream does not maintain Windows-specific work; the Windows window, player, installer and update flow all live here.
+
 - Upstream repository: [1wc10086/Han1mePlus](https://github.com/1wc10086/Han1mePlus) (AGPL-3.0)
 - This repository is a derivative work and is likewise licensed under AGPL v3.0
 - Syncing upstream: `git fetch upstream && git merge upstream/main`
@@ -85,22 +88,24 @@ Only Windows is maintained in this branch, and the work concentrates on the Wind
 | Windows installer | Depends on upstream | Installer and portable archive shipped with every release |
 | Windows update flow | Generic | Purpose-built (in-app update check with mirror fallback) |
 
-**Windows users should use this repository** (upstream's Windows support is outside the scope of this branch); for Android and other platforms, use the upstream project.
+For Android and other platforms, use the upstream project.
 
 ## Download
 
-Grab the latest build from the [Releases](../../releases/latest) page:
+### Recommended: the installer
 
-| File | Description |
-| --- | --- |
-| `Han1meWinPlus-Setup.exe` | Installer: Start-menu shortcut and uninstall support (recommended) |
-| `Han1meWinPlus-windows-x64.zip` | Portable: unzip and run `han1me_win_plus.exe` |
-| `SHA256SUMS.txt` | Checksums: SHA256 of the installer and the portable archive, for verifying your download (also included in the release notes) |
+**[Han1meWinPlus-Setup.exe](../../releases/latest)** — Start-menu shortcut, clean uninstall ([direct download](../../releases/latest/download/Han1meWinPlus-Setup.exe))
+
+Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
+
+> An "Unknown publisher" prompt on first launch is expected (the installer is not code-signed). Click "More info → Run anyway"; the portable build skips the installer entirely.
 
 - **System requirements**: Windows 10 (1809 or later) / Windows 11, 64-bit
-- **About the "Unknown publisher" prompt**: the installer is not code-signed, so Windows may show an "Unknown publisher" warning or SmartScreen may block it. Click "More info" → "Run anyway"; alternatively just use the portable archive
+- **Verifying your download**: each release ships `SHA256SUMS.txt` (also included in the release notes); check it in PowerShell with `certutil -hashfile <file> SHA256`
 - **Data directory**: `%APPDATA%\han1me_win_plus\`. It survives reinstalling and upgrading, and is *not* removed on uninstall (delete the folder manually if you want a clean slate)
 - **Upgrading**: when you are on an older version the app shows an update prompt automatically, and you can also check manually under Settings → About
+
+All previous versions and their changelogs are on the [Releases](../../releases) page.
 
 ## Project status
 
@@ -138,13 +143,46 @@ This repository is the Windows-focused fork of upstream: upstream changes are me
 </details>
 
 <details>
-<summary>Will uninstalling delete my data?</summary>
+<summary>Will uninstalling delete my data? Will updating keep it?</summary>
 
-No. Data lives in `%APPDATA%\han1me_win_plus\` and is not removed on uninstall; delete that folder manually if you want to wipe everything.
+No. Everything lives in `%APPDATA%\han1me_win_plus\` (account, subscriptions, watch history, liked videos, playlists). Reinstalling and upgrading leave it untouched, and uninstalling does not remove it; delete that folder manually if you want to wipe everything.
+
+</details>
+
+<details>
+<summary>Hardware decoding does not work, or playback shows artifacts / a black screen</summary>
+
+Settings → Playback settings has a hardware-decoding switch plus a decoder picker, defaulting to `auto-safe`. If you see artifacts, a green screen or a black screen:
+
+1. Switch the decoder to `d3d11va-copy` or `dxva2-copy` (copy modes are more compatible, at the cost of one extra memory copy)
+2. If it is still broken, turn hardware decoding off and use software decoding (heavier on the CPU, but the most compatible)
+
+If a particular decoder works noticeably better on your GPU, a report with your GPU model and driver version is welcome.
+
+</details>
+
+<details>
+<summary>How do I configure a proxy or a mirror?</summary>
+
+Both live under Settings → Network settings:
+
+- **Proxy**: follow the system / direct / custom address (`host:port`). Once saved, UI requests and the player (libmpv) use the same proxy
+- **Site**: switch the video source; the "Site groups" entry at the bottom of the picker lets you rename and reorder groups
+- **Custom mirror**: enter a mirror address and use "Test connection" to verify that it resolves
+
+</details>
+
+<details>
+<summary>The sidebar disappears when the window gets narrow</summary>
+
+That is intended: when the shortest side of the window drops below 600 logical pixels the layout switches to a compact one and the sidebar collapses into a drawer. Widen the window to get it back.
+If the window is misplaced or does not restore after leaving full screen, update to the latest version first (these cases were fixed recently); if it persists, open an issue with a screenshot.
 
 </details>
 
 ## Build from source
+
+> **Flutter ≥ 3.47.0 is required** (a constraint from `m3e_core: ^1.1.1`), and `.fvmrc` pins `3.47.4`. Building with the same version is recommended. With an older Flutter, `flutter pub get` fails to resolve dependencies — this is unrelated to the application code.
 
 ```bash
 flutter pub get
@@ -158,8 +196,6 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 ```
 
 > `/DMyAppVersion=` writes the version number into the installer. When omitted, the fallback value inside `installer.iss` is used; it is better to always pass it explicitly (this is what CI does).
-
-> This branch requires **Flutter ≥ 3.47.0** (a constraint from `m3e_core: ^1.1.1`), and `.fvmrc` pins `3.47.4`. Building with the same version is recommended. With an older Flutter, `flutter pub get` fails to resolve dependencies — this is unrelated to the application code.
 
 ## Releasing
 
@@ -183,8 +219,7 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 
 ## Contributing
 
-> [!Important]
-> **This project is maintained by me alone, and I intend to keep it that way.**
+This project is currently maintained by one person. Issues and feature suggestions are very welcome; for code contributions please read [CONTRIBUTING.md](CONTRIBUTING.md) first (currently in Chinese).
 
 > [!TIP]
 > **Suggestions in Issues**: sharing your ideas is always welcome!
@@ -195,7 +230,9 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 > [!WARNING]
 > **Reporting bugs**: if the app crashes or misbehaves, please open an Issue with as much detail as you can, so it can be investigated and fixed.
 
-Want to send code? Please read [CONTRIBUTING.md](CONTRIBUTING.md) first (currently in Chinese).
+- **Feature requests / usage questions**: open an [issue](../../issues/new/choose) or start a [discussion](../../discussions)
+- **Bug reports**: include your Windows version, the app version (Settings → About), reproduction steps and screenshots — it speeds up triage a lot
+- Generic (non-Windows) issues belong in the [upstream repository](https://github.com/1wc10086/Han1mePlus/issues)
 
 ## License
 
