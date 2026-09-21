@@ -34,8 +34,8 @@ const _pageTransitionsTheme = PageTransitionsTheme(
   },
 );
 
-ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false}) {
-  var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
+ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot}) {
+  var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness, dynamicSchemeVariant: variant);
   if (amoled) {
     scheme = scheme.copyWith(
       surface: Colors.black,
@@ -85,9 +85,17 @@ extension AppThemeColorSeed on AppThemeColor {
         AppThemeColor.indigo => const Color(0xff4a5f9e),
         AppThemeColor.pink => const Color(0xff9c3c66),
         AppThemeColor.purple => const Color(0xff6d3f90),
-        // 纯白种子：色度 0，fromSeed 得到的是一整套灰阶（浅色主题主色 ≈ 中灰、
-        // 深色主题主色 ≈ 浅灰），即“黑白/无彩”那套配色。
-        AppThemeColor.white => const Color(0xffffffff),
+        // 「白色」= 白底 + 一抹品牌粉（参考 bilibili），种子取 b 站粉 #FB7299，
+        // 配合 [schemeVariant] 的 fidelity 变体：主色就是这抹粉，中性面保持接近纯白。
+        // 注意：**不能拿纯白当种子** —— HCT 色度为 0 时 Material 会回退到色相 192（青），
+        // 整套界面会变成青色（`ColorScheme.fromSeed(Color(0xffffffff)).primary` = #006874）。
+        AppThemeColor.white => const Color(0xfffb7299),
         AppThemeColor.custom => Color(int.parse('ff$customColor', radix: 16)),
       };
+
+  /// 配色变体：白色主题用 fidelity（主色忠于种子、中性面近白），其余走默认 tonalSpot。
+  DynamicSchemeVariant get schemeVariant => this == AppThemeColor.white ? DynamicSchemeVariant.fidelity : DynamicSchemeVariant.tonalSpot;
+
+  /// 色板上那个圆的颜色：白色主题画白底（它的粉只体现在高亮色上）。
+  Color swatchColor(String customColor) => this == AppThemeColor.white ? const Color(0xffffffff) : seedColor(customColor);
 }

@@ -65,7 +65,7 @@ class _ThemeSchemeDialog extends ConsumerWidget {
                 children: [
                   for (final color in presets)
                     _Swatch(
-                      color: color.seedColor(settings.customThemeColor),
+                      color: color.swatchColor(settings.customThemeColor),
                       label: themeColorLabel(l10n, color),
                       selected: !settings.useMonetColors && settings.themeColor == color,
                       onTap: () => controller.saveChanges((current) => current.copyWith(useMonetColors: false, themeColor: color)),
