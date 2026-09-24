@@ -17,7 +17,11 @@ final _episodeSuffix = RegExp(
 );
 
 /// 纯数字/罗马数字后缀，例如 ` 2`、` Ⅳ`、`_12`。
-final _trailingNumber = RegExp(r'[\s\-_·・]*(\d{1,3}|[ivxlcdm]{1,5})\s*$', caseSensitive: false);
+/// 罗马数字这里一并接受 Unicode 码点（Ⅳ 之类）和 ASCII 写法（IV）。
+final _trailingNumber = RegExp(
+  r'[\s\-_·・]*(\d{1,3}|[ivxlcdm]{1,5}|[\u2160-\u2188]+)\s*$',
+  caseSensitive: false,
+);
 
 /// 尾部括号里只有数字，例如 `标题 (2)`。
 final _trailingBracket = RegExp(r'[\s]*[\(\[【（]\s*\d{1,3}\s*[\)\]】）]\s*$');
@@ -30,11 +34,11 @@ String? inferSeriesName(String? title) {
   var stripped = text;
   for (final pattern in [_episodeSuffix, _trailingBracket, _trailingNumber]) {
     final next = stripped.replaceFirst(pattern, '').trim();
-    // 别把标题削没了：留下太短的结果说明匹配吃掉了正题。
-    if (next.length >= 2) {
-      stripped = next;
-      break;
-    }
+    // 这一步没匹配上，继续试下一个模式；匹配上了才继续往下剥。
+    if (next == stripped) continue;
+    // 别把标题削没了：留下太短的结果说明匹配吃掉了正题，就此打住。
+    if (next.length < 2) break;
+    stripped = next;
   }
   final name = stripped.replaceAll(RegExp(r'[\s\-_·・.,،]+$'), '').trim();
   // 剥完仍是原样、或短得不像系列名，就认为这不是系列影片。
