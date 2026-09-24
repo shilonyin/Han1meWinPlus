@@ -1126,6 +1126,31 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get autoGroupDownloads => '自动创建系列分组';
+
+  @override
+  String get autoGroupDownloadsDescription => '把新下载的影片放进以影片命名的分组';
+
+  @override
+  String get groupNameFromSeries => '分组名使用系列名称';
+
+  @override
+  String get groupNameFromSeriesUnavailable => '未能从标题中识别系列名称';
+
+  @override
+  String get groupNameTraditional => '分组名使用繁体';
+
+  @override
+  String willUseExistingGroup(String name) {
+    return '将使用已有分组「$name」';
+  }
+
+  @override
+  String willCreateNewGroup(String name) {
+    return '将创建新分组「$name」';
+  }
+
+  @override
   String get downloadPath => '下载路径';
 
   @override
@@ -3346,6 +3371,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String concurrentDownloadsDescription(int count) {
     return '同時下載 $count 部影片';
+  }
+
+  @override
+  String get autoGroupDownloads => '自動建立系列分組';
+
+  @override
+  String get autoGroupDownloadsDescription => '把新下載的影片放進以影片命名的分組';
+
+  @override
+  String get groupNameFromSeries => '分組名使用系列名稱';
+
+  @override
+  String get groupNameFromSeriesUnavailable => '未能從標題中識別系列名稱';
+
+  @override
+  String get groupNameTraditional => '分組名使用繁體';
+
+  @override
+  String willUseExistingGroup(String name) {
+    return '將使用已有分組「$name」';
+  }
+
+  @override
+  String willCreateNewGroup(String name) {
+    return '將建立新分組「$name」';
   }
 
   @override

@@ -2127,6 +2127,48 @@ abstract class AppLocalizations {
   /// **'Download {count} videos at the same time'**
   String concurrentDownloadsDescription(int count);
 
+  /// No description provided for @autoGroupDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-create series groups'**
+  String get autoGroupDownloads;
+
+  /// No description provided for @autoGroupDownloadsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Put a new download into a group named after the video'**
+  String get autoGroupDownloadsDescription;
+
+  /// No description provided for @groupNameFromSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Name groups after the series'**
+  String get groupNameFromSeries;
+
+  /// No description provided for @groupNameFromSeriesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No series name detected in this title'**
+  String get groupNameFromSeriesUnavailable;
+
+  /// No description provided for @groupNameTraditional.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Traditional Chinese group names'**
+  String get groupNameTraditional;
+
+  /// No description provided for @willUseExistingGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Will use existing group \"{name}\"'**
+  String willUseExistingGroup(String name);
+
+  /// No description provided for @willCreateNewGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Will create new group \"{name}\"'**
+  String willCreateNewGroup(String name);
+
   /// No description provided for @downloadPath.
   ///
   /// In en, this message translates to:

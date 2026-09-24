@@ -75,6 +75,9 @@ class AppSettings {
     this.textScale = 1,
     this.downloadSpeedLimitMbps = 0,
     this.concurrentDownloads = 2,
+    this.autoGroupDownloads = true,
+    this.groupNameFromSeries = false,
+    this.groupNameTraditional = false,
     this.downloadPath = defaultDownloadPath,
     this.defaultPlaybackSpeed = 1,
     this.longPressPlaybackSpeed = 2,
@@ -156,6 +159,9 @@ class AppSettings {
   final double textScale;
   final double downloadSpeedLimitMbps;
   final int concurrentDownloads;
+  final bool autoGroupDownloads;
+  final bool groupNameFromSeries;
+  final bool groupNameTraditional;
   final String downloadPath;
   final double defaultPlaybackSpeed;
   final double longPressPlaybackSpeed;
@@ -267,6 +273,9 @@ class AppSettings {
         'textScale': textScale,
         'downloadSpeedLimitMbps': downloadSpeedLimitMbps,
         'concurrentDownloads': concurrentDownloads,
+        'autoGroupDownloads': autoGroupDownloads,
+        'groupNameFromSeries': groupNameFromSeries,
+        'groupNameTraditional': groupNameTraditional,
         'downloadPath': downloadPath,
         'defaultPlaybackSpeed': defaultPlaybackSpeed,
         'longPressPlaybackSpeed': longPressPlaybackSpeed,
@@ -348,6 +357,9 @@ class AppSettings {
         textScale: ((json['textScale'] as num?)?.toDouble() ?? 1).clamp(.8, 1.4).toDouble(),
         downloadSpeedLimitMbps: (json['downloadSpeedLimitMbps'] as num?)?.toDouble() ?? 0,
         concurrentDownloads: (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5) as int,
+        autoGroupDownloads: json['autoGroupDownloads'] as bool? ?? true,
+        groupNameFromSeries: json['groupNameFromSeries'] as bool? ?? false,
+        groupNameTraditional: json['groupNameTraditional'] as bool? ?? false,
         downloadPath: json['downloadPath'] as String? ?? defaultDownloadPath,
         defaultPlaybackSpeed: ((json['defaultPlaybackSpeed'] as num?)?.toDouble() ?? 1).clamp(.25, 3).toDouble(),
         longPressPlaybackSpeed: ((json['longPressPlaybackSpeed'] as num?)?.toDouble() ?? 2).clamp(1, 3).toDouble(),
@@ -484,6 +496,9 @@ class AppSettings {
     double? textScale,
     double? downloadSpeedLimitMbps,
     int? concurrentDownloads,
+    bool? autoGroupDownloads,
+    bool? groupNameFromSeries,
+    bool? groupNameTraditional,
     String? downloadPath,
     double? defaultPlaybackSpeed,
     double? longPressPlaybackSpeed,
@@ -564,6 +579,9 @@ class AppSettings {
         textScale: textScale ?? this.textScale,
         downloadSpeedLimitMbps: downloadSpeedLimitMbps ?? this.downloadSpeedLimitMbps,
         concurrentDownloads: concurrentDownloads ?? this.concurrentDownloads,
+        autoGroupDownloads: autoGroupDownloads ?? this.autoGroupDownloads,
+        groupNameFromSeries: groupNameFromSeries ?? this.groupNameFromSeries,
+        groupNameTraditional: groupNameTraditional ?? this.groupNameTraditional,
         downloadPath: downloadPath ?? this.downloadPath,
         defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
         longPressPlaybackSpeed: longPressPlaybackSpeed ?? this.longPressPlaybackSpeed,

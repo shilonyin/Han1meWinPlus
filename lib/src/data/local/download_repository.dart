@@ -132,6 +132,30 @@ class DownloadController extends AsyncNotifier<DownloadState> {
 
   Future<void> replace(DownloadState value) => _save(value);
 
+  /// 自动分组：同名组直接复用，否则新建，返回可传给 [create] 的 groupId。
+  /// 名称为空或建组失败时回退到默认分组。
+  Future<String> resolveAutoGroup(String name, DownloadGroupSort sort) async {
+    final text = name.trim();
+    if (text.isEmpty) return 'default';
+    final current = state.value ?? const DownloadState();
+    final existing = current.groups.where((group) => group.name == text).firstOrNull;
+    if (existing != null) return existing.id;
+    return await addGroup(text, sort) ?? 'default';
+  }
+
+  /// 把同系列中**仍留在默认分组**的已下载影片归入目标组。
+  /// 用户手动分过组（groupIds 非空）的一律不动，避免覆盖用户意图。
+  Future<int> adoptSeriesTasks(Iterable<String> videoCodes, String groupId) async {
+    if (groupId == 'default') return 0;
+    final codes = videoCodes.toSet();
+    final current = state.value ?? const DownloadState();
+    final pending = current.tasks.where((task) => codes.contains(task.videoCode) && task.groupIds.isEmpty).toList();
+    if (pending.isEmpty) return 0;
+    final ids = pending.map((task) => task.id).toSet();
+    await _save(DownloadState(groups: current.groups, tasks: current.tasks.map((task) => ids.contains(task.id) ? task.copyWith(groupIds: {groupId}) : task).toList()));
+    return ids.length;
+  }
+
   Future<void> create(VideoDetail detail, VideoSource source, String groupId) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final task = DownloadTask(id: detail.id, videoCode: detail.id, title: detail.title, coverUrl: detail.coverUrl, duration: detail.duration, views: detail.views, rating: detail.rating, uploadTime: detail.uploadDate, sourceUrl: source.url, groupIds: groupId == 'default' ? const {} : {groupId}, quality: source.quality, status: DownloadStatus.queued, progress: 0, downloadedBytes: 0, totalBytes: 0, createdAt: now, updatedAt: now);

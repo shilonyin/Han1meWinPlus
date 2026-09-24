@@ -23,6 +23,9 @@ class DownloadSettingsPage extends ConsumerWidget {
             SettingsCardList(children: [
               SettingsSliderItem(title: l10n.downloadSpeedLimit, subtitle: speed == 0 ? l10n.unlimited : '${speed.toStringAsFixed(1)} MB/s', value: speed, min: 0, max: 20, divisions: 40, label: speed == 0 ? l10n.unlimited : '${speed.toStringAsFixed(1)} MB/s', onChanged: (value) => controller.saveChanges((current) => current.copyWith(downloadSpeedLimitMbps: value))),
               SettingsSliderItem(title: l10n.concurrentDownloads, subtitle: l10n.concurrentDownloadsDescription(settings.concurrentDownloads), value: settings.concurrentDownloads.toDouble(), min: 1, max: 5, divisions: 4, label: '${settings.concurrentDownloads}', onChanged: (value) => controller.saveChanges((current) => current.copyWith(concurrentDownloads: value.round()))),
+              SettingsCardItem(title: l10n.autoGroupDownloads, subtitle: l10n.autoGroupDownloadsDescription, trailing: Switch(value: settings.autoGroupDownloads, onChanged: (value) => controller.saveChanges((current) => current.copyWith(autoGroupDownloads: value)))),
+              SettingsCardItem(title: l10n.groupNameFromSeries, trailing: Switch(value: settings.groupNameFromSeries, onChanged: (value) => controller.saveChanges((current) => current.copyWith(groupNameFromSeries: value))), enabled: settings.autoGroupDownloads),
+              SettingsCardItem(title: l10n.groupNameTraditional, trailing: Switch(value: settings.groupNameTraditional, onChanged: (value) => controller.saveChanges((current) => current.copyWith(groupNameTraditional: value))), enabled: settings.autoGroupDownloads),
            ]),
         ],
       ),

@@ -7,8 +7,10 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/library_repository.dart';
+import '../../domain/models/download.dart';
 import '../../domain/models/library.dart';
 import '../../domain/models/video.dart';
+import '../../domain/series_name.dart';
 import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
@@ -174,25 +176,107 @@ Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetai
   final downloadable = video.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
   if (downloadable.isEmpty) return;
   var source = downloadable.first;
-  final picked = await showModalBottomSheet<VideoSource>(
+  final settings = await ref.read(settingsProvider.future);
+  if (!context.mounted) return;
+  final groups = ref.read(downloadProvider).valueOrNull?.groups ?? const <DownloadGroup>[];
+
+  // 自动分组的初始状态：开关跟随设置，组名预填推断结果。
+  final seriesName = inferSeriesName(video.title);
+  final suggested = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: settings.groupNameFromSeries);
+  var autoGroup = settings.autoGroupDownloads;
+  var nameFromSeries = settings.groupNameFromSeries;
+  var traditional = settings.groupNameTraditional;
+  final nameController = TextEditingController(text: traditional ? toTraditionalForGroupName(suggested) : suggested);
+  // 用户手动改过组名后，不再被来源/繁简切换覆盖。
+  var nameEdited = false;
+
+  String currentName() {
+    final raw = nameController.text.trim();
+    if (raw.isEmpty) return suggested;
+    return traditional ? toTraditionalForGroupName(raw) : raw;
+  }
+
+  final picked = await showModalBottomSheet<bool>(
     context: context,
+    isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setSheet) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(padding: const EdgeInsets.all(16), child: Text(AppLocalizations.of(context)!.selectDownloadQuality, style: const TextStyle(fontWeight: FontWeight.w600))),
-            ...downloadable.map((item) => RadioListTile<VideoSource>(value: item, groupValue: source, onChanged: (value) => setSheet(() => source = value!), title: Text(item.quality))),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: () => Navigator.pop(sheetContext, source), child: Text(AppLocalizations.of(context)!.startDownload)),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+      builder: (sheetContext, setSheet) {
+        final name = currentName();
+        final existing = groups.any((group) => group.id != 'default' && group.name == name);
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(padding: const EdgeInsets.all(16), child: Text(AppLocalizations.of(context)!.selectDownloadQuality, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  ...downloadable.map((item) => RadioListTile<VideoSource>(value: item, groupValue: source, onChanged: (value) => setSheet(() => source = value!), title: Text(item.quality))),
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    value: autoGroup,
+                    onChanged: (value) => setSheet(() => autoGroup = value),
+                    title: Text(AppLocalizations.of(context)!.autoGroupDownloads),
+                    subtitle: Text(AppLocalizations.of(context)!.autoGroupDownloadsDescription),
+                  ),
+                  if (autoGroup) ...[
+                    SwitchListTile(
+                      value: nameFromSeries,
+                      onChanged: (value) => setSheet(() {
+                        nameFromSeries = value;
+                        if (!nameEdited) {
+                          final next = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: value);
+                          nameController.text = traditional ? toTraditionalForGroupName(next) : next;
+                        }
+                      }),
+                      title: Text(AppLocalizations.of(context)!.groupNameFromSeries),
+                      subtitle: seriesName == null ? Text(AppLocalizations.of(context)!.groupNameFromSeriesUnavailable) : null,
+                    ),
+                    SwitchListTile(
+                      value: traditional,
+                      onChanged: (value) => setSheet(() {
+                        traditional = value;
+                        if (!nameEdited) {
+                          final next = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: nameFromSeries);
+                          nameController.text = value ? toTraditionalForGroupName(next) : next;
+                        }
+                      }),
+                      title: Text(AppLocalizations.of(context)!.groupNameTraditional),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.groupName,
+                          border: const OutlineInputBorder(),
+                          helperText: existing ? AppLocalizations.of(context)!.willUseExistingGroup(name) : AppLocalizations.of(context)!.willCreateNewGroup(name),
+                        ),
+                        onChanged: (value) => setSheet(() => nameEdited = true),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  FilledButton(onPressed: () => Navigator.pop(sheetContext, true), child: Text(AppLocalizations.of(context)!.startDownload)),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     ),
   );
-  if (picked != null) {
-    await ref.read(downloadProvider.notifier).create(video, picked, 'default');
+  if (picked == true) {
+    var groupId = 'default';
+    if (autoGroup) {
+      groupId = await ref.read(downloadProvider.notifier).resolveAutoGroup(currentName(), DownloadGroupSort.defaultOrder);
+    }
+    await ref.read(downloadProvider.notifier).create(video, source, groupId);
+    // 同系列的旧任务若还在默认分组，一并归入新组；用户手动分过组的不动。
+    if (autoGroup && groupId != 'default' && video.playlist.isNotEmpty) {
+      await ref.read(downloadProvider.notifier).adoptSeriesTasks(video.playlist.map((item) => item.id), groupId);
+    }
     if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.addedToDownloadQueue)));
   }
 }

@@ -1165,6 +1165,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get autoGroupDownloads => 'Auto-create series groups';
+
+  @override
+  String get autoGroupDownloadsDescription => 'Put a new download into a group named after the video';
+
+  @override
+  String get groupNameFromSeries => 'Name groups after the series';
+
+  @override
+  String get groupNameFromSeriesUnavailable => 'No series name detected in this title';
+
+  @override
+  String get groupNameTraditional => 'Use Traditional Chinese group names';
+
+  @override
+  String willUseExistingGroup(String name) {
+    return 'Will use existing group "$name"';
+  }
+
+  @override
+  String willCreateNewGroup(String name) {
+    return 'Will create new group "$name"';
+  }
+
+  @override
   String get downloadPath => 'Download Path';
 
   @override
