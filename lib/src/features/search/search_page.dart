@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
-import '../../data/remote/han1me_api.dart' show SearchResult;
+import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, SearchResult;
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../settings/settings_controller.dart';
@@ -17,6 +17,12 @@ import '../shared/video_card.dart';
 import 'search_controller.dart';
 
 const _searchColumns = 4;
+
+/// 「新番预告」的结果是竖版海报（实测站点封面 268x394）—— 塞进 16:9 的槽位会把海报
+/// 按宽度放大再上下裁掉，只剩中间一条（看上去就是放大的身体特写，海报全貌没了）。
+/// 这类结果改按海报比例排版，列数仍是 4 列，与「新番预告」页一致。
+const _posterGenre = '新番預告';
+const _posterAspectRatio = 3 / 4;
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key, required this.request});
@@ -106,7 +112,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               children: [
                 result.when(
                   loading: () => const Center(child: M3EContainedLoadingIndicator()),
-                  error: (error, stackTrace) => _ErrorView(error: error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
+                  error: (error, stackTrace) => _ErrorView(
+                    error: error,
+                    onRetry: () => ref.invalidate(searchResultsProvider(request)),
+                    // 首页与播放页都能就地过 Cloudflare 校验，搜索页原来只有「重试」,
+                    // 被挑战时用户只能干等。这里补上同一条恢复路径（走应用内 WebView 拿
+                    // cf_clearance，成功回来再重跑这次搜索）。
+                    onCloudflareVerified: () async {
+                      final url = error is CloudflareChallengeException ? error.url : null;
+                      if (await context.push<bool>('/cloudflare', extra: url) == true) {
+                        await Future<void>.delayed(const Duration(milliseconds: 250));
+                        ref.invalidate(searchResultsProvider(request));
+                      }
+                    },
+                  ),
                   data: (page) => page.items.isEmpty
                       // AV 源没有标签/分类筛选，从历史里带过来的条件会被清掉，空结果的原因
                       // 就变成「还没输关键词」，直接说清楚，别报成「没有找到匹配的视频」。
@@ -129,10 +148,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 videos: page.items,
                                 cardsPerRow: _searchColumns,
                                 horizontal: true,
+                                // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
+                                coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
                                 controller: _scrollController,
                                 itemBuilder: (context, index, video, _) => VideoCardTile(
                                   video: video,
                                   horizontal: true,
+                                  coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
                                   onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
                                 ),
                               ),
@@ -495,11 +517,13 @@ class _TagFilterDialogState extends State<_TagFilterDialog> with SingleTickerPro
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final availableHeight = MediaQuery.sizeOf(context).height - MediaQuery.viewInsetsOf(context).vertical;
+    final dialogHeight = (availableHeight - 120).clamp(180.0, 520.0).toDouble();
     return AlertDialog(
       title: Text(l10n.tags),
       content: SizedBox(
         width: 560,
-        height: 520,
+        height: dialogHeight,
         child: Column(
           children: [
             SwitchListTile.adaptive(
@@ -607,10 +631,11 @@ class _PaginationBar extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.error, required this.onRetry});
+  const _ErrorView({required this.error, required this.onRetry, required this.onCloudflareVerified});
 
   final Object error;
   final VoidCallback onRetry;
+  final Future<void> Function() onCloudflareVerified;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -624,6 +649,7 @@ class _ErrorView extends StatelessWidget {
               Text('$error', textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry)),
+              if ('$error'.contains('Cloudflare')) TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification)),
             ],
           ),
         ),

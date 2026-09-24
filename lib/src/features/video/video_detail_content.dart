@@ -85,7 +85,8 @@ List<VideoCard> visibleRelatedVideos(WidgetRef ref, List<VideoCard> videos) {
   if (settings?.applyRecommendationFiltersToRelated != true) return videos;
   final authors = settings?.blockedAuthors ?? const <String>[];
   final titles = settings?.blockedVideoTitleKeywords ?? const <String>[];
-  return videos.where((video) => !titles.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase())) && !authors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase()))).toList();
+  final tags = settings?.blockedVideoTags ?? const <String>[];
+  return videos.where((video) => !titles.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase())) && !authors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase())) && !tags.any((blockedTag) => video.tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())))).toList();
 }
 
 class _TitleBlock extends StatelessWidget {
@@ -166,7 +167,7 @@ class _ArtistRow extends ConsumerWidget {
           // 那时搜索页会退化成「没有关键词」的页，看起来就是点了作者没内容。
           onTap: () {
             final url = Uri(path: '/search', queryParameters: {'query': video.artist!}).toString();
-            context.push(url, extra: SearchRouteRequest(initialUrl: url));
+            context.push(url, extra: SearchRouteRequest(initialUrl: url, authorName: video.artist));
           },
           child: Padding(
             padding: const EdgeInsets.all(12),

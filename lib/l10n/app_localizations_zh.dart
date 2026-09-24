@@ -1878,6 +1878,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get author => '作者';
 
   @override
+  String get videoTagFilter => '视频标签过滤';
+
+  @override
+  String get videoTagFilterDescription => '隐藏包含指定标签的视频';
+
+  @override
+  String get tag => '标签';
+
+  @override
   String get exemptSubscribedAuthors => '已关注 UP 豁免推荐过滤';
 
   @override
@@ -4090,6 +4099,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get author => '作者';
+
+  @override
+  String get videoTagFilter => '影片標籤過濾';
+
+  @override
+  String get videoTagFilterDescription => '隱藏包含指定標籤的影片';
+
+  @override
+  String get tag => '標籤';
 
   @override
   String get exemptSubscribedAuthors => '已關注 UP 豁免推薦過濾';

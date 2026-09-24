@@ -121,9 +121,39 @@ final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, Se
       // 站点偶尔「连上却不回数据」：没有超时的话搜索页会一直转圈，看起来就像卡死。
       // 给一个上限，超时后走错误态（带重试按钮），用户至少知道发生了什么。
       .timeout(const Duration(seconds: 45));
+  final authorName = request.authorName?.trim();
+  if (javSource && authorName != null && authorName.isNotEmpty) {
+    final verified = await verifyAuthorMatches(
+      items: result.items,
+      expectedAuthor: authorName,
+      detailLoader: (id) => repository.video(settings.resolvedBaseUrl, id),
+      timeout: const Duration(seconds: 8),
+    );
+    return SearchResult(items: verified, page: result.page, totalPages: result.totalPages);
+  }
   if (!settings.applyRecommendationFiltersToSearch) return result;
   return SearchResult(items: result.items.where((video) => _visible(video, settings)).toList(), page: result.page, totalPages: result.totalPages);
 });
+
+Future<List<VideoCard>> verifyAuthorMatches({
+  required List<VideoCard> items,
+  required String expectedAuthor,
+  required Future<VideoDetail> Function(String id) detailLoader,
+  Duration timeout = const Duration(seconds: 8),
+}) async {
+  final expected = expectedAuthor.trim().toLowerCase();
+  final verified = await Future.wait(items.map((video) async {
+    try {
+      final detail = await detailLoader(video.id).timeout(timeout);
+      return detail.artist?.trim().toLowerCase() == expected ? video : null;
+    } on TimeoutException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }));
+  return verified.whereType<VideoCard>().toList(growable: false);
+}
 
 /// 首页（推荐位）内容：取第一个有内容的分区。
 ///
@@ -144,6 +174,7 @@ Future<SearchResult> _recommendations(AppSettings settings, Han1meRepository rep
 bool _visible(VideoCard video, AppSettings settings) {
   if (settings.blockedVideoTitleKeywords.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase()))) return false;
   if (settings.blockedAuthors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase()))) return false;
+  if (settings.blockedVideoTags.any((blockedTag) => video.tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())))) return false;
   // 站点没给时长/播放量时按「未知」处理，不参与过滤：按 0 判会把 AV 源的卡片整页滤光
   // （它们本来就不带这些字段），表现是「AV 站点搜索全部没有结果」。
   final seconds = videoDurationSeconds(video.duration);

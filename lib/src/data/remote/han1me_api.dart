@@ -521,6 +521,7 @@ class Han1meApi {
     final titleNode = element.querySelector('.title, .video-title, .home-rows-videos-title, .owl-home-rows-title');
     final title = titleNode?.text.trim() ?? image?.attributes['alt']?.trim() ?? '';
     final artistNode = element.querySelector('.subtitle a, .meta-author a');
+    final tags = element.querySelectorAll('.single-video-tag > a').map((tag) => tag.text.trim()).where((tag) => tag.isNotEmpty).toSet().toList();
     return VideoCard(
       id: id,
       title: title,
@@ -530,6 +531,7 @@ class Han1meApi {
       rating: rating,
       artist: artistNode?.text.trim(),
       uploadTime: element.querySelector('.meta-stats span')?.text.trim(),
+      tags: tags,
     );
   }
 

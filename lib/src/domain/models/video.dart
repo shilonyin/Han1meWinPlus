@@ -8,6 +8,7 @@ class VideoCard {
     this.rating,
     this.artist,
     this.uploadTime,
+    this.tags = const [],
   });
 
   final String id;
@@ -18,9 +19,10 @@ class VideoCard {
   final String? rating;
   final String? artist;
   final String? uploadTime;
+  final List<String> tags;
 
-  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'coverUrl': coverUrl, 'duration': duration, 'views': views, 'rating': rating, 'artist': artist, 'uploadTime': uploadTime};
-  factory VideoCard.fromJson(Map<String, dynamic> json) => VideoCard(id: json['id'] as String? ?? '', title: json['title'] as String? ?? '', coverUrl: json['coverUrl'] as String? ?? '', duration: json['duration'] as String?, views: json['views'] as String?, rating: json['rating'] as String?, artist: json['artist'] as String?, uploadTime: json['uploadTime'] as String?);
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'coverUrl': coverUrl, 'duration': duration, 'views': views, 'rating': rating, 'artist': artist, 'uploadTime': uploadTime, 'tags': tags};
+  factory VideoCard.fromJson(Map<String, dynamic> json) => VideoCard(id: json['id'] as String? ?? '', title: json['title'] as String? ?? '', coverUrl: json['coverUrl'] as String? ?? '', duration: json['duration'] as String?, views: json['views'] as String?, rating: json['rating'] as String?, artist: json['artist'] as String?, uploadTime: json['uploadTime'] as String?, tags: (json['tags'] as List? ?? const []).whereType<String>().toList());
 }
 
 class HomeSection {

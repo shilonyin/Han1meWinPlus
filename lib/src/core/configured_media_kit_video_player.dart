@@ -66,6 +66,11 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 正在改画质（重新编译着色器链）的纹理：这段时间内核上报的「缓冲」要压掉。
   final _switchingQuality = HashMap<int, bool>();
   final _switchingTimers = HashMap<int, Timer>();
+  /// 每个纹理当前用的传输方式：textureId →（主机名, 是否走代理），见 [_switchTransport]。
+  final _transports = HashMap<int, (String, bool)>();
+  /// 「迟迟开不出来就换另一条传输方式」的看门狗与已换次数。
+  final _transportTimers = HashMap<int, Timer>();
+  final _transportSwitches = HashMap<int, int>();
   int _nextTextureId = 0;
 
   /// 正在切换画质（重编译着色器链），界面据此显示提示条。
@@ -87,13 +92,23 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 直连被阻断的网络里，界面、评论都正常（它们走 Dart 的 HttpClient），
   /// 但视频会一直停留在缓冲状态。null 表示不使用代理。
   static String? httpProxy;
+
+  /// 设置里没给出代理（`direct` 模式）时，播放器可退而使用的系统代理。
+  ///
+  /// `direct` 只对**站点请求**有意义：那边有内置地址兜底，直连还更快、也不吃
+  /// Cloudflare 对代理出口 IP 的风控。但**片源 CDN 不一样** —— 国内直连
+  /// `vdownload.hembed.com` 这类主机在 TLS 握手阶段就被阻断
+  /// （`mbedtls_ssl_handshake returned -0x4e`），于是详情页一切正常、视频却永远转圈。
+  /// 所以只要机器上确实有系统代理，播放器仍然用它。
+  static String? fallbackHttpProxy;
   static Future<void>? _httpProxyLookup;
 
-  /// 必须直连的片源主机。
+  /// 片源主机实测可用的传输方式（true = 走代理）。
   ///
-  /// 有些 CDN（例如 javchu 在用的 cdn2020）会对代理出口 IP 直接回 `451`，
-  /// 同一个地址直连却是 200；这类主机试出结果后就记下来，以后不再交给代理。
-  static final Set<String> _directMediaHosts = <String>{};
+  /// 两个方向都会用到：有些 CDN（javchu 在用的 cdn2020）对代理出口 IP 直接回 `451`，
+  /// 同一个地址直连却是 200；反过来 CDN77 这类只认代理。试出结果就记下来，
+  /// 同一主机后续片源不必再经历一次失败。
+  static final Map<String, bool> _hostUsesProxy = <String, bool>{};
 
   /// 重新读取系统代理。启动时调用一次即可，系统代理变化后可再次调用。
   static Future<void> refreshHttpProxy() => _httpProxyLookup = _resolveHttpProxy();
@@ -106,10 +121,23 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final settings = await SettingsStore(JsonStore()).load();
       final rule = await WindowsHttpOverrides.resolveRule(mode: settings.proxyMode, custom: settings.customProxy);
       httpProxy = WindowsProxy.mpvUrl(rule);
+      // 另一条路：系统代理。与首选相同（或系统没开代理）时不留后路。
+      final system = WindowsProxy.mpvUrl(await WindowsHttpOverrides.systemProxy());
+      fallbackHttpProxy = system == null || system == httpProxy ? null : system;
     } catch (_) {
       httpProxy = null;
+      fallbackHttpProxy = null;
     }
   }
+
+  /// 这台机器上是否有代理可用（首选或系统代理）。
+  static String? get _availableProxy => httpProxy ?? fallbackHttpProxy;
+
+  /// 该主机这次该用的传输方式。默认走代理（只要机器上有），实测过的按记录来。
+  static bool _prefersProxy(String host) => _hostUsesProxy[host] ?? (_availableProxy != null);
+
+  /// 对应传输方式的 mpv `http-proxy` 取值（null = 直连）。
+  static String? _proxyFor(String host) => _prefersProxy(host) ? _availableProxy : null;
 
   static void registerWith() {
     VideoPlayerPlatform.instance = _instance;
@@ -159,6 +187,12 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     }
     _switchingTimers.clear();
     _switchingQuality.clear();
+    for (final timer in _transportTimers.values) {
+      timer.cancel();
+    }
+    _transportTimers.clear();
+    _transports.clear();
+    _transportSwitches.clear();
     switchingSuperResolution.value = false;
     _playingSince.clear();
     _resizeHoldUntil.clear();
@@ -179,6 +213,9 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _playingSince.remove(textureId);
     _resizeHoldUntil.remove(textureId);
     _resizeRetryTimers.remove(textureId)?.cancel();
+    _transportTimers.remove(textureId)?.cancel();
+    _transports.remove(textureId);
+    _transportSwitches.remove(textureId);
     _resizeRetryCounts.remove(textureId);
     _stallTimers.remove(textureId)?.cancel();
     _stallSeconds.remove(textureId);
@@ -216,7 +253,9 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final native = player.platform as NativePlayer;
       await native.waitForPlayerInitialization;
       await ensureHttpProxy();
-      await _applyHttpProxy(native, _mediaHost(dataSource.uri));
+      final host = _mediaHost(dataSource.uri);
+      final prefersProxy = _prefersProxy(host);
+      await _applyHttpProxy(native, useProxy: prefersProxy);
       if (dataSource.sourceType == DataSourceType.network) await _applyStreamTuning(native);
       await _applyCustomParameters(native, settings);
       final videoController = VideoController(
@@ -281,11 +320,15 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         DataSourceType.network || DataSourceType.file || DataSourceType.contentUri => dataSource.uri!,
       };
 
+      if (dataSource.sourceType == DataSourceType.network && host.isNotEmpty) {
+        _transports[textureId] = (host, prefersProxy);
+      }
+
       await player.open(
         Media(resource, httpHeaders: dataSource.httpHeaders),
         play: false,
       );
-      _retryWithoutProxyOnFailure(textureId, player, dataSource);
+      _watchTransport(textureId, player, dataSource);
       return textureId;
     } catch (_) {
       if (textureId != null && identical(_players[textureId], player)) {
@@ -299,13 +342,13 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     }
   }
 
-  /// 把系统代理交给 mpv。
+  /// 把当前传输方式交给 mpv（[useProxy] 为 false 表示这一轮走直连）。
   ///
   /// 故意放在 [_applyCustomParameters] 之前：用户在「自定义参数」里显式写了
   /// `http-proxy=...` 时，以自己的设置为准。
-  Future<void> _applyHttpProxy(NativePlayer native, String host) async {
-    final proxy = httpProxy;
-    if (proxy == null || proxy.isEmpty || _directMediaHosts.contains(host)) return;
+  Future<void> _applyHttpProxy(NativePlayer native, {required bool useProxy}) async {
+    final proxy = useProxy ? _availableProxy : null;
+    if (proxy == null || proxy.isEmpty) return;
     try {
       await native.setProperty('http-proxy', proxy);
     } catch (_) {}
@@ -313,31 +356,50 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   static String _mediaHost(String? uri) => Uri.tryParse(uri ?? '')?.host ?? '';
 
-  /// 打开失败时改用直连重试一次（仅限网络源、且当前确实在用代理）。
+  /// 「开不出来就换另一条传输方式」的看门狗（仅限网络源）。
   ///
-  /// 代理出口被 CDN 拒绝时内核给出的就是加载失败；换成直连往往立刻就通了。
-  /// 重试成功后把主机记下来，之后同一主机的片源直接走直连，不再经历一次失败。
-  void _retryWithoutProxyOnFailure(int textureId, Player player, DataSource dataSource) {
+  /// 之前只在 `player.stream.error` 上挂监听做这件事，实测**这条路根本不会响**：
+  /// mpv 打开片源失败时只写一条日志（`stream: Failed to open ...`）走 `stream.log`，
+  /// 不发 native error 事件。于是片源打不开时既没有换路重试、也没有任何错误上报，
+  /// 界面上就只剩一个永远转的圈（用户报的「点进去一直在加载」就是这个）。
+  /// 改成看门狗：规定时间内没有等到 `initialized` 就先换路重试，
+  /// 两条路都试过还是不行就明确报错，让界面能显示「播放失败 + 重试」。
+  void _watchTransport(int textureId, Player player, DataSource dataSource) {
     if (dataSource.sourceType != DataSourceType.network) return;
-    final host = _mediaHost(dataSource.uri);
-    final proxy = httpProxy;
-    if (host.isEmpty || proxy == null || proxy.isEmpty || _directMediaHosts.contains(host)) return;
-    var retried = false;
-    late final StreamSubscription<String> subscription;
-    subscription = player.stream.error.listen((message) async {
-      // 画面已经出来之后再报的错（解码器告警之类）不在这里处理。
-      if (retried || (_completers[textureId]?.isCompleted ?? true) || !identical(_players[textureId], player)) return;
-      retried = true;
-      unawaited(subscription.cancel());
-      _directMediaHosts.add(host);
-      try {
-        await (player.platform as NativePlayer).setProperty('http-proxy', '');
-        if (identical(_players[textureId], player)) {
-          await player.open(Media(dataSource.uri!, httpHeaders: dataSource.httpHeaders), play: false);
-        }
-      } catch (_) {}
-    });
-    _streamSubscriptions[textureId]?.add(subscription);
+    if (_transports[textureId] == null) return;
+    _transportTimers.remove(textureId)?.cancel();
+    _transportTimers[textureId] = Timer(_transportSwitchDelay, () => unawaited(_switchTransport(textureId, player, dataSource)));
+  }
+
+  /// 首帧前最多等多久就认为这条传输方式不行。正常片源初始化只要 1~4 秒。
+  static const _transportSwitchDelay = Duration(seconds: 15);
+
+  Future<void> _switchTransport(int textureId, Player player, DataSource dataSource) async {
+    if (_completers[textureId]?.isCompleted ?? true) return;
+    if (!identical(_players[textureId], player)) return;
+    final transport = _transports[textureId];
+    if (transport == null) return;
+    final (host, useProxy) = transport;
+    final alternateUsesProxy = !useProxy;
+    final alternateProxy = alternateUsesProxy ? _availableProxy : null;
+    // 换过两条路还是开不出来，或压根没有另一条路：明确报错，
+    // 让界面能显示「播放失败 + 重试」，而不是一直转圈。
+    if ((_transportSwitches[textureId] ?? 0) >= 2 || (alternateUsesProxy && alternateProxy == null)) {
+      _transportTimers.remove(textureId)?.cancel();
+      _hostUsesProxy.remove(host);
+      _streamControllers[textureId]?.addError(
+        PlatformException(code: '', message: 'stream open timed out: ${dataSource.uri}'),
+      );
+      return;
+    }
+    _transportSwitches[textureId] = (_transportSwitches[textureId] ?? 0) + 1;
+    _transports[textureId] = (host, alternateUsesProxy);
+    try {
+      await (player.platform as NativePlayer).setProperty('http-proxy', alternateProxy ?? '');
+      if ((_completers[textureId]?.isCompleted ?? true) || !identical(_players[textureId], player)) return;
+      await player.open(Media(dataSource.uri!, httpHeaders: dataSource.httpHeaders), play: false);
+    } catch (_) {}
+    _watchTransport(textureId, player, dataSource);
   }
 
   /// 取「自定义参数」里的属性名，非 `key=value` 形式一律视为无效。
@@ -833,6 +895,10 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
             ),
           );
           completer.complete();
+          // 开了张：这次用的传输方式确实可行，记下来供同主机的后续片源直接用。
+          _transportTimers.remove(textureId)?.cancel();
+          final transport = _transports[textureId];
+          if (transport != null) _hostUsesProxy[transport.$1] = transport.$2;
         }
       }
     }

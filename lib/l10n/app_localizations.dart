@@ -3560,6 +3560,24 @@ abstract class AppLocalizations {
   /// **'Author'**
   String get author;
 
+  /// No description provided for @videoTagFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Video Tag Filter'**
+  String get videoTagFilter;
+
+  /// No description provided for @videoTagFilterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide videos containing specified tags'**
+  String get videoTagFilterDescription;
+
+  /// No description provided for @tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get tag;
+
   /// No description provided for @exemptSubscribedAuthors.
   ///
   /// In en, this message translates to:

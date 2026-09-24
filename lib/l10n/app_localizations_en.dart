@@ -1944,6 +1944,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get author => 'Author';
 
   @override
+  String get videoTagFilter => 'Video Tag Filter';
+
+  @override
+  String get videoTagFilterDescription =>
+      'Hide videos containing specified tags';
+
+  @override
+  String get tag => 'Tag';
+
+  @override
   String get exemptSubscribedAuthors => 'Exempt Subscribed Authors';
 
   @override

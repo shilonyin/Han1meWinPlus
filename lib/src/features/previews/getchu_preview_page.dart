@@ -166,13 +166,16 @@ class _PreviewCard extends StatelessWidget {
                       memCacheWidth: 480,
                       fadeInDuration: Duration.zero,
                     ),
+                  // 只在标题所占的底部区域做深色底：原来从 45% 就开始淡淡压暗，
+                  // 到底部也只有 70% 黑 —— 海报上半部分被洗淡、标题压在亮色画面上仍不清楚。
+                  // 现在把渐变收短、末尾加深，上半张画完全不受影响。
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.center,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Color(0xB3000000)],
-                        stops: [0.45, 1],
+                        colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
+                        stops: [0.62, 0.86, 1],
                       ),
                     ),
                   ),
@@ -184,7 +187,12 @@ class _PreviewCard extends StatelessWidget {
                       item.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, height: 1.25),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
+                      ),
                     ),
                   ),
                 ],

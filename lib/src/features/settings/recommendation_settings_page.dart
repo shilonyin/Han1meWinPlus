@@ -22,6 +22,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
   Widget build(BuildContext context) {
     if (_subPage == 'titles') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const VideoTitleFilterPage());
     if (_subPage == 'authors') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const AuthorFilterPage());
+    if (_subPage == 'tags') return SettingsSubPageScope(onBack: () => setState(() => _subPage = null), child: const VideoTagFilterPage());
     final settings = ref.watch(settingsProvider).valueOrNull;
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
@@ -37,6 +38,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
               SettingsMenuItem(title: l10n.minimumVideoDuration, leading: const Icon(Icons.timer_outlined), value: settings.minimumVideoDurationSeconds, options: const [0, 30, 60, 90, 120, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : l10n.seconds(value), onSelected: (value) => _selectCustom(context, value, settings.minimumVideoDurationSeconds, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoDurationSeconds: result)))),
               SettingsMenuItem(title: l10n.minimumVideoViews, leading: const Icon(Icons.visibility_outlined), value: settings.minimumVideoViews, options: const [0, 50, 100, 500, 1000, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : '$value', onSelected: (value) => _selectCustom(context, value, settings.minimumVideoViews, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoViews: result)))),
               SettingsCardItem(title: l10n.authorFilter, subtitle: l10n.authorFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'authors')),
+              SettingsCardItem(title: l10n.videoTagFilter, subtitle: l10n.videoTagFilterDescription, leading: const Icon(Icons.label_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'tags')),
               SettingsCardItem(title: l10n.exemptSubscribedAuthors, subtitle: l10n.exemptSubscribedAuthorsDescription, leading: const Icon(Icons.person_add_alt_1_outlined), trailing: Switch(value: settings.exemptSubscribedAuthors, onChanged: (value) => controller.saveChanges((current) => current.copyWith(exemptSubscribedAuthors: value)))),
               SettingsCardItem(title: l10n.applyFiltersToRelated, subtitle: l10n.applyFiltersToRelatedDescription, leading: const Icon(Icons.video_library_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToRelated, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToRelated: value)))),
               SettingsCardItem(title: l10n.applyFiltersToSearch, subtitle: l10n.applyFiltersToSearchDescription, leading: const Icon(Icons.manage_search_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToSearch, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToSearch: value)))),
@@ -100,6 +102,13 @@ class AuthorFilterPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => _StringFilterPage(title: AppLocalizations.of(context)!.authorFilter, label: AppLocalizations.of(context)!.author, values: ref.watch(settingsProvider).valueOrNull?.blockedAuthors ?? const [], onChanged: (values) => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(blockedAuthors: values)));
+}
+
+class VideoTagFilterPage extends ConsumerWidget {
+  const VideoTagFilterPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => _StringFilterPage(title: AppLocalizations.of(context)!.videoTagFilter, label: AppLocalizations.of(context)!.tag, values: ref.watch(settingsProvider).valueOrNull?.blockedVideoTags ?? const [], onChanged: (values) => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(blockedVideoTags: values)));
 }
 
 class _StringFilterPage extends StatefulWidget {

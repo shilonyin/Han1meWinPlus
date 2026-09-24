@@ -79,6 +79,7 @@ final videoCardMetaProvider = FutureProvider.autoDispose.family<VideoCard, Strin
       rating: detail.rating,
       artist: detail.artist,
       uploadTime: detail.uploadDate,
+      tags: detail.tags.map((tag) => tag.name).where((tag) => tag.isNotEmpty).toList(growable: false),
     );
     await cache.put(meta);
     return meta;
@@ -117,7 +118,7 @@ VideoCardMetrics videoCardMetrics({
 }
 
 class VideoCardTile extends ConsumerWidget {
-  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.fillCover = false, this.autoFetchMeta = false, this.onTap, this.onLongPress, this.coverImage});
+  const VideoCardTile({super.key, required this.video, this.horizontal = false, this.selected = false, this.dense = false, this.fillCover = false, this.coverAspectRatio, this.autoFetchMeta = false, this.onTap, this.onLongPress, this.coverImage});
 
   final VideoCard video;
   final bool horizontal;
@@ -126,6 +127,10 @@ class VideoCardTile extends ConsumerWidget {
   final bool dense;
   /// 固定高度的网格里让封面吃掉剩余高度（高度不够时裁切图片，而不是撑破卡片）
   final bool fillCover;
+  /// 封面比例（宽 / 高）。"新番预告"这类结果给的是竖版海报（实测 268x394），
+  /// 不指定时会按 16:9 排版 → 海报被缩放到铺满宽度再上下裁掉，只剩中间一条。
+  /// 传了比例就让封面按这个比例占位（网格用 [VideoCardGrid.coverAspectRatio] 同步算卡高）。
+  final double? coverAspectRatio;
   /// 卡片没有作者/评分时去详情页补（站点部分分类列表只给封面和标题）。
   /// 搜索结果页不用它，保持只显示站点列表给出的内容。
   final bool autoFetchMeta;
@@ -158,6 +163,7 @@ class VideoCardTile extends ConsumerWidget {
         rating: meta.rating ?? video.rating,
         artist: meta.artist ?? video.artist,
         uploadTime: meta.uploadTime ?? video.uploadTime,
+        tags: meta.tags.isEmpty ? video.tags : meta.tags,
       );
 
   @override
@@ -195,21 +201,38 @@ class VideoCardTile extends ConsumerWidget {
         ],
       );
 
-  Widget _horizontalContent(ThemeData theme, int cacheWidth, VideoCard video) => Column(
+  Widget _horizontalContent(ThemeData theme, int cacheWidth, VideoCard video) {
+    // 竖版海报结果（「新番预告」这类）：网格已按海报比例算好卡高，封面必须吃掉
+    // 「除标题区以外的全部高度」。**详情区不能放在 Flexible 里** —— Flexible 默认 flex 1，
+    // 会和封面的 Expanded 平分剩余高度：封面只剩一半（图被压扁、海报仍被裁），
+    // 详情区用不完的那一半就变成卡片下方的一大块空白。
+    if (coverAspectRatio != null) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大。
-          // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
-          // 否则卡片下方会空出一段没有内容的区域。
-          if (dense || fillCover || !hasVideoCardMeta(video))
-            Expanded(child: _cover(theme, cacheWidth, video))
-          else
-            AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth, video)),
-          SizedBox(height: dense ? 4 : 8),
-          // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
-          Flexible(child: ClipRect(child: _details(theme, video))),
+          Expanded(child: _cover(theme, cacheWidth, video)),
+          const SizedBox(height: 8),
+          // 标题区是固定高度（详见 _details），不参与 flex 分配。
+          ClipRect(child: _details(theme, video)),
         ],
       );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大。
+        // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
+        // 否则卡片下方会空出一段没有内容的区域。
+        if (dense || fillCover || !hasVideoCardMeta(video))
+          Expanded(child: _cover(theme, cacheWidth, video))
+        else
+          AspectRatio(aspectRatio: 16 / 9, child: _cover(theme, cacheWidth, video)),
+        SizedBox(height: dense ? 4 : 8),
+        // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
+        Flexible(child: ClipRect(child: _details(theme, video))),
+      ],
+    );
+  }
 
   Widget _cover(ThemeData theme, int cacheWidth, VideoCard video) => RepaintBoundary(
         child: ClipRRect(
@@ -289,7 +312,7 @@ class VideoCardTile extends ConsumerWidget {
 }
 
 class VideoCardGrid extends ConsumerWidget {
-  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen, this.horizontal, this.controller});
+  const VideoCardGrid({super.key, required this.videos, this.itemBuilder, this.cardsPerRow, this.rowsPerScreen, this.horizontal, this.controller, this.coverAspectRatio});
 
   final List<VideoCard> videos;
   final Widget Function(BuildContext context, int index, VideoCard video, bool horizontal)? itemBuilder;
@@ -306,6 +329,10 @@ class VideoCardGrid extends ConsumerWidget {
   /// 外部控制器（用于「回到顶部」这类滚动控制）。
   final ScrollController? controller;
 
+  /// 封面比例（宽 / 高），给竖版海报结果用（见 [VideoCardTile.coverAspectRatio]）。
+  /// 传了之后卡片高度按海报比例算，而不是按 16:9。
+  final double? coverAspectRatio;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).valueOrNull;
@@ -320,9 +347,15 @@ class VideoCardGrid extends ConsumerWidget {
         final effectiveCardsPerRow = autoWiden ? (constraints.maxWidth / 300).floor().clamp(cardsPerRow, 6).toInt() : cardsPerRow;
         final cardWidth = (constraints.maxWidth - horizontalPadding - crossAxisSpacing * (effectiveCardsPerRow - 1)) / effectiveCardsPerRow;
         final rows = rowsPerScreen;
-        final cardHeight = rows != null && constraints.hasBoundedHeight
-            ? ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 420.0)
-            : (horizontal ? cardWidth * 9 / 16 + videoCardMetaHeight(videos) : cardWidth / .58);
+        final double cardHeight;
+        if (rows != null && constraints.hasBoundedHeight) {
+          cardHeight = ((constraints.maxHeight - 36 - MediaQuery.paddingOf(context).bottom - mainAxisSpacing * (rows - 1)) / rows).clamp(96.0, 420.0);
+        } else if (coverAspectRatio != null) {
+          // 竖版海报：封面按传入比例留高；没有作者/评分时详细区只剩标题（40 高 + 8 间距）。
+          cardHeight = cardWidth / coverAspectRatio! + (videos.any(hasVideoCardMeta) ? _horizontalCardMetaHeight : 48);
+        } else {
+          cardHeight = horizontal ? cardWidth * 9 / 16 + videoCardMetaHeight(videos) : cardWidth / .58;
+        }
         return GridView.builder(
           controller: controller,
           padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
@@ -334,7 +367,7 @@ class VideoCardGrid extends ConsumerWidget {
             mainAxisExtent: cardHeight,
           ),
           itemCount: videos.length,
-          itemBuilder: (context, index) => itemBuilder?.call(context, index, videos[index], horizontal) ?? VideoCardTile(video: videos[index], horizontal: horizontal),
+          itemBuilder: (context, index) => itemBuilder?.call(context, index, videos[index], horizontal) ?? VideoCardTile(video: videos[index], horizontal: horizontal, coverAspectRatio: coverAspectRatio),
         );
       },
     );

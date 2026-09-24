@@ -11,6 +11,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
+import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
@@ -542,6 +543,7 @@ bool _visible(VideoCard video, AppSettings? settings, Set<String> subscribed) {
   if (!(settings.exemptSubscribedAuthors && subscribedAuthor)) {
     if (settings.blockedVideoTitleKeywords.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase()))) return false;
     if (settings.blockedAuthors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase()))) return false;
+    if (settings.blockedVideoTags.any((blockedTag) => video.tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())))) return false;
     // 站点没给时长/播放量时按「未知」处理，不参与过滤：按 0 判会把 AV 源的卡片整页
     // 滤光（它们本来就不带这些字段），表现是「搜索结果永远为空」。
     final seconds = videoDurationSeconds(video.duration);
@@ -738,7 +740,10 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
 
   void _schedulePrefetch() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_prefetch());
+      if (mounted) {
+        unawaited(_prefetch());
+        unawaited(_filterByTags());
+      }
     });
   }
 
@@ -837,6 +842,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     // 顺带把缺元数据的卡片排进补全队列（受 provider 内部并发闸门限制）：
     // 滚到它们时通常已经补好了，不会先看到空着的作者/评分行。
     unawaited(_prefetchMeta(videos ?? _videos));
+    unawaited(_filterByTags());
   }
 
   /// 预取卡片元数据。站点部分分类（里番、泡麵番）的列表页只给封面和标题，
@@ -852,6 +858,41 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     await Future.wait([
       for (final video in targets) ref.read(videoCardMetaProvider(video.id).future).then<VideoCard?>((value) => value, onError: (Object _, StackTrace __) => null),
     ]);
+  }
+
+  Future<void> _filterByTags() async {
+    final settings = ref.read(settingsProvider).valueOrNull;
+    if (settings == null || settings.blockedVideoTags.isEmpty || _videos.isEmpty) return;
+    final targets = _videos.where((video) => video.id.isNotEmpty).take(homeWaterfallColumns(_viewportWidth) * 6).toList(growable: false);
+    final cache = ref.read(videoMetaCacheProvider);
+    final repository = ref.read(han1meRepositoryProvider);
+    await Future.wait([
+      for (final video in targets)
+        if (cache.read(video.id)?.tags.isNotEmpty != true)
+          repository.video(settings.resolvedBaseUrl, video.id).then((detail) async {
+            await cache.put(VideoCard(
+              id: video.id,
+              title: video.title,
+              coverUrl: detail.coverUrl ?? video.coverUrl,
+              duration: detail.duration ?? video.duration,
+              views: detail.views ?? video.views,
+              rating: detail.rating ?? video.rating,
+              artist: detail.artist ?? video.artist,
+              uploadTime: detail.uploadDate ?? video.uploadTime,
+              tags: detail.tags.map((tag) => tag.name).where((tag) => tag.isNotEmpty).toList(growable: false),
+            ));
+          }).catchError((_) {}),
+    ]);
+    if (!mounted) return;
+    final blocked = ref.read(settingsProvider).valueOrNull?.blockedVideoTags ?? const <String>[];
+    if (blocked.isEmpty) return;
+    final filtered = _videos.where((video) {
+      final meta = cache.read(video.id);
+      final tags = meta?.tags ?? video.tags;
+      return !blocked.any((blockedTag) => tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())));
+    }).toList(growable: false);
+    if (filtered.length == _videos.length) return;
+    setState(() => _videos = filtered);
   }
 
   @override

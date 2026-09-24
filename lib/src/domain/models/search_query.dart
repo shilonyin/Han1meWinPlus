@@ -1,13 +1,16 @@
 class SearchRouteRequest {
-  SearchRouteRequest({this.initialUrl, this.initialQuery}) : sessionId = _nextId();
+  SearchRouteRequest({this.initialUrl, this.initialQuery, this.authorName}) : sessionId = _nextId();
 
-  const SearchRouteRequest.fromRoute(this.sessionId, {this.initialUrl, this.initialQuery});
+  const SearchRouteRequest.fromRoute(this.sessionId, {this.initialUrl, this.initialQuery, this.authorName});
 
   final String sessionId;
   final String? initialUrl;
 
   /// 直接携带查询条件进入搜索页（如点搜索建议里的历史或热门标签）。
   final SearchQuery? initialQuery;
+
+  /// AV 源没有统一的作者搜索接口，作者页需要用详情页作者字段做精确筛选。
+  final String? authorName;
 
   static var _sequence = 0;
 

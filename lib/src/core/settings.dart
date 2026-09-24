@@ -111,6 +111,7 @@ class AppSettings {
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
     this.blockedAuthors = const [],
+    this.blockedVideoTags = const [],
     this.minimumVideoDurationSeconds = 0,
     this.minimumVideoViews = 0,
     this.exemptSubscribedAuthors = true,
@@ -202,6 +203,7 @@ class AppSettings {
   final List<String> homeQuickCategories;
   final List<String> blockedVideoTitleKeywords;
   final List<String> blockedAuthors;
+  final List<String> blockedVideoTags;
   final int minimumVideoDurationSeconds;
   final int minimumVideoViews;
   final bool exemptSubscribedAuthors;
@@ -301,6 +303,7 @@ class AppSettings {
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
         'blockedAuthors': blockedAuthors,
+        'blockedVideoTags': blockedVideoTags,
         'minimumVideoDurationSeconds': minimumVideoDurationSeconds,
         'minimumVideoViews': minimumVideoViews,
         'exemptSubscribedAuthors': exemptSubscribedAuthors,
@@ -381,6 +384,7 @@ class AppSettings {
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
         blockedAuthors: (json['blockedAuthors'] as List? ?? const []).whereType<String>().toList(),
+        blockedVideoTags: (json['blockedVideoTags'] as List? ?? const []).whereType<String>().toList(),
         minimumVideoDurationSeconds: (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400) as int,
         minimumVideoViews: (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000) as int,
         exemptSubscribedAuthors: json['exemptSubscribedAuthors'] as bool? ?? true,
@@ -516,6 +520,7 @@ class AppSettings {
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
     List<String>? blockedAuthors,
+    List<String>? blockedVideoTags,
     int? minimumVideoDurationSeconds,
     int? minimumVideoViews,
     bool? exemptSubscribedAuthors,
@@ -595,6 +600,7 @@ class AppSettings {
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,
         blockedAuthors: blockedAuthors ?? this.blockedAuthors,
+        blockedVideoTags: blockedVideoTags ?? this.blockedVideoTags,
         minimumVideoDurationSeconds: minimumVideoDurationSeconds ?? this.minimumVideoDurationSeconds,
         minimumVideoViews: minimumVideoViews ?? this.minimumVideoViews,
         exemptSubscribedAuthors: exemptSubscribedAuthors ?? this.exemptSubscribedAuthors,

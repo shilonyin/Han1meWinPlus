@@ -283,13 +283,14 @@ class _PreviewCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                  // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.center,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Color(0xB3000000)],
-                        stops: [0.45, 1],
+                        colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
+                        stops: [0.62, 0.86, 1],
                       ),
                     ),
                   ),
@@ -302,7 +303,12 @@ class _PreviewCard extends StatelessWidget {
                       item.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, height: 1.25),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
+                      ),
                     ),
                   ),
                 ],
