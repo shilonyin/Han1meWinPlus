@@ -31,7 +31,9 @@ class Han1meApi {
   String? _cookie;
   final _resolvedOrigins = <String, String>{};
 
-  static const userAgent = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36';
+  /// WebView / 播放器请求头用的浏览器 UA —— 都是真正需要「像浏览器」的场景。
+  /// 桌面 Dart 请求不要用它，原因见 [Han1meHttpClient.selfIdentifiedUserAgent]。
+  static const userAgent = Han1meHttpClient.browserUserAgent;
 
   void setCookie(String value) => _cookie = _mergeCookies(_cookie, value);
   void replaceCookie(String value) => _cookie = value;
