@@ -1545,6 +1545,30 @@ abstract class AppLocalizations {
   /// **'Delete Selected Cache'**
   String get deleteSelectedCache;
 
+  /// No description provided for @deleteSelectedCacheConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} selected caches? The local files will be deleted too.'**
+  String deleteSelectedCacheConfirmation(int count);
+
+  /// No description provided for @cacheSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} videos · {size}'**
+  String cacheSummary(int count, String size);
+
+  /// No description provided for @emptyCacheHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded videos will appear here'**
+  String get emptyCacheHint;
+
+  /// No description provided for @unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get unpin;
+
   /// No description provided for @createGroup.
   ///
   /// In en, this message translates to:

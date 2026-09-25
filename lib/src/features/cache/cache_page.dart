@@ -124,14 +124,30 @@ class _CachePageState extends ConsumerState<CachePage> with TickerProviderStateM
       ),
       IconButton(
         tooltip: l10n.deleteSelectedCache,
-        onPressed: () async {
-          await ref.read(downloadProvider.notifier).deleteTasks(selected);
-          ref.read(cacheViewProvider.notifier).clearSelection();
-        },
+        onPressed: () => _deleteSelected(context, ref, selected),
         icon: const Icon(Icons.delete_outline),
       ),
       IconButton(tooltip: l10n.switchGroup, onPressed: () => _switchGroups(context, ref, state, selected), icon: const Icon(Icons.drive_file_move_outline)),
     ];
+  }
+
+  /// 批量删除前先确认：删缓存会把本地文件一起删掉，无法撤销。
+  Future<void> _deleteSelected(BuildContext context, WidgetRef ref, Set<String> selected) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteSelectedCache),
+        content: Text(l10n.deleteSelectedCacheConfirmation(selected.length)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(downloadProvider.notifier).deleteTasks(selected);
+    ref.read(cacheViewProvider.notifier).clearSelection();
   }
 
   Future<void> _switchGroups(BuildContext context, WidgetRef ref, DownloadState state, Set<String> selectedIds) async {
@@ -157,10 +173,11 @@ class _CacheBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final view = ref.watch(cacheViewProvider);
     final pinned = tasks.where((task) => task.pinned).toList();
-    if (tasks.isEmpty) return Center(child: Text(l10n.noCache));
+    if (tasks.isEmpty) return const _EmptyCache();
     return ListView(
       padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
       children: [
+        _CacheSummary(tasks: tasks),
         if (pinned.isNotEmpty) ...[
           _SectionHeader(title: l10n.pinned, count: pinned.length, expanded: view.pinnedExpanded, onTap: ref.read(cacheViewProvider.notifier).togglePinnedExpanded),
           if (view.pinnedExpanded) _TaskGrid(tasks: pinned),
@@ -168,6 +185,55 @@ class _CacheBody extends ConsumerWidget {
         _SectionHeader(title: l10n.all, count: tasks.length, expanded: view.allExpanded, onTap: ref.read(cacheViewProvider.notifier).toggleAllExpanded),
         if (view.allExpanded) _TaskGrid(tasks: tasks),
       ],
+    );
+  }
+}
+
+/// 列表顶部的容量概览：占用空间是缓存管理里最先要看的信息。
+class _CacheSummary extends StatelessWidget {
+  const _CacheSummary({required this.tasks});
+
+  final List<DownloadTask> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final bytes = tasks.fold<int>(0, (sum, task) => sum + (task.totalBytes > 0 ? task.totalBytes : task.downloadedBytes));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      child: Row(
+        children: [
+          Icon(Icons.folder_outlined, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Text(
+            l10n.cacheSummary(tasks.length, _formatBytes(bytes)),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyCache extends StatelessWidget {
+  const _EmptyCache();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.video_library_outlined, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .6)),
+          const SizedBox(height: 14),
+          Text(l10n.noCache, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Text(l10n.emptyCacheHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ],
+      ),
     );
   }
 }
@@ -261,7 +327,10 @@ class _TaskCard extends ConsumerWidget {
                 onLongPress: () => ref.read(cacheViewProvider.notifier).toggleSelection(task.id),
               ),
               if (task.pinned) const Positioned(top: 6, left: 6, child: Icon(Icons.push_pin, color: Colors.white, size: 20)),
-              if (selected) const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: Colors.white)),
+              if (selected)
+                const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: Colors.white, size: 20))
+              else
+                Positioned(top: 4, right: 4, child: _TaskMenuButton(task: task)),
             ],
           ),
         ),
@@ -280,12 +349,16 @@ class _TaskCard extends ConsumerWidget {
               child: Text(_progressInfo(l10n, task), maxLines: 1, overflow: TextOverflow.ellipsis, style: infoStyle),
             ),
           ],
-        ] else if (task.status == DownloadStatus.failed) ...[
+        ] else
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: infoStyle),
+            child: Text(
+              task.status == DownloadStatus.completed ? _detailInfo(task) : label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: infoStyle,
+            ),
           ),
-        ],
       ],
     );
   }
@@ -297,24 +370,106 @@ class _TaskCard extends ConsumerWidget {
     return l10n.downloadProgressFull(speed, downloaded, _formatBytes(task.totalBytes));
   }
 
-  String _formatBytes(int bytes) {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    var value = bytes.toDouble();
-    var unit = 0;
-    while (value >= 1024 && unit < units.length - 1) {
-      value /= 1024;
-      unit++;
-    }
-    return '${value.toStringAsFixed(value >= 100 || unit == 0 ? 0 : 1)} ${units[unit]}';
+  /// 已完成项在标题下显示「清晰度 · 体积 · 下载日期」，一眼能看出占了多大空间。
+  String _detailInfo(DownloadTask task) {
+    final bytes = task.totalBytes > 0 ? task.totalBytes : task.downloadedBytes;
+    final date = _formatDate(task.updatedAt);
+    return [
+      if (task.quality.isNotEmpty) task.quality,
+      if (bytes > 0) _formatBytes(bytes),
+      if (date.isNotEmpty) date,
+    ].join(' · ');
+  }
+}
+
+/// 卡片右上角的操作入口。
+///
+/// 单条缓存的删除/置顶/移动分组都收在这里，不必先长按进入选择模式；
+/// 长按多选仍然保留，用于批量操作。
+class _TaskMenuButton extends ConsumerWidget {
+  const _TaskMenuButton({required this.task});
+
+  final DownloadTask task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final error = Theme.of(context).colorScheme.error;
+    return Material(
+      color: Colors.black.withValues(alpha: .42),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: PopupMenuButton<_TaskAction>(
+        tooltip: l10n.more,
+        icon: const Icon(Icons.more_vert, color: Colors.white, size: 18),
+        iconSize: 18,
+        padding: EdgeInsets.zero,
+        onSelected: (action) => _run(context, ref, action),
+        itemBuilder: (context) => [
+          if (task.status == DownloadStatus.completed)
+            PopupMenuItem(value: _TaskAction.play, child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.play_arrow_outlined), title: Text(l10n.play))),
+          if (task.status == DownloadStatus.failed)
+            PopupMenuItem(value: _TaskAction.retry, child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.refresh), title: Text(l10n.retry))),
+          PopupMenuItem(
+            value: task.pinned ? _TaskAction.unpin : _TaskAction.pin,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(task.pinned ? Icons.push_pin_outlined : Icons.push_pin),
+              title: Text(task.pinned ? l10n.unpin : l10n.pin),
+            ),
+          ),
+          PopupMenuItem(value: _TaskAction.move, child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.drive_file_move_outline), title: Text(l10n.switchGroup))),
+          PopupMenuItem(
+            value: _TaskAction.delete,
+            child: ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.delete_outline, color: error), title: Text(l10n.delete, style: TextStyle(color: error))),
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> _openCachedVideo(BuildContext context, DownloadTask task) async {
-    if (task.localVideoPath == null || !await File(task.localVideoPath!).exists()) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.localVideoMissing)));
-      return;
+  Future<void> _run(BuildContext context, WidgetRef ref, _TaskAction action) async {
+    switch (action) {
+      case _TaskAction.play:
+        await _openCachedVideo(context, task);
+      case _TaskAction.retry:
+        await ref.read(downloadProvider.notifier).retry(task.id);
+      case _TaskAction.pin:
+      case _TaskAction.unpin:
+        await ref.read(downloadProvider.notifier).togglePinned({task.id});
+      case _TaskAction.move:
+        await _move(context, ref);
+      case _TaskAction.delete:
+        await _delete(context, ref);
     }
-    final localVideo = VideoDetail(id: task.videoCode, title: task.title, coverUrl: task.coverUrl, sources: [VideoSource(quality: task.quality, url: task.localVideoPath!)], tags: const [], playlist: const [], related: const []);
-    if (context.mounted) await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute<void>(builder: (_) => VideoPage(id: task.videoCode, localVideo: localVideo)));
+  }
+
+  Future<void> _move(BuildContext context, WidgetRef ref) async {
+    final state = ref.read(downloadProvider).valueOrNull;
+    if (state == null) return;
+    final groups = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => _GroupSelectionDialog(groups: state.groups, selected: task.groupIds),
+    );
+    if (groups == null) return;
+    await ref.read(downloadProvider.notifier).setTaskGroups({task.id}, groups);
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteCache),
+        content: Text(l10n.deleteCacheConfirmation(task.title)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(downloadProvider.notifier).deleteTasks({task.id});
   }
 }
 
@@ -371,6 +526,36 @@ List<DownloadTask> _sortTasks(Iterable<DownloadTask> source, DownloadGroupSort s
 String _groupName(DownloadGroup group, AppLocalizations l10n) => group.id == 'default' && (group.name == 'Default' || group.name == 'Cached') ? l10n.cachedDownloads : group.name;
 
 enum _CacheMenuAction { groupSettings }
+
+enum _TaskAction { play, retry, pin, unpin, move, delete }
+
+String _formatBytes(int bytes) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  var value = bytes.toDouble();
+  var unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return '${value.toStringAsFixed(value >= 100 || unit == 0 ? 0 : 1)} ${units[unit]}';
+}
+
+String _formatDate(int milliseconds) {
+  if (milliseconds <= 0) return '';
+  final date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$month-$day';
+}
+
+Future<void> _openCachedVideo(BuildContext context, DownloadTask task) async {
+  if (task.localVideoPath == null || !await File(task.localVideoPath!).exists()) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.localVideoMissing)));
+    return;
+  }
+  final localVideo = VideoDetail(id: task.videoCode, title: task.title, coverUrl: task.coverUrl, sources: [VideoSource(quality: task.quality, url: task.localVideoPath!)], tags: const [], playlist: const [], related: const []);
+  if (context.mounted) await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute<void>(builder: (_) => VideoPage(id: task.videoCode, localVideo: localVideo)));
+}
 
 bool _sameIds(List<String> current, List<String> next) {
   if (current.length != next.length) return false;

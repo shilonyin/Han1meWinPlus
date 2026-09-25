@@ -839,6 +839,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteSelectedCache => 'Delete Selected Cache';
 
   @override
+  String deleteSelectedCacheConfirmation(int count) {
+    return 'Delete $count selected caches? The local files will be deleted too.';
+  }
+
+  @override
+  String cacheSummary(int count, String size) {
+    return '$count videos · $size';
+  }
+
+  @override
+  String get emptyCacheHint => 'Downloaded videos will appear here';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
   String get createGroup => 'Create Group';
 
   @override

@@ -809,6 +809,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteSelectedCache => '删除所选缓存';
 
   @override
+  String deleteSelectedCacheConfirmation(int count) {
+    return '删除所选的 $count 个缓存？本地文件会一并删除。';
+  }
+
+  @override
+  String cacheSummary(int count, String size) {
+    return '$count 个视频 · 共 $size';
+  }
+
+  @override
+  String get emptyCacheHint => '下载完成的视频会出现在这里';
+
+  @override
+  String get unpin => '取消固定';
+
+  @override
   String get createGroup => '新建分组';
 
   @override
@@ -3055,6 +3071,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteSelectedCache => '刪除所選快取';
+
+  @override
+  String deleteSelectedCacheConfirmation(int count) {
+    return '刪除所選的 $count 個快取？本機檔案會一併刪除。';
+  }
+
+  @override
+  String cacheSummary(int count, String size) {
+    return '$count 個影片 · 共 $size';
+  }
+
+  @override
+  String get emptyCacheHint => '下載完成的影片會出現在這裡';
+
+  @override
+  String get unpin => '取消固定';
 
   @override
   String get createGroup => '新增群組';
