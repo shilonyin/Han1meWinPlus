@@ -132,16 +132,25 @@ class AddressRanker {
   }
 
   /// 按已知延迟重排候选地址：快的在前，没数据的保持原顺序，已知不可用的沉到最后。
+  ///
+  /// 非字面地址（主机名，也就是系统 DNS 兜底）**永远排在所有字面地址之后**。它一旦排到
+  /// 前面就会先走系统 DNS，而本机/某些网络对 hanime 域名的解析是被污染的（实测
+  /// `hanime1.com` 解到 `31.13.87.19`，连接一直挂到超时），于是每次请求都在这里烧满
+  /// Dart `HttpClient` 的 20s 连接超时，内置 IP 一个都轮不到 —— 表现就是整站页面都加载
+  /// 不出来。主机名兜底的原意是「内置地址都连不上时才用它」，位置必须体现这一点。
   List<String> order(String host, List<String> addresses) {
     final ordered = _ipv4First(addresses);
-    if (!enabled) return ordered;
+    final literals = ordered.where(_isLiteralAddress).toList(growable: false);
+    final hostnames = ordered.where((address) => !_isLiteralAddress(address)).toList(growable: false);
+    final fallback = [...literals, ...hostnames];
+    if (!enabled) return fallback;
     final rank = _ranked[host];
     final failed = _failed[host];
-    if ((rank == null || rank.isEmpty) && (failed == null || failed.isEmpty)) return ordered;
+    if ((rank == null || rank.isEmpty) && (failed == null || failed.isEmpty)) return fallback;
     final known = <String>[];
     final unknown = <String>[];
     final dead = <String>[];
-    for (final address in ordered) {
+    for (final address in literals) {
       if (failed?.contains(address) ?? false) {
         dead.add(address);
       } else if (rank?[address] != null) {
@@ -151,7 +160,7 @@ class AddressRanker {
       }
     }
     known.sort((a, b) => rank![a]!.compareTo(rank[b]!));
-    return [...known, ...unknown, ...dead];
+    return [...known, ...unknown, ...dead, ...hostnames];
   }
 
   /// 连接成功：用真实耗时刷新这个地址的延迟（比后台探测更贴近当前时刻）。

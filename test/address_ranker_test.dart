@@ -57,6 +57,20 @@ void main() {
     expect(ranker.order(host, [...addresses, host]).last, host);
   });
 
+  // 全部内置地址都被标记失败时，兜底项曾经会冒到第一位：它会先去做系统 DNS（本机对
+  // hanime 域名的解析被污染，连不上），于是每次请求都烧满 20s 连接超时、一个内置 IP 都
+  // 轮不到，整站页面都加载不出来。兜底项必须永远在所有字面地址之后。
+  test('所有内置地址都失败时，域名兜底项仍然排在最后', () {
+    final ranker = AddressRanker(_MemoryStore());
+    for (final address in addresses) {
+      ranker.recordFailure(host, address);
+    }
+    final ordered = ranker.order(host, [...addresses, host]);
+
+    expect(ordered.last, host);
+    expect(ordered.take(addresses.length), addresses);
+  });
+
   test('关掉优先后回到列表原顺序，且不再记录结果', () {
     final ranker = AddressRanker(_MemoryStore())..enabled = false;
     ranker.recordSuccess(host, ipv4Fast, const Duration(milliseconds: 90));
