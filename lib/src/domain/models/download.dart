@@ -1,4 +1,8 @@
-enum DownloadStatus { queued, downloading, completed, failed }
+/// 下载任务状态。
+///
+/// 序列化按枚举名保存（`status.name`），已有值不能改名或删除；[paused] 是后加的，
+/// 旧存档里不会出现，读到时自然落回 [queued]。
+enum DownloadStatus { queued, downloading, completed, failed, paused }
 
 enum DownloadGroupSort { defaultOrder, recentlyUpdated, name }
 

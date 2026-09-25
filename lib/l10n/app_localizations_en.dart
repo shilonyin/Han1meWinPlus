@@ -849,6 +849,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get groups => 'Groups';
+
+  @override
+  String get groupSettings => 'Group settings';
+
+  @override
   String get emptyCacheHint => 'Downloaded videos will appear here';
 
   @override
@@ -859,6 +865,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noCache => 'No cache';
+
+  @override
+  String get cachedVideos => 'Downloaded';
+
+  @override
+  String get activeDownloads => 'Downloading';
+
+  @override
+  String get cacheEmptyActive => 'Nothing is downloading';
+
+  @override
+  String folderContents(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get mainEpisodes => 'Main';
+
+  @override
+  String folderSize(Object size) {
+    return 'Total $size';
+  }
+
+  @override
+  String get taskSort => 'Sort';
+
+  @override
+  String get sortByDefault => 'Default order';
+
+  @override
+  String get sortByRecent => 'Newest first';
+
+  @override
+  String get sortByName => 'By name';
+
+  @override
+  String get sortBySize => 'By size';
+
+  @override
+  String get moreActions => 'More';
+
+  @override
+  String get noGrouping => 'No group';
+
+  @override
+  String get startAll => 'Start all';
+
+  @override
+  String get pauseAll => 'Pause all';
+
+  @override
+  String get deleteAll => 'Delete all';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get resume => 'Resume';
+
+  @override
+  String get paused => 'Paused';
+
+  @override
+  String get switchToGrid => 'Grid view';
+
+  @override
+  String get switchToList => 'List view';
+
+  @override
+  String get openFolder => 'Open';
+
+  @override
+  String get backToCache => 'All downloads';
+
+  @override
+  String get selectQuality => 'Current quality';
+
+  @override
+  String get myDownloads => 'My downloads';
+
+  @override
+  String downloadCountButton(int count) {
+    return 'Download ($count)';
+  }
 
   @override
   String get localVideoMissing =>
@@ -956,9 +1046,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verificationComplete => 'Verification Complete';
 
   @override
-  String get pause => 'Pause';
-
-  @override
   String get play => 'Play';
 
   @override
@@ -1043,6 +1130,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startDownload => 'Start Download';
+
+  @override
+  String get downloadQualitySection => 'Quality';
+
+  @override
+  String get downloadEpisodesSection => 'Episodes';
+
+  @override
+  String get downloadGroupSection => 'Group';
+
+  @override
+  String downloadEpisodeCount(int count) {
+    return '$count episodes';
+  }
+
+  @override
+  String get downloadSelectAllEpisodes => 'Select all';
+
+  @override
+  String get downloadClearEpisodes => 'Clear';
+
+  @override
+  String get downloadCurrentOnly => 'Current episode only';
+
+  @override
+  String downloadPartialFailed(int count) {
+    return '$count episodes could not be prepared';
+  }
+
+  @override
+  String get downloadNothingSelected => 'Select at least one episode';
 
   @override
   String get addedToDownloadQueue => 'Added to download queue';
@@ -2160,9 +2278,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cachedDownloads => 'Cached';
 
   @override
-  String get bookshelfSettings => 'Shelf Settings';
-
-  @override
   String get selectAll => 'Select All';
 
   @override
@@ -2181,15 +2296,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyUpdated => 'Recently Updated';
 
   @override
-  String get deleteBookshelf => 'Delete Shelf';
+  String get deleteGroup => 'Delete Group';
 
   @override
-  String get deleteBookshelfDescription =>
+  String get deleteGroupDescription =>
       'Permanently delete this group without deleting cached media';
 
   @override
-  String get deleteBookshelfConfirmation =>
-      'Delete this group? It will be gone forever! (A really long time!)';
+  String get deleteGroupConfirmation =>
+      'Delete this group? It will be gone forever!';
 
   @override
   String get backupSettings => 'Backup Settings';

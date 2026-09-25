@@ -11,7 +11,6 @@ import '../features/account/login_page.dart';
 import '../features/account/manual_cookie_page.dart';
 import '../features/account/account_page.dart';
 import '../features/cache/cache_page.dart';
-import '../features/cache/download_group_page.dart';
 import '../features/comics/comic_pages.dart';
 import '../features/explore/explore_page.dart';
 import '../features/library/library_page.dart';
@@ -97,8 +96,6 @@ class AppRouter {
         ),
         GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
         GoRoute(path: '/login/cookies', builder: (context, state) => const ManualCookiePage()),
-        GoRoute(path: '/cache/groups/new', builder: (context, state) => const DownloadGroupPage()),
-        GoRoute(path: '/cache/groups/:id', builder: (context, state) => DownloadGroupPage(groupId: state.pathParameters['id'])),
         GoRoute(
           path: '/account/profile/:id',
           builder: (context, state) => AccountWebPage(
@@ -106,6 +103,13 @@ class AppRouter {
             title: AppLocalizations.of(context)!.accountProfile,
           ),
         ),
+        // 从视频页（根导航器上的全屏页）打开缓存页时的入口。
+        //
+        // /cache 本身是 shell 分支路由；从顶层的视频页 `push('/cache')` 虽然能构建
+        // 页面，但它挂在 shell 分支下，返回语义不清（实测 pop 回不到视频页）。
+        // 这里给一个**挂根导航器**的独立路径，和 /search 同一套办法：
+        // 与当前栈无关，push 进来、返回就能回到正在看的视频。
+        GoRoute(path: '/downloads', parentNavigatorKey: navigatorKey, builder: (context, state) => const CachePage()),
         GoRoute(path: '/settings/about', builder: (context, state) => const AboutPage()),
         GoRoute(path: '/settings/license', builder: (context, state) => const AppLicensePage()),
         GoRoute(path: '/settings/keyframes', builder: (context, state) => const KeyframesPage()),

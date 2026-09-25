@@ -1557,6 +1557,18 @@ abstract class AppLocalizations {
   /// **'{count} videos · {size}'**
   String cacheSummary(int count, String size);
 
+  /// No description provided for @groups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get groups;
+
+  /// No description provided for @groupSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Group settings'**
+  String get groupSettings;
+
   /// No description provided for @emptyCacheHint.
   ///
   /// In en, this message translates to:
@@ -1580,6 +1592,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No cache'**
   String get noCache;
+
+  /// No description provided for @cachedVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get cachedVideos;
+
+  /// No description provided for @activeDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get activeDownloads;
+
+  /// No description provided for @cacheEmptyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is downloading'**
+  String get cacheEmptyActive;
+
+  /// No description provided for @folderContents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String folderContents(int count);
+
+  /// No description provided for @mainEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Main'**
+  String get mainEpisodes;
+
+  /// No description provided for @folderSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Total {size}'**
+  String folderSize(Object size);
+
+  /// No description provided for @taskSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get taskSort;
+
+  /// No description provided for @sortByDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default order'**
+  String get sortByDefault;
+
+  /// No description provided for @sortByRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get sortByRecent;
+
+  /// No description provided for @sortByName.
+  ///
+  /// In en, this message translates to:
+  /// **'By name'**
+  String get sortByName;
+
+  /// No description provided for @sortBySize.
+  ///
+  /// In en, this message translates to:
+  /// **'By size'**
+  String get sortBySize;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get moreActions;
+
+  /// No description provided for @noGrouping.
+  ///
+  /// In en, this message translates to:
+  /// **'No group'**
+  String get noGrouping;
+
+  /// No description provided for @startAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Start all'**
+  String get startAll;
+
+  /// No description provided for @pauseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause all'**
+  String get pauseAll;
+
+  /// No description provided for @deleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get deleteAll;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// No description provided for @resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resume;
+
+  /// No description provided for @paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get paused;
+
+  /// No description provided for @switchToGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid view'**
+  String get switchToGrid;
+
+  /// No description provided for @switchToList.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get switchToList;
+
+  /// No description provided for @openFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openFolder;
+
+  /// No description provided for @backToCache.
+  ///
+  /// In en, this message translates to:
+  /// **'All downloads'**
+  String get backToCache;
+
+  /// No description provided for @selectQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Current quality'**
+  String get selectQuality;
+
+  /// No description provided for @myDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'My downloads'**
+  String get myDownloads;
+
+  /// No description provided for @downloadCountButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Download ({count})'**
+  String downloadCountButton(int count);
 
   /// No description provided for @localVideoMissing.
   ///
@@ -1737,12 +1905,6 @@ abstract class AppLocalizations {
   /// **'Verification Complete'**
   String get verificationComplete;
 
-  /// No description provided for @pause.
-  ///
-  /// In en, this message translates to:
-  /// **'Pause'**
-  String get pause;
-
   /// No description provided for @play.
   ///
   /// In en, this message translates to:
@@ -1898,6 +2060,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start Download'**
   String get startDownload;
+
+  /// No description provided for @downloadQualitySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get downloadQualitySection;
+
+  /// No description provided for @downloadEpisodesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get downloadEpisodesSection;
+
+  /// No description provided for @downloadGroupSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get downloadGroupSection;
+
+  /// No description provided for @downloadEpisodeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} episodes'**
+  String downloadEpisodeCount(int count);
+
+  /// No description provided for @downloadSelectAllEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get downloadSelectAllEpisodes;
+
+  /// No description provided for @downloadClearEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get downloadClearEpisodes;
+
+  /// No description provided for @downloadCurrentOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Current episode only'**
+  String get downloadCurrentOnly;
+
+  /// No description provided for @downloadPartialFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} episodes could not be prepared'**
+  String downloadPartialFailed(int count);
+
+  /// No description provided for @downloadNothingSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one episode'**
+  String get downloadNothingSelected;
 
   /// No description provided for @addedToDownloadQueue.
   ///
@@ -3950,12 +4166,6 @@ abstract class AppLocalizations {
   /// **'Cached'**
   String get cachedDownloads;
 
-  /// No description provided for @bookshelfSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Shelf Settings'**
-  String get bookshelfSettings;
-
   /// No description provided for @selectAll.
   ///
   /// In en, this message translates to:
@@ -3992,23 +4202,23 @@ abstract class AppLocalizations {
   /// **'Recently Updated'**
   String get recentlyUpdated;
 
-  /// No description provided for @deleteBookshelf.
+  /// No description provided for @deleteGroup.
   ///
   /// In en, this message translates to:
-  /// **'Delete Shelf'**
-  String get deleteBookshelf;
+  /// **'Delete Group'**
+  String get deleteGroup;
 
-  /// No description provided for @deleteBookshelfDescription.
+  /// No description provided for @deleteGroupDescription.
   ///
   /// In en, this message translates to:
   /// **'Permanently delete this group without deleting cached media'**
-  String get deleteBookshelfDescription;
+  String get deleteGroupDescription;
 
-  /// No description provided for @deleteBookshelfConfirmation.
+  /// No description provided for @deleteGroupConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'Delete this group? It will be gone forever! (A really long time!)'**
-  String get deleteBookshelfConfirmation;
+  /// **'Delete this group? It will be gone forever!'**
+  String get deleteGroupConfirmation;
 
   /// No description provided for @backupSettings.
   ///

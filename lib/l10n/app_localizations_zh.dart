@@ -819,6 +819,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get groups => '分组';
+
+  @override
+  String get groupSettings => '分组设置';
+
+  @override
   String get emptyCacheHint => '下载完成的视频会出现在这里';
 
   @override
@@ -829,6 +835,90 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noCache => '暂无缓存';
+
+  @override
+  String get cachedVideos => '已缓存视频';
+
+  @override
+  String get activeDownloads => '正在缓存';
+
+  @override
+  String get cacheEmptyActive => '当前没有正在缓存的任务';
+
+  @override
+  String folderContents(int count) {
+    return '$count 个内容';
+  }
+
+  @override
+  String get mainEpisodes => '正片';
+
+  @override
+  String folderSize(Object size) {
+    return '共 $size';
+  }
+
+  @override
+  String get taskSort => '任务排序';
+
+  @override
+  String get sortByDefault => '默认排序';
+
+  @override
+  String get sortByRecent => '最近更新';
+
+  @override
+  String get sortByName => '按名称';
+
+  @override
+  String get sortBySize => '按大小';
+
+  @override
+  String get moreActions => '更多操作';
+
+  @override
+  String get noGrouping => '不分组';
+
+  @override
+  String get startAll => '全部开始';
+
+  @override
+  String get pauseAll => '全部暂停';
+
+  @override
+  String get deleteAll => '全部删除';
+
+  @override
+  String get pause => '暂停';
+
+  @override
+  String get resume => '继续';
+
+  @override
+  String get paused => '已暂停';
+
+  @override
+  String get switchToGrid => '网格视图';
+
+  @override
+  String get switchToList => '列表视图';
+
+  @override
+  String get openFolder => '打开';
+
+  @override
+  String get backToCache => '全部下载';
+
+  @override
+  String get selectQuality => '当前画质';
+
+  @override
+  String get myDownloads => '我的下载';
+
+  @override
+  String downloadCountButton(int count) {
+    return '下载($count)';
+  }
 
   @override
   String get localVideoMissing => '本地视频文件不存在，请删除该缓存后重新下载';
@@ -923,9 +1013,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verificationComplete => '验证完成';
 
   @override
-  String get pause => '暂停';
-
-  @override
   String get play => '播放';
 
   @override
@@ -1006,6 +1093,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get startDownload => '开始下载';
+
+  @override
+  String get downloadQualitySection => '清晰度';
+
+  @override
+  String get downloadEpisodesSection => '集数';
+
+  @override
+  String get downloadGroupSection => '分组';
+
+  @override
+  String downloadEpisodeCount(int count) {
+    return '$count 集';
+  }
+
+  @override
+  String get downloadSelectAllEpisodes => '全选';
+
+  @override
+  String get downloadClearEpisodes => '清空';
+
+  @override
+  String get downloadCurrentOnly => '仅当前一集';
+
+  @override
+  String downloadPartialFailed(int count) {
+    return '$count 集无法准备下载源';
+  }
+
+  @override
+  String get downloadNothingSelected => '请至少选择一集';
 
   @override
   String get addedToDownloadQueue => '已加入下载队列';
@@ -2085,9 +2203,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cachedDownloads => '已缓存';
 
   @override
-  String get bookshelfSettings => '书架设置';
-
-  @override
   String get selectAll => '全选';
 
   @override
@@ -2106,13 +2221,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recentlyUpdated => '最近更新';
 
   @override
-  String get deleteBookshelf => '删除书架';
+  String get deleteGroup => '删除分组';
 
   @override
-  String get deleteBookshelfDescription => '永久删除当前分组，影片缓存不会被删除';
+  String get deleteGroupDescription => '永久删除当前分组，影片缓存不会被删除';
 
   @override
-  String get deleteBookshelfConfirmation => '确定要删除这个分组吗？它将会永久失去！(真的很久！)';
+  String get deleteGroupConfirmation => '确定要删除这个分组吗？删除后无法恢复。';
 
   @override
   String get backupSettings => '备份设置';
@@ -3083,6 +3198,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get groups => '分組';
+
+  @override
+  String get groupSettings => '分組設定';
+
+  @override
   String get emptyCacheHint => '下載完成的影片會出現在這裡';
 
   @override
@@ -3093,6 +3214,90 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get noCache => '暫無快取';
+
+  @override
+  String get cachedVideos => '已快取影片';
+
+  @override
+  String get activeDownloads => '正在快取';
+
+  @override
+  String get cacheEmptyActive => '目前沒有正在快取的任務';
+
+  @override
+  String folderContents(int count) {
+    return '$count 個內容';
+  }
+
+  @override
+  String get mainEpisodes => '正片';
+
+  @override
+  String folderSize(Object size) {
+    return '共 $size';
+  }
+
+  @override
+  String get taskSort => '任務排序';
+
+  @override
+  String get sortByDefault => '預設排序';
+
+  @override
+  String get sortByRecent => '最近更新';
+
+  @override
+  String get sortByName => '依名稱';
+
+  @override
+  String get sortBySize => '依大小';
+
+  @override
+  String get moreActions => '更多操作';
+
+  @override
+  String get noGrouping => '不分組';
+
+  @override
+  String get startAll => '全部開始';
+
+  @override
+  String get pauseAll => '全部暫停';
+
+  @override
+  String get deleteAll => '全部刪除';
+
+  @override
+  String get pause => '暫停';
+
+  @override
+  String get resume => '繼續';
+
+  @override
+  String get paused => '已暫停';
+
+  @override
+  String get switchToGrid => '網格檢視';
+
+  @override
+  String get switchToList => '清單檢視';
+
+  @override
+  String get openFolder => '開啟';
+
+  @override
+  String get backToCache => '全部下載';
+
+  @override
+  String get selectQuality => '目前畫質';
+
+  @override
+  String get myDownloads => '我的下載';
+
+  @override
+  String downloadCountButton(int count) {
+    return '下載($count)';
+  }
 
   @override
   String get localVideoMissing => '本機影片檔案不存在，請刪除該快取後重新下載';
@@ -3187,9 +3392,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get verificationComplete => '驗證完成';
 
   @override
-  String get pause => '暫停';
-
-  @override
   String get play => '播放';
 
   @override
@@ -3270,6 +3472,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get startDownload => '開始下載';
+
+  @override
+  String get downloadQualitySection => '畫質';
+
+  @override
+  String get downloadEpisodesSection => '集數';
+
+  @override
+  String get downloadGroupSection => '分組';
+
+  @override
+  String downloadEpisodeCount(int count) {
+    return '$count 集';
+  }
+
+  @override
+  String get downloadSelectAllEpisodes => '全選';
+
+  @override
+  String get downloadClearEpisodes => '清空';
+
+  @override
+  String get downloadCurrentOnly => '僅目前這一集';
+
+  @override
+  String downloadPartialFailed(int count) {
+    return '$count 集無法準備下載來源';
+  }
+
+  @override
+  String get downloadNothingSelected => '請至少選擇一集';
 
   @override
   String get addedToDownloadQueue => '已加入下載佇列';
@@ -4349,9 +4582,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get cachedDownloads => '已快取';
 
   @override
-  String get bookshelfSettings => '書架設定';
-
-  @override
   String get selectAll => '全選';
 
   @override
@@ -4370,13 +4600,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get recentlyUpdated => '最近更新';
 
   @override
-  String get deleteBookshelf => '刪除書架';
+  String get deleteGroup => '刪除分組';
 
   @override
-  String get deleteBookshelfDescription => '永久刪除目前群組，影片快取不會被刪除';
+  String get deleteGroupDescription => '永久刪除目前分組，影片快取不會被刪除';
 
   @override
-  String get deleteBookshelfConfirmation => '確定要刪除這個群組嗎？它將會永久失去！(真的很久！)';
+  String get deleteGroupConfirmation => '確定要刪除這個分組嗎？刪除後無法復原。';
 
   @override
   String get backupSettings => '備份設定';

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/library_repository.dart';
@@ -14,6 +16,7 @@ import '../../domain/series_name.dart';
 import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
+import 'download_picker_sheet.dart';
 import 'video_controller.dart';
 
 /// 一个操作项（图标 / 文案 / 回调），悬浮工具条和侧栏操作排都用它
@@ -175,110 +178,87 @@ bool _isStreamPlaylist(VideoSource source) => (source.type ?? '').toLowerCase().
 Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetail video) async {
   final downloadable = video.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
   if (downloadable.isEmpty) return;
-  var source = downloadable.first;
   final settings = await ref.read(settingsProvider.future);
   if (!context.mounted) return;
   final groups = ref.read(downloadProvider).valueOrNull?.groups ?? const <DownloadGroup>[];
 
-  // 自动分组的初始状态：开关跟随设置，组名预填推断结果。
+  // 剧集列表：当前播放的这一集 + playlist 里的其他集（同 id 只留一条）。
+  final episodes = <VideoCard>[
+    VideoCard(id: video.id, title: video.title, coverUrl: video.coverUrl ?? ''),
+    ...video.playlist.where((item) => item.id != video.id && item.id.isNotEmpty),
+  ];
+
   final seriesName = inferSeriesName(video.title);
   final suggested = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: settings.groupNameFromSeries);
-  var autoGroup = settings.autoGroupDownloads;
-  var nameFromSeries = settings.groupNameFromSeries;
-  var traditional = settings.groupNameTraditional;
-  final nameController = TextEditingController(text: traditional ? toTraditionalForGroupName(suggested) : suggested);
-  // 用户手动改过组名后，不再被来源/繁简切换覆盖。
-  var nameEdited = false;
 
-  String currentName() {
-    final raw = nameController.text.trim();
-    if (raw.isEmpty) return suggested;
-    return traditional ? toTraditionalForGroupName(raw) : raw;
-  }
-
-  final picked = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setSheet) {
-        final name = currentName();
-        final existing = groups.any((group) => group.id != 'default' && group.name == name);
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(padding: const EdgeInsets.all(16), child: Text(AppLocalizations.of(context)!.selectDownloadQuality, style: const TextStyle(fontWeight: FontWeight.w600))),
-                  ...downloadable.map((item) => RadioListTile<VideoSource>(value: item, groupValue: source, onChanged: (value) => setSheet(() => source = value!), title: Text(item.quality))),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    value: autoGroup,
-                    onChanged: (value) => setSheet(() => autoGroup = value),
-                    title: Text(AppLocalizations.of(context)!.autoGroupDownloads),
-                    subtitle: Text(AppLocalizations.of(context)!.autoGroupDownloadsDescription),
-                  ),
-                  if (autoGroup) ...[
-                    SwitchListTile(
-                      value: nameFromSeries,
-                      onChanged: (value) => setSheet(() {
-                        nameFromSeries = value;
-                        if (!nameEdited) {
-                          final next = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: value);
-                          nameController.text = traditional ? toTraditionalForGroupName(next) : next;
-                        }
-                      }),
-                      title: Text(AppLocalizations.of(context)!.groupNameFromSeries),
-                      subtitle: seriesName == null ? Text(AppLocalizations.of(context)!.groupNameFromSeriesUnavailable) : null,
-                    ),
-                    SwitchListTile(
-                      value: traditional,
-                      onChanged: (value) => setSheet(() {
-                        traditional = value;
-                        if (!nameEdited) {
-                          final next = suggestGroupName(title: video.title, seriesName: seriesName, useSeriesName: nameFromSeries);
-                          nameController.text = value ? toTraditionalForGroupName(next) : next;
-                        }
-                      }),
-                      title: Text(AppLocalizations.of(context)!.groupNameTraditional),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                      child: TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: AppLocalizations.of(context)!.groupName,
-                          border: const OutlineInputBorder(),
-                          helperText: existing ? AppLocalizations.of(context)!.willUseExistingGroup(name) : AppLocalizations.of(context)!.willCreateNewGroup(name),
-                        ),
-                        onChanged: (value) => setSheet(() => nameEdited = true),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  FilledButton(onPressed: () => Navigator.pop(sheetContext, true), child: Text(AppLocalizations.of(context)!.startDownload)),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    ),
+  // 弹窗本体与遮罩配置都在 showDownloadPickerSheet 里（透明遮罩，
+  // 不要改回 showModalBottomSheet —— 那会多出一层铺满中间的底板）。
+  final picked = await showDownloadPickerSheet(
+    context,
+    sources: downloadable,
+    episodes: episodes,
+    currentId: video.id,
+    suggestedGroupName: suggested,
+    initialAutoGroup: settings.autoGroupDownloads,
+    initialNameFromSeries: settings.groupNameFromSeries,
+    initialTraditional: settings.groupNameTraditional,
+    groupNames: {for (final group in groups) if (group.id != 'default') group.name},
   );
-  if (picked == true) {
-    var groupId = 'default';
-    if (autoGroup) {
-      groupId = await ref.read(downloadProvider.notifier).resolveAutoGroup(currentName(), DownloadGroupSort.defaultOrder);
-    }
-    await ref.read(downloadProvider.notifier).create(video, source, groupId);
-    // 同系列的旧任务若还在默认分组，一并归入新组；用户手动分过组的不动。
-    if (autoGroup && groupId != 'default' && video.playlist.isNotEmpty) {
-      await ref.read(downloadProvider.notifier).adoptSeriesTasks(video.playlist.map((item) => item.id), groupId);
-    }
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.addedToDownloadQueue)));
+  if (picked == null) return;
+  // 「我的下载」：去看已经下好的东西，不创建任务。
+  //
+  // 两个要点：
+  // 1. 用 **push 而不是 go** —— `go('/cache')` 会把整条路由栈换成缓存分支，
+  //    视频页被直接销毁，用户回不去、只能重新点开视频从头播。push 保留当前栈，
+  //    返回键就能回到正在看的这一集。
+  // 2. 先把播放中的视频**暂停**：视频页仍在栈里、播放器还活着，不暂停就会在
+  //    缓存页后台继续出声（用户听到的"没暂停还在播放声音"就是这么来的）。
+  if (picked.openDownloads) {
+    await VideoPlayerShutdown.pauseAll();
+    // 走挂根导航器的 /downloads（不是 shell 分支里的 /cache）：
+    // push 进来 + 返回能回到当前这一集，见 app_router.dart 里的说明。
+    if (context.mounted) await context.push('/downloads');
+    return;
   }
+
+  var groupId = 'default';
+  if (picked.groupName.isNotEmpty) {
+    groupId = await ref.read(downloadProvider.notifier).resolveAutoGroup(picked.groupName, DownloadGroupSort.defaultOrder);
+  }
+
+  // 逐集取详情页拿到真正的下载源：playlist 里只有 id/title，没有片源地址。
+  final repository = ref.read(han1meRepositoryProvider);
+  final baseUrl = settings.resolvedBaseUrl;
+  final wanted = episodes.where((episode) => picked.episodeIds.contains(episode.id)).toList(growable: false);
+  var added = 0;
+  var failed = 0;
+  for (final episode in wanted) {
+    try {
+      final detail = episode.id == video.id ? video : await repository.video(baseUrl, episode.id);
+      // 按用户选的清晰度取源；没有同名清晰度就退回第一个可下载的渐进式源。
+      final candidates = detail.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
+      if (candidates.isEmpty) {
+        failed++;
+        continue;
+      }
+      final match = candidates.where((item) => item.quality == picked.source.quality).firstOrNull ?? candidates.first;
+      await ref.read(downloadProvider.notifier).create(detail, match, groupId);
+      added++;
+    } catch (_) {
+      failed++;
+    }
+  }
+
+  // 同系列的旧任务若还在默认分组，一并归入新组；用户手动分过组的不动。
+  if (groupId != 'default') {
+    final codes = <String>{...wanted.map((episode) => episode.id), ...video.playlist.map((item) => item.id)};
+    await ref.read(downloadProvider.notifier).adoptSeriesTasks(codes, groupId);
+  }
+
+  if (!context.mounted) return;
+  final l10n = AppLocalizations.of(context)!;
+  final message = failed == 0 ? l10n.addedToDownloadQueue : '${l10n.addedToDownloadQueue} · ${l10n.downloadPartialFailed(failed)}';
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(added == 0 ? l10n.downloadPartialFailed(failed) : message)));
 }
 
 class _PlaylistNameDialog extends StatefulWidget {

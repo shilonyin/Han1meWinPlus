@@ -40,6 +40,12 @@ class DownloadController extends AsyncNotifier<DownloadState> {
   late Directory _root;
   final _running = <String>{};
   final _jobs = <String, ({VideoDetail detail, VideoSource source})>{};
+
+  /// 被用户暂停的任务。
+  ///
+  /// 单放一份集合而不是只看 `DownloadStatus.paused`：正在跑的那条流要能**立刻**收到
+  /// 信号停下来，而它每写一个分片都会覆盖一次状态，光靠状态字段判断会来不及。
+  final _paused = <String>{};
   Future<void> _writeQueue = Future<void>.value();
 
   @override
@@ -56,9 +62,25 @@ class DownloadController extends AsyncNotifier<DownloadState> {
     await _root.create(recursive: true);
     final file = File(path.join(_root.path, 'download_store.json'));
     try {
-      final loaded = DownloadState.fromJson(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+      // 空文件（或只剩空白的文件）**不能**当成"没有缓存"。
+      //
+      // 它几乎总是"上次写到一半被打断"的产物：`writeAsString` 不是原子的，会先把
+      // 文件截断到 0 再写内容，进程在此时被杀（强杀、断电、卸载）就留下一个 0 字节
+      // 文件。旧代码把它当空状态返回，随后任何一次保存都会把空状态覆盖回磁盘 ——
+      // 用户所有已下载的索引就此静默消失（视频文件其实还在磁盘上）。
+      // 这里直接抛错走 catch 分支，让调用方知道"读坏了"，而不是"没有数据"。
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        throw const FormatException('download_store.json is empty (truncated write?)');
+      }
+      final loaded = DownloadState.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       final tasks = loaded.tasks.map((task) {
         if (task.status == DownloadStatus.completed) return task;
+        // 上次退出前手动暂停的，重启后保持暂停，不要擅自开始。
+        if (task.status == DownloadStatus.paused) {
+          _paused.add(task.id);
+          return task;
+        }
         if (task.sourceUrl?.isEmpty != false) return task.copyWith(status: DownloadStatus.failed, errorMessage: 'Download interrupted');
         _jobs[task.id] = (
           detail: VideoDetail(id: task.videoCode, title: task.title, coverUrl: task.coverUrl, sources: const [], tags: const [], playlist: const [], related: const []),
@@ -70,14 +92,32 @@ class DownloadController extends AsyncNotifier<DownloadState> {
       Timer.run(_schedule);
       return restored;
     } catch (_) {
+      // 读失败时**先**把坏文件挪走留证，再返回空状态。
+      // 这样万一还是走到了"用空状态覆盖"的路径，至少原文件还在，能人工恢复。
+      // 只对"非空但解析失败/空文件"这么做；文件本就不存在（首次启动）不必留证。
+      try {
+        if (await file.exists() && await file.length() > 0) {
+          final salvage = File('${file.path}.corrupt');
+          if (await salvage.exists()) await salvage.delete();
+          await file.rename(salvage.path);
+        }
+      } catch (_) {}
       return const DownloadState();
     }
   }
 
+  /// 原子保存。
+  ///
+  /// **必须**写临时文件再 `rename` 替换：直接 `writeAsString` 会先把目标文件截断到
+  /// 0 再写内容，如果进程正好在写入过程中被杀（用户强杀 / 安装程序 /CLOSEAPPLICATIONS
+  /// /断电），磁盘上就只剩一个 0 字节文件 —— 下次启动读不出内容，用户的下载索引
+  /// 会被静默清空。同一目录内的 rename 是原子的，替换要么完整成功要么完全不动。
   Future<void> _save(DownloadState value) async {
     final file = File(path.join(_root.path, 'download_store.json'));
     _writeQueue = _writeQueue.then((_) async {
-      await file.writeAsString(jsonEncode(value.toJson()), flush: true);
+      final temporary = File('${file.path}.tmp');
+      await temporary.writeAsString(jsonEncode(value.toJson()), flush: true);
+      await temporary.rename(file.path);
       state = AsyncData(value);
     });
     await _writeQueue;
@@ -113,6 +153,8 @@ class DownloadController extends AsyncNotifier<DownloadState> {
       if (await directory.exists()) await directory.delete(recursive: true);
       _jobs.remove(task.id);
     }
+    // 暂停标记也要一起清掉，否则同 id 重新下载时会被当成"仍在暂停"而卡住。
+    _paused.removeAll(ids);
     await _save(DownloadState(groups: current.groups, tasks: current.tasks.where((task) => !ids.contains(task.id)).toList()));
   }
 
@@ -191,6 +233,58 @@ class DownloadController extends AsyncNotifier<DownloadState> {
     _schedule();
   }
 
+  /// 暂停一批任务。
+  ///
+  /// 正在下载的那条流会被 [_paused] 打断，已写入的 `.part` 分片保留 —— 下次开始
+  /// 时靠 `Range` 头续传，不用从头再来。
+  Future<void> pauseTasks(Set<String> ids) async {
+    final current = state.value ?? const DownloadState();
+    final targets = current.tasks.where((task) => ids.contains(task.id) && (task.status == DownloadStatus.downloading || task.status == DownloadStatus.queued)).map((task) => task.id).toSet();
+    if (targets.isEmpty) return;
+    _paused.addAll(targets);
+    await _save(DownloadState(
+      groups: current.groups,
+      tasks: current.tasks.map((task) => targets.contains(task.id) ? task.copyWith(status: DownloadStatus.paused) : task).toList(),
+    ));
+  }
+
+  /// 开始（或继续）一批任务：失败的按重试处理，其余排队等调度。
+  Future<void> resumeTasks(Set<String> ids) async {
+    final current = state.value ?? const DownloadState();
+    final targets = current.tasks.where((task) => ids.contains(task.id) && (task.status == DownloadStatus.paused || task.status == DownloadStatus.failed)).toList();
+    if (targets.isEmpty) return;
+    for (final task in targets) {
+      _paused.remove(task.id);
+      if (task.status == DownloadStatus.failed) {
+        await retry(task.id);
+        continue;
+      }
+      // 暂停过的任务可能已经不在本次会话的调度表里（例如重启后想继续），
+      // 重新取一次详情页把片源补回来再排队。
+      if (!_jobs.containsKey(task.id)) {
+        final settings = await ref.read(settingsProvider.future);
+        try {
+          final detail = await ref.read(han1meRepositoryProvider).video(settings.resolvedBaseUrl, task.videoCode);
+          final source = detail.sources.where((item) => item.quality == task.quality).firstOrNull ?? detail.sources.where((item) => !item.url.contains('.m3u8')).firstOrNull;
+          if (source == null) continue;
+          _jobs[task.id] = (detail: detail, source: source);
+          await _replace(task.id, (value) => value.copyWith(sourceUrl: source.url, clearError: true));
+        } catch (_) {
+          if (task.sourceUrl?.isEmpty != false) continue;
+          _jobs[task.id] = (
+            detail: VideoDetail(id: task.videoCode, title: task.title, coverUrl: task.coverUrl, sources: const [], tags: const [], playlist: const [], related: const []),
+            source: VideoSource(quality: task.quality, url: task.sourceUrl!),
+          );
+        }
+      }
+      await _replace(task.id, (value) => value.copyWith(status: DownloadStatus.queued, clearError: true));
+    }
+    _schedule();
+  }
+
+  /// 删除一批任务，顺带清掉本地文件（暂停中的也要能删）。
+  Future<void> removeTasks(Set<String> ids) => deleteTasks(ids);
+
   Future<void> exportCompleted(String destinationPath) async {
     final destination = Directory(destinationPath);
     await destination.create(recursive: true);
@@ -225,7 +319,7 @@ class DownloadController extends AsyncNotifier<DownloadState> {
   void _schedule() {
     final limit = ref.read(settingsProvider).value?.concurrentDownloads ?? 2;
     while (_running.length < limit) {
-      final queued = (state.value?.tasks ?? const <DownloadTask>[]).where((item) => item.status == DownloadStatus.queued && _jobs.containsKey(item.id) && !_running.contains(item.id));
+      final queued = (state.value?.tasks ?? const <DownloadTask>[]).where((item) => item.status == DownloadStatus.queued && !_paused.contains(item.id) && _jobs.containsKey(item.id) && !_running.contains(item.id));
       final task = queued.isEmpty ? null : queued.first;
       if (task == null) return;
       final job = _jobs[task.id]!;
@@ -249,8 +343,11 @@ class DownloadController extends AsyncNotifier<DownloadState> {
       final quality = source.quality.replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_');
       final video = File(path.join(directory.path, 'video_$quality.mp4'));
       await _downloadVideo(source.url, video, task.id);
+      // 下载途中被暂停：`.part` 已经写好了，别再往下标记成完成。
+      if (_paused.contains(task.id)) return;
       await _replace(task.id, (value) => value.copyWith(status: DownloadStatus.completed, progress: 1, localVideoPath: video.path, localMetaPath: meta.path, clearError: true));
     } catch (error) {
+      if (_paused.contains(task.id)) return;
       await _replace(task.id, (value) => value.copyWith(status: DownloadStatus.failed, errorMessage: '$error'));
     } finally {
       _jobs.remove(task.id);
@@ -276,6 +373,9 @@ class DownloadController extends AsyncNotifier<DownloadState> {
     final sink = partial.openWrite(mode: received > 0 && rangeAccepted ? FileMode.append : FileMode.write);
     try {
       await for (final chunk in response.data!.stream) {
+        // 每收到一个分片都检查一次暂停：这样点「暂停」后最多再多写一个分片就停住，
+        // 已下载的部分留在 `.part` 里等着续传。
+        if (_paused.contains(taskId)) break;
         sink.add(chunk);
         downloaded += chunk.length;
         windowBytes += chunk.length;
@@ -301,6 +401,8 @@ class DownloadController extends AsyncNotifier<DownloadState> {
     } finally {
       await sink.close();
     }
+    // 暂停时保留 `.part`，留给下次续传；只有真正下完才改名成正式文件。
+    if (_paused.contains(taskId)) return;
     if (await destination.exists()) await destination.delete();
     await partial.rename(destination.path);
   }
