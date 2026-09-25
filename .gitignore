@@ -10,3 +10,7 @@ pubspec.lock
 *.iml
 
 .vscode/
+
+# 本机编辑工具生成的状态文件，不参与版本控制
+.dsh-edit-review.json
+.dsh-edit-review-archive.json
