@@ -15,3 +15,6 @@
 bin/
 gen/
 out/
+
+# flutter pub get 生成的插件注册文件
+GeneratedPluginRegistrant.java

@@ -3,6 +3,9 @@
 build/
 pubspec.lock
 
+# flutter pub get 生成的插件清单，内容含本机包路径
+.flutter-plugins-dependencies
+
 # FVM Version Cache
 .fvm/
 
