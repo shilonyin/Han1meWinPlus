@@ -9,6 +9,9 @@ pubspec.lock
 .idea/
 *.iml
 
+# IDE 生成的模块缓存，内容含机器绝对路径，不应入库
+android/workspace.json
+
 .vscode/
 
 # 本机编辑工具生成的状态文件，不参与版本控制
