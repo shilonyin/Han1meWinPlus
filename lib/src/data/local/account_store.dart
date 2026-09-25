@@ -1,14 +1,13 @@
 import 'dart:convert';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../domain/models/account.dart';
+import 'preferences_store.dart';
 
 class AccountStore {
   static const _accountsKey = 'accounts_v2';
   static const _activeAccountKey = 'active_account_v2';
   static const _cloudflareKey = 'cloudflare_cookie_v2';
-  final _preferences = SharedPreferencesAsync();
+  final _preferences = PreferencesStore.instance;
 
   Future<Account?> read(String baseUrl) async {
     final accounts = await readAll(baseUrl);

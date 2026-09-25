@@ -3,15 +3,16 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../local/preferences_store.dart';
 
 class HttpCacheInterceptor extends Interceptor {
-  HttpCacheInterceptor() : _preferences = SharedPreferencesAsync();
+  HttpCacheInterceptor() : _preferences = PreferencesStore.instance;
 
   static const _prefix = 'http_cache_v1:';
   static const _maxMemoryEntries = 48;
   static const _maxPersistedEntries = 96;
-  final SharedPreferencesAsync _preferences;
+  final PreferencesStore _preferences;
   final LinkedHashMap<String, _CachedResponse> _memory = LinkedHashMap();
 
   @override

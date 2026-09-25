@@ -1,13 +1,12 @@
 import 'dart:convert';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../domain/models/video.dart';
 import '../../domain/models/comic.dart';
+import 'preferences_store.dart';
 
 class HomeCache {
   static const _prefix = 'home_feed_v2:';
-  final _preferences = SharedPreferencesAsync();
+  final _preferences = PreferencesStore.instance;
 
   Future<HomeFeed?> read(String baseUrl, String? accountId) async {
     final value = await _preferences.getString(_key(baseUrl, accountId));
