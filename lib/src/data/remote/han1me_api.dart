@@ -264,7 +264,10 @@ class Han1meApi {
         RegExp(r'\d+').firstMatch(home.querySelector('.profile-sub-stats-id')?.text ?? '')?.group(0);
     if (id == null) throw StateError('Account profile is unavailable');
     final document = await _document('$baseUrl/user/$id/edit', referer: '$baseUrl/', skipCache: true);
-    final stats = home.querySelector('.profile-sub-stats-new-line')?.text ?? '';
+    // 订阅者/影片数只在个人编辑页上（首页的 user-modal 里没有这两个元素）。
+    // 原来在 home 上取 `.profile-sub-stats-new-line`，恒为空 → 副标题永远显示
+    // 「0 位订阅者 · 0 部影片」。
+    final stats = document.querySelector('.profile-sub-stats-new-line')?.text ?? '';
     final numbers = RegExp(r'\d+').allMatches(stats).map((match) => int.parse(match.group(0)!)).toList();
     final avatar = document.querySelector('img#playlist-avatar') ?? home.querySelector('#user-modal-dp-wrapper img, .profile-avatar-wrapper img');
     return Account(
