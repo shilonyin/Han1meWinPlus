@@ -50,6 +50,18 @@ flutter build windows --release
 - 本地化文案请直接手改 `.arb` 与 `lib/l10n/app_localizations*.dart` 中的对应字符串，**不要运行 `flutter gen-l10n`**（生成器版本不同会产生大量格式噪音）
 - 改动请沿用周围代码的写法与注释密度
 
+### 命名规范
+
+以下约定**从既有代码总结而来，描述现状而非新增规则**，改动请保持一致：
+
+1. **文件**：`snake_case.dart`（如 `app_widget.dart`、`window_chrome.dart`、`settings.dart`）
+2. **类与 Widget**：`PascalCase`，私有类以 `_` 前缀（如 `Han1meApp`、`WindowChrome`、`_Han1meAppState`）
+3. **枚举成员**：`camelCase`，不用 `SCREAMING_CASE`（如 `system`、`libMpv`、`gpuNext`、`ratio4x3`）。序列化按枚举名保存，所以已有成员不能改名或删除，新值只能往后追加
+4. **成员变量与方法**：`camelCase`，私有成员以 `_` 前缀（如 `_appRouter`、`_exitCoordinator`）
+5. **扩展**：被扩展类型 + 用途后缀——`X` 后缀表示工具方法（如 `PlayerEngineX`、`VideoRendererX`），派生值用语义后缀（如 `AppThemeColorSeed`）
+6. **Provider**：`camelCase` + `Provider` 后缀（如 `accountProvider`、`appLockProvider`、`backupServiceProvider`）
+7. **注释**：公共 API 与非显然逻辑必须注释「为什么」，中文、面向维护者（参考 `settings.dart` 中 `SuperResolutionMode` 的注释与 `pubspec.yaml` 的字体注释）
+
 ### 提交信息
 
 提交信息会被 GitHub Actions 直接用来生成每个版本的更新日志，所以请按 Conventional Commits 写：
