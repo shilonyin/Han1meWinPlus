@@ -26,7 +26,7 @@ import 'video_player_controls.dart';
 import 'video_player_surface.dart';
 
 class VideoPlayerPanel extends ConsumerStatefulWidget {
-  const VideoPlayerPanel({super.key, required this.video, required this.onBack, this.onHome, this.onNext, this.onEpisodeSelected, this.onPlayingChanged});
+  const VideoPlayerPanel({super.key, required this.video, required this.onBack, this.onHome, this.onPrevious, this.onNext, this.onEpisodeSelected, this.onPlayingChanged});
   final VideoDetail video;
   final VoidCallback onBack;
   final VoidCallback? onHome;
