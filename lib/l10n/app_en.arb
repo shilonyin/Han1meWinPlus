@@ -602,6 +602,7 @@
   "useSystemTitleBarDescription": "Turn off to use the title bar built into the app",
   "minimizeToTray": "Minimize to the system tray on close",
   "minimizeToTrayDescription": "The close button keeps the app running in the tray; use the tray menu to show the window or exit",
+  "floatWindow": "Pop out floating window",
   "notifications": "Desktop notifications",
   "notificationsDescription": "Notify when a download finishes or a new version is available",
   "downloadComplete": "Download complete",

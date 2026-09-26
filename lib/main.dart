@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'src/app.dart';
 import 'src/core/app_notifications.dart';
+import 'src/core/floating_window.dart';
 import 'src/core/media_player_initializer.dart';
 import 'src/core/playback_speed_policy.dart';
 import 'src/core/settings.dart';
@@ -14,6 +16,7 @@ import 'src/core/window_chrome.dart';
 import 'src/data/local/json_store.dart';
 import 'src/data/local/update_installer.dart';
 import 'src/features/settings/settings_controller.dart';
+import 'src/features/window/floating_window_app.dart';
 
 Future<void> main() async {
   final startupWatch = Stopwatch()..start();
@@ -22,6 +25,13 @@ Future<void> main() async {
   // 被淘汰的图再滚回来就要重新解码甚至重新下载。桌面端内存宽裕，放宽一倍以上。
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
   PaintingBinding.instance.imageCache.maximumSize = 2000;
+  // 悬浮窗是独立进程内的一套新引擎，靠窗口 arguments 区分；命中就走副窗口分支，
+  // 不去加载主窗口那套启动流程（更新检查、托盘等）。
+  final floatingVideoId = await _floatingVideoId();
+  if (floatingVideoId != null) {
+    await _runFloatingWindow(floatingVideoId);
+    return;
+  }
   final loadedSettings = await SettingsStore(JsonStore()).load();
   // Toast 通知要在 runApp 之前初始化（Windows 侧要建开始菜单快捷方式）。
   AppNotifications.enabled = loadedSettings.notificationsEnabled;
@@ -52,6 +62,28 @@ Future<void> main() async {
     ),
   );
   unawaited(_postLaunch());
+}
+
+/// 读当前窗口的 arguments，判断自己是不是被弹出来的悬浮窗。
+Future<String?> _floatingVideoId() async {
+  try {
+    final controller = await WindowController.fromCurrentEngine();
+    return FloatingWindow.videoIdFromArguments(controller.arguments);
+  } catch (_) {
+    // 插件不可用时（比如单窗口调试）就当作主窗口。
+    return null;
+  }
+}
+
+Future<void> _runFloatingWindow(String videoId) async {
+  final settings = await SettingsStore(JsonStore()).load();
+  await MediaPlayerInitializer.bootstrap(settings);
+  runApp(
+    ProviderScope(
+      overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
+      child: FloatingWindowApp(videoId: videoId),
+    ),
+  );
 }
 
 Future<void> _postLaunch() async {

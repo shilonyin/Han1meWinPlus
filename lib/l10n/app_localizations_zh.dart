@@ -1759,6 +1759,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get floatWindow => '弹出悬浮窗';
+
+  @override
   String get notifications => '桌面通知';
 
   @override
@@ -4178,6 +4181,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
+
+  @override
+  String get floatWindow => '彈出懸浮視窗';
 
   @override
   String get windowBackdrop => '視窗背景材質';

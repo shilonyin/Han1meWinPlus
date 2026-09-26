@@ -24,7 +24,7 @@ const double _volumeSliderLength = 70;
 const double _volumeSliderThickness = 30;
 
 class VideoPlayerControls extends StatelessWidget {
-  const VideoPlayerControls({required this.controller, required this.fullscreen, required this.onFullscreen, required this.onInteraction, required this.video, required this.quality, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onNext, this.onEpisodeSelected, super.key});
+  const VideoPlayerControls({required this.controller, required this.fullscreen, required this.onFullscreen, required this.onInteraction, required this.video, required this.quality, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onNext, this.onEpisodeSelected, this.onFloat, super.key});
   final VideoPlayerController controller;
   final bool fullscreen;
   final Future<void> Function() onFullscreen;
@@ -35,6 +35,8 @@ class VideoPlayerControls extends StatelessWidget {
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+  /// 弹出系统级悬浮窗（独立窗口）。非桌面端不传。
+  final VoidCallback? onFloat;
 
   @override
   Widget build(BuildContext context) => Positioned(
@@ -86,6 +88,7 @@ class VideoPlayerControls extends StatelessWidget {
                       ] else
                         VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
                       IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Icons.fullscreen_exit : Icons.fullscreen)),
+                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Icons.picture_in_picture_alt)),
                     ]);
                   }),
                 ),

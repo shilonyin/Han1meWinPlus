@@ -3302,6 +3302,12 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @floatWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Pop out floating window'**
+  String get floatWindow;
+
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:

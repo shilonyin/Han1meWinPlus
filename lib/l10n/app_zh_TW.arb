@@ -601,6 +601,7 @@
   "useSystemTitleBarDescription": "關閉後改用應用內標題列",
   "minimizeToTray": "關閉時最小化到系統托盤",
   "minimizeToTrayDescription": "關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出",
+  "floatWindow": "彈出懸浮視窗",
   "notifications": "桌面通知",
   "notificationsDescription": "下載完成、發現新版本時彈出系統通知",
   "downloadComplete": "下載完成",

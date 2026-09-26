@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
+import '../../core/floating_window.dart';
 import '../../core/platform_service.dart';
 import '../../core/playback_hotkey_target.dart';
 import '../../core/route_observer.dart';
@@ -111,6 +112,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     try {
       await controller.pause();
     } catch (_) {}
+  }
+
+  /// 悬浮窗是独立窗口 + 独立播放实例，所以只把视频 id 传过去，让它自己重新拉详情。
+  void _openFloatingWindow() {
+    if (!FloatingWindow.isSupported) return;
+    unawaited(FloatingWindow.open(widget.video.id));
   }
 
   /// 全局热键 Ctrl+Alt+Space：播放页未获得焦点时也要能暂停 / 继续。
@@ -541,7 +548,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     }
     return _PlayerFrame(
       aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected),
+       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected, onFloat: _openFloatingWindow),
     );
   }
 }

@@ -1814,6 +1814,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get floatWindow => 'Pop out floating window';
+
+  @override
   String get notifications => 'Desktop notifications';
 
   @override

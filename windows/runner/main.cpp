@@ -15,6 +15,9 @@
 #include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+// 悬浮窗等副窗口各自跑一个 Flutter 引擎，插件要按窗口分别注册一遍，
+// 否则副窗口里 window_manager / media_kit 之类的插件都拿不到实现。
+#include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "resource.h"
 
 // Ask the graphics driver to put us on the discrete GPU. On hybrid systems the
@@ -362,6 +365,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.controller = std::make_unique<flutter::FlutterViewController>(bounds.right, bounds.bottom, project);
   if (!app.controller->engine() || !app.controller->view()) return EXIT_FAILURE;
   RegisterPlugins(app.controller->engine());
+  DesktopMultiWindowSetWindowCreatedCallback([](void* controller) {
+    auto* flutter_view_controller = reinterpret_cast<flutter::FlutterViewController*>(controller);
+    auto* registry = flutter_view_controller->engine();
+    RegisterPlugins(registry);
+  });
   const auto flutter_view = app.controller->view()->GetNativeWindow();
   SetParent(flutter_view, window);
   // Showing the window above happened before the Flutter view existed, so that

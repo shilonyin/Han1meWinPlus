@@ -19,7 +19,7 @@ import '../settings/settings_controller.dart';
 import 'video_player_controls.dart';
 
 class VideoPlayerSurface extends ConsumerStatefulWidget {
-  const VideoPlayerSurface({required this.controller, required this.quality, required this.video, required this.fullscreen, required this.onFullscreen, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onBack, this.onHome, this.onNext, this.onEpisodeSelected, this.keyframes = const [], this.onKeyframes, this.onAddKeyframe, super.key});
+  const VideoPlayerSurface({required this.controller, required this.quality, required this.video, required this.fullscreen, required this.onFullscreen, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onBack, this.onHome, this.onNext, this.onEpisodeSelected, this.onFloat, this.keyframes = const [], this.onKeyframes, this.onAddKeyframe, super.key});
   final ValueListenable<VideoPlayerController?> controller;
   final ValueListenable<String?> quality;
   final VideoDetail video;
@@ -31,6 +31,8 @@ class VideoPlayerSurface extends ConsumerStatefulWidget {
   final VoidCallback? onHome;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+  /// 弹出系统级悬浮窗（独立窗口）。
+  final VoidCallback? onFloat;
   final List<int> keyframes;
   final VoidCallback? onKeyframes;
   final VoidCallback? onAddKeyframe;
@@ -259,7 +261,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                   ),
                 ),
               ),
-              ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected) : const SizedBox.shrink()),
+              ValueListenableBuilder<VideoPlayerValue>(valueListenable: controller, builder: (context, value, _) => _showControls && !_locked ? VideoPlayerControls(controller: controller, fullscreen: widget.fullscreen, onFullscreen: widget.onFullscreen, onInteraction: _restartTimer, video: widget.video, quality: widget.quality, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected, onFloat: widget.onFloat) : const SizedBox.shrink()),
               if (_locked) Align(alignment: Alignment.centerRight, child: IconButton(color: Colors.white, tooltip: l10n.unlockControls, onPressed: () { setState(() => _locked = false); _restartTimer(); }, icon: const Icon(Icons.lock))),
               // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致
               if (_showControls && !_locked)
