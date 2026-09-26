@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
-import '../../core/floating_window.dart';
 import '../../core/platform_service.dart';
 import '../../core/playback_hotkey_target.dart';
 import '../../core/route_observer.dart';
@@ -23,6 +23,7 @@ import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import 'pip_controller.dart';
 import 'video_player_controls.dart';
 import 'video_player_surface.dart';
 
@@ -53,6 +54,8 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   bool _disposed = false;
   bool _notifiersDisposed = false;
   bool _routeSubscribed = false;
+  /// 播放器已经移交给应用内画中画：本页 dispose 时不能再销毁它。
+  bool _pipHandedOff = false;
   /// 「视频输出卡死」的兜底重载次数（避免反复重载）。
   var _stallRecoveries = 0;
   VideoPlayerController? _pendingDispose;
@@ -70,6 +73,22 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     super.initState();
     _watchController = ref.read(watchProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
+    // 从画中画回到播放页时，直接把画中画手里的播放器接回来继续用，
+    // 而不是重新建一个 —— 否则会黑一下、重新缓冲，还会多一次「两个表面」的危险窗口。
+    //
+    // 注意顺序：**先**给 _controllerNotifier 赋值、**再**注册它的监听。
+    // 反过来会让赋值同步触发 _handleControllerChanged → 在 initState 里 setState 报错。
+    final pip = ref.read(pipControllerProvider);
+    final adopted = ref.read(pipControllerProvider.notifier).takeBack(widget.video.id);
+    if (adopted != null) {
+      _controllerNotifier.value = adopted;
+      _selectedQuality = pip?.qualityLabel;
+      _qualityNotifier.value = pip?.qualityLabel;
+      _loadedQuality = pip?.qualityLabel;
+      _restored = true;
+      // 画中画期间进度是由画中画记的，接回来后播放页要重新接管这件事。
+      adopted.addListener(_saveProgress);
+    }
     _controllerNotifier.addListener(_handleControllerChanged);
     // 全局热键作用在"当前播放页"上，所以由页面自己登记 / 注销回调。
     PlaybackHotkeyTarget.togglePlay = _togglePlay;
@@ -77,7 +96,13 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     PlaybackHotkeyTarget.nextEpisode = widget.onNext;
     ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = _recoverFromStalledOutput;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncSource();
+      if (mounted) {
+        if (adopted != null) {
+          setState(() {});
+        } else {
+          _syncSource();
+        }
+      }
     });
   }
 
@@ -114,17 +139,19 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     } catch (_) {}
   }
 
-  /// 悬浮窗是独立窗口 + 独立播放实例，所以只把视频 id 传过去，让它自己重新拉详情。
+  /// 进入应用内画中画（迷你播放器）。
   ///
-  /// 弹之前**必须先把主窗口这边停下来**：副窗口会自己从头拉一次详情播放，
-  /// 两边同时出声会互相盖住（用户反馈的「小窗播放时后面还在播」）。
-  void _openFloatingWindow() {
-    if (!FloatingWindow.isSupported) return;
+  /// 与旧的「独立小窗」不同：这里**不新建播放器**，而是把当前播放器原样移交给
+  /// 全局的 [PipController] 继续持有，然后回到上一级页面 —— 画中画在本应用里
+  /// 是常驻的悬浮层（挂在 AppShell 上），所以离开播放页也看得见它。
+  /// 只有一份解码 / 渲染，因此不会出现「开小窗就卡」的问题。
+  void _enterPip() {
     final controller = _controllerNotifier.value;
-    if (controller != null && controller.value.isInitialized && controller.value.isPlaying) {
-      unawaited(controller.pause());
-    }
-    unawaited(FloatingWindow.open(widget.video.id));
+    if (controller == null || !controller.value.isInitialized) return;
+    _pipHandedOff = true;
+    ref.read(pipControllerProvider.notifier).adopt(video: widget.video, controller: controller, qualityLabel: _loadedQuality);
+    // 从播放页内部进入画中画，返回上一级页面才是画中画该有的样子。
+    if (context.canPop()) context.pop();
   }
 
   /// 全局热键 Ctrl+Alt+Space：播放页未获得焦点时也要能暂停 / 继续。
@@ -484,7 +511,14 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     final controller = _controllerNotifier.value;
     _controllerNotifier.value = null;
     if (identical(VideoPlayerShutdown.pipActive, controller)) VideoPlayerShutdown.pipActive = null;
-    if (controller != null) {
+    if (controller != null && _pipHandedOff) {
+      // 播放器已经移交给应用内画中画：这里**绝对不能销毁它**，否则画中画会瞬间变黑，
+      // 而且「边播边销毁」正是之前独立小窗崩溃 / 卡死的根源。只解掉本页与它的绑定：
+      // 进度保存的监听、以及「谁在播」的全局登记都留给画中画继续用。
+      try {
+        controller.removeListener(_saveProgress);
+      } catch (_) {}
+    } else if (controller != null) {
       if (_fullscreenOpen) {
         _pendingDispose = controller;
       } else {
@@ -555,7 +589,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     }
     return _PlayerFrame(
       aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected, onFloat: _openFloatingWindow),
+       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected, onFloat: pipSupported ? _enterPip : null),
     );
   }
 }

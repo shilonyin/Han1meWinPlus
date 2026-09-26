@@ -88,7 +88,7 @@ class VideoPlayerControls extends StatelessWidget {
                       ] else
                         VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
                       IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Icons.fullscreen_exit : Icons.fullscreen)),
-                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Icons.picture_in_picture_alt)),
+                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.pictureInPicture, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Icons.picture_in_picture_alt)),
                     ]);
                   }),
                 ),

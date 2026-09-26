@@ -15,6 +15,7 @@ import '../comics/comic_pages.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/app_toast.dart';
+import '../video/pip_overlay.dart';
 import 'exit_coordinator.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -95,6 +96,12 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
     final mediaQuery = MediaQuery.of(context);
     // 分栏切换时整块内容淡入（含漫画模式的四个根页）。
     final animatedContent = FadeTransition(opacity: CurvedAnimation(parent: _branchSwitch, curve: Curves.easeOutCubic), child: content);
+    // 画中画（迷你播放器）悬在整个内容区之上，切换分栏 / 返回列表时都不受影响。
+    // 它挂在 shell 上而不是播放页里，所以「离开播放页继续看」才成立；
+    // 播放页本身是 shell 之外的整页路由，进去时它会被自然盖住。
+    // 必须用 StackFit.expand：画中画的定位依赖「内容区完整尺寸」，
+    // 默认的 loose 约束会让它拿到一个收紧后的尺寸，吸附位置会算错。
+    Widget contentWithPip(Widget child) => Stack(fit: StackFit.expand, children: [child, const PipOverlay()]);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -104,32 +111,34 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
       child: Scaffold(
         key: drawerMode ? appShellScaffoldKey : null,
         drawer: drawerMode && !permanentDrawer ? _AppDrawer(navigationShell: widget.navigationShell) : null,
-        body: permanentDrawer
-            ? Row(
-                children: [
-                  _CompactNavigationRail(navigationShell: widget.navigationShell),
-                  Expanded(child: animatedContent),
-                ],
-              )
-            : useRail
-                ? Row(
-                    children: [
-                      NavigationRail(
-                        selectedIndex: widget.navigationShell.currentIndex,
-                        // 宽屏按 MD3 的 expanded 档展开（图标 + 文字并排），中等宽度收成
-                        // 只显示图标，窄窗口才落到底部条。
-                        extended: railExpanded,
-                        labelType: railExpanded ? NavigationRailLabelType.all : NavigationRailLabelType.none,
-                        minWidth: railExpanded ? 192 : 72,
-                        // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
-                        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-                        onDestinationSelected: select,
-                        destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label))).toList(),
-                      ),
-                      Expanded(child: animatedContent),
-                    ],
-                  )
-                : MediaQuery(data: mediaQuery, child: animatedContent),
+        body: contentWithPip(
+          permanentDrawer
+              ? Row(
+                  children: [
+                    _CompactNavigationRail(navigationShell: widget.navigationShell),
+                    Expanded(child: animatedContent),
+                  ],
+                )
+              : useRail
+                  ? Row(
+                      children: [
+                        NavigationRail(
+                          selectedIndex: widget.navigationShell.currentIndex,
+                          // 宽屏按 MD3 的 expanded 档展开（图标 + 文字并排），中等宽度收成
+                          // 只显示图标，窄窗口才落到底部条。
+                          extended: railExpanded,
+                          labelType: railExpanded ? NavigationRailLabelType.all : NavigationRailLabelType.none,
+                          minWidth: railExpanded ? 192 : 72,
+                          // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                          onDestinationSelected: select,
+                          destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label))).toList(),
+                        ),
+                        Expanded(child: animatedContent),
+                      ],
+                    )
+                  : MediaQuery(data: mediaQuery, child: animatedContent),
+        ),
         bottomNavigationBar: drawerMode || useRail
             ? null
             : NavigationBar(

@@ -14,10 +14,18 @@
 #include <memory>
 #include <string>
 
-#include "flutter/generated_plugin_registrant.h"
-// Each secondary window (e.g. floating player) runs its own Flutter engine,
-// so plugins must be registered per window; otherwise plugins such as
-// window_manager / media_kit would have no implementation in that window.
+// Reference the Windows plugin registrant with a path relative to this file
+// (windows/runner -> windows/flutter). The bare "flutter/..." form is resolved
+// against the include directories as well, where the Linux registrant
+// (linux/flutter/generated_plugin_registrant.h) can be found first. That header
+// includes flutter_linux/flutter_linux.h and cannot be compiled on Windows.
+#include "../flutter/generated_plugin_registrant.h"
+// Kept from the earlier "floating player window" design: it registers plugins
+// for any extra Flutter engine the desktop_multi_window plugin spawns, so a
+// secondary window still gets window_manager / media_kit implementations
+// instead of silently missing them. The app no longer opens such a window
+// (the mini player is an in-app overlay now), so this callback simply never
+// fires; leaving it in place keeps the runner compatible if one is added back.
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "resource.h"
 
