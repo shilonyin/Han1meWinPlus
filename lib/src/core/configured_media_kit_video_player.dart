@@ -256,6 +256,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final host = _mediaHost(dataSource.uri);
       final prefersProxy = _prefersProxy(host);
       await _applyHttpProxy(native, useProxy: prefersProxy);
+      // 渲染后端要在视频输出初始化**之前**定下来，所以放在所有画质参数之前。
+      await _applyGpuApi(native, settings);
       if (dataSource.sourceType == DataSourceType.network) await _applyStreamTuning(native);
       await _applyCustomParameters(native, settings);
       final videoController = VideoController(
@@ -418,6 +420,24 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     try {
       await native.setProperty('demuxer-readahead-secs', '60');
     } catch (_) {}
+  }
+
+  /// libmpv 的 `gpu-api`：默认的 ANGLE（OpenGL ES 3.0）不支持 compute shader，
+  /// 切到 Vulkan / D3D11 才有（这是收录 ArtCNN 的前置条件）。
+  ///
+  /// mpv 把它当成视频输出的初始化参数，晚于首帧再设不会生效，所以只在建播放器时写一次。
+  Future<void> _applyGpuApi(NativePlayer native, AppSettings settings) async {
+    final value = switch (settings.gpuApi) {
+      MpvGpuApi.auto => null,
+      MpvGpuApi.vulkan => 'vulkan',
+      MpvGpuApi.d3d11 => 'd3d11',
+    };
+    if (value == null) return;
+    try {
+      await native.setProperty('gpu-api', value);
+    } catch (error) {
+      debugPrint('[player] gpu-api=$value failed: $error');
+    }
   }
 
   Future<void> _applyCustomParameters(NativePlayer native, AppSettings settings) async {

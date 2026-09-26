@@ -3302,6 +3302,36 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @gpuApi.
+  ///
+  /// In en, this message translates to:
+  /// **'Render backend (gpu-api)'**
+  String get gpuApi;
+
+  /// No description provided for @gpuApiDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto lets the player decide; only Vulkan and D3D11 support compute shaders. Applies from the next playback'**
+  String get gpuApiDescription;
+
+  /// No description provided for @gpuApiAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get gpuApiAuto;
+
+  /// No description provided for @gpuApiVulkan.
+  ///
+  /// In en, this message translates to:
+  /// **'Vulkan'**
+  String get gpuApiVulkan;
+
+  /// No description provided for @gpuApiD3d11.
+  ///
+  /// In en, this message translates to:
+  /// **'D3D11'**
+  String get gpuApiD3d11;
+
   /// No description provided for @floatWindow.
   ///
   /// In en, this message translates to:

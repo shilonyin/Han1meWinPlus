@@ -28,6 +28,13 @@ enum SuperResolutionMode { off, efficiency, quality, natural }
 
 enum VideoAspectRatio { auto, crop, stretch, ratio4x3 }
 
+/// libmpv 的 `gpu-api`：`auto` 由 mpv 自选（Windows 上通常落到 ANGLE / OpenGL ES），
+/// `vulkan` / `d3d11` 走原生后端——**只有这两条链路支持 compute shader**，
+/// ArtCNN 这类纯计算着色器的超分辨率模型才可能跑起来。
+///
+/// 序列化按枚举名保存，新值只能往后追加。
+enum MpvGpuApi { auto, vulkan, d3d11 }
+
 /// 窗口背景材质：`none` 保持纯色（现状），`mica` 走 Win11 Mica，`acrylic` 走 Win10 的亚克力。
 /// 序列化按枚举名保存，新值只能往后追加。
 enum WindowBackdrop { none, mica, acrylic }
@@ -118,6 +125,7 @@ class AppSettings {
     this.globalHotkeysEnabled = false,
     this.windowBackdrop = WindowBackdrop.none,
     this.notificationsEnabled = true,
+    this.gpuApi = MpvGpuApi.auto,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -218,6 +226,8 @@ class AppSettings {
   final WindowBackdrop windowBackdrop;
   /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
   final bool notificationsEnabled;
+  /// libmpv 渲染后端。切到 Vulkan / D3D11 才能用上 compute shader（为 ArtCNN 铺路）。
+  final MpvGpuApi gpuApi;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -328,6 +338,7 @@ class AppSettings {
         'globalHotkeysEnabled': globalHotkeysEnabled,
         'windowBackdrop': windowBackdrop.name,
         'notificationsEnabled': notificationsEnabled,
+        'gpuApi': gpuApi.name,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -416,6 +427,7 @@ class AppSettings {
         globalHotkeysEnabled: json['globalHotkeysEnabled'] as bool? ?? false,
         windowBackdrop: _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ?? WindowBackdrop.none,
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+        gpuApi: _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ?? MpvGpuApi.auto,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -559,6 +571,7 @@ class AppSettings {
     bool? globalHotkeysEnabled,
     WindowBackdrop? windowBackdrop,
     bool? notificationsEnabled,
+    MpvGpuApi? gpuApi,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -646,6 +659,7 @@ class AppSettings {
         globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
         windowBackdrop: windowBackdrop ?? this.windowBackdrop,
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+        gpuApi: gpuApi ?? this.gpuApi,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

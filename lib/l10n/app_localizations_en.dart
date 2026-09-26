@@ -1814,6 +1814,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get gpuApi => 'Render backend (gpu-api)';
+
+  @override
+  String get gpuApiDescription => 'Auto lets the player decide; only Vulkan and D3D11 support compute shaders. Applies from the next playback';
+
+  @override
+  String get gpuApiAuto => 'Auto';
+
+  @override
+  String get gpuApiVulkan => 'Vulkan';
+
+  @override
+  String get gpuApiD3d11 => 'D3D11';
+
+  @override
   String get floatWindow => 'Pop out floating window';
 
   @override

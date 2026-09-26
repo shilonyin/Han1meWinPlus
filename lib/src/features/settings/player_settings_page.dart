@@ -32,6 +32,7 @@ class PlayerSettingsPage extends ConsumerWidget {
             _OptionTile(icon: Icons.developer_board_outlined, title: l10n.decoder, value: _engineLabel(l10n, settings.playerEngine), enabled: true, onTap: () => _pickEngine(context, ref, settings)),
             _OptionTile(icon: Icons.video_settings_outlined, title: l10n.videoRenderer, value: _rendererLabel(l10n, settings.videoRenderer), enabled: libmpv, onTap: libmpv ? () => _pickRenderer(context, ref, settings) : null),
             _ViewMenuTile(icon: Icons.layers_outlined, title: l10n.viewSettings, value: settings.videoView, enabled: libmpv, label: (value) => _viewLabel(l10n, value), onSelected: (value) => controller.saveChanges((current) => current.copyWith(videoView: value))),
+            _OptionTile(icon: Icons.graphic_eq_outlined, title: l10n.gpuApi, description: l10n.gpuApiDescription, value: _gpuApiLabel(l10n, settings.gpuApi), enabled: libmpv, onTap: libmpv ? () => _pickGpuApi(context, ref, settings) : null),
             _OptionTile(icon: Icons.tune_outlined, title: l10n.customParameters, value: settings.customParameters.isEmpty ? l10n.none : '${settings.customParameters.length}', enabled: libmpv, onTap: libmpv ? () => _editCustomParameters(context, ref, settings) : null),
             _OptionTile(icon: Icons.auto_awesome_outlined, title: l10n.superResolution, value: _superResolutionLabel(l10n, settings.superResolutionMode), enabled: libmpv, onTap: libmpv ? () => _pickSuperResolution(context, ref, settings) : null),
           ]),
@@ -39,6 +40,12 @@ class PlayerSettingsPage extends ConsumerWidget {
       ),
     );
   }
+
+  String _gpuApiLabel(AppLocalizations l10n, MpvGpuApi api) => switch (api) {
+        MpvGpuApi.auto => l10n.gpuApiAuto,
+        MpvGpuApi.vulkan => l10n.gpuApiVulkan,
+        MpvGpuApi.d3d11 => l10n.gpuApiD3d11,
+      };
 
   String _engineLabel(AppLocalizations l10n, PlayerEngine engine) => switch (engine) {
         PlayerEngine.exoPlayer => l10n.exoPlayer,
@@ -98,6 +105,20 @@ class PlayerSettingsPage extends ConsumerWidget {
     );
     if (selected == null || selected == settings.videoRenderer) return;
     await ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(videoRenderer: selected));
+  }
+
+  Future<void> _pickGpuApi(BuildContext context, WidgetRef ref, AppSettings settings) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showOptionSettingsDialog<MpvGpuApi>(
+      context: context,
+      title: l10n.gpuApi,
+      description: l10n.gpuApiDescription,
+      current: settings.gpuApi,
+      options: MpvGpuApi.values,
+      label: (value) => _gpuApiLabel(l10n, value),
+    );
+    if (selected == null || selected == settings.gpuApi) return;
+    await ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(gpuApi: selected));
   }
 
   Future<void> _pickHardwareDecoder(BuildContext context, WidgetRef ref, AppSettings settings) async {

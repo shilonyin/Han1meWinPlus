@@ -1759,6 +1759,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get gpuApi => '渲染后端（gpu-api）';
+
+  @override
+  String get gpuApiDescription => '默认由播放器自选；Vulkan / D3D11 才支持计算着色器，改动在下一次播放时生效';
+
+  @override
+  String get gpuApiAuto => '自动';
+
+  @override
+  String get gpuApiVulkan => 'Vulkan';
+
+  @override
+  String get gpuApiD3d11 => 'D3D11';
+
+  @override
   String get floatWindow => '弹出悬浮窗';
 
   @override
@@ -4181,6 +4196,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
+
+  @override
+  String get gpuApi => '渲染後端（gpu-api）';
+
+  @override
+  String get gpuApiDescription => '預設由播放器自選；Vulkan / D3D11 才支援計算著色器，改動在下次播放時生效';
+
+  @override
+  String get gpuApiAuto => '自動';
+
+  @override
+  String get gpuApiVulkan => 'Vulkan';
+
+  @override
+  String get gpuApiD3d11 => 'D3D11';
 
   @override
   String get floatWindow => '彈出懸浮視窗';
