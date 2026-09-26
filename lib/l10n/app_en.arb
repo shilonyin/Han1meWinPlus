@@ -835,5 +835,13 @@
   "searchSortGeneral": "General",
   "searchMoreFilters": "More filters",
   "refresh": "Refresh",
-  "backToTop": "Top"
+  "backToTop": "Top",
+  "dlnaReceiver": "Cast receiver",
+  "dlnaReceiverDescription": "Broadcast this PC as a DLNA renderer on the local network so phones can cast to it",
+  "dlnaReceiverRunning": "Broadcasting on the local network — pick this device from your phone to cast",
+  "castWaiting": "Waiting for a phone to cast…",
+  "castLoading": "Loading the cast media…",
+  "castDisconnect": "Disconnect",
+  "castLoadFailed": "Failed to load the cast media: {error}",
+  "@castLoadFailed": {"placeholders": {"error": {}}}
 }

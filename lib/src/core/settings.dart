@@ -127,6 +127,7 @@ class AppSettings {
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
     this.localMediaDirectory = '',
+    this.dlnaReceiverEnabled = false,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -231,6 +232,9 @@ class AppSettings {
   final MpvGpuApi gpuApi;
   /// 本地媒体库目录：非空时扫描其中的视频并监听增删（见 `LocalMediaRepository`）。
   final String localMediaDirectory;
+  /// DLNA 接收端（PC 作投屏目标）：开启后在局域网里广播一个 MediaRenderer。
+  /// 默认关——它会常驻监听 1900 端口并起一个本地 HTTP 服务。
+  final bool dlnaReceiverEnabled;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -343,6 +347,7 @@ class AppSettings {
         'notificationsEnabled': notificationsEnabled,
         'gpuApi': gpuApi.name,
         'localMediaDirectory': localMediaDirectory,
+        'dlnaReceiverEnabled': dlnaReceiverEnabled,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -433,6 +438,7 @@ class AppSettings {
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         gpuApi: _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ?? MpvGpuApi.auto,
         localMediaDirectory: json['localMediaDirectory'] as String? ?? '',
+        dlnaReceiverEnabled: json['dlnaReceiverEnabled'] as bool? ?? false,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -578,6 +584,7 @@ class AppSettings {
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
     String? localMediaDirectory,
+    bool? dlnaReceiverEnabled,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -667,6 +674,7 @@ class AppSettings {
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
         gpuApi: gpuApi ?? this.gpuApi,
         localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,
+        dlnaReceiverEnabled: dlnaReceiverEnabled ?? this.dlnaReceiverEnabled,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

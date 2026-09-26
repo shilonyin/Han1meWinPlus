@@ -835,5 +835,13 @@
   "searchSortGeneral": "综合排序",
   "searchMoreFilters": "更多筛选",
   "refresh": "刷新",
-  "backToTop": "顶部"
+  "backToTop": "顶部",
+  "dlnaReceiver": "投屏接收端",
+  "dlnaReceiverDescription": "开启后本机会在局域网里广播为 DLNA 渲染设备，手机可直接投屏到这里播放",
+  "dlnaReceiverRunning": "已在局域网广播，手机搜索到本设备即可投屏",
+  "castWaiting": "等待手机投屏…",
+  "castLoading": "正在载入投屏内容…",
+  "castDisconnect": "断开投屏",
+  "castLoadFailed": "投屏内容载入失败：{error}",
+  "@castLoadFailed": {"placeholders": {"error": {}}}
 }

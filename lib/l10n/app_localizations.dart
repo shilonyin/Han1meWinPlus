@@ -4663,6 +4663,50 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top'**
   String get backToTop;
+
+
+  /// No description provided for @dlnaReceiver.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast receiver'**
+  String get dlnaReceiver;
+
+  /// No description provided for @dlnaReceiverDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast this PC as a DLNA renderer on the local network so phones can cast to it'**
+  String get dlnaReceiverDescription;
+
+  /// No description provided for @dlnaReceiverRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcasting on the local network — pick this device from your phone to cast'**
+  String get dlnaReceiverRunning;
+
+  /// No description provided for @castWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a phone to cast…'**
+  String get castWaiting;
+
+  /// No description provided for @castLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the cast media…'**
+  String get castLoading;
+
+  /// No description provided for @castDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get castDisconnect;
+
+  /// No description provided for @castLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load the cast media: {error}'**
+  String castLoadFailed(Object error);
+
 }
 
 class _AppLocalizationsDelegate

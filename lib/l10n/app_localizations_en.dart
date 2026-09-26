@@ -1811,7 +1811,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTray => 'Minimize to the system tray on close';
 
   @override
-  String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
+  String get minimizeToTrayDescription =>
+      'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
   String get localMedia => 'Local media library';
@@ -1835,7 +1836,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gpuApi => 'Render backend (gpu-api)';
 
   @override
-  String get gpuApiDescription => 'Auto lets the player decide; only Vulkan and D3D11 support compute shaders. Applies from the next playback';
+  String get gpuApiDescription =>
+      'Auto lets the player decide; only Vulkan and D3D11 support compute shaders. Applies from the next playback';
 
   @override
   String get gpuApiAuto => 'Auto';
@@ -1853,7 +1855,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifications => 'Desktop notifications';
 
   @override
-  String get notificationsDescription => 'Notify when a download finishes or a new version is available';
+  String get notificationsDescription =>
+      'Notify when a download finishes or a new version is available';
 
   @override
   String get downloadComplete => 'Download complete';
@@ -1877,7 +1880,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get globalHotkeys => 'Global hotkeys';
 
   @override
-  String get globalHotkeysDescription => 'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode';
+  String get globalHotkeysDescription =>
+      'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode';
 
   @override
   String get trayShowWindow => 'Show Window';
@@ -2540,4 +2544,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToTop => 'Top';
+
+  @override
+  String get dlnaReceiver => 'Cast receiver';
+
+  @override
+  String get dlnaReceiverDescription => 'Broadcast this PC as a DLNA renderer on the local network so phones can cast to it';
+
+  @override
+  String get dlnaReceiverRunning => 'Broadcasting on the local network — pick this device from your phone to cast';
+
+  @override
+  String get castWaiting => 'Waiting for a phone to cast…';
+
+  @override
+  String get castLoading => 'Loading the cast media…';
+
+  @override
+  String get castDisconnect => 'Disconnect';
+
+  @override
+  String castLoadFailed(Object error) {
+    return 'Failed to load the cast media: $error';
+  }
 }

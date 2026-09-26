@@ -74,6 +74,12 @@ class WindowChrome {
         }
       });
 
+  /// 把窗口拉到前台（可能正收在托盘里）：投屏推片时用它把界面唤回来。
+  static Future<void> reveal() => _run((manager) async {
+        if (!await manager.isVisible()) await manager.show();
+        await manager.focus();
+      });
+
   /// 进入全屏前的窗口状态，退出时用来自己还原。
   static Rect? _boundsBeforeFullScreen;
   static bool _maximizedBeforeFullScreen = false;

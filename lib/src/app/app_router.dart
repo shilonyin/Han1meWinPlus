@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../core/dlna_media_renderer.dart';
 import '../core/route_observer.dart';
 import '../domain/models/comic.dart';
 import '../domain/models/search_query.dart';
@@ -42,6 +43,7 @@ import '../features/settings/theme_settings_page.dart';
 import '../features/settings/webdav_settings_page.dart';
 import '../features/shared/comments_page.dart';
 import '../features/stats/stats_page.dart';
+import '../features/video/cast_receiver_page.dart';
 import '../features/video/video_page.dart';
 import '../features/video/tag_editor_page.dart';
 
@@ -137,6 +139,8 @@ class AppRouter {
         GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
         GoRoute(path: '/video/:id', builder: (context, state) => VideoPage(id: state.pathParameters['id']!, localVideo: state.extra as VideoDetail?)),
         GoRoute(path: '/local-media', builder: (context, state) => const LocalMediaPage()),
+        // 投屏接收页：手机推片时从根导航器上打开，返回即回到原来的页面。
+        GoRoute(path: '/cast', parentNavigatorKey: navigatorKey, builder: (context, state) => CastReceiverPage(item: state.extra as CastMediaItem?)),
         GoRoute(path: '/comics/browse', builder: (context, state) => ComicBrowsePage(target: state.extra as ComicBrowseTarget? ?? const ComicBrowseTarget('/comics'))),
         GoRoute(path: '/comics/:id/read', builder: (context, state) => ComicReaderPage(comic: state.extra! as ComicDetail)),
         GoRoute(path: '/comics/:id', builder: (context, state) => ComicDetailPage(id: state.pathParameters['id']!)),

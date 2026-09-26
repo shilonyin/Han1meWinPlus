@@ -4,11 +4,13 @@ import 'dart:ui' show AppExitResponse;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../core/app_notifications.dart';
+import '../core/cast_receiver.dart';
 import '../core/deep_link.dart';
 import '../core/global_hotkeys.dart';
 import '../core/platform_service.dart';
@@ -80,6 +82,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       if (previousSettings == null || previousSettings.globalHotkeysEnabled != settings.globalHotkeysEnabled) {
         unawaited(GlobalHotkeys.setEnabled(settings.globalHotkeysEnabled));
       }
+      if (previousSettings == null || previousSettings.dlnaReceiverEnabled != settings.dlnaReceiverEnabled) {
+        unawaited(CastReceiver.instance.setEnabled(settings.dlnaReceiverEnabled));
+      }
       // 窗口材质：开关或明暗主题变化时重新应用（Mica / Acrylic 要跟着深浅色走）。
       if (previousSettings == null ||
           previousSettings.windowBackdrop != settings.windowBackdrop ||
@@ -88,11 +93,22 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
         _applyWindowBackdrop(settings);
       }
     }, fireImmediately: true);
+    CastReceiver.instance.incoming.addListener(_onCastIncoming);
     final link = widget.initialLink;
     if (link != null) {
       // 等首页那一栈建好再跳，否则 navigator 还没挂载、push 会被丢掉。
       WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialLink(link));
     }
+  }
+
+  /// 手机投屏推片：接收端只是把消息转出来，开页面交给路由。
+  /// 投屏页已经开着时不再 push（同一页里自己换源）。
+  void _onCastIncoming() {
+    final item = CastReceiver.instance.incoming.value;
+    if (item == null || CastReceiver.instance.pageOpen) return;
+    final context = widget.navigatorKey.currentContext;
+    if (context == null) return;
+    context.push('/cast', extra: item);
   }
 
   Future<void> _openInitialLink(Uri link) async {
@@ -103,6 +119,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
 
   @override
   void dispose() {
+    CastReceiver.instance.incoming.removeListener(_onCastIncoming);
     _lifecycleListener.dispose();
     super.dispose();
   }

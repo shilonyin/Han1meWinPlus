@@ -1780,7 +1780,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gpuApi => '渲染后端（gpu-api）';
 
   @override
-  String get gpuApiDescription => '默认由播放器自选；Vulkan / D3D11 才支持计算着色器，改动在下一次播放时生效';
+  String get gpuApiDescription =>
+      '默认由播放器自选；Vulkan / D3D11 才支持计算着色器，改动在下一次播放时生效';
 
   @override
   String get gpuApiAuto => '自动';
@@ -1822,7 +1823,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get globalHotkeys => '全局热键';
 
   @override
-  String get globalHotkeysDescription => '应用未激活时也生效：Ctrl+Alt+H 显示隐藏、Ctrl+Alt+空格 播放暂停、Ctrl+Alt+←/→ 上一集下一集';
+  String get globalHotkeysDescription =>
+      '应用未激活时也生效：Ctrl+Alt+H 显示隐藏、Ctrl+Alt+空格 播放暂停、Ctrl+Alt+←/→ 上一集下一集';
 
   @override
   String get trayShowWindow => '显示窗口';
@@ -2459,6 +2461,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backToTop => '顶部';
+
+  @override
+  String get dlnaReceiver => '投屏接收端';
+
+  @override
+  String get dlnaReceiverDescription => '开启后本机会在局域网里广播为 DLNA 渲染设备，手机可直接投屏到这里播放';
+
+  @override
+  String get dlnaReceiverRunning => '已在局域网广播，手机搜索到本设备即可投屏';
+
+  @override
+  String get castWaiting => '等待手机投屏…';
+
+  @override
+  String get castLoading => '正在载入投屏内容…';
+
+  @override
+  String get castDisconnect => '断开投屏';
+
+  @override
+  String castLoadFailed(Object error) {
+    return '投屏内容载入失败：$error';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -4252,9 +4277,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get floatWindow => '彈出懸浮視窗';
 
   @override
-  String get windowBackdrop => '視窗背景材質';
-
-  @override
   String get notifications => '桌面通知';
 
   @override
@@ -4265,6 +4287,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get updateAvailable => '發現新版本';
+
+  @override
+  String get windowBackdrop => '視窗背景材質';
 
   @override
   String get windowBackdropOff => '關閉（純色）';
@@ -4279,7 +4304,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get globalHotkeys => '全域快捷鍵';
 
   @override
-  String get globalHotkeysDescription => '應用未啟用時也生效：Ctrl+Alt+H 顯示隱藏、Ctrl+Alt+空格 播放暫停、Ctrl+Alt+←/→ 上一集下一集';
+  String get globalHotkeysDescription =>
+      '應用未啟用時也生效：Ctrl+Alt+H 顯示隱藏、Ctrl+Alt+空格 播放暫停、Ctrl+Alt+←/→ 上一集下一集';
 
   @override
   String get trayShowWindow => '顯示視窗';
@@ -4916,4 +4942,27 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get backToTop => '頂部';
+
+  @override
+  String get dlnaReceiver => '投屏接收端';
+
+  @override
+  String get dlnaReceiverDescription => '開啟後本機會在區域網路中廣播為 DLNA 渲染裝置，手機可直接投屏到這裡播放';
+
+  @override
+  String get dlnaReceiverRunning => '已在區域網路廣播，手機搜尋到本裝置即可投屏';
+
+  @override
+  String get castWaiting => '等待手機投屏…';
+
+  @override
+  String get castLoading => '正在載入投屏內容…';
+
+  @override
+  String get castDisconnect => '中斷投屏';
+
+  @override
+  String castLoadFailed(Object error) {
+    return '投屏內容載入失敗：$error';
+  }
 }

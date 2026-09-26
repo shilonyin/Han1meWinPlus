@@ -3,6 +3,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/cast_receiver.dart';
 import '../../core/settings.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -46,6 +47,18 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
        SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),        SettingsCardItem(title: l10n.siteDiagnostics, subtitle: l10n.siteDiagnosticsDescription, leading: const Icon(Icons.network_check_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showDiagnostics = true)),       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Icons.vpn_lock_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showProxySettings(context, settings, controller)),
        SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Icons.security_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
+      if (CastReceiver.isSupported)
+        SettingsCardList(title: l10n.dlnaReceiver, children: [
+          ValueListenableBuilder<bool>(
+            valueListenable: CastReceiver.instance.running,
+            builder: (context, running, _) => SettingsCardItem(
+              title: l10n.dlnaReceiver,
+              subtitle: running ? '${l10n.dlnaReceiverRunning}\n${CastReceiver.instance.location}' : l10n.dlnaReceiverDescription,
+              leading: const Icon(Icons.cast_connected_outlined),
+              trailing: Switch(value: settings.dlnaReceiverEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(dlnaReceiverEnabled: value))),
+            ),
+          ),
+        ]),
     ]));
   }
 
