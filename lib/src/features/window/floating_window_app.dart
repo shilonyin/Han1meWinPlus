@@ -5,7 +5,7 @@ import 'package:window_manager/window_manager.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../core/window_chrome.dart';
-import '../app/app_theme.dart';
+import '../../app/app_theme.dart';
 import '../settings/settings_controller.dart';
 import '../video/video_controller.dart';
 import '../video/video_player_panel.dart';
@@ -37,7 +37,7 @@ class _FloatingWindowAppState extends ConsumerState<FloatingWindowApp> {
     if (!WindowChrome.isSupported) return;
     try {
       await windowManager.ensureInitialized();
-      const options = WindowOptions(size: _initialSize, minimumWindowSize: Size(320, 180), center: true, titleBarStyle: TitleBarStyle.hidden, skipTaskbar: true, windowButtonVisibility: false);
+      const options = WindowOptions(size: _initialSize, center: true, titleBarStyle: TitleBarStyle.hidden, skipTaskbar: true, windowButtonVisibility: false);
       await windowManager.waitUntilReadyToShow(options, () async {
         await windowManager.setAlwaysOnTop(true);
         await windowManager.show();

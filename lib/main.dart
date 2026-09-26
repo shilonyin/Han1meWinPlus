@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'src/app.dart';
 import 'src/core/app_notifications.dart';
+import 'src/core/deep_link.dart';
 import 'src/core/floating_window.dart';
 import 'src/core/media_player_initializer.dart';
 import 'src/core/playback_speed_policy.dart';
@@ -18,9 +19,11 @@ import 'src/data/local/update_installer.dart';
 import 'src/features/settings/settings_controller.dart';
 import 'src/features/window/floating_window_app.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
+  // `han1me://` scheme 唤起时系统把链接放进命令行参数（runner 已转交 Dart）。
+  final initialLink = DeepLink.fromArguments(args);
   // 列表页图片数量多（首页 + 搜索 + 库 + 预告），默认的 100MB / 1000 张容易被挤掉，
   // 被淘汰的图再滚回来就要重新解码甚至重新下载。桌面端内存宽裕，放宽一倍以上。
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
@@ -58,7 +61,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
-      child: const Han1meApp(),
+      child: Han1meApp(initialLink: initialLink),
     ),
   );
   unawaited(_postLaunch());
@@ -77,7 +80,7 @@ Future<String?> _floatingVideoId() async {
 
 Future<void> _runFloatingWindow(String videoId) async {
   final settings = await SettingsStore(JsonStore()).load();
-  await MediaPlayerInitializer.bootstrap(settings);
+  MediaPlayerInitializer.bootstrap(settings);
   runApp(
     ProviderScope(
       overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
