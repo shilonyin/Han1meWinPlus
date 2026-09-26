@@ -1753,6 +1753,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get useSystemTitleBarDescription => '关闭后改用应用内标题栏';
 
   @override
+  String get minimizeToTray => '关闭时最小化到系统托盘';
+
+  @override
+  String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
+
+  @override
+  String get trayShowWindow => '显示窗口';
+
+  @override
+  String get trayExit => '退出';
+
+  @override
   String get minimizeWindow => '最小化';
 
   @override
@@ -4130,6 +4142,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get useSystemTitleBarDescription => '關閉後改用應用內標題列';
+
+  @override
+  String get minimizeToTray => '關閉時最小化到系統托盤';
+
+  @override
+  String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
+
+  @override
+  String get trayShowWindow => '顯示視窗';
+
+  @override
+  String get trayExit => '退出';
 
   @override
   String get minimizeWindow => '最小化';

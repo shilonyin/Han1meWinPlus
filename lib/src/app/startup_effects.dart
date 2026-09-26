@@ -8,6 +8,8 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../core/platform_service.dart';
+import '../core/settings.dart';
+import '../core/system_tray.dart';
 import '../core/video_player_shutdown.dart';
 import '../data/local/update_installer.dart';
 import '../data/remote/update_checker.dart';
@@ -55,6 +57,13 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
           await PlatformService.setEmergencyExit(settings.emergencyExitEnabled);
         });
       }
+      // 托盘：开关或界面语言变化时重建（菜单文案要跟着语言走）。
+      final previousSettings = previous?.valueOrNull;
+      if (previousSettings == null ||
+          previousSettings.minimizeToTray != settings.minimizeToTray ||
+          previousSettings.language != settings.language) {
+        _applyTraySettings(settings);
+      }
     }, fireImmediately: true);
   }
 
@@ -66,6 +75,27 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+
+  /// 托盘菜单文案取自当前本地化，而 [AppLocalizations] 需要 context；
+  /// 首帧之前 `navigatorKey.currentContext` 还是空的，所以推到首帧之后再应用。
+  void _applyTraySettings(AppSettings settings) {
+    if (!SystemTray.isSupported) return;
+    final context = widget.navigatorKey.currentContext;
+    if (context == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applyTraySettings(settings);
+      });
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    unawaited(SystemTray.setEnabled(
+      settings.minimizeToTray,
+      tooltip: l10n.appTitle,
+      showLabel: l10n.trayShowWindow,
+      exitLabel: l10n.trayExit,
+    ));
+  }
 
   Future<AppExitResponse> _handleExitRequest() async {
     if (widget.exitCoordinator.consumeBranchBackHandled()) return AppExitResponse.cancel;

@@ -110,6 +110,7 @@ class AppSettings {
     this.useNavigationDrawer = true,
     this.useSystemFont = false,
     this.useSystemTitleBar = true,
+    this.minimizeToTray = false,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -202,6 +203,8 @@ class AppSettings {
   final bool useNavigationDrawer;
   final bool useSystemFont;
   final bool useSystemTitleBar;
+  /// 关闭按钮收进系统托盘而不是退出（托盘菜单负责「显示窗口 / 退出」）。
+  final bool minimizeToTray;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -308,6 +311,7 @@ class AppSettings {
         'useNavigationDrawer': useNavigationDrawer,
         'useSystemFont': useSystemFont,
         'useSystemTitleBar': useSystemTitleBar,
+        'minimizeToTray': minimizeToTray,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -392,6 +396,7 @@ class AppSettings {
         useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? true,
         useSystemFont: json['useSystemFont'] as bool? ?? false,
         useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
+        minimizeToTray: json['minimizeToTray'] as bool? ?? false,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -531,6 +536,7 @@ class AppSettings {
     bool? useNavigationDrawer,
     bool? useSystemFont,
     bool? useSystemTitleBar,
+    bool? minimizeToTray,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -614,6 +620,7 @@ class AppSettings {
         useNavigationDrawer: useNavigationDrawer ?? this.useNavigationDrawer,
         useSystemFont: useSystemFont ?? this.useSystemFont,
         useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
+        minimizeToTray: minimizeToTray ?? this.minimizeToTray,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

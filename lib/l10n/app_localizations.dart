@@ -3290,6 +3290,30 @@ abstract class AppLocalizations {
   /// **'Turn off to use the title bar built into the app'**
   String get useSystemTitleBarDescription;
 
+  /// No description provided for @minimizeToTray.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize to the system tray on close'**
+  String get minimizeToTray;
+
+  /// No description provided for @minimizeToTrayDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
+  String get minimizeToTrayDescription;
+
+  /// No description provided for @trayShowWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Window'**
+  String get trayShowWindow;
+
+  /// No description provided for @trayExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get trayExit;
+
   /// No description provided for @minimizeWindow.
   ///
   /// In en, this message translates to:

@@ -4,6 +4,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
+import '../../core/system_tray.dart';
 import '../../core/window_chrome.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
@@ -88,6 +89,13 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
                 leading: const Icon(Icons.web_asset_outlined),
                 trailing: Switch(value: settings.useSystemTitleBar, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useSystemTitleBar: value))),
               ),
+              if (SystemTray.isSupported)
+                SettingsCardItem(
+                  title: l10n.minimizeToTray,
+                  subtitle: l10n.minimizeToTrayDescription,
+                  leading: const Icon(Icons.call_to_action_outlined),
+                  trailing: Switch(value: settings.minimizeToTray, onChanged: (value) => controller.saveChanges((current) => current.copyWith(minimizeToTray: value))),
+                ),
             ]),
           ],
         ],

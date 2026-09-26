@@ -1808,6 +1808,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn off to use the title bar built into the app';
 
   @override
+  String get minimizeToTray => 'Minimize to the system tray on close';
+
+  @override
+  String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
+
+  @override
+  String get trayShowWindow => 'Show Window';
+
+  @override
+  String get trayExit => 'Exit';
+
+  @override
   String get minimizeWindow => 'Minimize';
 
   @override
