@@ -5,9 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:watcher/watcher.dart';
 
-import '../core/local_media_scanner.dart';
-import '../data/local/json_store.dart';
-import '../core/settings.dart';
+import '../../core/local_media_scanner.dart';
+import '../settings/settings_controller.dart';
+import 'json_store.dart';
 
 /// 本地媒体库索引：存 JSON（与仓库其它本地数据一致），并监听目录变化自动更新。
 ///
