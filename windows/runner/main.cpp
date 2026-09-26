@@ -316,6 +316,21 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
   return DefWindowProc(window, message, wparam, lparam);
 }
 
+/// 命令行参数（跳过第 0 个程序路径）转成 UTF-8 交给 Dart 入口。
+///
+/// 只有 han1me:// 这类 scheme 唤起会带参数，正常双击启动时这个列表是空的。
+static std::vector<std::string> Utf8CommandLineArguments() {
+  std::vector<std::string> arguments;
+  for (int i = 1; i < __argc; ++i) {
+    const std::wstring wide = __wargv[i];
+    const int size = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()), nullptr, 0, nullptr, nullptr);
+    std::string utf8(static_cast<size_t>(size), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()), utf8.data(), size, nullptr, nullptr);
+    arguments.push_back(utf8);
+  }
+  return arguments;
+}
+
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command) {
   const auto instance_mutex = CreateMutexW(nullptr, TRUE, kInstanceMutexName);
   if (instance_mutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -356,6 +371,9 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   RECT bounds{};
   GetClientRect(window, &bounds);
   flutter::DartProject project(L"data");
+  // 自定义 URL scheme（han1me://…）是系统用命令行参数把链接递给本进程的，
+  // 转交给 Dart 才能在应用里直接跳到对应页面。
+  project.set_dart_entrypoint_arguments(Utf8CommandLineArguments());
   // Prefer the discrete GPU when the machine has more than one.
   project.set_gpu_preference(flutter::GpuPreference::HighPerformancePreference);
   // The UI isolate already runs on its own thread by default; pinning the policy

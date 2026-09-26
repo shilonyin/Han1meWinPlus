@@ -15,7 +15,10 @@ import 'app_theme.dart';
 import 'startup_effects.dart';
 
 class Han1meApp extends ConsumerStatefulWidget {
-  const Han1meApp({super.key});
+  const Han1meApp({super.key, this.initialLink});
+
+  /// scheme 唤起带来的链接，交给启动流程在首页栈就绪后跳转。
+  final Uri? initialLink;
 
   @override
   ConsumerState<Han1meApp> createState() => _Han1meAppState();
@@ -51,6 +54,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
             child: AppStartupEffects(
               navigatorKey: _appRouter.navigatorKey,
               exitCoordinator: _exitCoordinator,
+              initialLink: widget.initialLink,
               child: MediaQuery(
                 data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
                 child: AppLockGate(child: child ?? const SizedBox.shrink()),

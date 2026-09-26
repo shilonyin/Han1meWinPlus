@@ -9,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../core/app_notifications.dart';
+import '../core/deep_link.dart';
 import '../core/global_hotkeys.dart';
 import '../core/platform_service.dart';
 import '../core/settings.dart';
@@ -21,11 +22,13 @@ import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
 
 class AppStartupEffects extends ConsumerStatefulWidget {
-  const AppStartupEffects({super.key, required this.navigatorKey, required this.exitCoordinator, required this.child});
+  const AppStartupEffects({super.key, required this.navigatorKey, required this.exitCoordinator, required this.child, this.initialLink});
 
   final GlobalKey<NavigatorState> navigatorKey;
   final AppExitCoordinator exitCoordinator;
   final Widget child;
+  /// 由 `han1me://` scheme 唤起时带来的链接（命令行参数解析得到），null 表示正常启动。
+  final Uri? initialLink;
 
   @override
   ConsumerState<AppStartupEffects> createState() => _AppStartupEffectsState();
@@ -85,6 +88,17 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
         _applyWindowBackdrop(settings);
       }
     }, fireImmediately: true);
+    final link = widget.initialLink;
+    if (link != null) {
+      // 等首页那一栈建好再跳，否则 navigator 还没挂载、push 会被丢掉。
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialLink(link));
+    }
+  }
+
+  Future<void> _openInitialLink(Uri link) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!mounted) return;
+    await DeepLink.open(link, widget.navigatorKey);
   }
 
   @override
