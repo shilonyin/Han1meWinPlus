@@ -98,7 +98,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   Future<void> _openInitialLink(Uri link) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     if (!mounted) return;
-    await DeepLink.open(link, widget.navigatorKey);
+    DeepLink.open(link, widget.navigatorKey);
   }
 
   @override

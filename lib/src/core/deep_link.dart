@@ -43,11 +43,11 @@ class DeepLink {
   }
 
   /// 应用启动后跳转：替换掉默认首页，直接落在链接指向的页面。
-  static Future<void> open(Uri uri, GlobalKey<NavigatorState> navigatorKey) async {
+  static void open(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
     final route = routeFor(uri);
     if (route == null) return;
     final context = navigatorKey.currentContext;
     if (context == null) return;
-    await context.pushReplacement(route);
+    context.pushReplacement(route);
   }
 }
