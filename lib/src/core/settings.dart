@@ -126,6 +126,7 @@ class AppSettings {
     this.windowBackdrop = WindowBackdrop.none,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
+    this.localMediaDirectory = '',
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -228,6 +229,8 @@ class AppSettings {
   final bool notificationsEnabled;
   /// libmpv 渲染后端。切到 Vulkan / D3D11 才能用上 compute shader（为 ArtCNN 铺路）。
   final MpvGpuApi gpuApi;
+  /// 本地媒体库目录：非空时扫描其中的视频并监听增删（见 `LocalMediaRepository`）。
+  final String localMediaDirectory;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -339,6 +342,7 @@ class AppSettings {
         'windowBackdrop': windowBackdrop.name,
         'notificationsEnabled': notificationsEnabled,
         'gpuApi': gpuApi.name,
+        'localMediaDirectory': localMediaDirectory,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -428,6 +432,7 @@ class AppSettings {
         windowBackdrop: _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ?? WindowBackdrop.none,
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         gpuApi: _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ?? MpvGpuApi.auto,
+        localMediaDirectory: json['localMediaDirectory'] as String? ?? '',
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -572,6 +577,7 @@ class AppSettings {
     WindowBackdrop? windowBackdrop,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
+    String? localMediaDirectory,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -660,6 +666,7 @@ class AppSettings {
         windowBackdrop: windowBackdrop ?? this.windowBackdrop,
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
         gpuApi: gpuApi ?? this.gpuApi,
+        localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

@@ -12,6 +12,7 @@ import '../../core/settings.dart';
 import '../../core/platform_paths.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/video_meta_cache.dart';
+import '../library/local_media_page.dart';
 import '../shared/app_toast.dart';
 import 'backup_settings_page.dart';
 import 'settings_controller.dart';
@@ -59,6 +60,9 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
           SettingsCardItem(title: l10n.exportDownloads, subtitle: l10n.exportDownloadsDescription, leading: const Icon(Icons.drive_folder_upload_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _exportDownloads(context, ref)),
           _SliderTile(icon: Icons.speed_outlined, title: l10n.downloadSpeedLimit, value: settings.downloadSpeedLimitMbps, min: 0, max: 20, divisions: 40, label: settings.downloadSpeedLimitMbps == 0 ? l10n.unlimited : '${settings.downloadSpeedLimitMbps.toStringAsFixed(1)} MB/s', onChanged: (value) => controller.saveChanges((current) => current.copyWith(downloadSpeedLimitMbps: value))),
           _SliderTile(icon: Icons.download_for_offline_outlined, title: l10n.concurrentDownloads, subtitle: l10n.concurrentDownloadsDescription(settings.concurrentDownloads), value: settings.concurrentDownloads.toDouble(), min: 1, max: 5, divisions: 4, label: '${settings.concurrentDownloads}', onChanged: (value) => controller.saveChanges((current) => current.copyWith(concurrentDownloads: value.round()))),
+        ]),
+        SettingsCardList(title: l10n.localMedia, children: [
+          SettingsCardItem(title: l10n.localMediaDirectory, subtitle: settings.localMediaDirectory.isEmpty ? l10n.localMediaHint : settings.localMediaDirectory, leading: const Icon(Icons.movie_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalMediaPage()))),
         ]),
         SettingsCardList(title: l10n.cache, children: [
           SettingsCardItem(title: l10n.clearCache, subtitle: cacheSize == null ? l10n.clearCacheDescription : l10n.cacheUsage(CacheCleaner.formatSize(cacheSize)), leading: const Icon(Icons.cleaning_services_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => unawaited(_clearCache())),

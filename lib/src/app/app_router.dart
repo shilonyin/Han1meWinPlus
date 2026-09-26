@@ -14,6 +14,7 @@ import '../features/cache/cache_page.dart';
 import '../features/comics/comic_pages.dart';
 import '../features/explore/explore_page.dart';
 import '../features/library/library_page.dart';
+import '../features/library/local_media_page.dart';
 import '../features/navigation/app_shell.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/previews/getchu_preview_detail_page.dart';
@@ -135,6 +136,7 @@ class AppRouter {
         GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
         GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
         GoRoute(path: '/video/:id', builder: (context, state) => VideoPage(id: state.pathParameters['id']!, localVideo: state.extra as VideoDetail?)),
+        GoRoute(path: '/local-media', builder: (context, state) => const LocalMediaPage()),
         GoRoute(path: '/comics/browse', builder: (context, state) => ComicBrowsePage(target: state.extra as ComicBrowseTarget? ?? const ComicBrowseTarget('/comics'))),
         GoRoute(path: '/comics/:id/read', builder: (context, state) => ComicReaderPage(comic: state.extra! as ComicDetail)),
         GoRoute(path: '/comics/:id', builder: (context, state) => ComicDetailPage(id: state.pathParameters['id']!)),

@@ -1814,6 +1814,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get localMedia => 'Local media library';
+
+  @override
+  String get localMediaDirectory => 'Local media folder';
+
+  @override
+  String get localMediaPickDirectory => 'Choose folder';
+
+  @override
+  String get localMediaRescan => 'Rescan';
+
+  @override
+  String get localMediaHint => 'Pick a folder and scan it for video files';
+
+  @override
+  String get localMediaEmpty => 'No videos scanned yet — pick a folder first';
+
+  @override
   String get gpuApi => 'Render backend (gpu-api)';
 
   @override

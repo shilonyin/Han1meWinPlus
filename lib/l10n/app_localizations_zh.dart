@@ -1759,6 +1759,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get localMedia => '本地媒体库';
+
+  @override
+  String get localMediaDirectory => '本地媒体目录';
+
+  @override
+  String get localMediaPickDirectory => '选择目录';
+
+  @override
+  String get localMediaRescan => '重新扫描';
+
+  @override
+  String get localMediaHint => '选择一个目录，扫描其中的视频文件';
+
+  @override
+  String get localMediaEmpty => '还没有扫描到视频，先选个目录试试';
+
+  @override
   String get gpuApi => '渲染后端（gpu-api）';
 
   @override
@@ -4196,6 +4214,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
+
+  @override
+  String get localMedia => '本地媒體庫';
+
+  @override
+  String get localMediaDirectory => '本地媒體目錄';
+
+  @override
+  String get localMediaPickDirectory => '選擇目錄';
+
+  @override
+  String get localMediaRescan => '重新掃描';
+
+  @override
+  String get localMediaHint => '選擇一個目錄，掃描其中的影片檔案';
+
+  @override
+  String get localMediaEmpty => '還沒掃描到影片，先選個目錄試試';
 
   @override
   String get gpuApi => '渲染後端（gpu-api）';

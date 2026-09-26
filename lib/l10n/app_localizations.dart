@@ -3302,6 +3302,42 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @localMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Local media library'**
+  String get localMedia;
+
+  /// No description provided for @localMediaDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Local media folder'**
+  String get localMediaDirectory;
+
+  /// No description provided for @localMediaPickDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose folder'**
+  String get localMediaPickDirectory;
+
+  /// No description provided for @localMediaRescan.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan'**
+  String get localMediaRescan;
+
+  /// No description provided for @localMediaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a folder and scan it for video files'**
+  String get localMediaHint;
+
+  /// No description provided for @localMediaEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos scanned yet — pick a folder first'**
+  String get localMediaEmpty;
+
   /// No description provided for @gpuApi.
   ///
   /// In en, this message translates to:
