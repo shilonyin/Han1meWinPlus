@@ -72,6 +72,9 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
     final comicMode = settings?.comicMode ?? false;
     final drawerMode = settings?.useNavigationDrawer ?? false;
     final largeScreen = MediaQuery.sizeOf(context).shortestSide >= 600;
+    // MD3 的窗口尺寸档位：compact <600（底部条）、medium 600–840（侧栏只留图标）、
+    // expanded >840（侧栏图标 + 文字一起展开）。抽屉模式不变，仍是常驻窄侧栏。
+    final railExpanded = MediaQuery.sizeOf(context).width > 840;
     final permanentDrawer = drawerMode && largeScreen;
     final useRail = !drawerMode && largeScreen;
     final destinations = [
@@ -113,7 +116,11 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
                     children: [
                       NavigationRail(
                         selectedIndex: widget.navigationShell.currentIndex,
-                        labelType: NavigationRailLabelType.all,
+                        // 宽屏按 MD3 的 expanded 档展开（图标 + 文字并排），中等宽度收成
+                        // 只显示图标，窄窗口才落到底部条。
+                        extended: railExpanded,
+                        labelType: railExpanded ? NavigationRailLabelType.all : NavigationRailLabelType.none,
+                        minWidth: railExpanded ? 192 : 72,
                         // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
                         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                         onDestinationSelected: select,
