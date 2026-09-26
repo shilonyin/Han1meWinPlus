@@ -1814,6 +1814,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get notifications => 'Desktop notifications';
+
+  @override
+  String get notificationsDescription => 'Notify when a download finishes or a new version is available';
+
+  @override
+  String get downloadComplete => 'Download complete';
+
+  @override
+  String get updateAvailable => 'New version available';
+
+  @override
   String get windowBackdrop => 'Window backdrop';
 
   @override

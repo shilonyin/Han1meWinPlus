@@ -3302,6 +3302,30 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Desktop notifications'**
+  String get notifications;
+
+  /// No description provided for @notificationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a download finishes or a new version is available'**
+  String get notificationsDescription;
+
+  /// No description provided for @downloadComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get downloadComplete;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available'**
+  String get updateAvailable;
+
   /// No description provided for @windowBackdrop.
   ///
   /// In en, this message translates to:

@@ -1759,6 +1759,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get notifications => '桌面通知';
+
+  @override
+  String get notificationsDescription => '下载完成、发现新版本时弹出系统通知';
+
+  @override
+  String get downloadComplete => '下载完成';
+
+  @override
+  String get updateAvailable => '发现新版本';
+
+  @override
   String get windowBackdrop => '窗口背景材质';
 
   @override
@@ -4169,6 +4181,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get windowBackdrop => '視窗背景材質';
+
+  @override
+  String get notifications => '桌面通知';
+
+  @override
+  String get notificationsDescription => '下載完成、發現新版本時彈出系統通知';
+
+  @override
+  String get downloadComplete => '下載完成';
+
+  @override
+  String get updateAvailable => '發現新版本';
 
   @override
   String get windowBackdropOff => '關閉（純色）';

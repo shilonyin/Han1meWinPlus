@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'src/app.dart';
+import 'src/core/app_notifications.dart';
 import 'src/core/media_player_initializer.dart';
 import 'src/core/playback_speed_policy.dart';
 import 'src/core/settings.dart';
@@ -22,6 +23,9 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
   PaintingBinding.instance.imageCache.maximumSize = 2000;
   final loadedSettings = await SettingsStore(JsonStore()).load();
+  // Toast 通知要在 runApp 之前初始化（Windows 侧要建开始菜单快捷方式）。
+  AppNotifications.enabled = loadedSettings.notificationsEnabled;
+  await AppNotifications.ensureInitialized();
   // The runner shows the window before the engine is up, so the title bar style
   // has to be applied from here. Doing it before runApp keeps the change on the
   // splash screen instead of on the first painted frame.

@@ -117,6 +117,7 @@ class AppSettings {
     this.minimizeToTray = false,
     this.globalHotkeysEnabled = false,
     this.windowBackdrop = WindowBackdrop.none,
+    this.notificationsEnabled = true,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -215,6 +216,8 @@ class AppSettings {
   final bool globalHotkeysEnabled;
   /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
   final WindowBackdrop windowBackdrop;
+  /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
+  final bool notificationsEnabled;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -324,6 +327,7 @@ class AppSettings {
         'minimizeToTray': minimizeToTray,
         'globalHotkeysEnabled': globalHotkeysEnabled,
         'windowBackdrop': windowBackdrop.name,
+        'notificationsEnabled': notificationsEnabled,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -411,6 +415,7 @@ class AppSettings {
         minimizeToTray: json['minimizeToTray'] as bool? ?? false,
         globalHotkeysEnabled: json['globalHotkeysEnabled'] as bool? ?? false,
         windowBackdrop: _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ?? WindowBackdrop.none,
+        notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -553,6 +558,7 @@ class AppSettings {
     bool? minimizeToTray,
     bool? globalHotkeysEnabled,
     WindowBackdrop? windowBackdrop,
+    bool? notificationsEnabled,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -639,6 +645,7 @@ class AppSettings {
         minimizeToTray: minimizeToTray ?? this.minimizeToTray,
         globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
         windowBackdrop: windowBackdrop ?? this.windowBackdrop,
+        notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

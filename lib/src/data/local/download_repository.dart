@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
+import '../../core/app_notifications.dart';
 import '../../core/settings.dart';
 import '../../core/platform_paths.dart';
 import '../../core/platform_service.dart';
@@ -346,6 +347,8 @@ class DownloadController extends AsyncNotifier<DownloadState> {
       // 下载途中被暂停：`.part` 已经写好了，别再往下标记成完成。
       if (_paused.contains(task.id)) return;
       await _replace(task.id, (value) => value.copyWith(status: DownloadStatus.completed, progress: 1, localVideoPath: video.path, localMetaPath: meta.path, clearError: true));
+      // 下载常常在后台跑完，用户不一定盯着界面，补一条系统通知。
+      await AppNotifications.downloadFinished(task.title);
     } catch (error) {
       if (_paused.contains(task.id)) return;
       await _replace(task.id, (value) => value.copyWith(status: DownloadStatus.failed, errorMessage: '$error'));

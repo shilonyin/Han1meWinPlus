@@ -5,8 +5,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../core/app_notifications.dart';
 import '../core/global_hotkeys.dart';
 import '../core/platform_service.dart';
 import '../core/settings.dart';
@@ -66,6 +68,12 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
           previousSettings.language != settings.language) {
         _applyTraySettings(settings);
       }
+      // 通知开关与文案（文案取自当前语言，语言变了要跟着换）。
+      AppNotifications.enabled = settings.notificationsEnabled;
+      final l10n = AppLocalizations.of(widget.navigatorKey.currentContext ?? context);
+      if (l10n != null) {
+        AppNotifications.texts = NotificationTexts(downloadComplete: l10n.downloadComplete, updateAvailable: l10n.updateAvailable);
+      }
       if (previousSettings == null || previousSettings.globalHotkeysEnabled != settings.globalHotkeysEnabled) {
         unawaited(GlobalHotkeys.setEnabled(settings.globalHotkeysEnabled));
       }
@@ -109,6 +117,16 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     ));
   }
 
+  /// 读取窗口聚焦状态；读不到（非桌面端 / 插件异常）就当作在前台，走界面弹窗。
+  Future<bool> _isWindowFocused() async {
+    try {
+      await windowManager.ensureInitialized();
+      return await windowManager.isFocused();
+    } catch (_) {
+      return true;
+    }
+  }
+
   /// 材质的深浅由**实际生效的**主题决定（`system` 模式要跟系统走），
   /// 所以从 context 里读而非直接用 `themeMode`。
   void _applyWindowBackdrop(AppSettings settings) {
@@ -131,6 +149,12 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   Future<void> _checkForUpdate(bool useUpdateMirror) async {
     final update = await ref.read(updateCheckerProvider).check();
     if (!mounted || update == null) return;
+    // 窗口没在前台（比如收在托盘里）时界面弹窗没人看，改用系统通知。
+    final focused = await _isWindowFocused();
+    if (!focused) {
+      await AppNotifications.updateAvailable(update.tagName);
+      return;
+    }
     final context = widget.navigatorKey.currentContext;
     if (context == null) return;
     final l10n = AppLocalizations.of(context)!;

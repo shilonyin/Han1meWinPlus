@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_notifications.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
@@ -104,6 +105,13 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
                   subtitle: l10n.globalHotkeysDescription,
                   leading: const Icon(Icons.keyboard_outlined),
                   trailing: Switch(value: settings.globalHotkeysEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(globalHotkeysEnabled: value))),
+                ),
+              if (AppNotifications.isSupported)
+                SettingsCardItem(
+                  title: l10n.notifications,
+                  subtitle: l10n.notificationsDescription,
+                  leading: const Icon(Icons.notifications_outlined),
+                  trailing: Switch(value: settings.notificationsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(notificationsEnabled: value))),
                 ),
               if (WindowBackdropEffect.isSupported)
                 SettingsCardItem(
