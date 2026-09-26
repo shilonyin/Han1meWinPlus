@@ -240,6 +240,16 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 本仓库是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的修改版本：依据 AGPL-3.0 保留原作者署名、公开全部修改后的源代码，且不提供任何额外授权。分发本仓库（含编译后的二进制）时必须一并提供对应源码。
 
+### 第三方组件
+
+本应用在 AGPL-3.0 之外使用了以下第三方组件，其原始许可证独立保留：
+
+- **Anime4K**（[github.com/bloc97/Anime4K](https://github.com/bloc97/Anime4K)，MIT License，Copyright (c) 2019 bloc97）
+  - 用途：播放器超分辨率着色器（CNN 修复 / 放大、Clamp、AutoDownscale 等档位）
+  - 源文件位置：`assets/shaders/*.glsl`
+  - 原始许可证：`assets/shaders/LICENSE`（MIT，原样保留）
+  - 兼容性：MIT 与 AGPL-3.0 兼容，着色器文件作为独立组件按 MIT 条款分发
+
 本应用为非官方客户端。使用者须自负合规审查责任，确保自身行为符合所访问平台的服务条款及适用法律。
 
 本应用仅供年满 18 周岁的成年人使用。
@@ -255,6 +265,10 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 [Han1meViewer](https://github.com/misaka10032w/Han1meViewer)
 
 一个优秀的开源项目，为本项目提供了参考与灵感。
+
+[Anime4K](https://github.com/bloc97/Anime4K)
+
+由 bloc97 开发的开源动漫超分辨率着色器，本应用播放器的超分辨率能力基于此实现（MIT License）。
 
 如果这个项目对你有帮助，欢迎点亮 Star ⭐
 

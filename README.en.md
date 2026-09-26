@@ -240,6 +240,16 @@ This project is licensed under [AGPL v3.0](LICENSE); users must comply strictly 
 
 This repository is a modified version of [Han1mePlus](https://github.com/1wc10086/Han1mePlus): in accordance with AGPL-3.0 it retains the original author's attribution, publishes all modified source code, and grants no additional permissions. Distributing this repository (including compiled binaries) requires providing the corresponding source code alongside it.
 
+### Third-Party Components
+
+Besides AGPL-3.0, this application uses the following third-party components, whose original licenses are retained independently:
+
+- **Anime4K** ([github.com/bloc97/Anime4K](https://github.com/bloc97/Anime4K), MIT License, Copyright (c) 2019 bloc97)
+  - Purpose: player super-resolution shaders (CNN restore / upscale, Clamp, AutoDownsize, etc.)
+  - Source files: `assets/shaders/*.glsl`
+  - Original license: `assets/shaders/LICENSE` (MIT, kept verbatim)
+  - Compatibility: MIT is compatible with AGPL-3.0; the shader files are distributed as an independent component under the MIT terms
+
 This application is an unofficial client. Users are responsible for their own compliance review and must ensure their behaviour complies with the terms of service of the platforms they access and with applicable law.
 
 This application is intended for adults aged 18 or over only.
@@ -255,6 +265,10 @@ The upstream project of this branch; all of the base code in the Windows-focused
 [Han1meViewer](https://github.com/misaka10032w/Han1meViewer)
 
 An excellent open-source project that provided reference and inspiration.
+
+[Anime4K](https://github.com/bloc97/Anime4K)
+
+An open-source anime super-resolution shader set by bloc97; the player's super-resolution capability is built on it (MIT License).
 
 If this project is useful to you, a ⭐ would be appreciated.
 
