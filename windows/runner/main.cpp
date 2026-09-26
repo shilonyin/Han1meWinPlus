@@ -20,13 +20,6 @@
 // (linux/flutter/generated_plugin_registrant.h) can be found first. That header
 // includes flutter_linux/flutter_linux.h and cannot be compiled on Windows.
 #include "../flutter/generated_plugin_registrant.h"
-// Kept from the earlier "floating player window" design: it registers plugins
-// for any extra Flutter engine the desktop_multi_window plugin spawns, so a
-// secondary window still gets window_manager / media_kit implementations
-// instead of silently missing them. The app no longer opens such a window
-// (the mini player is an in-app overlay now), so this callback simply never
-// fires; leaving it in place keeps the runner compatible if one is added back.
-#include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "resource.h"
 
 // Ask the graphics driver to put us on the discrete GPU. On hybrid systems the
@@ -394,11 +387,6 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.controller = std::make_unique<flutter::FlutterViewController>(bounds.right, bounds.bottom, project);
   if (!app.controller->engine() || !app.controller->view()) return EXIT_FAILURE;
   RegisterPlugins(app.controller->engine());
-  DesktopMultiWindowSetWindowCreatedCallback([](void* controller) {
-    auto* flutter_view_controller = reinterpret_cast<flutter::FlutterViewController*>(controller);
-    auto* registry = flutter_view_controller->engine();
-    RegisterPlugins(registry);
-  });
   const auto flutter_view = app.controller->view()->GetNativeWindow();
   SetParent(flutter_view, window);
   // Showing the window above happened before the Flutter view existed, so that
