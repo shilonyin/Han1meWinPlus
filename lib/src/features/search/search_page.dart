@@ -14,6 +14,7 @@ import '../settings/settings_controller.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
+import '../video/play_window.dart';
 import 'search_controller.dart';
 
 const _searchColumns = 4;
@@ -155,7 +156,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   video: video,
                                   horizontal: true,
                                   coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
-                                  onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
+                                  // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+                                  onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
                                 ),
                               ),
                             ),

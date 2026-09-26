@@ -11,6 +11,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_toast.dart';
+import '../video/play_window.dart';
 import 'preview_grid.dart';
 
 final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>((ref, month) async {
@@ -261,20 +262,21 @@ class _PreviewHeader extends StatelessWidget {
       );
 }
 
-class _PreviewCard extends StatelessWidget {
+class _PreviewCard extends ConsumerWidget {
   const _PreviewCard({required this.item});
 
   final PreviewItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/video/${item.id}'),
+        // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+        onTap: () => openVideo(context, ref, item.id),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

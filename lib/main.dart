@@ -15,18 +15,28 @@ import 'src/core/window_chrome.dart';
 import 'src/data/local/json_store.dart';
 import 'src/data/local/update_installer.dart';
 import 'src/features/settings/settings_controller.dart';
+import 'src/features/video/play_window.dart';
+import 'src/features/video/play_window_app.dart';
 
 Future<void> main(List<String> args) async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
+  // 独立播放窗口（多进程多窗口）：`--play-window --video=<id>` 启动的进程只渲染
+  // 播放页，不进主应用的启动流程（托盘 / 热键 / 更新检查都不参与）。
+  // 注意这不是 desktop_multi_window 的多引擎方案——那套与手写 runner 不兼容
+  //（副窗口一创建主窗口引擎就假死，见 windows/runner/main.cpp 的 NOTE）；
+  // 这里每个播放窗口是独立进程，各有各的引擎与消息循环，互不影响。
+  final playWindow = PlayWindowArgs.fromArguments(args);
+  if (playWindow != null) {
+    await _runPlayWindow(playWindow);
+    return;
+  }
   // `han1me://` scheme 唤起时系统把链接放进命令行参数（runner 已转交 Dart）。
   final initialLink = DeepLink.fromArguments(args);
   // 列表页图片数量多（首页 + 搜索 + 库 + 预告），默认的 100MB / 1000 张容易被挤掉，
   // 被淘汰的图再滚回来就要重新解码甚至重新下载。桌面端内存宽裕，放宽一倍以上。
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
   PaintingBinding.instance.imageCache.maximumSize = 2000;
-  // 画中画是应用内悬浮层（见 PipOverlay），不再开独立窗口 / 第二套引擎，
-  // 所以这里不需要再判断「自己是不是被弹出来的那个副窗口」。
   final loadedSettings = await SettingsStore(JsonStore()).load();
   // Toast 通知要在 runApp 之前初始化（Windows 侧要建开始菜单快捷方式）。
   AppNotifications.enabled = loadedSettings.notificationsEnabled;
@@ -66,4 +76,19 @@ Future<void> _postLaunch() async {
       UpdateInstaller(Dio()).removeStaleUpdate(),
     ]);
   } catch (_) {}
+}
+
+/// 独立播放窗口的启动流程：只加载设置（主题 / 播放器参数跟主窗口共用同一份
+/// setting.json）、应用标题栏偏好、首帧后初始化播放内核，然后跑精简的
+/// [PlayWindowApp]。通知、深链、更新清理这些主窗口专属的启动步骤全部跳过。
+Future<void> _runPlayWindow(PlayWindowArgs args) async {
+  final settings = await SettingsStore(JsonStore()).load();
+  await WindowChrome.setUseSystemTitleBar(settings.useSystemTitleBar);
+  WidgetsBinding.instance.addPostFrameCallback((_) => MediaPlayerInitializer.bootstrap(settings));
+  runApp(
+    ProviderScope(
+      overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
+      child: PlayWindowApp(videoId: args.videoId),
+    ),
+  );
 }

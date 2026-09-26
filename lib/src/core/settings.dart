@@ -4,11 +4,24 @@ import 'package:flutter/material.dart';
 
 import '../data/local/json_store.dart';
 import 'platform_paths.dart';
+import 'player_hotkey_registry.dart';
 import 'video_decoders.dart';
 
 enum AppThemeMode { system, light, dark }
 
-enum AppThemeColor { rose, blue, teal, amber, green, orange, indigo, pink, purple, white, custom }
+enum AppThemeColor {
+  rose,
+  blue,
+  teal,
+  amber,
+  green,
+  orange,
+  indigo,
+  pink,
+  purple,
+  white,
+  custom,
+}
 
 enum AppLanguage { system, simplifiedChinese, traditionalChinese, english }
 
@@ -41,9 +54,12 @@ enum WindowBackdrop { none, mica, acrylic }
 
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) return const [PlayerEngine.libMpv];
-    if (Platform.isIOS) return const [PlayerEngine.avPlayer, PlayerEngine.libMpv];
-    if (Platform.isAndroid) return const [PlayerEngine.exoPlayer, PlayerEngine.libMpv];
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+      return const [PlayerEngine.libMpv];
+    if (Platform.isIOS)
+      return const [PlayerEngine.avPlayer, PlayerEngine.libMpv];
+    if (Platform.isAndroid)
+      return const [PlayerEngine.exoPlayer, PlayerEngine.libMpv];
     return const [PlayerEngine.libMpv];
   }
 
@@ -52,11 +68,11 @@ extension PlayerEngineX on PlayerEngine {
 
 extension VideoRendererX on VideoRenderer {
   String? get mpvValue => switch (this) {
-        VideoRenderer.auto => null,
-        VideoRenderer.gpu => 'gpu',
-        VideoRenderer.gpuNext => 'gpu-next',
-        VideoRenderer.mediacodecEmbed => 'mediacodec_embed',
-      };
+    VideoRenderer.auto => null,
+    VideoRenderer.gpu => 'gpu',
+    VideoRenderer.gpuNext => 'gpu-next',
+    VideoRenderer.mediacodecEmbed => 'mediacodec_embed',
+  };
 }
 
 const defaultDownloadPath = '';
@@ -121,8 +137,11 @@ class AppSettings {
     this.useNavigationDrawer = true,
     this.useSystemFont = false,
     this.useSystemTitleBar = true,
+    this.openVideoInWindow = true,
     this.minimizeToTray = false,
-    this.globalHotkeysEnabled = false,
+    this.globalHotkeysEnabled = true,
+    this.hotkeyBindings = const {},
+    this.hotkeyDefaultsMigrated = false,
     this.windowBackdrop = WindowBackdrop.none,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
@@ -162,6 +181,7 @@ class AppSettings {
   final AppLanguage language;
   final PlayerEngine playerEngine;
   final bool hardwareAcceleration;
+
   /// 传给 mpv 的 hwdec 值（仅在硬件解码开启时生效）
   final String hardwareDecoder;
   final VideoRenderer videoRenderer;
@@ -199,6 +219,7 @@ class AppSettings {
   final bool useCustomMirrorSite;
   final String customMirrorSite;
   final bool appendCustomMirrorPath;
+
   /// 是否按实测延迟自动优选内置候选地址（见 `AddressRanker`）。关闭则回到列表原顺序（IPv4 优先）。
   final bool useAddressRanking;
   final bool useDoh;
@@ -220,18 +241,42 @@ class AppSettings {
   final bool useNavigationDrawer;
   final bool useSystemFont;
   final bool useSystemTitleBar;
+
+  /// Windows：点击视频封面时弹出独立播放窗口（多进程），而不是在主窗口内跳转播放页。
+  /// 仅桌面 Windows 生效；其余平台恒为窗口内播放（见 `openVideo`）。
+  final bool openVideoInWindow;
+
   /// 关闭按钮收进系统托盘而不是退出（托盘菜单负责「显示窗口 / 退出」）。
   final bool minimizeToTray;
-  /// 注册系统级热键（窗口未激活时也生效），默认关闭以免和别的应用抢键。
+
+  /// 注册系统级热键（窗口未激活时也生效）。默认开启；全局键位统一带 Ctrl+Alt
+  /// 修饰，与其它软件的裸键冲突率很低。老配置里的 false 是旧版写死的默认值，
+  /// 由 [hotkeyDefaultsMigrated] 一次性迁移回 true，之后尊重用户选择。
   final bool globalHotkeysEnabled;
+
+  /// 快捷键的用户绑定（动作 id → 组合键字符串，见 `PlayerHotkeyRegistry`）。
+  /// 只存被改过的动作；空表 = 全部默认键位。应用内快捷键不受
+  /// [globalHotkeysEnabled] 开关控制（那是全局热键的总闸）。
+  final Map<String, String> hotkeyBindings;
+
+  /// 快捷键默认开启的一次性迁移标记。老版本的 [toJson] 把当时的默认值
+  /// `globalHotkeysEnabled: false` 全量写进了 setting.json，无法与「用户主动
+  /// 关闭」区分：没有此标记的配置在载入时会被强制置回 true；迁移后用户再
+  /// 关掉就是真关（标记随下一次设置保存落盘，不会再被迁移打扰）。
+  final bool hotkeyDefaultsMigrated;
+
   /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
   final WindowBackdrop windowBackdrop;
+
   /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
   final bool notificationsEnabled;
+
   /// libmpv 渲染后端。切到 Vulkan / D3D11 才能用上 compute shader（为 ArtCNN 铺路）。
   final MpvGpuApi gpuApi;
+
   /// 本地媒体库目录：非空时扫描其中的视频并监听增删（见 `LocalMediaRepository`）。
   final String localMediaDirectory;
+
   /// DLNA 接收端（PC 作投屏目标）：开启后在局域网里广播一个 MediaRenderer。
   /// 默认关——它会常驻监听 1900 端口并起一个本地 HTTP 服务。
   final bool dlnaReceiverEnabled;
@@ -263,10 +308,10 @@ class AppSettings {
   final String webDavPassword;
 
   ThemeMode get materialThemeMode => switch (themeMode) {
-        AppThemeMode.system => ThemeMode.system,
-        AppThemeMode.light => ThemeMode.light,
-        AppThemeMode.dark => ThemeMode.dark,
-      };
+    AppThemeMode.system => ThemeMode.system,
+    AppThemeMode.light => ThemeMode.light,
+    AppThemeMode.dark => ThemeMode.dark,
+  };
 
   bool get mirrorActive => useCustomMirrorSite && customMirrorSite.isNotEmpty;
 
@@ -274,7 +319,9 @@ class AppSettings {
 
   String get resolvedBaseUrl {
     if (!mirrorActive) return baseUrl;
-    return appendCustomMirrorPath ? customMirrorSite : _rootUrl(customMirrorSite);
+    return appendCustomMirrorPath
+        ? customMirrorSite
+        : _rootUrl(customMirrorSite);
   }
 
   static String _rootUrl(String url) {
@@ -283,186 +330,258 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'themeMode': themeMode.name,
-        'baseUrl': baseUrl,
-        'preferredQuality': preferredQuality,
-        'resumePlayback': resumePlayback,
-        'autoPlayOnOpen': autoPlayOnOpen,
-        'keyframesEnabled': keyframesEnabled,
-        'language': language.name,
-        'playerEngine': playerEngine.name,
-        'hardwareAcceleration': hardwareAcceleration,
-        'hardwareDecoder': hardwareDecoder,
-        'videoRenderer': videoRenderer.name,
-        'videoView': videoView.name,
-        'customParameters': customParameters,
-        'superResolutionMode': superResolutionMode.name,
-        'autoUpdate': autoUpdate,
-        'useUpdateMirror': useUpdateMirror,
-        'themeColor': themeColor.name,
-        'customThemeColor': customThemeColor,
-        'useMonetColors': useMonetColors,
-        'amoledMode': amoledMode,
-        'textScale': textScale,
-        'downloadSpeedLimitMbps': downloadSpeedLimitMbps,
-        'concurrentDownloads': concurrentDownloads,
-        'autoGroupDownloads': autoGroupDownloads,
-        'groupNameFromSeries': groupNameFromSeries,
-        'groupNameTraditional': groupNameTraditional,
-        'downloadPath': downloadPath,
-        'defaultPlaybackSpeed': defaultPlaybackSpeed,
-        'longPressPlaybackSpeed': longPressPlaybackSpeed,
-        'playerControlsTimeoutSeconds': playerControlsTimeoutSeconds,
-        'seekSensitivity': seekSensitivity,
-        'appLockEnabled': appLockEnabled,
-        'emergencyExitEnabled': emergencyExitEnabled,
-        'hideFromRecents': hideFromRecents,
-        'commentsEnabled': commentsEnabled,
-        'blockedCommentKeywords': blockedCommentKeywords,
-        'comicMode': comicMode,
-        'previewSource': previewSource,
-        'videoBaseUrl': videoBaseUrl,
-        'useBuiltInHosts': useBuiltInHosts,
-        'useCustomMirrorSite': useCustomMirrorSite,
-        'customMirrorSite': customMirrorSite,
-        'appendCustomMirrorPath': appendCustomMirrorPath,
-        'useAddressRanking': useAddressRanking,
-        'useDoh': useDoh,
-        'dohPreset': dohPreset,
-        'dohCustomUrl': dohCustomUrl,
-        'dohBootstrapIps': dohBootstrapIps,
-        'dohTimeoutSeconds': dohTimeoutSeconds,
-        'proxyMode': proxyMode,
-        'customProxy': customProxy,
-        'useHorizontalSearchCards': useHorizontalSearchCards,
-        'searchCardsPerRow': searchCardsPerRow,
-        'useCompactSearchCards': useCompactSearchCards,
-        'expandHomeVideoCards': expandHomeVideoCards,
-        'useNavigationDrawer': useNavigationDrawer,
-        'useSystemFont': useSystemFont,
-        'useSystemTitleBar': useSystemTitleBar,
-        'minimizeToTray': minimizeToTray,
-        'globalHotkeysEnabled': globalHotkeysEnabled,
-        'windowBackdrop': windowBackdrop.name,
-        'notificationsEnabled': notificationsEnabled,
-        'gpuApi': gpuApi.name,
-        'localMediaDirectory': localMediaDirectory,
-        'dlnaReceiverEnabled': dlnaReceiverEnabled,
-        'useHomeCategoryTabs': useHomeCategoryTabs,
-        'homeQuickCategories': homeQuickCategories,
-        'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
-        'blockedAuthors': blockedAuthors,
-        'blockedVideoTags': blockedVideoTags,
-        'minimumVideoDurationSeconds': minimumVideoDurationSeconds,
-        'minimumVideoViews': minimumVideoViews,
-        'exemptSubscribedAuthors': exemptSubscribedAuthors,
-        'applyRecommendationFiltersToRelated': applyRecommendationFiltersToRelated,
-        'applyRecommendationFiltersToSearch': applyRecommendationFiltersToSearch,
-        'blockedCommentUsers': blockedCommentUsers,
-        'incognitoPlayback': incognitoPlayback,
-        'autoPlayNext': autoPlayNext,
-        'loopPlayback': loopPlayback,
-        'autoPictureInPicture': autoPictureInPicture,
-        'videoAspectRatio': videoAspectRatio.name,
-        'skipSeconds': skipSeconds,
-        'webDavEnabled': webDavEnabled,
-        'webDavHistorySync': webDavHistorySync,
-        'webDavFavoriteSync': webDavFavoriteSync,
-        'webDavUrl': webDavUrl,
-        'webDavUsername': webDavUsername,
-        'webDavPassword': webDavPassword,
-      };
+    'themeMode': themeMode.name,
+    'baseUrl': baseUrl,
+    'preferredQuality': preferredQuality,
+    'resumePlayback': resumePlayback,
+    'autoPlayOnOpen': autoPlayOnOpen,
+    'keyframesEnabled': keyframesEnabled,
+    'language': language.name,
+    'playerEngine': playerEngine.name,
+    'hardwareAcceleration': hardwareAcceleration,
+    'hardwareDecoder': hardwareDecoder,
+    'videoRenderer': videoRenderer.name,
+    'videoView': videoView.name,
+    'customParameters': customParameters,
+    'superResolutionMode': superResolutionMode.name,
+    'autoUpdate': autoUpdate,
+    'useUpdateMirror': useUpdateMirror,
+    'themeColor': themeColor.name,
+    'customThemeColor': customThemeColor,
+    'useMonetColors': useMonetColors,
+    'amoledMode': amoledMode,
+    'textScale': textScale,
+    'downloadSpeedLimitMbps': downloadSpeedLimitMbps,
+    'concurrentDownloads': concurrentDownloads,
+    'autoGroupDownloads': autoGroupDownloads,
+    'groupNameFromSeries': groupNameFromSeries,
+    'groupNameTraditional': groupNameTraditional,
+    'downloadPath': downloadPath,
+    'defaultPlaybackSpeed': defaultPlaybackSpeed,
+    'longPressPlaybackSpeed': longPressPlaybackSpeed,
+    'playerControlsTimeoutSeconds': playerControlsTimeoutSeconds,
+    'seekSensitivity': seekSensitivity,
+    'appLockEnabled': appLockEnabled,
+    'emergencyExitEnabled': emergencyExitEnabled,
+    'hideFromRecents': hideFromRecents,
+    'commentsEnabled': commentsEnabled,
+    'blockedCommentKeywords': blockedCommentKeywords,
+    'comicMode': comicMode,
+    'previewSource': previewSource,
+    'videoBaseUrl': videoBaseUrl,
+    'useBuiltInHosts': useBuiltInHosts,
+    'useCustomMirrorSite': useCustomMirrorSite,
+    'customMirrorSite': customMirrorSite,
+    'appendCustomMirrorPath': appendCustomMirrorPath,
+    'useAddressRanking': useAddressRanking,
+    'useDoh': useDoh,
+    'dohPreset': dohPreset,
+    'dohCustomUrl': dohCustomUrl,
+    'dohBootstrapIps': dohBootstrapIps,
+    'dohTimeoutSeconds': dohTimeoutSeconds,
+    'proxyMode': proxyMode,
+    'customProxy': customProxy,
+    'useHorizontalSearchCards': useHorizontalSearchCards,
+    'searchCardsPerRow': searchCardsPerRow,
+    'useCompactSearchCards': useCompactSearchCards,
+    'expandHomeVideoCards': expandHomeVideoCards,
+    'useNavigationDrawer': useNavigationDrawer,
+    'useSystemFont': useSystemFont,
+    'useSystemTitleBar': useSystemTitleBar,
+    'openVideoInWindow': openVideoInWindow,
+    'minimizeToTray': minimizeToTray,
+    'globalHotkeysEnabled': globalHotkeysEnabled,
+    'hotkeyBindings': hotkeyBindings,
+    'hotkeyDefaultsMigrated': hotkeyDefaultsMigrated,
+    'windowBackdrop': windowBackdrop.name,
+    'notificationsEnabled': notificationsEnabled,
+    'gpuApi': gpuApi.name,
+    'localMediaDirectory': localMediaDirectory,
+    'dlnaReceiverEnabled': dlnaReceiverEnabled,
+    'useHomeCategoryTabs': useHomeCategoryTabs,
+    'homeQuickCategories': homeQuickCategories,
+    'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
+    'blockedAuthors': blockedAuthors,
+    'blockedVideoTags': blockedVideoTags,
+    'minimumVideoDurationSeconds': minimumVideoDurationSeconds,
+    'minimumVideoViews': minimumVideoViews,
+    'exemptSubscribedAuthors': exemptSubscribedAuthors,
+    'applyRecommendationFiltersToRelated': applyRecommendationFiltersToRelated,
+    'applyRecommendationFiltersToSearch': applyRecommendationFiltersToSearch,
+    'blockedCommentUsers': blockedCommentUsers,
+    'incognitoPlayback': incognitoPlayback,
+    'autoPlayNext': autoPlayNext,
+    'loopPlayback': loopPlayback,
+    'autoPictureInPicture': autoPictureInPicture,
+    'videoAspectRatio': videoAspectRatio.name,
+    'skipSeconds': skipSeconds,
+    'webDavEnabled': webDavEnabled,
+    'webDavHistorySync': webDavHistorySync,
+    'webDavFavoriteSync': webDavFavoriteSync,
+    'webDavUrl': webDavUrl,
+    'webDavUsername': webDavUsername,
+    'webDavPassword': webDavPassword,
+  };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        themeMode: _themeMode(json['themeMode'] as String?),
-        baseUrl: json['baseUrl'] as String? ?? 'https://hanime1.com',
-        preferredQuality: json['preferredQuality'] as int? ?? 720,
-        resumePlayback: json['resumePlayback'] as bool? ?? true,
-        autoPlayOnOpen: json['autoPlayOnOpen'] as bool? ?? true,
-        keyframesEnabled: json['keyframesEnabled'] as bool? ?? true,
-        language: _language(json['language'] as String?),
-        playerEngine: _playerEngine(json['playerEngine'] as String?),
-        hardwareAcceleration: json['hardwareAcceleration'] as bool? ?? true,
-        hardwareDecoder: knownHardwareDecoder(json['hardwareDecoder'] as String?),
-        videoRenderer: _enumByName(VideoRenderer.values, json['videoRenderer'] as String?) ?? VideoRenderer.auto,
-        videoView: _enumByName(VideoView.values, json['videoView'] as String?) ?? VideoView.platformView,
-        customParameters: (json['customParameters'] as List? ?? const []).whereType<String>().toList(),
-        superResolutionMode: _enumByName(SuperResolutionMode.values, json['superResolutionMode'] as String?) ?? SuperResolutionMode.off,
-        autoUpdate: json['autoUpdate'] as bool? ?? true,
-        useUpdateMirror: json['useUpdateMirror'] as bool? ?? true,
-        themeColor: _themeColor(json['themeColor'] as String?),
-        customThemeColor: _hexColor(json['customThemeColor'] as String?),
-        useMonetColors: json['useMonetColors'] as bool? ?? false,
-        amoledMode: json['amoledMode'] as bool? ?? false,
-        textScale: ((json['textScale'] as num?)?.toDouble() ?? 1).clamp(.8, 1.4).toDouble(),
-        downloadSpeedLimitMbps: (json['downloadSpeedLimitMbps'] as num?)?.toDouble() ?? 0,
-        concurrentDownloads: (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5) as int,
-        autoGroupDownloads: json['autoGroupDownloads'] as bool? ?? true,
-        groupNameFromSeries: json['groupNameFromSeries'] as bool? ?? false,
-        groupNameTraditional: json['groupNameTraditional'] as bool? ?? false,
-        downloadPath: json['downloadPath'] as String? ?? defaultDownloadPath,
-        defaultPlaybackSpeed: ((json['defaultPlaybackSpeed'] as num?)?.toDouble() ?? 1).clamp(.25, 3).toDouble(),
-        longPressPlaybackSpeed: ((json['longPressPlaybackSpeed'] as num?)?.toDouble() ?? 2).clamp(1, 3).toDouble(),
-        playerControlsTimeoutSeconds: (json['playerControlsTimeoutSeconds'] as int? ?? 4).clamp(1, 15) as int,
-        seekSensitivity: ((json['seekSensitivity'] as num?)?.toDouble() ?? .35).clamp(.1, 1).toDouble(),
-        appLockEnabled: json['appLockEnabled'] as bool? ?? false,
-        emergencyExitEnabled: json['emergencyExitEnabled'] as bool? ?? false,
-        hideFromRecents: json['hideFromRecents'] as bool? ?? false,
-        commentsEnabled: json['commentsEnabled'] as bool? ?? true,
-        blockedCommentKeywords: (json['blockedCommentKeywords'] as List? ?? const []).whereType<String>().toList(),
-        comicMode: json['comicMode'] as bool? ?? false,
-        previewSource: _previewSource(json['previewSource'] as String?),
-        videoBaseUrl: json['videoBaseUrl'] as String? ?? (json['baseUrl'] == 'https://hanimeone.me' ? 'https://hanime1.com' : json['baseUrl'] as String? ?? 'https://hanime1.com'),
-        useBuiltInHosts: json['useBuiltInHosts'] as bool? ?? Platform.isWindows || Platform.isLinux || Platform.isMacOS,
-        useCustomMirrorSite: json['useCustomMirrorSite'] as bool? ?? false,
-        customMirrorSite: _mirrorUrl(json['customMirrorSite'] as String?),
-        appendCustomMirrorPath: json['appendCustomMirrorPath'] as bool? ?? true,
-        useAddressRanking: json['useAddressRanking'] as bool? ?? true,
-        useDoh: json['useDoh'] as bool? ?? false,
-        dohPreset: _dohPreset(json['dohPreset'] as String?),
-        dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
-        dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
-        dohTimeoutSeconds: (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60) as int,
-        proxyMode: _proxyMode(json['proxyMode'] as String?),
-        customProxy: (json['customProxy'] as String? ?? '').trim(),
-        useHorizontalSearchCards: json['useHorizontalSearchCards'] as bool? ?? true,
-        searchCardsPerRow: (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3) as int,
-        useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
-        expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
-        useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? true,
-        useSystemFont: json['useSystemFont'] as bool? ?? false,
-        useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
-        minimizeToTray: json['minimizeToTray'] as bool? ?? false,
-        globalHotkeysEnabled: json['globalHotkeysEnabled'] as bool? ?? false,
-        windowBackdrop: _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ?? WindowBackdrop.none,
-        notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
-        gpuApi: _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ?? MpvGpuApi.auto,
-        localMediaDirectory: json['localMediaDirectory'] as String? ?? '',
-        dlnaReceiverEnabled: json['dlnaReceiverEnabled'] as bool? ?? false,
-        useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
-        homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
-        blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
-        blockedAuthors: (json['blockedAuthors'] as List? ?? const []).whereType<String>().toList(),
-        blockedVideoTags: (json['blockedVideoTags'] as List? ?? const []).whereType<String>().toList(),
-        minimumVideoDurationSeconds: (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400) as int,
-        minimumVideoViews: (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000) as int,
-        exemptSubscribedAuthors: json['exemptSubscribedAuthors'] as bool? ?? true,
-        applyRecommendationFiltersToRelated: json['applyRecommendationFiltersToRelated'] as bool? ?? true,
-        applyRecommendationFiltersToSearch: json['applyRecommendationFiltersToSearch'] as bool? ?? true,
-        blockedCommentUsers: (json['blockedCommentUsers'] as List? ?? const []).whereType<String>().toList(),
-        incognitoPlayback: json['incognitoPlayback'] as bool? ?? false,
-        autoPlayNext: json['autoPlayNext'] as bool? ?? false,
-        loopPlayback: json['loopPlayback'] as bool? ?? false,
-        autoPictureInPicture: json['autoPictureInPicture'] as bool? ?? false,
-        videoAspectRatio: _enumByName(VideoAspectRatio.values, json['videoAspectRatio'] as String?) ?? VideoAspectRatio.auto,
-        skipSeconds: (json['skipSeconds'] as int? ?? 80).clamp(1, 3600) as int,
-        webDavEnabled: json['webDavEnabled'] as bool? ?? false,
-        webDavHistorySync: json['webDavHistorySync'] as bool? ?? false,
-        webDavFavoriteSync: json['webDavFavoriteSync'] as bool? ?? false,
-        webDavUrl: json['webDavUrl'] as String? ?? '',
-        webDavUsername: json['webDavUsername'] as String? ?? '',
-        webDavPassword: json['webDavPassword'] as String? ?? '',
-      );
+    themeMode: _themeMode(json['themeMode'] as String?),
+    baseUrl: json['baseUrl'] as String? ?? 'https://hanime1.com',
+    preferredQuality: json['preferredQuality'] as int? ?? 720,
+    resumePlayback: json['resumePlayback'] as bool? ?? true,
+    autoPlayOnOpen: json['autoPlayOnOpen'] as bool? ?? true,
+    keyframesEnabled: json['keyframesEnabled'] as bool? ?? true,
+    language: _language(json['language'] as String?),
+    playerEngine: _playerEngine(json['playerEngine'] as String?),
+    hardwareAcceleration: json['hardwareAcceleration'] as bool? ?? true,
+    hardwareDecoder: knownHardwareDecoder(json['hardwareDecoder'] as String?),
+    videoRenderer:
+        _enumByName(VideoRenderer.values, json['videoRenderer'] as String?) ??
+        VideoRenderer.auto,
+    videoView:
+        _enumByName(VideoView.values, json['videoView'] as String?) ??
+        VideoView.platformView,
+    customParameters: (json['customParameters'] as List? ?? const [])
+        .whereType<String>()
+        .toList(),
+    superResolutionMode:
+        _enumByName(
+          SuperResolutionMode.values,
+          json['superResolutionMode'] as String?,
+        ) ??
+        SuperResolutionMode.off,
+    autoUpdate: json['autoUpdate'] as bool? ?? true,
+    useUpdateMirror: json['useUpdateMirror'] as bool? ?? true,
+    themeColor: _themeColor(json['themeColor'] as String?),
+    customThemeColor: _hexColor(json['customThemeColor'] as String?),
+    useMonetColors: json['useMonetColors'] as bool? ?? false,
+    amoledMode: json['amoledMode'] as bool? ?? false,
+    textScale: ((json['textScale'] as num?)?.toDouble() ?? 1)
+        .clamp(.8, 1.4)
+        .toDouble(),
+    downloadSpeedLimitMbps:
+        (json['downloadSpeedLimitMbps'] as num?)?.toDouble() ?? 0,
+    concurrentDownloads:
+        (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5) as int,
+    autoGroupDownloads: json['autoGroupDownloads'] as bool? ?? true,
+    groupNameFromSeries: json['groupNameFromSeries'] as bool? ?? false,
+    groupNameTraditional: json['groupNameTraditional'] as bool? ?? false,
+    downloadPath: json['downloadPath'] as String? ?? defaultDownloadPath,
+    defaultPlaybackSpeed:
+        ((json['defaultPlaybackSpeed'] as num?)?.toDouble() ?? 1)
+            .clamp(.25, 3)
+            .toDouble(),
+    longPressPlaybackSpeed:
+        ((json['longPressPlaybackSpeed'] as num?)?.toDouble() ?? 2)
+            .clamp(1, 3)
+            .toDouble(),
+    playerControlsTimeoutSeconds:
+        (json['playerControlsTimeoutSeconds'] as int? ?? 4).clamp(1, 15) as int,
+    seekSensitivity: ((json['seekSensitivity'] as num?)?.toDouble() ?? .35)
+        .clamp(.1, 1)
+        .toDouble(),
+    appLockEnabled: json['appLockEnabled'] as bool? ?? false,
+    emergencyExitEnabled: json['emergencyExitEnabled'] as bool? ?? false,
+    hideFromRecents: json['hideFromRecents'] as bool? ?? false,
+    commentsEnabled: json['commentsEnabled'] as bool? ?? true,
+    blockedCommentKeywords:
+        (json['blockedCommentKeywords'] as List? ?? const [])
+            .whereType<String>()
+            .toList(),
+    comicMode: json['comicMode'] as bool? ?? false,
+    previewSource: _previewSource(json['previewSource'] as String?),
+    videoBaseUrl:
+        json['videoBaseUrl'] as String? ??
+        (json['baseUrl'] == 'https://hanimeone.me'
+            ? 'https://hanime1.com'
+            : json['baseUrl'] as String? ?? 'https://hanime1.com'),
+    useBuiltInHosts:
+        json['useBuiltInHosts'] as bool? ??
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS,
+    useCustomMirrorSite: json['useCustomMirrorSite'] as bool? ?? false,
+    customMirrorSite: _mirrorUrl(json['customMirrorSite'] as String?),
+    appendCustomMirrorPath: json['appendCustomMirrorPath'] as bool? ?? true,
+    useAddressRanking: json['useAddressRanking'] as bool? ?? true,
+    useDoh: json['useDoh'] as bool? ?? false,
+    dohPreset: _dohPreset(json['dohPreset'] as String?),
+    dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
+    dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
+    dohTimeoutSeconds:
+        (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60) as int,
+    proxyMode: _proxyMode(json['proxyMode'] as String?),
+    customProxy: (json['customProxy'] as String? ?? '').trim(),
+    useHorizontalSearchCards: json['useHorizontalSearchCards'] as bool? ?? true,
+    searchCardsPerRow:
+        (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3) as int,
+    useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
+    expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
+    useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? true,
+    useSystemFont: json['useSystemFont'] as bool? ?? false,
+    useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
+    openVideoInWindow: json['openVideoInWindow'] as bool? ?? true,
+    minimizeToTray: json['minimizeToTray'] as bool? ?? false,
+    // 老用户强制迁移：见 [hotkeyDefaultsMigrated] 的说明 —— 没有迁移标记的
+    // 配置一律视为「从未主动选择过」，全局热键强制回默认开启。
+    globalHotkeysEnabled: (json['hotkeyDefaultsMigrated'] as bool? ?? false)
+        ? (json['globalHotkeysEnabled'] as bool? ?? true)
+        : true,
+    hotkeyBindings: PlayerHotkeyRegistry.sanitizeStoredBindings(
+      json['hotkeyBindings'] as Map?,
+    ),
+    hotkeyDefaultsMigrated: true,
+    windowBackdrop:
+        _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ??
+        WindowBackdrop.none,
+    notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+    gpuApi:
+        _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ??
+        MpvGpuApi.auto,
+    localMediaDirectory: json['localMediaDirectory'] as String? ?? '',
+    dlnaReceiverEnabled: json['dlnaReceiverEnabled'] as bool? ?? false,
+    useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
+    homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const [])
+        .whereType<String>()
+        .toList(),
+    blockedVideoTitleKeywords:
+        (json['blockedVideoTitleKeywords'] as List? ?? const [])
+            .whereType<String>()
+            .toList(),
+    blockedAuthors: (json['blockedAuthors'] as List? ?? const [])
+        .whereType<String>()
+        .toList(),
+    blockedVideoTags: (json['blockedVideoTags'] as List? ?? const [])
+        .whereType<String>()
+        .toList(),
+    minimumVideoDurationSeconds:
+        (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400)
+            as int,
+    minimumVideoViews:
+        (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000) as int,
+    exemptSubscribedAuthors: json['exemptSubscribedAuthors'] as bool? ?? true,
+    applyRecommendationFiltersToRelated:
+        json['applyRecommendationFiltersToRelated'] as bool? ?? true,
+    applyRecommendationFiltersToSearch:
+        json['applyRecommendationFiltersToSearch'] as bool? ?? true,
+    blockedCommentUsers: (json['blockedCommentUsers'] as List? ?? const [])
+        .whereType<String>()
+        .toList(),
+    incognitoPlayback: json['incognitoPlayback'] as bool? ?? false,
+    autoPlayNext: json['autoPlayNext'] as bool? ?? false,
+    loopPlayback: json['loopPlayback'] as bool? ?? false,
+    autoPictureInPicture: json['autoPictureInPicture'] as bool? ?? false,
+    videoAspectRatio:
+        _enumByName(
+          VideoAspectRatio.values,
+          json['videoAspectRatio'] as String?,
+        ) ??
+        VideoAspectRatio.auto,
+    skipSeconds: (json['skipSeconds'] as int? ?? 80).clamp(1, 3600) as int,
+    webDavEnabled: json['webDavEnabled'] as bool? ?? false,
+    webDavHistorySync: json['webDavHistorySync'] as bool? ?? false,
+    webDavFavoriteSync: json['webDavFavoriteSync'] as bool? ?? false,
+    webDavUrl: json['webDavUrl'] as String? ?? '',
+    webDavUsername: json['webDavUsername'] as String? ?? '',
+    webDavPassword: json['webDavPassword'] as String? ?? '',
+  );
 
   static AppThemeMode _themeMode(String? name) {
     for (final mode in AppThemeMode.values) {
@@ -471,13 +590,13 @@ class AppSettings {
     return AppThemeMode.system;
   }
 
-  static AppThemeColor _themeColor(String? name) => AppThemeColor.values
-      .where((value) => value.name == name)
-      .firstOrNull ?? AppThemeColor.purple;
+  static AppThemeColor _themeColor(String? name) =>
+      AppThemeColor.values.where((value) => value.name == name).firstOrNull ??
+      AppThemeColor.purple;
 
-  static AppLanguage _language(String? name) => AppLanguage.values
-      .where((value) => value.name == name)
-       .firstOrNull ?? AppLanguage.system;
+  static AppLanguage _language(String? name) =>
+      AppLanguage.values.where((value) => value.name == name).firstOrNull ??
+      AppLanguage.system;
 
   static PlayerEngine _playerEngine(String? name) {
     final parsed = _enumByName(PlayerEngine.values, name);
@@ -494,28 +613,35 @@ class AppSettings {
 
   static String _hexColor(String? value) {
     final normalized = value?.replaceFirst('#', '').toUpperCase() ?? '';
-    return RegExp(r'^[0-9A-F]{6}$').hasMatch(normalized) ? normalized : '62539F';
+    return RegExp(r'^[0-9A-F]{6}$').hasMatch(normalized)
+        ? normalized
+        : '62539F';
   }
 
   static String _dohPreset(String? value) => switch (value) {
-        'alidns' || 'dnspod' || 'cloudflare' || 'custom' => value!,
-        _ => 'alidns',
-      };
+    'alidns' || 'dnspod' || 'cloudflare' || 'custom' => value!,
+    _ => 'alidns',
+  };
 
   static String _proxyMode(String? value) => switch (value) {
-        'system' || 'direct' || 'custom' => value!,
-        _ => 'system',
-      };
+    'system' || 'direct' || 'custom' => value!,
+    _ => 'system',
+  };
 
   static String _previewSource(String? value) => switch (value) {
-        'auto' || 'default' || 'getchu' => value!,
-        _ => 'auto',
-      };
+    'auto' || 'default' || 'getchu' => value!,
+    _ => 'auto',
+  };
 
   static String _mirrorUrl(String? value) {
     final normalized = value?.trim().replaceAll(RegExp(r'/+$'), '') ?? '';
     final uri = Uri.tryParse(normalized);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty || uri.hasQuery || uri.hasFragment) return '';
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host.isEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment)
+      return '';
     return normalized;
   }
 
@@ -578,8 +704,11 @@ class AppSettings {
     bool? useNavigationDrawer,
     bool? useSystemFont,
     bool? useSystemTitleBar,
+    bool? openVideoInWindow,
     bool? minimizeToTray,
     bool? globalHotkeysEnabled,
+    Map<String, String>? hotkeyBindings,
+    bool? hotkeyDefaultsMigrated,
     WindowBackdrop? windowBackdrop,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
@@ -608,99 +737,114 @@ class AppSettings {
     String? webDavUrl,
     String? webDavUsername,
     String? webDavPassword,
-  }) =>
-      AppSettings(
-        themeMode: themeMode ?? this.themeMode,
-        baseUrl: baseUrl ?? this.baseUrl,
-        preferredQuality: preferredQuality ?? this.preferredQuality,
-        resumePlayback: resumePlayback ?? this.resumePlayback,
-        autoPlayOnOpen: autoPlayOnOpen ?? this.autoPlayOnOpen,
-        keyframesEnabled: keyframesEnabled ?? this.keyframesEnabled,
-        language: language ?? this.language,
-        playerEngine: playerEngine ?? this.playerEngine,
-        hardwareAcceleration: hardwareAcceleration ?? this.hardwareAcceleration,
-        hardwareDecoder: hardwareDecoder ?? this.hardwareDecoder,
-        videoRenderer: videoRenderer ?? this.videoRenderer,
-        videoView: videoView ?? this.videoView,
-        customParameters: customParameters ?? this.customParameters,
-        superResolutionMode: superResolutionMode ?? this.superResolutionMode,
-        autoUpdate: autoUpdate ?? this.autoUpdate,
-        useUpdateMirror: useUpdateMirror ?? this.useUpdateMirror,
-        themeColor: themeColor ?? this.themeColor,
-        customThemeColor: customThemeColor ?? this.customThemeColor,
-        useMonetColors: useMonetColors ?? this.useMonetColors,
-        amoledMode: amoledMode ?? this.amoledMode,
-        textScale: textScale ?? this.textScale,
-        downloadSpeedLimitMbps: downloadSpeedLimitMbps ?? this.downloadSpeedLimitMbps,
-        concurrentDownloads: concurrentDownloads ?? this.concurrentDownloads,
-        autoGroupDownloads: autoGroupDownloads ?? this.autoGroupDownloads,
-        groupNameFromSeries: groupNameFromSeries ?? this.groupNameFromSeries,
-        groupNameTraditional: groupNameTraditional ?? this.groupNameTraditional,
-        downloadPath: downloadPath ?? this.downloadPath,
-        defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
-        longPressPlaybackSpeed: longPressPlaybackSpeed ?? this.longPressPlaybackSpeed,
-        playerControlsTimeoutSeconds: playerControlsTimeoutSeconds ?? this.playerControlsTimeoutSeconds,
-        seekSensitivity: seekSensitivity ?? this.seekSensitivity,
-        appLockEnabled: appLockEnabled ?? this.appLockEnabled,
-        emergencyExitEnabled: emergencyExitEnabled ?? this.emergencyExitEnabled,
-        hideFromRecents: hideFromRecents ?? this.hideFromRecents,
-        commentsEnabled: commentsEnabled ?? this.commentsEnabled,
-        blockedCommentKeywords: blockedCommentKeywords ?? this.blockedCommentKeywords,
-        comicMode: comicMode ?? this.comicMode,
-        previewSource: previewSource ?? this.previewSource,
-        videoBaseUrl: videoBaseUrl ?? this.videoBaseUrl,
-        useBuiltInHosts: useBuiltInHosts ?? this.useBuiltInHosts,
-        useCustomMirrorSite: useCustomMirrorSite ?? this.useCustomMirrorSite,
-        customMirrorSite: customMirrorSite ?? this.customMirrorSite,
-        appendCustomMirrorPath: appendCustomMirrorPath ?? this.appendCustomMirrorPath,
-        useAddressRanking: useAddressRanking ?? this.useAddressRanking,
-        useDoh: useDoh ?? this.useDoh,
-        dohPreset: dohPreset ?? this.dohPreset,
-        dohCustomUrl: dohCustomUrl ?? this.dohCustomUrl,
-        dohBootstrapIps: dohBootstrapIps ?? this.dohBootstrapIps,
-        dohTimeoutSeconds: dohTimeoutSeconds ?? this.dohTimeoutSeconds,
-        proxyMode: proxyMode ?? this.proxyMode,
-        customProxy: customProxy ?? this.customProxy,
-        useHorizontalSearchCards: useHorizontalSearchCards ?? this.useHorizontalSearchCards,
-        searchCardsPerRow: searchCardsPerRow ?? this.searchCardsPerRow,
-        useCompactSearchCards: useCompactSearchCards ?? this.useCompactSearchCards,
-        expandHomeVideoCards: expandHomeVideoCards ?? this.expandHomeVideoCards,
-        useNavigationDrawer: useNavigationDrawer ?? this.useNavigationDrawer,
-        useSystemFont: useSystemFont ?? this.useSystemFont,
-        useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
-        minimizeToTray: minimizeToTray ?? this.minimizeToTray,
-        globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
-        windowBackdrop: windowBackdrop ?? this.windowBackdrop,
-        notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-        gpuApi: gpuApi ?? this.gpuApi,
-        localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,
-        dlnaReceiverEnabled: dlnaReceiverEnabled ?? this.dlnaReceiverEnabled,
-        useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
-        homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
-        blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,
-        blockedAuthors: blockedAuthors ?? this.blockedAuthors,
-        blockedVideoTags: blockedVideoTags ?? this.blockedVideoTags,
-        minimumVideoDurationSeconds: minimumVideoDurationSeconds ?? this.minimumVideoDurationSeconds,
-        minimumVideoViews: minimumVideoViews ?? this.minimumVideoViews,
-        exemptSubscribedAuthors: exemptSubscribedAuthors ?? this.exemptSubscribedAuthors,
-        applyRecommendationFiltersToRelated: applyRecommendationFiltersToRelated ?? this.applyRecommendationFiltersToRelated,
-        applyRecommendationFiltersToSearch: applyRecommendationFiltersToSearch ?? this.applyRecommendationFiltersToSearch,
-        blockedCommentUsers: blockedCommentUsers ?? this.blockedCommentUsers,
-        incognitoPlayback: incognitoPlayback ?? this.incognitoPlayback,
-        autoPlayNext: autoPlayNext ?? this.autoPlayNext,
-        loopPlayback: loopPlayback ?? this.loopPlayback,
-        autoPictureInPicture: autoPictureInPicture ?? this.autoPictureInPicture,
-        videoAspectRatio: videoAspectRatio ?? this.videoAspectRatio,
-        skipSeconds: skipSeconds ?? this.skipSeconds,
-        webDavEnabled: webDavEnabled ?? this.webDavEnabled,
-        webDavHistorySync: webDavHistorySync ?? this.webDavHistorySync,
-        webDavFavoriteSync: webDavFavoriteSync ?? this.webDavFavoriteSync,
-        webDavUrl: webDavUrl ?? this.webDavUrl,
-        webDavUsername: webDavUsername ?? this.webDavUsername,
-        webDavPassword: webDavPassword ?? this.webDavPassword,
-      );
+  }) => AppSettings(
+    themeMode: themeMode ?? this.themeMode,
+    baseUrl: baseUrl ?? this.baseUrl,
+    preferredQuality: preferredQuality ?? this.preferredQuality,
+    resumePlayback: resumePlayback ?? this.resumePlayback,
+    autoPlayOnOpen: autoPlayOnOpen ?? this.autoPlayOnOpen,
+    keyframesEnabled: keyframesEnabled ?? this.keyframesEnabled,
+    language: language ?? this.language,
+    playerEngine: playerEngine ?? this.playerEngine,
+    hardwareAcceleration: hardwareAcceleration ?? this.hardwareAcceleration,
+    hardwareDecoder: hardwareDecoder ?? this.hardwareDecoder,
+    videoRenderer: videoRenderer ?? this.videoRenderer,
+    videoView: videoView ?? this.videoView,
+    customParameters: customParameters ?? this.customParameters,
+    superResolutionMode: superResolutionMode ?? this.superResolutionMode,
+    autoUpdate: autoUpdate ?? this.autoUpdate,
+    useUpdateMirror: useUpdateMirror ?? this.useUpdateMirror,
+    themeColor: themeColor ?? this.themeColor,
+    customThemeColor: customThemeColor ?? this.customThemeColor,
+    useMonetColors: useMonetColors ?? this.useMonetColors,
+    amoledMode: amoledMode ?? this.amoledMode,
+    textScale: textScale ?? this.textScale,
+    downloadSpeedLimitMbps:
+        downloadSpeedLimitMbps ?? this.downloadSpeedLimitMbps,
+    concurrentDownloads: concurrentDownloads ?? this.concurrentDownloads,
+    autoGroupDownloads: autoGroupDownloads ?? this.autoGroupDownloads,
+    groupNameFromSeries: groupNameFromSeries ?? this.groupNameFromSeries,
+    groupNameTraditional: groupNameTraditional ?? this.groupNameTraditional,
+    downloadPath: downloadPath ?? this.downloadPath,
+    defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
+    longPressPlaybackSpeed:
+        longPressPlaybackSpeed ?? this.longPressPlaybackSpeed,
+    playerControlsTimeoutSeconds:
+        playerControlsTimeoutSeconds ?? this.playerControlsTimeoutSeconds,
+    seekSensitivity: seekSensitivity ?? this.seekSensitivity,
+    appLockEnabled: appLockEnabled ?? this.appLockEnabled,
+    emergencyExitEnabled: emergencyExitEnabled ?? this.emergencyExitEnabled,
+    hideFromRecents: hideFromRecents ?? this.hideFromRecents,
+    commentsEnabled: commentsEnabled ?? this.commentsEnabled,
+    blockedCommentKeywords:
+        blockedCommentKeywords ?? this.blockedCommentKeywords,
+    comicMode: comicMode ?? this.comicMode,
+    previewSource: previewSource ?? this.previewSource,
+    videoBaseUrl: videoBaseUrl ?? this.videoBaseUrl,
+    useBuiltInHosts: useBuiltInHosts ?? this.useBuiltInHosts,
+    useCustomMirrorSite: useCustomMirrorSite ?? this.useCustomMirrorSite,
+    customMirrorSite: customMirrorSite ?? this.customMirrorSite,
+    appendCustomMirrorPath:
+        appendCustomMirrorPath ?? this.appendCustomMirrorPath,
+    useAddressRanking: useAddressRanking ?? this.useAddressRanking,
+    useDoh: useDoh ?? this.useDoh,
+    dohPreset: dohPreset ?? this.dohPreset,
+    dohCustomUrl: dohCustomUrl ?? this.dohCustomUrl,
+    dohBootstrapIps: dohBootstrapIps ?? this.dohBootstrapIps,
+    dohTimeoutSeconds: dohTimeoutSeconds ?? this.dohTimeoutSeconds,
+    proxyMode: proxyMode ?? this.proxyMode,
+    customProxy: customProxy ?? this.customProxy,
+    useHorizontalSearchCards:
+        useHorizontalSearchCards ?? this.useHorizontalSearchCards,
+    searchCardsPerRow: searchCardsPerRow ?? this.searchCardsPerRow,
+    useCompactSearchCards: useCompactSearchCards ?? this.useCompactSearchCards,
+    expandHomeVideoCards: expandHomeVideoCards ?? this.expandHomeVideoCards,
+    useNavigationDrawer: useNavigationDrawer ?? this.useNavigationDrawer,
+    useSystemFont: useSystemFont ?? this.useSystemFont,
+    useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
+    openVideoInWindow: openVideoInWindow ?? this.openVideoInWindow,
+    minimizeToTray: minimizeToTray ?? this.minimizeToTray,
+    globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
+    hotkeyBindings: hotkeyBindings ?? this.hotkeyBindings,
+    hotkeyDefaultsMigrated:
+        hotkeyDefaultsMigrated ?? this.hotkeyDefaultsMigrated,
+    windowBackdrop: windowBackdrop ?? this.windowBackdrop,
+    notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    gpuApi: gpuApi ?? this.gpuApi,
+    localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,
+    dlnaReceiverEnabled: dlnaReceiverEnabled ?? this.dlnaReceiverEnabled,
+    useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
+    homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
+    blockedVideoTitleKeywords:
+        blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,
+    blockedAuthors: blockedAuthors ?? this.blockedAuthors,
+    blockedVideoTags: blockedVideoTags ?? this.blockedVideoTags,
+    minimumVideoDurationSeconds:
+        minimumVideoDurationSeconds ?? this.minimumVideoDurationSeconds,
+    minimumVideoViews: minimumVideoViews ?? this.minimumVideoViews,
+    exemptSubscribedAuthors:
+        exemptSubscribedAuthors ?? this.exemptSubscribedAuthors,
+    applyRecommendationFiltersToRelated:
+        applyRecommendationFiltersToRelated ??
+        this.applyRecommendationFiltersToRelated,
+    applyRecommendationFiltersToSearch:
+        applyRecommendationFiltersToSearch ??
+        this.applyRecommendationFiltersToSearch,
+    blockedCommentUsers: blockedCommentUsers ?? this.blockedCommentUsers,
+    incognitoPlayback: incognitoPlayback ?? this.incognitoPlayback,
+    autoPlayNext: autoPlayNext ?? this.autoPlayNext,
+    loopPlayback: loopPlayback ?? this.loopPlayback,
+    autoPictureInPicture: autoPictureInPicture ?? this.autoPictureInPicture,
+    videoAspectRatio: videoAspectRatio ?? this.videoAspectRatio,
+    skipSeconds: skipSeconds ?? this.skipSeconds,
+    webDavEnabled: webDavEnabled ?? this.webDavEnabled,
+    webDavHistorySync: webDavHistorySync ?? this.webDavHistorySync,
+    webDavFavoriteSync: webDavFavoriteSync ?? this.webDavFavoriteSync,
+    webDavUrl: webDavUrl ?? this.webDavUrl,
+    webDavUsername: webDavUsername ?? this.webDavUsername,
+    webDavPassword: webDavPassword ?? this.webDavPassword,
+  );
 }
-
 
 class SettingsStore {
   SettingsStore(this._store);
@@ -715,5 +859,7 @@ class SettingsStore {
     await save(normalized);
     return normalized;
   }
-  Future<void> save(AppSettings value) async => _store.write(_fileName, value.toJson());
+
+  Future<void> save(AppSettings value) async =>
+      _store.write(_fileName, value.toJson());
 }

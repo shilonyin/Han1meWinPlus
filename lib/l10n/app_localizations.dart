@@ -3302,6 +3302,18 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @openVideoInWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Play videos in a separate window'**
+  String get openVideoInWindow;
+
+  /// No description provided for @openVideoInWindowDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Clicking a cover opens a standalone player window (like the bilibili client); turn off to play inside the main window'**
+  String get openVideoInWindowDescription;
+
   /// No description provided for @localMedia.
   ///
   /// In en, this message translates to:
@@ -3431,8 +3443,128 @@ abstract class AppLocalizations {
   /// No description provided for @globalHotkeysDescription.
   ///
   /// In en, this message translates to:
-  /// **'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode'**
+  /// **'Work even when the window is not focused. Bindings can be customized in Shortcuts'**
   String get globalHotkeysDescription;
+
+  /// No description provided for @settingsHotkeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts'**
+  String get settingsHotkeys;
+
+  /// No description provided for @hotkeyInAppSection.
+  ///
+  /// In en, this message translates to:
+  /// **'In-app shortcuts (player page)'**
+  String get hotkeyInAppSection;
+
+  /// No description provided for @hotkeyGlobalSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Global hotkeys'**
+  String get hotkeyGlobalSection;
+
+  /// No description provided for @hotkeyActionPlayPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Play / pause'**
+  String get hotkeyActionPlayPause;
+
+  /// No description provided for @hotkeyActionSeekBackward.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewind 5 seconds'**
+  String get hotkeyActionSeekBackward;
+
+  /// No description provided for @hotkeyActionSeekForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 5 seconds'**
+  String get hotkeyActionSeekForward;
+
+  /// No description provided for @hotkeyActionVolumeUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume up'**
+  String get hotkeyActionVolumeUp;
+
+  /// No description provided for @hotkeyActionVolumeDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume down'**
+  String get hotkeyActionVolumeDown;
+
+  /// No description provided for @hotkeyActionMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute / unmute'**
+  String get hotkeyActionMute;
+
+  /// No description provided for @hotkeyActionFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle fullscreen'**
+  String get hotkeyActionFullscreen;
+
+  /// No description provided for @hotkeyActionExitFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit fullscreen'**
+  String get hotkeyActionExitFullscreen;
+
+  /// No description provided for @hotkeyExitFullscreenFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed to Esc, not customizable'**
+  String get hotkeyExitFullscreenFixed;
+
+  /// No description provided for @hotkeyActionPreviousEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous episode'**
+  String get hotkeyActionPreviousEpisode;
+
+  /// No description provided for @hotkeyActionNextEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Next episode'**
+  String get hotkeyActionNextEpisode;
+
+  /// No description provided for @hotkeyActionToggleWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show / hide window'**
+  String get hotkeyActionToggleWindow;
+
+  /// No description provided for @hotkeyPressKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Press a new key combo (Esc to cancel)'**
+  String get hotkeyPressKeys;
+
+  /// No description provided for @hotkeyConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Conflicts with \"{action}\"'**
+  String hotkeyConflict(Object action);
+
+  /// No description provided for @hotkeyNeedModifier.
+  ///
+  /// In en, this message translates to:
+  /// **'Global hotkeys require a Ctrl / Alt / Shift modifier'**
+  String get hotkeyNeedModifier;
+
+  /// No description provided for @hotkeyResetDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get hotkeyResetDefaults;
+
+  /// No description provided for @hotkeyRegisterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some global hotkeys failed to register (possibly taken by other apps)'**
+  String get hotkeyRegisterFailed;
 
   /// No description provided for @trayShowWindow.
   ///
@@ -3463,6 +3595,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore'**
   String get restoreWindow;
+
+  /// No description provided for @pinWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep on top'**
+  String get pinWindow;
+
+  /// No description provided for @unpinWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop keeping on top'**
+  String get unpinWindow;
+
+  /// No description provided for @backToMainWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to main window'**
+  String get backToMainWindow;
 
   /// No description provided for @home.
   ///
@@ -4664,7 +4814,6 @@ abstract class AppLocalizations {
   /// **'Top'**
   String get backToTop;
 
-
   /// No description provided for @dlnaReceiver.
   ///
   /// In en, this message translates to:
@@ -4706,7 +4855,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load the cast media: {error}'**
   String castLoadFailed(Object error);
-
 }
 
 class _AppLocalizationsDelegate

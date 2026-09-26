@@ -1759,6 +1759,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get openVideoInWindow => '在独立窗口播放视频';
+
+  @override
+  String get openVideoInWindowDescription =>
+      '点击封面时弹出独立播放窗口（类似 b 站客户端），关闭后在主窗口内跳转播放页';
+
+  @override
   String get localMedia => '本地媒体库';
 
   @override
@@ -1823,8 +1830,69 @@ class AppLocalizationsZh extends AppLocalizations {
   String get globalHotkeys => '全局热键';
 
   @override
-  String get globalHotkeysDescription =>
-      '应用未激活时也生效：Ctrl+Alt+H 显示隐藏、Ctrl+Alt+空格 播放暂停、Ctrl+Alt+←/→ 上一集下一集';
+  String get globalHotkeysDescription => '应用未激活时也生效，键位可在「快捷键」中修改';
+
+  @override
+  String get settingsHotkeys => '快捷键';
+
+  @override
+  String get hotkeyInAppSection => '应用内快捷键（播放页）';
+
+  @override
+  String get hotkeyGlobalSection => '全局热键';
+
+  @override
+  String get hotkeyActionPlayPause => '播放 / 暂停';
+
+  @override
+  String get hotkeyActionSeekBackward => '快退 5 秒';
+
+  @override
+  String get hotkeyActionSeekForward => '快进 5 秒';
+
+  @override
+  String get hotkeyActionVolumeUp => '音量 +';
+
+  @override
+  String get hotkeyActionVolumeDown => '音量 −';
+
+  @override
+  String get hotkeyActionMute => '静音 / 取消静音';
+
+  @override
+  String get hotkeyActionFullscreen => '切换全屏';
+
+  @override
+  String get hotkeyActionExitFullscreen => '退出全屏';
+
+  @override
+  String get hotkeyExitFullscreenFixed => '固定为 Esc，不可更改';
+
+  @override
+  String get hotkeyActionPreviousEpisode => '上一集';
+
+  @override
+  String get hotkeyActionNextEpisode => '下一集';
+
+  @override
+  String get hotkeyActionToggleWindow => '显示 / 隐藏窗口';
+
+  @override
+  String get hotkeyPressKeys => '按下新组合键（Esc 取消）';
+
+  @override
+  String hotkeyConflict(Object action) {
+    return '与「$action」冲突';
+  }
+
+  @override
+  String get hotkeyNeedModifier => '全局热键需要 Ctrl / Alt / Shift 等修饰键';
+
+  @override
+  String get hotkeyResetDefaults => '恢复默认键位';
+
+  @override
+  String get hotkeyRegisterFailed => '部分全局热键注册失败（可能被其他软件占用）';
 
   @override
   String get trayShowWindow => '显示窗口';
@@ -1840,6 +1908,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get restoreWindow => '向下还原';
+
+  @override
+  String get pinWindow => '窗口置顶';
+
+  @override
+  String get unpinWindow => '取消置顶';
+
+  @override
+  String get backToMainWindow => '回到主界面';
 
   @override
   String get home => '主页';
@@ -4241,6 +4318,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
 
   @override
+  String get openVideoInWindow => '在獨立視窗播放影片';
+
+  @override
+  String get openVideoInWindowDescription =>
+      '點擊封面時彈出獨立播放視窗（類似 b 站用戶端），關閉後在主視窗內跳轉播放頁';
+
+  @override
   String get localMedia => '本地媒體庫';
 
   @override
@@ -4304,8 +4388,69 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get globalHotkeys => '全域快捷鍵';
 
   @override
-  String get globalHotkeysDescription =>
-      '應用未啟用時也生效：Ctrl+Alt+H 顯示隱藏、Ctrl+Alt+空格 播放暫停、Ctrl+Alt+←/→ 上一集下一集';
+  String get globalHotkeysDescription => '應用未啟用時也生效，鍵位可在「快捷鍵」中修改';
+
+  @override
+  String get settingsHotkeys => '快捷鍵';
+
+  @override
+  String get hotkeyInAppSection => '應用內快捷鍵（播放頁）';
+
+  @override
+  String get hotkeyGlobalSection => '全域快捷鍵';
+
+  @override
+  String get hotkeyActionPlayPause => '播放 / 暫停';
+
+  @override
+  String get hotkeyActionSeekBackward => '快退 5 秒';
+
+  @override
+  String get hotkeyActionSeekForward => '快進 5 秒';
+
+  @override
+  String get hotkeyActionVolumeUp => '音量 +';
+
+  @override
+  String get hotkeyActionVolumeDown => '音量 −';
+
+  @override
+  String get hotkeyActionMute => '靜音 / 取消靜音';
+
+  @override
+  String get hotkeyActionFullscreen => '切換全螢幕';
+
+  @override
+  String get hotkeyActionExitFullscreen => '退出全螢幕';
+
+  @override
+  String get hotkeyExitFullscreenFixed => '固定為 Esc，不可更改';
+
+  @override
+  String get hotkeyActionPreviousEpisode => '上一集';
+
+  @override
+  String get hotkeyActionNextEpisode => '下一集';
+
+  @override
+  String get hotkeyActionToggleWindow => '顯示 / 隱藏視窗';
+
+  @override
+  String get hotkeyPressKeys => '按下新組合鍵（Esc 取消）';
+
+  @override
+  String hotkeyConflict(Object action) {
+    return '與「$action」衝突';
+  }
+
+  @override
+  String get hotkeyNeedModifier => '全域快捷鍵需要 Ctrl / Alt / Shift 等修飾鍵';
+
+  @override
+  String get hotkeyResetDefaults => '恢復預設鍵位';
+
+  @override
+  String get hotkeyRegisterFailed => '部分全域快捷鍵註冊失敗（可能被其他軟體佔用）';
 
   @override
   String get trayShowWindow => '顯示視窗';
@@ -4321,6 +4466,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get restoreWindow => '向下還原';
+
+  @override
+  String get pinWindow => '視窗置頂';
+
+  @override
+  String get unpinWindow => '取消置頂';
+
+  @override
+  String get backToMainWindow => '回到主畫面';
 
   @override
   String get home => '首頁';
@@ -4947,7 +5101,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get dlnaReceiver => '投屏接收端';
 
   @override
-  String get dlnaReceiverDescription => '開啟後本機會在區域網路中廣播為 DLNA 渲染裝置，手機可直接投屏到這裡播放';
+  String get dlnaReceiverDescription =>
+      '開啟後本機會在區域網路中廣播為 DLNA 渲染裝置，手機可直接投屏到這裡播放';
 
   @override
   String get dlnaReceiverRunning => '已在區域網路廣播，手機搜尋到本裝置即可投屏';

@@ -18,6 +18,7 @@ import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
+import '../video/play_window.dart';
 import 'remote_library_controller.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
@@ -645,7 +646,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
               Text(l10n.playlistStats(playlist.playlist.count, playlist.viewCount ?? 0), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
               if (playlist.description?.isNotEmpty == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text(playlist.description!)),
               const SizedBox(height: 16),
-              Row(children: [Expanded(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => context.push('/video/${playlist.videos.first.videoCode}'), icon: const Icon(Icons.play_arrow), label: Text(l10n.playAll))), const SizedBox(width: 8), IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Icons.edit_outlined)), const SizedBox(width: 8), IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Icons.share_outlined))]),
+              Row(children: [Expanded(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => openVideo(context, ref, playlist.videos.first.videoCode), icon: const Icon(Icons.play_arrow), label: Text(l10n.playAll))), const SizedBox(width: 8), IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Icons.edit_outlined)), const SizedBox(width: 8), IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Icons.share_outlined))]),
               const SizedBox(height: 20),
               Row(children: [for (final value in ['latest', 'popular', 'oldest']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_sortLabel(l10n, value)), selected: _sort == value, onSelected: _editing ? null : (_) => _changeSort(value))), const Spacer(), TextButton.icon(onPressed: _editing ? _removeSelected : () => setState(() => _editing = true), icon: Icon(_editing ? Icons.delete_outline : Icons.edit_outlined), label: Text(_editing ? l10n.delete : l10n.edit))]),
               const SizedBox(height: 4),

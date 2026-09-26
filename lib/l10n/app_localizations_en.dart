@@ -1815,6 +1815,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get openVideoInWindow => 'Play videos in a separate window';
+
+  @override
+  String get openVideoInWindowDescription =>
+      'Clicking a cover opens a standalone player window (like the bilibili client); turn off to play inside the main window';
+
+  @override
   String get localMedia => 'Local media library';
 
   @override
@@ -1881,7 +1888,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get globalHotkeysDescription =>
-      'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode';
+      'Work even when the window is not focused. Bindings can be customized in Shortcuts';
+
+  @override
+  String get settingsHotkeys => 'Shortcuts';
+
+  @override
+  String get hotkeyInAppSection => 'In-app shortcuts (player page)';
+
+  @override
+  String get hotkeyGlobalSection => 'Global hotkeys';
+
+  @override
+  String get hotkeyActionPlayPause => 'Play / pause';
+
+  @override
+  String get hotkeyActionSeekBackward => 'Rewind 5 seconds';
+
+  @override
+  String get hotkeyActionSeekForward => 'Forward 5 seconds';
+
+  @override
+  String get hotkeyActionVolumeUp => 'Volume up';
+
+  @override
+  String get hotkeyActionVolumeDown => 'Volume down';
+
+  @override
+  String get hotkeyActionMute => 'Mute / unmute';
+
+  @override
+  String get hotkeyActionFullscreen => 'Toggle fullscreen';
+
+  @override
+  String get hotkeyActionExitFullscreen => 'Exit fullscreen';
+
+  @override
+  String get hotkeyExitFullscreenFixed => 'Fixed to Esc, not customizable';
+
+  @override
+  String get hotkeyActionPreviousEpisode => 'Previous episode';
+
+  @override
+  String get hotkeyActionNextEpisode => 'Next episode';
+
+  @override
+  String get hotkeyActionToggleWindow => 'Show / hide window';
+
+  @override
+  String get hotkeyPressKeys => 'Press a new key combo (Esc to cancel)';
+
+  @override
+  String hotkeyConflict(Object action) {
+    return 'Conflicts with \"$action\"';
+  }
+
+  @override
+  String get hotkeyNeedModifier =>
+      'Global hotkeys require a Ctrl / Alt / Shift modifier';
+
+  @override
+  String get hotkeyResetDefaults => 'Reset to defaults';
+
+  @override
+  String get hotkeyRegisterFailed =>
+      'Some global hotkeys failed to register (possibly taken by other apps)';
 
   @override
   String get trayShowWindow => 'Show Window';
@@ -1897,6 +1968,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreWindow => 'Restore';
+
+  @override
+  String get pinWindow => 'Keep on top';
+
+  @override
+  String get unpinWindow => 'Stop keeping on top';
+
+  @override
+  String get backToMainWindow => 'Back to main window';
 
   @override
   String get home => 'Home';
@@ -2549,10 +2629,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dlnaReceiver => 'Cast receiver';
 
   @override
-  String get dlnaReceiverDescription => 'Broadcast this PC as a DLNA renderer on the local network so phones can cast to it';
+  String get dlnaReceiverDescription =>
+      'Broadcast this PC as a DLNA renderer on the local network so phones can cast to it';
 
   @override
-  String get dlnaReceiverRunning => 'Broadcasting on the local network — pick this device from your phone to cast';
+  String get dlnaReceiverRunning =>
+      'Broadcasting on the local network — pick this device from your phone to cast';
 
   @override
   String get castWaiting => 'Waiting for a phone to cast…';

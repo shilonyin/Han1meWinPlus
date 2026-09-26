@@ -1,23 +1,24 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_image_cache.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../domain/models/video.dart';
+import '../video/play_window.dart';
 import 'video_card.dart';
 
 const compactVideoCardsPerRow = 3;
 
-class CompactVideoCard extends StatelessWidget {
+class CompactVideoCard extends ConsumerWidget {
   const CompactVideoCard({super.key, required this.video, this.onTap});
 
   final VideoCard video;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -27,7 +28,8 @@ class CompactVideoCard extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onTap ?? (video.id.isEmpty ? null : () => context.push('/video/${video.id}')),
+            // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+            onTap: onTap ?? (video.id.isEmpty ? null : () => openVideo(context, ref, video.id)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

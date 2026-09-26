@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import 'about_page.dart';
 import 'comment_settings_page.dart';
+import 'hotkey_settings_page.dart';
 import 'language_settings_page.dart';
 import 'layout_settings_page.dart';
 import 'network_settings_page.dart';
@@ -29,29 +30,104 @@ class _SettingsEntry {
 
 /// Grouped only where the group adds meaning; order matches the reading order
 /// of the old single-column list.
-List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) => [
-      (l10n.appearance, [
-        _SettingsEntry(Icons.palette_outlined, l10n.themeAndColor, const ThemeSettingsPage(), '/settings/theme'),
-        _SettingsEntry(Icons.dashboard_customize_outlined, l10n.interfaceLayout, const LayoutSettingsPage(), '/settings/layout'),
-      ]),
-      (l10n.playback, [
-        _SettingsEntry(Icons.smart_display_outlined, l10n.playbackSettings, const PlaybackSettingsPage(), '/settings/playback'),
-      ]),
-      (l10n.network, [
-        _SettingsEntry(Icons.language_outlined, l10n.networkSettings, const NetworkSettingsPage(), '/settings/network'),
-        _SettingsEntry(Icons.cloud_sync_outlined, l10n.webDavSettings, const WebDavSettingsPage(), '/settings/webdav'),
-      ]),
-      (l10n.content, [
-        _SettingsEntry(Icons.calendar_month_outlined, l10n.previewSource, const PreviewSourceSettingsPage(), '/settings/previews'),
-        _SettingsEntry(Icons.forum_outlined, l10n.commentSettings, const CommentSettingsPage(), '/settings/comments'),
-        _SettingsEntry(Icons.translate_outlined, l10n.languageSettings, const LanguageSettingsPage(), '/settings/language'),
-      ]),
-      (l10n.storage, [
-        _SettingsEntry(Icons.sd_storage_outlined, l10n.storage, const StorageSettingsPage(), '/settings/storage'),
-      ]),
-      (l10n.other, [
-        _SettingsEntry(Icons.info_outline, l10n.about, const AboutPage(), '/settings/about'),
-      ]),
+List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
+    [
+      (
+        l10n.appearance,
+        [
+          _SettingsEntry(
+            Icons.palette_outlined,
+            l10n.themeAndColor,
+            const ThemeSettingsPage(),
+            '/settings/theme',
+          ),
+          _SettingsEntry(
+            Icons.dashboard_customize_outlined,
+            l10n.interfaceLayout,
+            const LayoutSettingsPage(),
+            '/settings/layout',
+          ),
+        ],
+      ),
+      (
+        l10n.playback,
+        [
+          _SettingsEntry(
+            Icons.smart_display_outlined,
+            l10n.playbackSettings,
+            const PlaybackSettingsPage(),
+            '/settings/playback',
+          ),
+          _SettingsEntry(
+            Icons.keyboard_outlined,
+            l10n.settingsHotkeys,
+            const HotkeySettingsPage(),
+            '/settings/hotkeys',
+          ),
+        ],
+      ),
+      (
+        l10n.network,
+        [
+          _SettingsEntry(
+            Icons.language_outlined,
+            l10n.networkSettings,
+            const NetworkSettingsPage(),
+            '/settings/network',
+          ),
+          _SettingsEntry(
+            Icons.cloud_sync_outlined,
+            l10n.webDavSettings,
+            const WebDavSettingsPage(),
+            '/settings/webdav',
+          ),
+        ],
+      ),
+      (
+        l10n.content,
+        [
+          _SettingsEntry(
+            Icons.calendar_month_outlined,
+            l10n.previewSource,
+            const PreviewSourceSettingsPage(),
+            '/settings/previews',
+          ),
+          _SettingsEntry(
+            Icons.forum_outlined,
+            l10n.commentSettings,
+            const CommentSettingsPage(),
+            '/settings/comments',
+          ),
+          _SettingsEntry(
+            Icons.translate_outlined,
+            l10n.languageSettings,
+            const LanguageSettingsPage(),
+            '/settings/language',
+          ),
+        ],
+      ),
+      (
+        l10n.storage,
+        [
+          _SettingsEntry(
+            Icons.sd_storage_outlined,
+            l10n.storage,
+            const StorageSettingsPage(),
+            '/settings/storage',
+          ),
+        ],
+      ),
+      (
+        l10n.other,
+        [
+          _SettingsEntry(
+            Icons.info_outline,
+            l10n.about,
+            const AboutPage(),
+            '/settings/about',
+          ),
+        ],
+      ),
     ];
 
 class SettingsPage extends StatelessWidget {
@@ -62,7 +138,10 @@ class SettingsPage extends StatelessWidget {
   static const double minPaneWidth = 760;
 
   @override
-  Widget build(BuildContext context) => MediaQuery.sizeOf(context).width >= minPaneWidth ? const _SettingsPanes() : const _SettingsCategoryList();
+  Widget build(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= minPaneWidth
+      ? const _SettingsPanes()
+      : const _SettingsCategoryList();
 }
 
 /// Wide layout: categories on the left, the selected page on the right.
@@ -101,7 +180,10 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                       child: DefaultTextStyle.merge(
                         // 分组标题用中性强文本色：主题色要留给「选中 / 悬停」的条目，
                         // 两者同色时分不清哪个是分类、哪个是当前页。
-                        style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w600),
+                        style: textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
                         child: Text(sections[group].$1),
                       ),
                     ),
@@ -121,7 +203,12 @@ class _SettingsPanesState extends State<_SettingsPanes> {
             ),
           ),
           const VerticalDivider(width: 1),
-          Expanded(child: KeyedSubtree(key: ValueKey(selected.route), child: selected.page)),
+          Expanded(
+            child: KeyedSubtree(
+              key: ValueKey(selected.route),
+              child: selected.page,
+            ),
+          ),
         ],
       ),
     );
@@ -129,7 +216,12 @@ class _SettingsPanesState extends State<_SettingsPanes> {
 }
 
 class _NavItem extends StatefulWidget {
-  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -149,7 +241,9 @@ class _NavItemState extends State<_NavItem> {
     final textTheme = Theme.of(context).textTheme;
     // 选中与悬停都靠「左侧竖条 + 文字/图标变色」表示，不铺底色块 —— 底色块比图标还抢眼。
     final highlighted = widget.selected || _hovered;
-    final foreground = highlighted ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    final foreground = highlighted
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: MouseRegion(
@@ -169,13 +263,32 @@ class _NavItemState extends State<_NavItem> {
                 // 选中竖条：常驻占位，避免选中时内容左右跳动。
                 SizedBox(
                   width: 3,
-                  child: widget.selected ? Center(child: Container(width: 3, height: 18, decoration: BoxDecoration(color: colorScheme.primary, borderRadius: BorderRadius.circular(2)))) : null,
+                  child: widget.selected
+                      ? Center(
+                          child: Container(
+                            width: 3,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 13),
                 Icon(widget.icon, size: 24, color: foreground),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(widget.label, style: textTheme.labelLarge?.copyWith(color: foreground, fontWeight: widget.selected ? FontWeight.w600 : null), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    widget.label,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                      fontWeight: widget.selected ? FontWeight.w600 : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(width: 12),
               ],
@@ -195,19 +308,41 @@ class _SettingsCategoryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     // 与宽窗布局一致：分类标题用中性强文本色，不跟选中项抢主题色。
-    Text sectionTitle(String value) => Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface));
+    Text sectionTitle(String value) => Text(
+      value,
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+    );
     final sections = _settingsSections(l10n);
     return Scaffold(
-      appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null, title: Text(l10n.settings)),
+      appBar: AppBar(
+        leading:
+            ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ??
+                false
+            ? (permanentNavigationDrawer(context)
+                  ? null
+                  : IconButton(
+                      onPressed: openAppDrawer,
+                      icon: const Icon(Icons.menu),
+                    ))
+            : null,
+        title: Text(l10n.settings),
+      ),
       body: SettingsList(
-        contentPadding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        contentPadding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom,
+        ),
         sections: [
           for (final section in sections)
             SettingsSection(
               title: sectionTitle(section.$1),
               tiles: [
                 for (final entry in section.$2)
-                  SettingsTile.navigation(leading: Icon(entry.icon), title: Text(entry.label), value: const Icon(Icons.chevron_right), onPressed: (context) => context.push(entry.route)),
+                  SettingsTile.navigation(
+                    leading: Icon(entry.icon),
+                    title: Text(entry.label),
+                    value: const Icon(Icons.chevron_right),
+                    onPressed: (context) => context.push(entry.route),
+                  ),
               ],
             ),
         ],

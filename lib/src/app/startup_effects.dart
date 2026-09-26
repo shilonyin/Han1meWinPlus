@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,11 +25,18 @@ import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
 
 class AppStartupEffects extends ConsumerStatefulWidget {
-  const AppStartupEffects({super.key, required this.navigatorKey, required this.exitCoordinator, required this.child, this.initialLink});
+  const AppStartupEffects({
+    super.key,
+    required this.navigatorKey,
+    required this.exitCoordinator,
+    required this.child,
+    this.initialLink,
+  });
 
   final GlobalKey<NavigatorState> navigatorKey;
   final AppExitCoordinator exitCoordinator;
   final Widget child;
+
   /// 由 `han1me://` scheme 唤起时带来的链接（命令行参数解析得到），null 表示正常启动。
   final Uri? initialLink;
 
@@ -47,7 +55,8 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequest,
       onStateChange: (state) {
-        if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+        if (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden) {
           unawaited(VideoPlayerShutdown.pauseAllExceptPip());
         }
       },
@@ -57,7 +66,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       if (settings == null) return;
       if (settings.autoUpdate && !_checkedForUpdate) {
         _checkedForUpdate = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate(settings.useUpdateMirror));
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _checkForUpdate(settings.useUpdateMirror),
+        );
       }
       if (!_appliedPrivacySettings) {
         _appliedPrivacySettings = true;
@@ -75,15 +86,36 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       }
       // 通知开关与文案（文案取自当前语言，语言变了要跟着换）。
       AppNotifications.enabled = settings.notificationsEnabled;
-      final l10n = AppLocalizations.of(widget.navigatorKey.currentContext ?? context);
+      final l10n = AppLocalizations.of(
+        widget.navigatorKey.currentContext ?? context,
+      );
       if (l10n != null) {
-        AppNotifications.texts = NotificationTexts(downloadComplete: l10n.downloadComplete, updateAvailable: l10n.updateAvailable);
+        AppNotifications.texts = NotificationTexts(
+          downloadComplete: l10n.downloadComplete,
+          updateAvailable: l10n.updateAvailable,
+        );
       }
-      if (previousSettings == null || previousSettings.globalHotkeysEnabled != settings.globalHotkeysEnabled) {
-        unawaited(GlobalHotkeys.setEnabled(settings.globalHotkeysEnabled));
+      // 全局热键：开关或键位表变化时重注册（改键即时生效）。
+      if (previousSettings == null ||
+          previousSettings.globalHotkeysEnabled !=
+              settings.globalHotkeysEnabled ||
+          !const DeepCollectionEquality().equals(
+            previousSettings.hotkeyBindings,
+            settings.hotkeyBindings,
+          )) {
+        unawaited(
+          GlobalHotkeys.setEnabled(
+            settings.globalHotkeysEnabled,
+            settings.hotkeyBindings,
+          ),
+        );
       }
-      if (previousSettings == null || previousSettings.dlnaReceiverEnabled != settings.dlnaReceiverEnabled) {
-        unawaited(CastReceiver.instance.setEnabled(settings.dlnaReceiverEnabled));
+      if (previousSettings == null ||
+          previousSettings.dlnaReceiverEnabled !=
+              settings.dlnaReceiverEnabled) {
+        unawaited(
+          CastReceiver.instance.setEnabled(settings.dlnaReceiverEnabled),
+        );
       }
       // 窗口材质：开关或明暗主题变化时重新应用（Mica / Acrylic 要跟着深浅色走）。
       if (previousSettings == null ||
@@ -97,7 +129,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     final link = widget.initialLink;
     if (link != null) {
       // 等首页那一栈建好再跳，否则 navigator 还没挂载、push 会被丢掉。
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialLink(link));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openInitialLink(link),
+      );
     }
   }
 
@@ -140,12 +174,14 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     }
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return;
-    unawaited(SystemTray.setEnabled(
-      settings.minimizeToTray,
-      tooltip: l10n.appTitle,
-      showLabel: l10n.trayShowWindow,
-      exitLabel: l10n.trayExit,
-    ));
+    unawaited(
+      SystemTray.setEnabled(
+        settings.minimizeToTray,
+        tooltip: l10n.appTitle,
+        showLabel: l10n.trayShowWindow,
+        exitLabel: l10n.trayExit,
+      ),
+    );
   }
 
   /// 读取窗口聚焦状态；读不到（非桌面端 / 插件异常）就当作在前台，走界面弹窗。
@@ -163,15 +199,19 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   void _applyWindowBackdrop(AppSettings settings) {
     if (!WindowBackdropEffect.isSupported) return;
     final context = widget.navigatorKey.currentContext;
-    final dark = context == null ? false : Theme.of(context).brightness == Brightness.dark;
+    final dark = context == null
+        ? false
+        : Theme.of(context).brightness == Brightness.dark;
     unawaited(WindowBackdropEffect.apply(settings.windowBackdrop, dark: dark));
   }
 
   Future<AppExitResponse> _handleExitRequest() async {
-    if (widget.exitCoordinator.consumeBranchBackHandled()) return AppExitResponse.cancel;
+    if (widget.exitCoordinator.consumeBranchBackHandled())
+      return AppExitResponse.cancel;
     final context = widget.navigatorKey.currentContext;
     if (context == null) return AppExitResponse.cancel;
-    if (!await widget.exitCoordinator.confirmExit(context)) return AppExitResponse.cancel;
+    if (!await widget.exitCoordinator.confirmExit(context))
+      return AppExitResponse.cancel;
     if (PlatformService.isDesktop) return AppExitResponse.exit;
     await PlatformService.minimizeApp();
     return AppExitResponse.cancel;
@@ -197,17 +237,24 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
           update.downloadUrl.isEmpty
               ? l10n.noInstallableApk
               : update.body.isEmpty
-                  ? l10n.newVersionReleased
-                  : update.body,
+              ? l10n.newVersionReleased
+              : update.body,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(l10n.later)),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.later),
+          ),
           FilledButton(
             onPressed: update.downloadUrl.isEmpty
                 ? null
                 : () async {
                     Navigator.pop(dialogContext);
-                    await _installUpdate(context, update.downloadUrl, useUpdateMirror);
+                    await _installUpdate(
+                      context,
+                      update.downloadUrl,
+                      useUpdateMirror,
+                    );
                   },
             child: Text(l10n.updateNow),
           ),
@@ -216,9 +263,17 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     );
   }
 
-  Future<void> _installUpdate(BuildContext context, String url, bool useMirror) async {
+  Future<void> _installUpdate(
+    BuildContext context,
+    String url,
+    bool useMirror,
+  ) async {
     if (url.isEmpty) return;
-    await showDialog<void>(context: context, barrierDismissible: false, builder: (_) => _StartupUpdateDownload(url: url, useMirror: useMirror));
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _StartupUpdateDownload(url: url, useMirror: useMirror),
+    );
   }
 }
 
@@ -255,17 +310,28 @@ class _StartupUpdateDownloadState extends State<_StartupUpdateDownload> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.downloadingUpdate),
-        content: _error == null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  M3ELinearProgressIndicator(value: _progress),
-                  const SizedBox(height: 12),
-                  Text(_progress == null ? AppLocalizations.of(context)!.connecting : '${(_progress! * 100).toStringAsFixed(0)}%'),
-                ],
-              )
-            : Text(AppLocalizations.of(context)!.updateFailed(_error.toString())),
-        actions: _error == null ? null : [TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.close))],
-      );
+    title: Text(AppLocalizations.of(context)!.downloadingUpdate),
+    content: _error == null
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              M3ELinearProgressIndicator(value: _progress),
+              const SizedBox(height: 12),
+              Text(
+                _progress == null
+                    ? AppLocalizations.of(context)!.connecting
+                    : '${(_progress! * 100).toStringAsFixed(0)}%',
+              ),
+            ],
+          )
+        : Text(AppLocalizations.of(context)!.updateFailed(_error.toString())),
+    actions: _error == null
+        ? null
+        : [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(AppLocalizations.of(context)!.close),
+            ),
+          ],
+  );
 }

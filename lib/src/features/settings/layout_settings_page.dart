@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +35,10 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
       SettingsCardList(title: l10n.general, children: [
         SettingsCardItem(title: l10n.navigationDrawer, subtitle: l10n.navigationDrawerDescription, leading: const Icon(Icons.menu_open_outlined), trailing: Switch(value: settings.useNavigationDrawer, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useNavigationDrawer: value)))),
         SettingsCardItem(title: l10n.comicMode, subtitle: l10n.comicModeDescription, leading: const Icon(Icons.menu_book_outlined), trailing: Switch(value: settings.comicMode, onChanged: (value) async { await controller.saveChanges((current) => current.copyWith(comicMode: value, baseUrl: value ? 'https://hanimeone.me' : current.videoBaseUrl, videoBaseUrl: value ? current.baseUrl : current.videoBaseUrl)); resetHomeFeed(ref); })),
+        // 独立播放窗口是多进程方案（play_window.dart），只有 Windows 的 runner
+        // 认 `--play-window` 参数，其余平台不显示这个开关。
+        if (Platform.isWindows)
+          SettingsCardItem(title: l10n.openVideoInWindow, subtitle: l10n.openVideoInWindowDescription, leading: const Icon(Icons.picture_in_picture_outlined), trailing: Switch(value: settings.openVideoInWindow, onChanged: (value) => controller.saveChanges((current) => current.copyWith(openVideoInWindow: value)))),
         SettingsCardItem(title: l10n.horizontalSearchCards, subtitle: l10n.horizontalSearchCardsDescription, leading: const Icon(Icons.view_stream_outlined), trailing: Switch(value: settings.useHorizontalSearchCards, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useHorizontalSearchCards: value)))),
         SettingsCardItem(title: l10n.homeCategoryTabs, subtitle: l10n.homeCategoryTabsDescription, leading: const Icon(Icons.tab_outlined), trailing: Switch(value: settings.useHomeCategoryTabs, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useHomeCategoryTabs: value)))),
         SettingsCardItem(title: l10n.homeQuickCategories, subtitle: l10n.homeQuickCategoriesDescription, leading: const Icon(Icons.bookmarks_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'home-categories')),

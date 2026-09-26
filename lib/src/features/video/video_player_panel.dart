@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -23,12 +22,21 @@ import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
-import 'pip_controller.dart';
 import 'video_player_controls.dart';
 import 'video_player_surface.dart';
 
 class VideoPlayerPanel extends ConsumerStatefulWidget {
-  const VideoPlayerPanel({super.key, required this.video, required this.onBack, this.onHome, this.onPrevious, this.onNext, this.onEpisodeSelected, this.onPlayingChanged});
+  const VideoPlayerPanel({
+    super.key,
+    required this.video,
+    required this.onBack,
+    this.onHome,
+    this.onPrevious,
+    this.onNext,
+    this.onEpisodeSelected,
+    this.onPlayingChanged,
+    this.hideTopBar = false,
+  });
   final VideoDetail video;
   final VoidCallback onBack;
   final VoidCallback? onHome;
@@ -37,13 +45,18 @@ class VideoPlayerPanel extends ConsumerStatefulWidget {
   final ValueChanged<VideoCard>? onEpisodeSelected;
   final ValueChanged<bool>? onPlayingChanged;
 
+  /// 隐藏播放器自带的顶部条（独立播放窗口用，见 [VideoPlayerSurface.hideTopBar]）。
+  final bool hideTopBar;
+
   @override
   ConsumerState<VideoPlayerPanel> createState() => _VideoPlayerPanelState();
 }
 
-class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteAware, WidgetsBindingObserver {
+class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
+    with RouteAware, WidgetsBindingObserver {
   static const _watchThresholdMs = 5000;
-  final ValueNotifier<VideoPlayerController?> _controllerNotifier = ValueNotifier(null);
+  final ValueNotifier<VideoPlayerController?> _controllerNotifier =
+      ValueNotifier(null);
   final ValueNotifier<String?> _qualityNotifier = ValueNotifier(null);
   String? _selectedQuality;
   String? _loadedQuality;
@@ -54,8 +67,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   bool _disposed = false;
   bool _notifiersDisposed = false;
   bool _routeSubscribed = false;
-  /// 播放器已经移交给应用内画中画：本页 dispose 时不能再销毁它。
-  bool _pipHandedOff = false;
+
   /// 「视频输出卡死」的兜底重载次数（避免反复重载）。
   var _stallRecoveries = 0;
   VideoPlayerController? _pendingDispose;
@@ -73,35 +85,16 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     super.initState();
     _watchController = ref.read(watchProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
-    // 从画中画回到播放页时，直接把画中画手里的播放器接回来继续用，
-    // 而不是重新建一个 —— 否则会黑一下、重新缓冲，还会多一次「两个表面」的危险窗口。
-    //
-    // 注意顺序：**先**给 _controllerNotifier 赋值、**再**注册它的监听。
-    // 反过来会让赋值同步触发 _handleControllerChanged → 在 initState 里 setState 报错。
-    final pip = ref.read(pipControllerProvider);
-    final adopted = ref.read(pipControllerProvider.notifier).takeBack(widget.video.id);
-    if (adopted != null) {
-      _controllerNotifier.value = adopted;
-      _selectedQuality = pip?.qualityLabel;
-      _qualityNotifier.value = pip?.qualityLabel;
-      _loadedQuality = pip?.qualityLabel;
-      _restored = true;
-      // 画中画期间进度是由画中画记的，接回来后播放页要重新接管这件事。
-      adopted.addListener(_saveProgress);
-    }
     _controllerNotifier.addListener(_handleControllerChanged);
     // 全局热键作用在"当前播放页"上，所以由页面自己登记 / 注销回调。
     PlaybackHotkeyTarget.togglePlay = _togglePlay;
     PlaybackHotkeyTarget.previousEpisode = widget.onPrevious;
     PlaybackHotkeyTarget.nextEpisode = widget.onNext;
-    ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = _recoverFromStalledOutput;
+    ConfiguredMediaKitVideoPlayer.onVideoOutputStalled =
+        _recoverFromStalledOutput;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (adopted != null) {
-          setState(() {});
-        } else {
-          _syncSource();
-        }
+        _syncSource();
       }
     });
   }
@@ -109,7 +102,10 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controllerNotifier.value;
-    if (controller == null || !controller.value.isInitialized || !controller.value.isPlaying) return;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        !controller.value.isPlaying)
+      return;
     final settings = ref.read(settingsProvider).valueOrNull;
     if (settings?.autoPictureInPicture == true) {
       if (state == AppLifecycleState.inactive) {
@@ -117,14 +113,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
       } else if (state == AppLifecycleState.paused) {
         unawaited(_pauseIfNotPip(controller));
       } else if (state == AppLifecycleState.resumed) {
-        if (identical(VideoPlayerShutdown.pipActive, controller)) VideoPlayerShutdown.pipActive = null;
+        if (identical(VideoPlayerShutdown.pipActive, controller))
+          VideoPlayerShutdown.pipActive = null;
       }
       return;
     }
     if (state == AppLifecycleState.paused) unawaited(controller.pause());
   }
 
-  Future<void> _tryEnterPictureInPicture(VideoPlayerController controller) async {
+  Future<void> _tryEnterPictureInPicture(
+    VideoPlayerController controller,
+  ) async {
     var entered = false;
     try {
       entered = await PlatformService.enterPictureInPicture();
@@ -137,21 +136,6 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     try {
       await controller.pause();
     } catch (_) {}
-  }
-
-  /// 进入应用内画中画（迷你播放器）。
-  ///
-  /// 与旧的「独立小窗」不同：这里**不新建播放器**，而是把当前播放器原样移交给
-  /// 全局的 [PipController] 继续持有，然后回到上一级页面 —— 画中画在本应用里
-  /// 是常驻的悬浮层（挂在 AppShell 上），所以离开播放页也看得见它。
-  /// 只有一份解码 / 渲染，因此不会出现「开小窗就卡」的问题。
-  void _enterPip() {
-    final controller = _controllerNotifier.value;
-    if (controller == null || !controller.value.isInitialized) return;
-    _pipHandedOff = true;
-    ref.read(pipControllerProvider.notifier).adopt(video: widget.video, controller: controller, qualityLabel: _loadedQuality);
-    // 从播放页内部进入画中画，返回上一级页面才是画中画该有的样子。
-    if (context.canPop()) context.pop();
   }
 
   /// 全局热键 Ctrl+Alt+Space：播放页未获得焦点时也要能暂停 / 继续。
@@ -189,7 +173,10 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
 
   Future<void> _pausePlayback() async {
     final controller = _controllerNotifier.value;
-    if (controller == null || !controller.value.isInitialized || !controller.value.isPlaying) return;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        !controller.value.isPlaying)
+      return;
     try {
       await controller.pause();
     } catch (_) {}
@@ -217,9 +204,15 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
       unawaited(_clearSource());
       return;
     }
-    final preferred = ref.read(settingsProvider).valueOrNull?.preferredQuality ?? 720;
+    final preferred =
+        ref.read(settingsProvider).valueOrNull?.preferredQuality ?? 720;
     final quality = _qualityValue(_selectedQuality) ?? preferred;
-    final source = widget.video.sources.reduce((best, item) => (_quality(item) - quality).abs() < (_quality(best) - quality).abs() ? item : best);
+    final source = widget.video.sources.reduce(
+      (best, item) =>
+          (_quality(item) - quality).abs() < (_quality(best) - quality).abs()
+          ? item
+          : best,
+    );
     if (source.quality != _loadedQuality) _load(source);
   }
 
@@ -254,8 +247,11 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
 
   Future<void> _changeQuality(VideoSource source) async {
     final current = _controllerNotifier.value;
-    final position = current?.value.isInitialized == true ? current!.value.position : null;
-    final wasPlaying = current?.value.isInitialized == true && current!.value.isPlaying;
+    final position = current?.value.isInitialized == true
+        ? current!.value.position
+        : null;
+    final wasPlaying =
+        current?.value.isInitialized == true && current!.value.isPlaying;
     _selectedQuality = source.quality;
     await _load(source, startAt: position, resumePlaying: wasPlaying);
   }
@@ -263,21 +259,28 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   Future<void> _changeSuperResolution(SuperResolutionMode mode) async {
     final settings = await ref.read(settingsProvider.future);
     if (settings.superResolutionMode == mode) return;
-    final source = widget.video.sources.where((source) => source.quality == _loadedQuality).firstOrNull;
-    await ref.read(settingsProvider.notifier).saveChanges(
-          (current) => current.copyWith(superResolutionMode: mode),
-        );
+    final source = widget.video.sources
+        .where((source) => source.quality == _loadedQuality)
+        .firstOrNull;
+    await ref
+        .read(settingsProvider.notifier)
+        .saveChanges((current) => current.copyWith(superResolutionMode: mode));
     // 就地切换，不重建播放器。
     //
     // 之前是「改设置 + 重建播放器」，会让新实例的着色器链编译与渲染尺寸调整挤在同一瞬间，
     // 实测会把 mpv 的渲染上下文搞坏：画面永久转圈、声音照旧、界面看上去卡死；
     // 而且重建过程本身也必然先转一次圈。
-    if (await ConfiguredMediaKitVideoPlayer.applySuperResolutionMode(mode)) return;
+    if (await ConfiguredMediaKitVideoPlayer.applySuperResolutionMode(mode))
+      return;
     // 不是 libmpv 内核（例如 Android 用的是官方插件）时退回重建，保证设置仍然生效。
     final current = _controllerNotifier.value;
-    final position = current?.value.isInitialized == true ? current!.value.position : null;
-    final wasPlaying = current?.value.isInitialized == true && current!.value.isPlaying;
-    if (source != null) await _load(source, startAt: position, resumePlaying: wasPlaying);
+    final position = current?.value.isInitialized == true
+        ? current!.value.position
+        : null;
+    final wasPlaying =
+        current?.value.isInitialized == true && current!.value.isPlaying;
+    if (source != null)
+      await _load(source, startAt: position, resumePlaying: wasPlaying);
   }
 
   /// 视频输出卡死的兜底：重载当前片源（最多两次）。
@@ -287,14 +290,22 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   void _recoverFromStalledOutput() {
     if (!mounted || _disposed || _stallRecoveries >= 2) return;
     final controller = _controllerNotifier.value;
-    final source = widget.video.sources.where((source) => source.quality == _loadedQuality).firstOrNull;
+    final source = widget.video.sources
+        .where((source) => source.quality == _loadedQuality)
+        .firstOrNull;
     if (controller == null || source == null) return;
     _stallRecoveries++;
-    final position = controller.value.isInitialized ? controller.value.position : null;
+    final position = controller.value.isInitialized
+        ? controller.value.position
+        : null;
     unawaited(_load(source, startAt: position, resumePlaying: true));
   }
 
-  Future<void> _load(VideoSource source, {Duration? startAt, bool resumePlaying = false}) async {
+  Future<void> _load(
+    VideoSource source, {
+    Duration? startAt,
+    bool resumePlaying = false,
+  }) async {
     final version = ++_loadVersion;
     final previous = _controllerNotifier.value;
     _controllerNotifier.value = null;
@@ -311,7 +322,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
       // 旧的那个销毁时可能把共用的 EGL display 一起释放掉，把新实例的渲染上下文搞死：
       // 表现就是画面永久转圈、声音照旧。串行之后这个重叠窗口就没了。
       // 加超时是为了不让「上一个还没初始化完」这种情况把加载卡住。
-      await _queueDisposal(previous).timeout(const Duration(seconds: 5), onTimeout: () {});
+      await _queueDisposal(
+        previous,
+      ).timeout(const Duration(seconds: 5), onTimeout: () {});
     }
     if (!mounted || version != _loadVersion) return;
     final settings = await ref.read(settingsProvider.future);
@@ -319,15 +332,21 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     final getchuTrailer = widget.video.id.startsWith('getchu-');
     // 解析层给了请求头就用它（AV 源必须带自己的 Referer，例如 missav 的 CDN
     // 少一个 Referer 就直接 403）；否则按 hanime1 / Getchu 的惯例拼。
-    final httpHeaders = source.headers ??
+    final httpHeaders =
+        source.headers ??
         {
           'User-Agent': Han1meApi.userAgent,
-          'Referer': getchuTrailer ? 'https://www.getchu.com/' : '${settings.resolvedBaseUrl}/watch?v=${widget.video.id}',
+          'Referer': getchuTrailer
+              ? 'https://www.getchu.com/'
+              : '${settings.resolvedBaseUrl}/watch?v=${widget.video.id}',
           if (getchuTrailer) 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc',
         };
     final controller = source.url.startsWith('/')
         ? VideoPlayerController.file(File(source.url))
-        : VideoPlayerController.networkUrl(Uri.parse(source.url), httpHeaders: httpHeaders);
+        : VideoPlayerController.networkUrl(
+            Uri.parse(source.url),
+            httpHeaders: httpHeaders,
+          );
     _loadedQuality = source.quality;
     _qualityNotifier.value = source.quality;
     _wasPlaying = null;
@@ -341,14 +360,24 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
       _pendingInitialize[controller] = initializing;
       await initializing;
       _pendingInitialize.remove(controller);
-      if (!mounted || version != _loadVersion || !identical(controller, _controllerNotifier.value)) {
+      if (!mounted ||
+          version != _loadVersion ||
+          !identical(controller, _controllerNotifier.value)) {
         unawaited(_queueDisposal(controller));
         return;
       }
       if (mounted && version == _loadVersion) setState(() {});
       controller.addListener(_saveProgress);
-      await _applyPlaybackPreferences(controller, version, startAt, resumePlaying: resumePlaying);
-      if (!mounted || version != _loadVersion || !identical(controller, _controllerNotifier.value)) return;
+      await _applyPlaybackPreferences(
+        controller,
+        version,
+        startAt,
+        resumePlaying: resumePlaying,
+      );
+      if (!mounted ||
+          version != _loadVersion ||
+          !identical(controller, _controllerNotifier.value))
+        return;
       _saveProgress(controller);
     } catch (error) {
       _pendingInitialize.remove(controller);
@@ -389,27 +418,45 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
 
   Future<void> _queueDisposal(VideoPlayerController controller) {
     if (!_disposing.add(controller)) return Future<void>.value();
-    return _disposeController(controller).whenComplete(() => _disposing.remove(controller));
+    return _disposeController(
+      controller,
+    ).whenComplete(() => _disposing.remove(controller));
   }
 
-  Future<void> _applyPlaybackPreferences(VideoPlayerController controller, int version, Duration? startAt, {bool resumePlaying = false}) async {
+  Future<void> _applyPlaybackPreferences(
+    VideoPlayerController controller,
+    int version,
+    Duration? startAt, {
+    bool resumePlaying = false,
+  }) async {
     try {
       final settings = await ref.read(settingsProvider.future);
-      if (!mounted || version != _loadVersion || controller != _controllerNotifier.value) return;
+      if (!mounted ||
+          version != _loadVersion ||
+          controller != _controllerNotifier.value)
+        return;
       await controller.setPlaybackSpeed(settings.defaultPlaybackSpeed);
       await controller.setLooping(settings.loopPlayback);
       if (startAt != null) {
         await controller.seekTo(startAt);
       } else if (!_restored && settings.resumePlayback) {
         final watch = await ref.read(watchProvider.future);
-        if (!mounted || version != _loadVersion || controller != _controllerNotifier.value) return;
-        final item = watch.continueItems.where((item) => item.videoCode == widget.video.id).firstOrNull;
-        if (item != null && item.positionMs > 0 && item.positionMs < item.durationMs - 3000) {
+        if (!mounted ||
+            version != _loadVersion ||
+            controller != _controllerNotifier.value)
+          return;
+        final item = watch.continueItems
+            .where((item) => item.videoCode == widget.video.id)
+            .firstOrNull;
+        if (item != null &&
+            item.positionMs > 0 &&
+            item.positionMs < item.durationMs - 3000) {
           await controller.seekTo(Duration(milliseconds: item.positionMs));
         }
       }
       _restored = true;
-      if (resumePlaying || (startAt == null && settings.autoPlayOnOpen)) await controller.play();
+      if (resumePlaying || (startAt == null && settings.autoPlayOnOpen))
+        await controller.play();
     } catch (_) {}
   }
 
@@ -423,11 +470,13 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     }
     final now = DateTime.now();
     final lastWatchedAt = _lastWatchedAt;
-    if (value.isPlaying && lastWatchedAt != null) _watched += now.difference(lastWatchedAt);
+    if (value.isPlaying && lastWatchedAt != null)
+      _watched += now.difference(lastWatchedAt);
     _lastWatchedAt = value.isPlaying ? now : null;
     if (_wasPlaying != value.isPlaying) {
       _wasPlaying = value.isPlaying;
-      if (value.isPlaying) unawaited(VideoPlayerShutdown.pauseAllExcept(controller));
+      if (value.isPlaying)
+        unawaited(VideoPlayerShutdown.pauseAllExcept(controller));
       widget.onPlayingChanged?.call(value.isPlaying);
     }
     if (value.duration > Duration.zero && value.position >= value.duration) {
@@ -436,24 +485,40 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
         if (!value.isPlaying) unawaited(controller.play());
         return;
       }
-      if (!_autoNextTriggered && ref.read(settingsProvider).valueOrNull?.autoPlayNext == true && widget.onNext != null) {
+      if (!_autoNextTriggered &&
+          ref.read(settingsProvider).valueOrNull?.autoPlayNext == true &&
+          widget.onNext != null) {
         _autoNextTriggered = true;
         widget.onNext!();
         return;
       }
     }
-    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true) return;
+    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true)
+      return;
     if (DateTime.now().difference(_lastSaved).inSeconds < 5) return;
     _lastSaved = DateTime.now();
-    ref.read(watchProvider.notifier).progress(id: widget.video.id, title: widget.video.title, coverUrl: widget.video.coverUrl, positionMs: value.position.inMilliseconds, durationMs: value.duration.inMilliseconds);
+    ref
+        .read(watchProvider.notifier)
+        .progress(
+          id: widget.video.id,
+          title: widget.video.title,
+          coverUrl: widget.video.coverUrl,
+          positionMs: value.position.inMilliseconds,
+          durationMs: value.duration.inMilliseconds,
+        );
   }
 
   void _recordWatch() {
     final watchedMs = _watched.inMilliseconds;
     if (watchedMs < _watchThresholdMs) return;
     _watched = Duration.zero;
-    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true) return;
-    unawaited(_watchController.addTime(widget.video.id, widget.video.title, watchedMs).catchError((_) {}));
+    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true)
+      return;
+    unawaited(
+      _watchController
+          .addTime(widget.video.id, widget.video.title, watchedMs)
+          .catchError((_) {}),
+    );
   }
 
   Future<void> _fullscreen() async {
@@ -462,8 +527,30 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     _fullscreenOpen = true;
     try {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      if (mounted) await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _FullscreenPlayer(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, onEpisodeSelected: widget.onEpisodeSelected == null ? null : (episode) { Navigator.of(context).pop(); widget.onEpisodeSelected!(episode); }, onNext: widget.onNext)));
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      if (mounted)
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _FullscreenPlayer(
+              controller: _controllerNotifier,
+              quality: _qualityNotifier,
+              video: widget.video,
+              onQualitySelected: _changeQuality,
+              onSuperResolutionSelected: _changeSuperResolution,
+              onEpisodeSelected: widget.onEpisodeSelected == null
+                  ? null
+                  : (episode) {
+                      Navigator.of(context).pop();
+                      widget.onEpisodeSelected!(episode);
+                    },
+              onPrevious: widget.onPrevious,
+              onNext: widget.onNext,
+            ),
+          ),
+        );
     } finally {
       _fullscreenOpen = false;
       try {
@@ -497,7 +584,10 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     PlaybackHotkeyTarget.clear();
-    if (identical(ConfiguredMediaKitVideoPlayer.onVideoOutputStalled, _recoverFromStalledOutput)) {
+    if (identical(
+      ConfiguredMediaKitVideoPlayer.onVideoOutputStalled,
+      _recoverFromStalledOutput,
+    )) {
       ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = null;
     }
     _disposed = true;
@@ -510,15 +600,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     widget.onPlayingChanged?.call(false);
     final controller = _controllerNotifier.value;
     _controllerNotifier.value = null;
-    if (identical(VideoPlayerShutdown.pipActive, controller)) VideoPlayerShutdown.pipActive = null;
-    if (controller != null && _pipHandedOff) {
-      // 播放器已经移交给应用内画中画：这里**绝对不能销毁它**，否则画中画会瞬间变黑，
-      // 而且「边播边销毁」正是之前独立小窗崩溃 / 卡死的根源。只解掉本页与它的绑定：
-      // 进度保存的监听、以及「谁在播」的全局登记都留给画中画继续用。
-      try {
-        controller.removeListener(_saveProgress);
-      } catch (_) {}
-    } else if (controller != null) {
+    if (identical(VideoPlayerShutdown.pipActive, controller))
+      VideoPlayerShutdown.pipActive = null;
+    if (controller != null) {
       if (_fullscreenOpen) {
         _pendingDispose = controller;
       } else {
@@ -543,7 +627,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(settingsProvider.select((value) => value.valueOrNull?.preferredQuality ?? 720), (_, __) => _syncSource());
+    ref.listen<int>(
+      settingsProvider.select(
+        (value) => value.valueOrNull?.preferredQuality ?? 720,
+      ),
+      (_, __) => _syncSource(),
+    );
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: _handleRoutePop,
@@ -561,14 +650,21 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
             const Positioned.fill(child: ColoredBox(color: Colors.black)),
             Center(
               child: _loadError == null
-                  ? const M3EContainedLoadingIndicator(indicatorColor: Colors.white, containerColor: Colors.black54)
+                  ? const M3EContainedLoadingIndicator(
+                      indicatorColor: Colors.white,
+                      containerColor: Colors.black54,
+                    )
                   : Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           _loadError is _NoVideoSource
-                              ? AppLocalizations.of(context)!.videoSourceUnavailable
-                              : AppLocalizations.of(context)!.videoPlaybackFailed,
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.videoSourceUnavailable
+                              : AppLocalizations.of(
+                                  context,
+                                )!.videoPlaybackFailed,
                           style: const TextStyle(color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
@@ -582,14 +678,42 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
                       ],
                     ),
             ),
-            Positioned(top: 8, left: 8, child: PlayerNavCapsule(onBack: widget.onBack, onHome: widget.onHome)),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: PlayerNavCapsule(
+                onBack: widget.onBack,
+                onHome: widget.onHome,
+              ),
+            ),
           ],
         ),
       );
     }
     return _PlayerFrame(
-      aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-       child: VideoPlayerSurface(controller: _controllerNotifier, quality: _qualityNotifier, video: widget.video, onQualitySelected: _changeQuality, onSuperResolutionSelected: _changeSuperResolution, fullscreen: false, onFullscreen: _fullscreen, onBack: widget.onBack, onHome: widget.onHome, onNext: widget.onNext, onEpisodeSelected: widget.onEpisodeSelected, onFloat: pipSupported ? _enterPip : null),
+      aspectRatio: controller.value.aspectRatio == 0
+          ? 16 / 9
+          : controller.value.aspectRatio,
+      // 目前不提供「弹出独立播放窗口」：desktop_multi_window 的第二套引擎与
+      // 本仓库的手写 runner（windows/runner/main.cpp）不兼容 —— 副窗口一创建，
+      // 主窗口的 Flutter 引擎就不再处理输入（Win32 层 IsHungAppWindow=False，
+      // 但画面完全不重绘），表现就是「打开视频后首页完全不能控制」。
+      // 播放页用主窗口内的 VideoPageBody（b 站布局），功能完整且稳定。
+      child: VideoPlayerSurface(
+        controller: _controllerNotifier,
+        quality: _qualityNotifier,
+        video: widget.video,
+        onQualitySelected: _changeQuality,
+        onSuperResolutionSelected: _changeSuperResolution,
+        fullscreen: false,
+        onFullscreen: _fullscreen,
+        onBack: widget.onBack,
+        onHome: widget.onHome,
+        onPrevious: widget.onPrevious,
+        onNext: widget.onNext,
+        onEpisodeSelected: widget.onEpisodeSelected,
+        hideTopBar: widget.hideTopBar,
+      ),
     );
   }
 }
@@ -602,8 +726,8 @@ class _PlayerFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: AspectRatio(aspectRatio: aspectRatio, child: child),
-      );
+    child: AspectRatio(aspectRatio: aspectRatio, child: child),
+  );
 }
 
 class _NoVideoSource {
@@ -611,13 +735,23 @@ class _NoVideoSource {
 }
 
 class _FullscreenPlayer extends ConsumerStatefulWidget {
-  const _FullscreenPlayer({required this.controller, required this.quality, required this.video, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onEpisodeSelected, this.onNext});
+  const _FullscreenPlayer({
+    required this.controller,
+    required this.quality,
+    required this.video,
+    required this.onQualitySelected,
+    required this.onSuperResolutionSelected,
+    this.onEpisodeSelected,
+    this.onPrevious,
+    this.onNext,
+  });
   final ValueListenable<VideoPlayerController?> controller;
   final ValueListenable<String?> quality;
   final VideoDetail video;
   final ValueChanged<VideoSource> onQualitySelected;
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+  final VoidCallback? onPrevious;
   final VoidCallback? onNext;
 
   @override
@@ -630,7 +764,9 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
     super.initState();
     // The player wants the whole screen: hide the in-app title bar and switch the
     // window itself to full screen (hiding the title bar alone only fills the window).
-    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(WindowChrome.setFullscreen(true)));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(WindowChrome.setFullscreen(true)),
+    );
   }
 
   @override
@@ -641,8 +777,11 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final keyframes = ref.watch(keyframesProvider(widget.video.id)).valueOrNull ?? const <int>[];
-    final enabled = ref.watch(settingsProvider).valueOrNull?.keyframesEnabled ?? true;
+    final keyframes =
+        ref.watch(keyframesProvider(widget.video.id)).valueOrNull ??
+        const <int>[];
+    final enabled =
+        ref.watch(settingsProvider).valueOrNull?.keyframesEnabled ?? true;
     // 全屏播放器固定走深色主题，而且要用跟 App 层同一份字体/配色设置：
     // 之前只是把环境主题的颜色 copyWith 成黑色，浅色（白）主题下文字仍是深色、
     // 在黑底上几乎看不见；弹层与抽屉的颜色也没跟着变。这里直接按 App 深色主题的
@@ -650,23 +789,52 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final dark = appTheme(
       null,
-      settings?.themeColor.seedColor(settings.customThemeColor) ?? const Color(0xfffb7299),
+      settings?.themeColor.seedColor(settings.customThemeColor) ??
+          const Color(0xfffb7299),
       brightness: Brightness.dark,
       useSystemFont: settings?.useSystemFont ?? false,
-      variant: settings?.themeColor.schemeVariant ?? DynamicSchemeVariant.tonalSpot,
+      variant:
+          settings?.themeColor.schemeVariant ?? DynamicSchemeVariant.tonalSpot,
       neutralSurfaces: true,
     );
     final fullscreenTheme = dark.copyWith(
       scaffoldBackgroundColor: Colors.black,
       canvasColor: Colors.black,
-      colorScheme: dark.colorScheme.copyWith(surface: Colors.black, surfaceContainerLowest: Colors.black),
+      colorScheme: dark.colorScheme.copyWith(
+        surface: Colors.black,
+        surfaceContainerLowest: Colors.black,
+      ),
     );
     return Theme(
       data: fullscreenTheme,
       child: Scaffold(
         backgroundColor: Colors.black,
-        endDrawer: VideoKeyframeDrawer(video: widget.video, controller: widget.controller),
-        body: SafeArea(child: Builder(builder: (scaffoldContext) => VideoPlayerSurface(controller: widget.controller, quality: widget.quality, video: widget.video, onQualitySelected: widget.onQualitySelected, onSuperResolutionSelected: widget.onSuperResolutionSelected, fullscreen: true, onFullscreen: () async => Navigator.of(context).pop(), onBack: () => Navigator.of(context).pop(), onEpisodeSelected: widget.onEpisodeSelected, onNext: widget.onNext, keyframes: enabled ? keyframes : const [], onKeyframes: enabled ? () => Scaffold.of(scaffoldContext).openEndDrawer() : null, onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null))),
+        endDrawer: VideoKeyframeDrawer(
+          video: widget.video,
+          controller: widget.controller,
+        ),
+        body: SafeArea(
+          child: Builder(
+            builder: (scaffoldContext) => VideoPlayerSurface(
+              controller: widget.controller,
+              quality: widget.quality,
+              video: widget.video,
+              onQualitySelected: widget.onQualitySelected,
+              onSuperResolutionSelected: widget.onSuperResolutionSelected,
+              fullscreen: true,
+              onFullscreen: () async => Navigator.of(context).pop(),
+              onBack: () => Navigator.of(context).pop(),
+              onEpisodeSelected: widget.onEpisodeSelected,
+              onPrevious: widget.onPrevious,
+              onNext: widget.onNext,
+              keyframes: enabled ? keyframes : const [],
+              onKeyframes: enabled
+                  ? () => Scaffold.of(scaffoldContext).openEndDrawer()
+                  : null,
+              onAddKeyframe: enabled ? () => _addKeyframe(context, ref) : null,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -676,7 +844,9 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
     if (controller == null) return;
     final l10n = AppLocalizations.of(context)!;
     if (controller.value.isPlaying) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.pauseBeforeAddingKeyframe)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.pauseBeforeAddingKeyframe)));
       return;
     }
     final position = controller.value.position.inMilliseconds;
@@ -686,14 +856,26 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
         title: Text(l10n.addKeyframe),
         content: Text(l10n.addKeyframeConfirmation(position)),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(l10n.add)),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.add),
+          ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    final added = await ref.read(keyframesProvider(widget.video.id).notifier).add(position, title: widget.video.title);
+    final added = await ref
+        .read(keyframesProvider(widget.video.id).notifier)
+        .add(position, title: widget.video.title);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(added ? l10n.keyframeAdded : l10n.keyframeTooClose)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(added ? l10n.keyframeAdded : l10n.keyframeTooClose),
+      ),
+    );
   }
 }

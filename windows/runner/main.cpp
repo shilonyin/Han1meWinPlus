@@ -223,6 +223,20 @@ void ActivateExistingWindow() {
   SetForegroundWindow(window);
 }
 
+// Standalone player window (the multi-process take on multi window playback):
+// a launch like `han1me.exe --play-window --video=<id>` renders only the video
+// page. Unlike the abandoned desktop_multi_window approach (multiple engines
+// inside one process, see the NOTE below), every player window is its own
+// process with its own engine and message loop, so it cannot freeze the main
+// window. Player windows opt out of the single instance mutex on purpose: the
+// main window and any number of player windows are expected to coexist.
+bool IsPlayWindowLaunch() {
+  for (int i = 1; i < __argc; ++i) {
+    if (wcscmp(__wargv[i], L"--play-window") == 0) return true;
+  }
+  return false;
+}
+
 }
 
 struct AppWindow {
@@ -336,11 +350,17 @@ static std::vector<std::string> Utf8CommandLineArguments() {
 }
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command) {
-  const auto instance_mutex = CreateMutexW(nullptr, TRUE, kInstanceMutexName);
-  if (instance_mutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
-    ActivateExistingWindow();
-    CloseHandle(instance_mutex);
-    return EXIT_SUCCESS;
+  // Player windows skip the single instance handshake: they must never redirect
+  // to (or activate) the main window, they simply live alongside it.
+  const bool play_window = IsPlayWindowLaunch();
+  HANDLE instance_mutex = nullptr;
+  if (!play_window) {
+    instance_mutex = CreateMutexW(nullptr, TRUE, kInstanceMutexName);
+    if (instance_mutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
+      ActivateExistingWindow();
+      CloseHandle(instance_mutex);
+      return EXIT_SUCCESS;
+    }
   }
   ApplyPerMonitorDpiAwareness();
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -358,8 +378,10 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.instance = instance;
   const auto dpi = SystemDpi();
   app.splash_dpi = dpi;
-  const auto width = DpiScale(1280, dpi);
-  const auto height = DpiScale(720, dpi);
+  // The player window is a touch narrower and taller than the main one: its
+  // layout is "16:9 player + right sidebar", which wants the extra height.
+  const auto width = DpiScale(play_window ? 1180 : 1280, dpi);
+  const auto height = DpiScale(play_window ? 760 : 720, dpi);
   const auto window = CreateWindow(kWindowClassName, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
   // Tint the native caption before it is first painted, so it matches the splash.
@@ -387,6 +409,12 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.controller = std::make_unique<flutter::FlutterViewController>(bounds.right, bounds.bottom, project);
   if (!app.controller->engine() || !app.controller->view()) return EXIT_FAILURE;
   RegisterPlugins(app.controller->engine());
+  // NOTE: do NOT register DesktopMultiWindowSetWindowCreatedCallback here.
+  // The multi-engine child window is incompatible with this hand written runner:
+  // as soon as a child window is created, the main window keeps pumping messages
+  // (IsHungAppWindow stays false) but its Flutter engine stops processing input
+  // and never repaints again. Keep this runner free of the multi window plugin
+  // until the runner is replaced by the stock FlutterWindow template.
   const auto flutter_view = app.controller->view()->GetNativeWindow();
   SetParent(flutter_view, window);
   // Showing the window above happened before the Flutter view existed, so that
@@ -397,10 +425,13 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   // The Flutter view would cover the splash right away. Keep it hidden until the
   // minimum splash time has passed so the design lockup is actually readable
   // (on an idle machine the engine is ready in a couple of hundred ms).
+  // Player windows use a much shorter floor: the user just clicked a cover, so
+  // the priority is getting the video on screen, not branding.
+  const auto splash_min = play_window ? 250 : kSplashMinDurationMs;
   const auto splash_elapsed = static_cast<int>(GetTickCount64() - splash_started);
-  if (splash_elapsed < kSplashMinDurationMs) {
+  if (splash_elapsed < splash_min) {
     ShowWindow(flutter_view, SW_HIDE);
-    SetTimer(window, kSplashTimerId, static_cast<UINT>(kSplashMinDurationMs - splash_elapsed), nullptr);
+    SetTimer(window, kSplashTimerId, static_cast<UINT>(splash_min - splash_elapsed), nullptr);
   } else {
     app.splash_visible = false;
     SetFocus(flutter_view);

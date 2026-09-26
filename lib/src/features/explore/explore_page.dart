@@ -25,6 +25,7 @@ import '../shared/app_image_cache.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
+import '../video/play_window.dart';
 import 'explore_controller.dart';
 
 const _gridPadding = 16.0;
@@ -1013,17 +1014,18 @@ class _FeaturedVideo extends StatelessWidget {
       );
 }
 
-class _FeaturedVideoSurface extends StatelessWidget {
+class _FeaturedVideoSurface extends ConsumerWidget {
   const _FeaturedVideoSurface({required this.video});
 
   final VideoCard video;
 
   @override
-  Widget build(BuildContext context) => Material(
+  Widget build(BuildContext context, WidgetRef ref) => Material(
         clipBehavior: Clip.antiAlias,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
+          // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+          onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
           child: Stack(
             fit: StackFit.expand,
             children: [
