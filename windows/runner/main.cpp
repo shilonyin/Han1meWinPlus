@@ -15,8 +15,9 @@
 #include <string>
 
 #include "flutter/generated_plugin_registrant.h"
-// 悬浮窗等副窗口各自跑一个 Flutter 引擎，插件要按窗口分别注册一遍，
-// 否则副窗口里 window_manager / media_kit 之类的插件都拿不到实现。
+// Each secondary window (e.g. floating player) runs its own Flutter engine,
+// so plugins must be registered per window; otherwise plugins such as
+// window_manager / media_kit would have no implementation in that window.
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "resource.h"
 
@@ -316,9 +317,11 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
   return DefWindowProc(window, message, wparam, lparam);
 }
 
-/// 命令行参数（跳过第 0 个程序路径）转成 UTF-8 交给 Dart 入口。
+/// Converts command line arguments (skipping argv[0], the program path) to
+/// UTF-8 for the Dart entrypoint.
 ///
-/// 只有 han1me:// 这类 scheme 唤起会带参数，正常双击启动时这个列表是空的。
+/// Only launches like the han1me:// scheme carry arguments; a normal launch
+/// (double click) yields an empty list.
 static std::vector<std::string> Utf8CommandLineArguments() {
   std::vector<std::string> arguments;
   for (int i = 1; i < __argc; ++i) {
@@ -371,8 +374,8 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   RECT bounds{};
   GetClientRect(window, &bounds);
   flutter::DartProject project(L"data");
-  // 自定义 URL scheme（han1me://…）是系统用命令行参数把链接递给本进程的，
-  // 转交给 Dart 才能在应用里直接跳到对应页面。
+  // Custom URL schemes (han1me://...) arrive as command line arguments;
+  // forward them to Dart so the app can navigate to the target page.
   project.set_dart_entrypoint_arguments(Utf8CommandLineArguments());
   // Prefer the discrete GPU when the machine has more than one.
   project.set_gpu_preference(flutter::GpuPreference::HighPerformancePreference);
