@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:watcher/watcher.dart';
 
 import '../../core/local_media_scanner.dart';
-import '../settings/settings_controller.dart';
+import '../../features/settings/settings_controller.dart';
 import 'json_store.dart';
 
 /// 本地媒体库索引：存 JSON（与仓库其它本地数据一致），并监听目录变化自动更新。
@@ -73,7 +73,7 @@ class LocalMediaRepository {
     final file = File(path);
     if (!await file.exists()) return;
     final stat = await file.stat();
-    final entry = LocalMediaEntry(id: path, path: path, title: LocalMediaScanner.titleFromPath(path), fileSize: stat.size, modifiedAt: stat.modifiedAt);
+    final entry = LocalMediaEntry(id: path, path: path, title: LocalMediaScanner.titleFromPath(path), fileSize: stat.size, modifiedAt: stat.modified);
     final next = [...current.where((item) => item.path != path), entry];
     await _save(next);
   }

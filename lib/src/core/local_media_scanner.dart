@@ -67,7 +67,7 @@ class LocalMediaScanner {
           path: entity.path,
           title: _titleFromPath(entity.path),
           fileSize: stat.size,
-          modifiedAt: stat.modifiedAt,
+          modifiedAt: stat.modified,
         ));
       }
     } catch (error) {
