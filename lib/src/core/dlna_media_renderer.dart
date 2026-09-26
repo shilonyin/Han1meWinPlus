@@ -234,6 +234,9 @@ class DlnaMediaRenderer {
       final reusePort = !Platform.isWindows;
       final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, _ssdpPortEffective, reusePort: reusePort);
       socket.joinMulticast(InternetAddress(_ssdpAddress));
+      // 不收自己发出的组播（否则 NOTIFY 会被环回成 read 事件，与另一个
+      // 渲染器实例互相触发，形成每秒数千次的事件风暴，饿死 HTTP accept）。
+      socket.multicastLoopback = false;
       socket.listen(_onSocketEvent, onError: (_) {}, cancelOnError: false);
       _ssdpSocket = socket;
       return;
@@ -258,6 +261,9 @@ class DlnaMediaRenderer {
   }
 
   void _handleSsdpPacket(Datagram datagram) {
+    // 自己发出的包（组播环回或同机另一实例）直接丢弃：只应答 M-SEARCH，
+    // 且本机来源一律忽略，避免两个实例互相应答形成风暴。
+    if (_addresses.contains(datagram.address.address)) return;
     final message = String.fromCharCodes(datagram.data);
     final lines = message.split('\n');
     if (lines.isEmpty) return;

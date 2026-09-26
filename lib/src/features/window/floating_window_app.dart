@@ -1,9 +1,11 @@
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
+import '../../core/video_player_shutdown.dart';
 import '../../core/window_chrome.dart';
 import '../../app/app_theme.dart';
 import '../settings/settings_controller.dart';
@@ -90,9 +92,24 @@ class _FloatingPlayerPage extends ConsumerWidget {
   }
 
   /// 关掉悬浮窗：只隐藏自己这个窗口，主窗口不受影响。
+  ///
+  /// 两条铁律：
+  /// - **不能用 `windowManager.close()`**：那会走 WM_CLOSE → DestroyWindow，
+  ///   副窗口的 Flutter 引擎和里面的 mpv 播放器会在异步销毁中撞在一起，实测
+  ///   直接让整个进程 0xc0000005 崩掉（主窗口也一起没）。
+  /// - 用 desktop_multi_window 自己的 `window_hide`：它只隐藏窗口、保留引擎，
+  ///   是插件在 Windows 上唯一实现的窗口级方法（见
+  ///   flutter_window_wrapper.h 的 HandleWindowMethod，只有 window_show /
+  ///   window_hide，其它一律 `unknown method`）。
   static Future<void> _closeWindow() async {
+    // 先把副窗口自己的播放器停下来：引擎不会立刻销毁，但媒体线程还在跑，
+    // 早停一拍能避开 mpv 与窗口销毁的竞态。
     try {
-      await windowManager.close();
+      await VideoPlayerShutdown.pauseAll();
+    } catch (_) {}
+    try {
+      final controller = await WindowController.fromCurrentEngine();
+      await controller.hide();
     } catch (_) {}
   }
 }

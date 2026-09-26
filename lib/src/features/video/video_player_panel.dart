@@ -115,8 +115,15 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   }
 
   /// 悬浮窗是独立窗口 + 独立播放实例，所以只把视频 id 传过去，让它自己重新拉详情。
+  ///
+  /// 弹之前**必须先把主窗口这边停下来**：副窗口会自己从头拉一次详情播放，
+  /// 两边同时出声会互相盖住（用户反馈的「小窗播放时后面还在播」）。
   void _openFloatingWindow() {
     if (!FloatingWindow.isSupported) return;
+    final controller = _controllerNotifier.value;
+    if (controller != null && controller.value.isInitialized && controller.value.isPlaying) {
+      unawaited(controller.pause());
+    }
     unawaited(FloatingWindow.open(widget.video.id));
   }
 
