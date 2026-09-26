@@ -30,7 +30,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # 发布（tag）时要完整历史与已有 tag 才能生成更新日志，平时只取最新提交即可。
           # 注意：不能写成 `... && 0 || 1` —— GitHub 表达式里 0 是假值，会被 `||` 兜成 1，
@@ -56,7 +56,7 @@ jobs:
           cache: true
 
       - name: Set up NuGet
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v3
 
       - name: Install dependencies
         run: flutter pub get
@@ -119,21 +119,21 @@ jobs:
           Get-Content 'build\SHA256SUMS.txt'
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Han1meWinPlus-Setup
           path: build/Han1meWinPlus-Setup.exe
           if-no-files-found: error
 
       - name: Upload portable zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Han1meWinPlus-windows-x64-portable
           path: build/Han1meWinPlus-windows-x64.zip
           if-no-files-found: error
 
       - name: Upload checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Han1meWinPlus-SHA256SUMS
           path: build/SHA256SUMS.txt
