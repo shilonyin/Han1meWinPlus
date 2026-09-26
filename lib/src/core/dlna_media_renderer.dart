@@ -74,7 +74,11 @@ class CastRendererStatus {
 /// 手机上点「投屏」时，控制点会先 `SetAVTransportURI` 再 `Play`，
 /// 这两条都会通过 [CastRendererDelegate] 转交给界面层。
 class DlnaMediaRenderer {
-  DlnaMediaRenderer({required this.deviceName, this.delegate, String? uuid}) : _uuid = uuid ?? _generateUuid();
+  // 测试钩子：SSDP 端口固定 1900 会与本机其它服务/同机测试撞车，
+  // 允许注入自定义端口（生产路径不传，仍是 1900）。
+  DlnaMediaRenderer({required this.deviceName, this.delegate, String? uuid, int? ssdpPort})
+      : _uuid = uuid ?? _generateUuid(),
+        _ssdpPortOverride = ssdpPort;
 
   /// 设备在局域网里显示的名字。
   final String deviceName;
@@ -84,6 +88,12 @@ class DlnaMediaRenderer {
 
   static const String _ssdpAddress = '239.255.255.250';
   static const int _ssdpPort = 1900;
+
+  /// 测试注入的 SSDP 端口；null 时用标准 1900。
+  final int? _ssdpPortOverride;
+
+  /// 实际生效的 SSDP 端口。
+  int get _ssdpPortEffective => _ssdpPortOverride ?? _ssdpPort;
 
   /// `ssdp:alive` 的宣告周期：`CACHE-CONTROL: max-age=1800`，所以在 10 分钟处续一次。
   static const Duration _aliveInterval = Duration(minutes: 10);
@@ -217,7 +227,12 @@ class DlnaMediaRenderer {
 
   Future<void> _bindSsdpSocket() async {
     try {
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, _ssdpPort, reusePort: true);
+      // Windows 不支持 reusePort（Dart 会直接抛 SocketException，见
+      // socket_win.cc 的 reusePort 报错），1900 端口在 Windows 上本就允许
+      // 与系统服务（WS-Discovery 等）按 SO_REUSEADDR 共存，所以只有
+      // POSIX 平台才传 reusePort。
+      final reusePort = !Platform.isWindows;
+      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, _ssdpPortEffective, reusePort: reusePort);
       socket.joinMulticast(InternetAddress(_ssdpAddress));
       socket.listen(_onSocketEvent, onError: (_) {}, cancelOnError: false);
       _ssdpSocket = socket;
@@ -337,7 +352,7 @@ class DlnaMediaRenderer {
     final usn = notificationType == _udn ? _udn : '$_udn::$notificationType';
     final body = <String>[
       'NOTIFY * HTTP/1.1',
-      'HOST: $_ssdpAddress:$_ssdpPort',
+      'HOST: $_ssdpAddress:$_ssdpPortEffective',
       'CACHE-CONTROL: max-age=1800',
       'LOCATION: $location',
       'NT: $notificationType',
@@ -348,7 +363,7 @@ class DlnaMediaRenderer {
       '',
     ].join('\r\n');
     try {
-      socket.send(body.codeUnits, InternetAddress(_ssdpAddress), _ssdpPort);
+      socket.send(body.codeUnits, InternetAddress(_ssdpAddress), _ssdpPortEffective);
     } catch (_) {}
   }
 
