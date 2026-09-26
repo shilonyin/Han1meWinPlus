@@ -1814,6 +1814,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get globalHotkeys => 'Global hotkeys';
+
+  @override
+  String get globalHotkeysDescription => 'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode';
+
+  @override
   String get trayShowWindow => 'Show Window';
 
   @override

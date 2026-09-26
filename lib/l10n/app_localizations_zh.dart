@@ -1759,6 +1759,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayDescription => '关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出';
 
   @override
+  String get globalHotkeys => '全局热键';
+
+  @override
+  String get globalHotkeysDescription => '应用未激活时也生效：Ctrl+Alt+H 显示隐藏、Ctrl+Alt+空格 播放暂停、Ctrl+Alt+←/→ 上一集下一集';
+
+  @override
   String get trayShowWindow => '显示窗口';
 
   @override
@@ -4148,6 +4154,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get minimizeToTrayDescription => '關閉按鈕不再退出應用，改為收進托盤常駐；托盤選單可顯示視窗或退出';
+
+  @override
+  String get globalHotkeys => '全域快捷鍵';
+
+  @override
+  String get globalHotkeysDescription => '應用未啟用時也生效：Ctrl+Alt+H 顯示隱藏、Ctrl+Alt+空格 播放暫停、Ctrl+Alt+←/→ 上一集下一集';
 
   @override
   String get trayShowWindow => '顯示視窗';

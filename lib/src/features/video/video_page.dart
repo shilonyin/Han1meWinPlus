@@ -24,10 +24,25 @@ VideoCard? nextEpisode(VideoDetail video) {
   return episodes.firstWhere((episode) => episode.id != video.id, orElse: () => const VideoCard(id: '', title: '', coverUrl: ''));
 }
 
+/// 与 [nextEpisode] 对称的上一集；已经是第一集时不返回（与下一集的行为一致）。
+VideoCard? previousEpisode(VideoDetail video) {
+  final episodes = video.playlist;
+  final index = episodes.indexWhere((episode) => episode.id == video.id);
+  if (index > 0) return episodes[index - 1];
+  if (index < 0) return null;
+  return episodes.lastWhere((episode) => episode.id != video.id, orElse: () => const VideoCard(id: '', title: '', coverUrl: ''));
+}
+
 void _playNext(BuildContext context, VideoDetail video) {
   final next = nextEpisode(video);
   if (next == null || next.id.isEmpty) return;
   context.pushReplacement('/video/${next.id}');
+}
+
+void _playPrevious(BuildContext context, VideoDetail video) {
+  final previous = previousEpisode(video);
+  if (previous == null || previous.id.isEmpty) return;
+  context.pushReplacement('/video/${previous.id}');
 }
 
 void _playEpisode(BuildContext context, VideoCard episode) {
@@ -251,7 +266,7 @@ class _TabletVideoLayout extends StatelessWidget {
                         child: Center(
                           child: AspectRatio(
                             aspectRatio: _playerAspectRatio,
-                            child: ColoredBox(color: Colors.black, child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))),
+                            child: ColoredBox(color: Colors.black, child: VideoPlayerPanel(video: video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onPrevious: () => _playPrevious(context, video), onNext: () => _playNext(context, video), onEpisodeSelected: (episode) => _playEpisode(context, episode))),
                           ),
                         ),
                       ),
@@ -425,7 +440,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView> with SingleTicke
         if (widget.showPlayer)
           ValueListenableBuilder<double>(
             valueListenable: _playerCollapse,
-            child: RepaintBoundary(child: VideoPlayerPanel(key: ValueKey(widget.video.id), video: widget.video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onNext: () => _playNext(context, widget.video), onEpisodeSelected: (episode) => _playEpisode(context, episode), onPlayingChanged: _setPlaying)),
+            child: RepaintBoundary(child: VideoPlayerPanel(key: ValueKey(widget.video.id), video: widget.video, onBack: () => Navigator.maybePop(context), onHome: () => context.go('/'), onPrevious: () => _playPrevious(context, widget.video), onNext: () => _playNext(context, widget.video), onEpisodeSelected: (episode) => _playEpisode(context, episode), onPlayingChanged: _setPlaying)),
             builder: (context, collapse, player) => Column(children: [ClipRect(child: Align(heightFactor: 1 - collapse, alignment: Alignment.topCenter, child: player)), if (collapse >= .99) SizedBox(height: 40, width: double.infinity, child: TextButton.icon(onPressed: () => _playerCollapse.value = 0, icon: const Icon(Icons.play_arrow), label: Text(l10n.play)))]),
           ),
         Padding(

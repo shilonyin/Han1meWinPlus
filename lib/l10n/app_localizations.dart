@@ -3302,6 +3302,18 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @globalHotkeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Global hotkeys'**
+  String get globalHotkeys;
+
+  /// No description provided for @globalHotkeysDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode'**
+  String get globalHotkeysDescription;
+
   /// No description provided for @trayShowWindow.
   ///
   /// In en, this message translates to:

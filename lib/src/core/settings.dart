@@ -111,6 +111,7 @@ class AppSettings {
     this.useSystemFont = false,
     this.useSystemTitleBar = true,
     this.minimizeToTray = false,
+    this.globalHotkeysEnabled = false,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -205,6 +206,8 @@ class AppSettings {
   final bool useSystemTitleBar;
   /// 关闭按钮收进系统托盘而不是退出（托盘菜单负责「显示窗口 / 退出」）。
   final bool minimizeToTray;
+  /// 注册系统级热键（窗口未激活时也生效），默认关闭以免和别的应用抢键。
+  final bool globalHotkeysEnabled;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -312,6 +315,7 @@ class AppSettings {
         'useSystemFont': useSystemFont,
         'useSystemTitleBar': useSystemTitleBar,
         'minimizeToTray': minimizeToTray,
+        'globalHotkeysEnabled': globalHotkeysEnabled,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -397,6 +401,7 @@ class AppSettings {
         useSystemFont: json['useSystemFont'] as bool? ?? false,
         useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
         minimizeToTray: json['minimizeToTray'] as bool? ?? false,
+        globalHotkeysEnabled: json['globalHotkeysEnabled'] as bool? ?? false,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -537,6 +542,7 @@ class AppSettings {
     bool? useSystemFont,
     bool? useSystemTitleBar,
     bool? minimizeToTray,
+    bool? globalHotkeysEnabled,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -621,6 +627,7 @@ class AppSettings {
         useSystemFont: useSystemFont ?? this.useSystemFont,
         useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
         minimizeToTray: minimizeToTray ?? this.minimizeToTray,
+        globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

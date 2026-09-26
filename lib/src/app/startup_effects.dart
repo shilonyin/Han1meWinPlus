@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../core/global_hotkeys.dart';
 import '../core/platform_service.dart';
 import '../core/settings.dart';
 import '../core/system_tray.dart';
@@ -63,6 +64,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
           previousSettings.minimizeToTray != settings.minimizeToTray ||
           previousSettings.language != settings.language) {
         _applyTraySettings(settings);
+      }
+      if (previousSettings == null || previousSettings.globalHotkeysEnabled != settings.globalHotkeysEnabled) {
+        unawaited(GlobalHotkeys.setEnabled(settings.globalHotkeysEnabled));
       }
     }, fireImmediately: true);
   }

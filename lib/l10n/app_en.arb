@@ -602,6 +602,8 @@
   "useSystemTitleBarDescription": "Turn off to use the title bar built into the app",
   "minimizeToTray": "Minimize to the system tray on close",
   "minimizeToTrayDescription": "The close button keeps the app running in the tray; use the tray menu to show the window or exit",
+  "globalHotkeys": "Global hotkeys",
+  "globalHotkeysDescription": "Work even when the window is not focused: Ctrl+Alt+H show/hide, Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next episode",
   "trayShowWindow": "Show Window",
   "trayExit": "Exit",
   "minimizeWindow": "Minimize",

@@ -63,6 +63,17 @@ class WindowChrome {
 
   static Future<void> minimize() => _run((manager) => manager.minimize());
 
+  /// 显示 / 隐藏切换：给全局热键用。隐藏后再按键时先显示再聚焦，
+  /// 否则窗口只会出现在别的应用后面。
+  static Future<void> toggleVisible() => _run((manager) async {
+        if (await manager.isVisible()) {
+          await manager.hide();
+        } else {
+          await manager.show();
+          await manager.focus();
+        }
+      });
+
   /// 进入全屏前的窗口状态，退出时用来自己还原。
   static Rect? _boundsBeforeFullScreen;
   static bool _maximizedBeforeFullScreen = false;

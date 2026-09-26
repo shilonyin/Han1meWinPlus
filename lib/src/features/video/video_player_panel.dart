@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../core/platform_service.dart';
+import '../../core/playback_hotkey_target.dart';
 import '../../core/route_observer.dart';
 import '../../core/settings.dart';
 import '../../core/video_player_shutdown.dart';
@@ -29,6 +30,7 @@ class VideoPlayerPanel extends ConsumerStatefulWidget {
   final VideoDetail video;
   final VoidCallback onBack;
   final VoidCallback? onHome;
+  final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
   final ValueChanged<bool>? onPlayingChanged;
@@ -68,6 +70,10 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     _watchController = ref.read(watchProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
     _controllerNotifier.addListener(_handleControllerChanged);
+    // 全局热键作用在"当前播放页"上，所以由页面自己登记 / 注销回调。
+    PlaybackHotkeyTarget.togglePlay = _togglePlay;
+    PlaybackHotkeyTarget.previousEpisode = widget.onPrevious;
+    PlaybackHotkeyTarget.nextEpisode = widget.onNext;
     ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = _recoverFromStalledOutput;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncSource();
@@ -105,6 +111,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
     try {
       await controller.pause();
     } catch (_) {}
+  }
+
+  /// 全局热键 Ctrl+Alt+Space：播放页未获得焦点时也要能暂停 / 继续。
+  void _togglePlay() {
+    final controller = _controllerNotifier.value;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (controller.value.isPlaying) {
+      unawaited(controller.pause());
+    } else {
+      unawaited(controller.play());
+    }
   }
 
   void _handleControllerChanged() {
@@ -438,6 +455,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel> with RouteA
   void dispose() {
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
+    PlaybackHotkeyTarget.clear();
     if (identical(ConfiguredMediaKitVideoPlayer.onVideoOutputStalled, _recoverFromStalledOutput)) {
       ConfiguredMediaKitVideoPlayer.onVideoOutputStalled = null;
     }
