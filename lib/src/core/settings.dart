@@ -28,6 +28,10 @@ enum SuperResolutionMode { off, efficiency, quality, natural }
 
 enum VideoAspectRatio { auto, crop, stretch, ratio4x3 }
 
+/// 窗口背景材质：`none` 保持纯色（现状），`mica` 走 Win11 Mica，`acrylic` 走 Win10 的亚克力。
+/// 序列化按枚举名保存，新值只能往后追加。
+enum WindowBackdrop { none, mica, acrylic }
+
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) return const [PlayerEngine.libMpv];
@@ -112,6 +116,7 @@ class AppSettings {
     this.useSystemTitleBar = true,
     this.minimizeToTray = false,
     this.globalHotkeysEnabled = false,
+    this.windowBackdrop = WindowBackdrop.none,
     this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
@@ -208,6 +213,8 @@ class AppSettings {
   final bool minimizeToTray;
   /// 注册系统级热键（窗口未激活时也生效），默认关闭以免和别的应用抢键。
   final bool globalHotkeysEnabled;
+  /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
+  final WindowBackdrop windowBackdrop;
   final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
@@ -316,6 +323,7 @@ class AppSettings {
         'useSystemTitleBar': useSystemTitleBar,
         'minimizeToTray': minimizeToTray,
         'globalHotkeysEnabled': globalHotkeysEnabled,
+        'windowBackdrop': windowBackdrop.name,
         'useHomeCategoryTabs': useHomeCategoryTabs,
         'homeQuickCategories': homeQuickCategories,
         'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
@@ -402,6 +410,7 @@ class AppSettings {
         useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
         minimizeToTray: json['minimizeToTray'] as bool? ?? false,
         globalHotkeysEnabled: json['globalHotkeysEnabled'] as bool? ?? false,
+        windowBackdrop: _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ?? WindowBackdrop.none,
         useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
         homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const []).whereType<String>().toList(),
         blockedVideoTitleKeywords: (json['blockedVideoTitleKeywords'] as List? ?? const []).whereType<String>().toList(),
@@ -543,6 +552,7 @@ class AppSettings {
     bool? useSystemTitleBar,
     bool? minimizeToTray,
     bool? globalHotkeysEnabled,
+    WindowBackdrop? windowBackdrop,
     bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
@@ -628,6 +638,7 @@ class AppSettings {
         useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
         minimizeToTray: minimizeToTray ?? this.minimizeToTray,
         globalHotkeysEnabled: globalHotkeysEnabled ?? this.globalHotkeysEnabled,
+        windowBackdrop: windowBackdrop ?? this.windowBackdrop,
         useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
         homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
         blockedVideoTitleKeywords: blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

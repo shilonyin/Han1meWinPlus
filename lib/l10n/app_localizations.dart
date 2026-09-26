@@ -3302,6 +3302,30 @@ abstract class AppLocalizations {
   /// **'The close button keeps the app running in the tray; use the tray menu to show the window or exit'**
   String get minimizeToTrayDescription;
 
+  /// No description provided for @windowBackdrop.
+  ///
+  /// In en, this message translates to:
+  /// **'Window backdrop'**
+  String get windowBackdrop;
+
+  /// No description provided for @windowBackdropOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off (solid colour)'**
+  String get windowBackdropOff;
+
+  /// No description provided for @windowBackdropMica.
+  ///
+  /// In en, this message translates to:
+  /// **'Mica (Windows 11)'**
+  String get windowBackdropMica;
+
+  /// No description provided for @windowBackdropAcrylic.
+  ///
+  /// In en, this message translates to:
+  /// **'Acrylic (Windows 10)'**
+  String get windowBackdropAcrylic;
+
   /// No description provided for @globalHotkeys.
   ///
   /// In en, this message translates to:

@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
+import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
@@ -104,6 +105,14 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
                   leading: const Icon(Icons.keyboard_outlined),
                   trailing: Switch(value: settings.globalHotkeysEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(globalHotkeysEnabled: value))),
                 ),
+              if (WindowBackdropEffect.isSupported)
+                SettingsCardItem(
+                  title: l10n.windowBackdrop,
+                  subtitle: _backdropLabel(l10n, settings.windowBackdrop),
+                  leading: const Icon(Icons.blur_on_outlined),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _pickWindowBackdrop(context, controller, settings),
+                ),
             ]),
           ],
         ],
@@ -125,7 +134,27 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
     if (selected == null || selected == settings.themeMode) return;
     await controller.saveChanges((current) => current.copyWith(themeMode: selected));
   }
+
+  /// 窗口材质三档：与主题模式一样走统一的选项弹层。
+  Future<void> _pickWindowBackdrop(BuildContext context, SettingsController controller, AppSettings settings) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showOptionSettingsDialog<WindowBackdrop>(
+      context: context,
+      title: l10n.windowBackdrop,
+      current: settings.windowBackdrop,
+      options: WindowBackdrop.values,
+      label: (backdrop) => _backdropLabel(l10n, backdrop),
+    );
+    if (selected == null || selected == settings.windowBackdrop) return;
+    await controller.saveChanges((current) => current.copyWith(windowBackdrop: selected));
+  }
 }
+
+String _backdropLabel(AppLocalizations l10n, WindowBackdrop backdrop) => switch (backdrop) {
+      WindowBackdrop.none => l10n.windowBackdropOff,
+      WindowBackdrop.mica => l10n.windowBackdropMica,
+      WindowBackdrop.acrylic => l10n.windowBackdropAcrylic,
+    };
 
 String _themeModeLabel(AppLocalizations l10n, AppThemeMode mode) => switch (mode) {
       AppThemeMode.system => l10n.followSystem,

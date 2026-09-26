@@ -34,9 +34,32 @@ const _pageTransitionsTheme = PageTransitionsTheme(
   },
 );
 
-ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot, bool neutralSurfaces = false}) {
+/// 开启窗口材质后界面要"透"：系统材质画在窗口底下，表面不透明就全被盖住。
+///
+/// 透明度按 M3 的海拔层次递进——越靠前的容器越不透明，材质只在最底层明显，
+/// 这样层级关系还能看出来，不至于整片糊成一团。
+const double _surfaceAlpha = .70;
+const double _surfaceContainerLowestAlpha = .55;
+const double _surfaceContainerLowAlpha = .62;
+const double _surfaceContainerAlpha = .70;
+const double _surfaceContainerHighAlpha = .78;
+const double _surfaceContainerHighestAlpha = .86;
+
+ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot, bool neutralSurfaces = false, WindowBackdrop backdrop = WindowBackdrop.none}) {
   var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness, dynamicSchemeVariant: variant);
   if (neutralSurfaces) scheme = _neutralSurfaces(scheme, brightness);
+  // AMOLED 是纯黑，跟材质叠不出效果，以纯黑为准。
+  final transparent = backdrop != WindowBackdrop.none && !amoled;
+  if (transparent) {
+    scheme = scheme.copyWith(
+      surface: scheme.surface.withValues(alpha: _surfaceAlpha),
+      surfaceContainerLowest: scheme.surfaceContainerLowest.withValues(alpha: _surfaceContainerLowestAlpha),
+      surfaceContainerLow: scheme.surfaceContainerLow.withValues(alpha: _surfaceContainerLowAlpha),
+      surfaceContainer: scheme.surfaceContainer.withValues(alpha: _surfaceContainerAlpha),
+      surfaceContainerHigh: scheme.surfaceContainerHigh.withValues(alpha: _surfaceContainerHighAlpha),
+      surfaceContainerHighest: scheme.surfaceContainerHighest.withValues(alpha: _surfaceContainerHighestAlpha),
+    );
+  }
   if (amoled) {
     scheme = scheme.copyWith(
       surface: Colors.black,
@@ -60,7 +83,8 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
     // M3 tints the app bar with the primary colour once content scrolls under
     // it, which stands out badly against the flat/AMOLED surfaces this app uses.
     // Keep the bar the same colour as the page.
-    appBarTheme: AppBarTheme(backgroundColor: scheme.surface, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
+    // 开了窗口材质时标题栏也留空，让壁纸色一路透上来。
+    appBarTheme: AppBarTheme(backgroundColor: transparent ? Colors.transparent : scheme.surface, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
     pageTransitionsTheme: _pageTransitionsTheme,
     // 贴底的通栏 SnackBar 在这个布局里显得很重，改成半透明浮动圆角。
     snackBarTheme: SnackBarThemeData(

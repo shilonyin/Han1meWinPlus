@@ -12,6 +12,7 @@ import '../core/platform_service.dart';
 import '../core/settings.dart';
 import '../core/system_tray.dart';
 import '../core/video_player_shutdown.dart';
+import '../core/window_backdrop.dart';
 import '../data/local/update_installer.dart';
 import '../data/remote/update_checker.dart';
 import '../features/navigation/exit_coordinator.dart';
@@ -68,6 +69,13 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       if (previousSettings == null || previousSettings.globalHotkeysEnabled != settings.globalHotkeysEnabled) {
         unawaited(GlobalHotkeys.setEnabled(settings.globalHotkeysEnabled));
       }
+      // 窗口材质：开关或明暗主题变化时重新应用（Mica / Acrylic 要跟着深浅色走）。
+      if (previousSettings == null ||
+          previousSettings.windowBackdrop != settings.windowBackdrop ||
+          previousSettings.themeMode != settings.themeMode ||
+          previousSettings.amoledMode != settings.amoledMode) {
+        _applyWindowBackdrop(settings);
+      }
     }, fireImmediately: true);
   }
 
@@ -99,6 +107,15 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       showLabel: l10n.trayShowWindow,
       exitLabel: l10n.trayExit,
     ));
+  }
+
+  /// 材质的深浅由**实际生效的**主题决定（`system` 模式要跟系统走），
+  /// 所以从 context 里读而非直接用 `themeMode`。
+  void _applyWindowBackdrop(AppSettings settings) {
+    if (!WindowBackdropEffect.isSupported) return;
+    final context = widget.navigatorKey.currentContext;
+    final dark = context == null ? false : Theme.of(context).brightness == Brightness.dark;
+    unawaited(WindowBackdropEffect.apply(settings.windowBackdrop, dark: dark));
   }
 
   Future<AppExitResponse> _handleExitRequest() async {

@@ -74,7 +74,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         // 注意：`themeAnimationDuration` 的**默认值是 200ms**（kThemeAnimationDuration），
         // 所以「不写这个参数」并不等于关掉动画 —— 必须显式给 Duration.zero。
         themeAnimationDuration: Duration.zero,
-        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces),
+        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces, backdrop: settings.windowBackdrop),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,
           settings.themeColor.seedColor(settings.customThemeColor),
@@ -83,6 +83,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
           useSystemFont: settings.useSystemFont,
           variant: settings.themeColor.schemeVariant,
           neutralSurfaces: settings.themeColor.neutralSurfaces,
+          backdrop: settings.windowBackdrop,
         ),
       ),
     );

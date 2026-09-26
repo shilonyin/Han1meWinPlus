@@ -1814,6 +1814,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minimizeToTrayDescription => 'The close button keeps the app running in the tray; use the tray menu to show the window or exit';
 
   @override
+  String get windowBackdrop => 'Window backdrop';
+
+  @override
+  String get windowBackdropOff => 'Off (solid colour)';
+
+  @override
+  String get windowBackdropMica => 'Mica (Windows 11)';
+
+  @override
+  String get windowBackdropAcrylic => 'Acrylic (Windows 10)';
+
+  @override
   String get globalHotkeys => 'Global hotkeys';
 
   @override
