@@ -52,6 +52,43 @@ class VideoPlayerPanel extends ConsumerStatefulWidget {
   ConsumerState<VideoPlayerPanel> createState() => _VideoPlayerPanelState();
 }
 
+/// 从画质标签里取出数字（`'1080p'` → `1080`）；取不到返回 null。
+int? _qualityOf(String? label) {
+  if (label == null) return null;
+  return int.tryParse(RegExp(r'\d+').firstMatch(label)?.group(0) ?? '');
+}
+
+/// 挑选要加载的片源，抽成纯函数以便单测（见 test/source_sync_test.dart）。
+///
+/// 返回 null 表示「此刻不该加载」，调用方应当什么都不做、等设置就绪后重试。
+///
+/// 之所以要能返回 null：[settingsProvider] 的 `build()` 里要做一次网络地址探测，
+/// 进播放页时它往往还是 `AsyncLoading`（`valueOrNull` 为 null）。如果这时拿
+/// fallback（以前是 `?? 720`）先加载一遍，等设置就绪后 `ref.listen` 会再触发一次
+/// 同步，解析出用户真正的偏好（比如 1080）——与已加载的画质不同，于是播放器整个
+/// 重建。用户看到的就是「加载出来、过几秒画面又重来一遍」，只要偏好 ≠ 720 就每次
+/// 必现。所以设置**未就绪且未出错**时必须什么都不做。
+///
+/// [preferredQuality] 为 null 且 [settingsHasError] 为 true 时用 720 兜底，
+/// 避免设置读失败后播放器永远停在加载态。
+VideoSource? pickSourceToLoad({
+  required List<VideoSource> sources,
+  required int? preferredQuality,
+  required bool settingsHasError,
+  String? selectedQuality,
+  String? loadedQuality,
+}) {
+  if (sources.isEmpty) return null;
+  if (preferredQuality == null && !settingsHasError) return null;
+  final quality = _qualityOf(selectedQuality) ?? preferredQuality ?? 720;
+  int distance(VideoSource source) =>
+      ((_qualityOf(source.quality) ?? 720) - quality).abs();
+  final source = sources.reduce(
+    (best, item) => distance(item) < distance(best) ? item : best,
+  );
+  return source.quality == loadedQuality ? null : source;
+}
+
 class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     with RouteAware, WidgetsBindingObserver {
   static const _watchThresholdMs = 5000;
@@ -204,24 +241,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       unawaited(_clearSource());
       return;
     }
-    final preferred =
-        ref.read(settingsProvider).valueOrNull?.preferredQuality ?? 720;
-    final quality = _qualityValue(_selectedQuality) ?? preferred;
-    final source = widget.video.sources.reduce(
-      (best, item) =>
-          (_quality(item) - quality).abs() < (_quality(best) - quality).abs()
-          ? item
-          : best,
+    // 选源逻辑见 [pickSourceToLoad]（含「设置未就绪时不得先加载一遍」的原因）。
+    final settingsState = ref.read(settingsProvider);
+    final source = pickSourceToLoad(
+      sources: widget.video.sources,
+      preferredQuality: settingsState.valueOrNull?.preferredQuality,
+      settingsHasError: settingsState.hasError,
+      selectedQuality: _selectedQuality,
+      loadedQuality: _loadedQuality,
     );
-    if (source.quality != _loadedQuality) _load(source);
+    if (source != null) _load(source);
   }
-
-  int? _qualityValue(String? label) {
-    if (label == null) return null;
-    return int.tryParse(RegExp(r'\d+').firstMatch(label)?.group(0) ?? '');
-  }
-
-  int _quality(VideoSource source) => _qualityValue(source.quality) ?? 720;
 
   bool _sameSources(List<VideoSource> left, List<VideoSource> right) {
     if (left.length != right.length) return false;
@@ -627,11 +657,18 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(
-      settingsProvider.select(
-        (value) => value.valueOrNull?.preferredQuality ?? 720,
-      ),
-      (_, __) => _syncSource(),
+    ref.listen<(bool, int)>(
+      // 同时监听「设置是否就绪」与「画质偏好」：只 select 画质的话，加载中与
+      // 就绪值都是 720 时前者的 null 会被折叠成同一个数，用户偏好恰好是 720 就
+      // 永远等不到那次同步（播放器一直不加载）。record 的结构相等比较能区分。
+      settingsProvider.select((value) {
+        final settings = value.valueOrNull;
+        return (settings != null, settings?.preferredQuality ?? 720);
+      }),
+      (previous, next) {
+        if (previous == next) return;
+        _syncSource();
+      },
     );
     return PopScope(
       canPop: true,
