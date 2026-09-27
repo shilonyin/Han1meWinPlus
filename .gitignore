@@ -17,6 +17,9 @@ android/workspace.json
 
 .vscode/
 
+# Trae IDE 的工作目录（放的是 AI 会话产出的临时计划稿，与代码无关）
+.trae/
+
 # 本机编辑工具生成的状态文件，不参与版本控制
 .dsh-edit-review.json
 .dsh-edit-review-archive.json
