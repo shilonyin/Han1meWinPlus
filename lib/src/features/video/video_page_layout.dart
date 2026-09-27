@@ -37,6 +37,7 @@ class VideoPageBody extends ConsumerStatefulWidget {
     this.onNext,
     this.onEpisodeSelected,
     this.showSidebarToggle = true,
+    this.hidePlayerTopBar = false,
   });
 
   final VideoDetail video;
@@ -46,6 +47,10 @@ class VideoPageBody extends ConsumerStatefulWidget {
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
   final bool showSidebarToggle;
+
+  /// 隐去播放器自带的顶部条：独立播放窗口的窗口标题栏已经含
+  /// 「回到主界面 / 上下集 / 标题」，再叠一条会出现两个返回键和两行标题。
+  final bool hidePlayerTopBar;
 
   @override
   ConsumerState<VideoPageBody> createState() => _VideoPageBodyState();
@@ -119,6 +124,7 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
               onPrevious: widget.onPrevious,
               onNext: widget.onNext,
               onEpisodeSelected: widget.onEpisodeSelected,
+              hidePlayerTopBar: widget.hidePlayerTopBar,
             )
           else
             _CompactVideoLayout(
@@ -129,6 +135,7 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
               onPrevious: widget.onPrevious,
               onNext: widget.onNext,
               onEpisodeSelected: widget.onEpisodeSelected,
+              hidePlayerTopBar: widget.hidePlayerTopBar,
             ),
         ],
       ),
@@ -145,6 +152,7 @@ class _CompactVideoLayout extends StatelessWidget {
     this.onPrevious,
     this.onNext,
     this.onEpisodeSelected,
+    this.hidePlayerTopBar = false,
   });
 
   final VideoDetail video;
@@ -154,6 +162,7 @@ class _CompactVideoLayout extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+  final bool hidePlayerTopBar;
 
   @override
   Widget build(BuildContext context) => Align(
@@ -169,6 +178,7 @@ class _CompactVideoLayout extends StatelessWidget {
         onPrevious: onPrevious,
         onNext: onNext,
         onEpisodeSelected: onEpisodeSelected,
+        hidePlayerTopBar: hidePlayerTopBar,
       ),
     ),
   );
@@ -188,6 +198,7 @@ class _TabletVideoLayout extends StatelessWidget {
     this.onPrevious,
     this.onNext,
     this.onEpisodeSelected,
+    this.hidePlayerTopBar = false,
   });
 
   final VideoDetail video;
@@ -202,6 +213,9 @@ class _TabletVideoLayout extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+
+  /// 隐去播放器自带顶部条（独立播放窗口用，见 [VideoPageBody.hidePlayerTopBar]）。
+  final bool hidePlayerTopBar;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -250,6 +264,7 @@ class _TabletVideoLayout extends StatelessWidget {
                             onPrevious: onPrevious,
                             onNext: onNext,
                             onEpisodeSelected: onEpisodeSelected,
+                            hideTopBar: hidePlayerTopBar,
                           ),
                         ),
                       ),
@@ -368,6 +383,7 @@ class _VideoTabsView extends ConsumerStatefulWidget {
     this.onPrevious,
     this.onNext,
     this.onEpisodeSelected,
+    this.hidePlayerTopBar = false,
   });
 
   final VideoDetail video;
@@ -378,6 +394,9 @@ class _VideoTabsView extends ConsumerStatefulWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+
+  /// 隐去播放器自带顶部条（独立播放窗口用，见 [VideoPageBody.hidePlayerTopBar]）。
+  final bool hidePlayerTopBar;
 
   @override
   ConsumerState<_VideoTabsView> createState() => _VideoTabsViewState();
@@ -470,6 +489,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
                 onNext: widget.onNext,
                 onEpisodeSelected: widget.onEpisodeSelected,
                 onPlayingChanged: _setPlaying,
+                hideTopBar: widget.hidePlayerTopBar,
               ),
             ),
             builder: (context, collapse, player) => Column(

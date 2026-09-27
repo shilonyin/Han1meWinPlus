@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Commands for the native window, used by the in-app title bar.
@@ -136,6 +137,64 @@ class WindowChrome {
   static Future<void> close() => _run((manager) => manager.close());
 
   static Future<void> startDragging() => _run((manager) => manager.startDragging());
+
+  /// 窗口置顶开关（播放窗口标题栏的「置顶」按钮）。
+  ///
+  /// 失败时返回 false，调用方据此不要把按钮画成已开启的状态。
+  static Future<bool> setAlwaysOnTop(bool value) async {
+    if (!isSupported) return false;
+    await bind();
+    try {
+      await windowManager.setAlwaysOnTop(value);
+      return true;
+    } catch (error) {
+      debugPrint('[window] setAlwaysOnTop($value) failed: $error');
+      return false;
+    }
+  }
+
+  /// 窗口尺寸：读当前值 / 设为指定值（画中画小窗要在这里做缩放与还原）。
+  static Future<Rect?> getBounds() async {
+    if (!isSupported) return null;
+    await bind();
+    try {
+      return await windowManager.getBounds();
+    } catch (error) {
+      debugPrint('[window] getBounds failed: $error');
+      return null;
+    }
+  }
+
+  static Future<bool> setBounds(Rect bounds) async {
+    if (!isSupported) return false;
+    await bind();
+    try {
+      await windowManager.setBounds(bounds);
+      return true;
+    } catch (error) {
+      debugPrint('[window] setBounds failed: $error');
+      return false;
+    }
+  }
+
+  /// 主显示器的工作区（去掉任务栏），供画中画小窗贴右下角用。
+  ///
+  /// 用 screen_retriever 的 `visiblePosition` / `visibleSize`：那是排除任务栏后的
+  /// 可用区域（`size` 是整块屏幕，贴右下角会被任务栏遮住）。拿不到就返回 null，
+  /// 调用方回退到「相对当前窗口」定位。
+  static Future<Rect?> workArea() async {
+    if (!isSupported) return null;
+    try {
+      final display = await screenRetriever.getPrimaryDisplay();
+      final origin = display.visiblePosition;
+      final size = display.visibleSize ?? display.size;
+      if (origin == null) return null;
+      return Rect.fromLTWH(origin.dx, origin.dy, size.width, size.height);
+    } catch (error) {
+      debugPrint('[window] workArea failed: $error');
+      return null;
+    }
+  }
 
   static Future<void> toggleMaximize() => _run((manager) async {
         if (await manager.isMaximized()) {

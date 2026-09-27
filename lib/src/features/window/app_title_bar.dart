@@ -15,9 +15,14 @@ const double appTitleBarHeight = 34;
 /// turning the system title bar off still leaves a draggable window with the
 /// usual minimize / maximize / close buttons.
 class AppWindowFrame extends ConsumerWidget {
-  const AppWindowFrame({required this.child, super.key});
+  const AppWindowFrame({required this.child, this.titleBar, super.key});
 
   final Widget child;
+
+  /// 换一条标题栏。独立播放窗口传 [PlayWindowTitleBar]——它比主窗口那条多出
+  /// 「回到主界面 / 上下集 / 居中标题 / 置顶 / 画中画」，因为播放窗口没有导航壳，
+  /// 用户只有这一条可操作。省略时用主窗口的 [AppTitleBar]。
+  final Widget? titleBar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,8 +36,10 @@ class AppWindowFrame extends ConsumerWidget {
           builder: (context, immersive, __) {
             // 播放页是沉浸页：标题栏一起走深色，别在纯黑播放页上方留一条浅色。
             // 字体与配色开关跟 App 层保持一致，否则标题栏的字会跟应用其它地方不一样。
-            Widget bar = const AppTitleBar();
-            if (immersive) {
+            Widget bar = titleBar ?? const AppTitleBar();
+            // 自定义标题栏自带配色（播放窗口那条是照参考实现的固定深色），
+            // 不再套主题，免得被浅色主题叠成亮条。
+            if (immersive && titleBar == null) {
               bar = Theme(
                 data: appTheme(
                   null,

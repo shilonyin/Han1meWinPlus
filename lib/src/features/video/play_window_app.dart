@@ -18,6 +18,7 @@ import '../cache/cache_page.dart';
 import '../settings/cloudflare_page.dart';
 import '../settings/settings_controller.dart';
 import '../window/app_title_bar.dart';
+import '../window/play_window_title_bar.dart';
 import 'play_window.dart';
 import 'tag_editor_page.dart';
 import 'video_page.dart';
@@ -88,6 +89,9 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         routerConfig: _router,
         builder: (context, child) => M3EThemeBridge(
           child: AppWindowFrame(
+            // 播放窗口用自己那条标题栏（回到主界面 / 上下集 / 居中标题 / 置顶 /
+            // 画中画 / 窗口按钮）。主窗口那条只放 logo 与窗口按钮，在这里不够用。
+            titleBar: PlayWindowTitleBar(onHome: revealMainWindow),
             child: MediaQuery(
               data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
               child: child ?? const SizedBox.shrink(),
@@ -147,7 +151,14 @@ Widget _defaultPlayWindowPage({
   required VideoDetail? localVideo,
   VoidCallback? onBack,
   VoidCallback? onHome,
-}) => VideoPage(id: id, localVideo: localVideo, onBack: onBack, onHome: onHome);
+}) => VideoPage(
+  id: id,
+  localVideo: localVideo,
+  onBack: onBack,
+  onHome: onHome,
+  // 让播放页把标题 / 上下集登记给窗口顶部栏，并隐去自带的播放器顶部条。
+  inPlayWindow: true,
+);
 
 /// 播放窗口里那条 `/video/:id` 路由的落地：先查一次本地缓存，再决定播哪个源。
 ///

@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
+import '../../core/play_window_title_target.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/library_repository.dart';
 import '../../data/remote/han1me_api.dart';
@@ -61,6 +62,7 @@ class VideoPage extends ConsumerStatefulWidget {
     this.localVideo,
     this.onBack,
     this.onHome,
+    this.inPlayWindow = false,
   });
 
   final String id;
@@ -69,6 +71,14 @@ class VideoPage extends ConsumerStatefulWidget {
   /// 覆盖默认的「返回上一页 / 回主页」；独立播放窗口传「关掉本窗口 / 唤起主窗口」。
   final VoidCallback? onBack;
   final VoidCallback? onHome;
+
+  /// 是否运行在独立播放窗口里。
+  ///
+  /// 为真时做两件事：把标题 / 上下集可用性登记给窗口那条顶部栏
+  /// （[PlayWindowTitleTarget]，见 play_window_title_bar.dart），并隐去播放器自带的
+  /// 顶部条——窗口那条已经含「回到主界面 / 上下集 / 标题」，再叠一条会出现两个
+  /// 返回键和两行标题。
+  final bool inPlayWindow;
 
   @override
   ConsumerState<VideoPage> createState() => _VideoPageState();
@@ -84,8 +94,46 @@ class _VideoPageState extends ConsumerState<VideoPage> {
 
   @override
   void dispose() {
+    if (widget.inPlayWindow) PlayWindowTitleTarget.clear(this);
     WindowChrome.leaveImmersivePage();
     super.dispose();
+  }
+
+  /// 把当前视频的标题与上下集可用性同步给窗口顶部栏。
+  ///
+  /// 放在 build 之后（数据到了才有 VideoDetail）：videoDetailProvider 冷启动时是
+  /// loading，标题要等详情回来才能填；每次详情变化都重报一次，换集时标题跟着更新。
+  ///
+  /// 必须走 addPostFrameCallback：这些是 ValueNotifier，而顶部栏正用
+  /// ValueListenableBuilder 监听它们。在 build 期间改值会同步标脏那个 builder，
+  /// Flutter 会抛「setState() or markNeedsBuild() called during build」。
+  ///
+  /// 用一个 id 去重：build 每帧都可能被调用，不去重就会每帧排一个回调。
+  String? _publishedVideoId;
+
+  void _publishTitleInfo(VideoDetail video) {
+    if (_publishedVideoId == video.id) return;
+    _publishedVideoId = video.id;
+    final previous = previousEpisode(video);
+    final next = nextEpisode(video);
+    final hasPrevious = previous != null && previous.id.isNotEmpty;
+    final hasNext = next != null && next.id.isNotEmpty;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      PlayWindowTitleTarget.register(
+        owner: this,
+        title: video.title,
+        hasPrevious: hasPrevious,
+        hasNext: hasNext,
+        // 换集在窗口内导航（与播放页里的「下一集」行为一致）。
+        onPrevious: hasPrevious
+            ? () => context.pushReplacement('/video/${previous.id}')
+            : null,
+        onNext: hasNext
+            ? () => context.pushReplacement('/video/${next.id}')
+            : null,
+      );
+    });
   }
 
   @override
@@ -113,18 +161,24 @@ class _VideoPageState extends ConsumerState<VideoPage> {
                   ref
                       .read(libraryProvider.notifier)
                       .addSubscriptionVideo(video);
+                  if (widget.inPlayWindow) _publishTitleInfo(video);
                   return _DetailBody(
                     video: video,
                     onBack: widget.onBack,
                     onHome: widget.onHome,
+                    hidePlayerTopBar: widget.inPlayWindow,
                   );
                 },
               )
-        : _DetailBody(
-            video: localVideo,
-            onBack: widget.onBack,
-            onHome: widget.onHome,
-          );
+        : (() {
+            if (widget.inPlayWindow) _publishTitleInfo(localVideo);
+            return _DetailBody(
+              video: localVideo,
+              onBack: widget.onBack,
+              onHome: widget.onHome,
+              hidePlayerTopBar: widget.inPlayWindow,
+            );
+          })();
     // 播放页固定走「沉浸模式」（参考 b 站）：不管应用当前是浅色还是深色主题，
     // 整页都用深色 —— 播放器舞台纯黑、右侧简介/评论用深色中性面。
     //
@@ -193,11 +247,19 @@ class _VideoError extends ConsumerWidget {
 }
 
 class _DetailBody extends ConsumerStatefulWidget {
-  const _DetailBody({required this.video, this.onBack, this.onHome});
+  const _DetailBody({
+    required this.video,
+    this.onBack,
+    this.onHome,
+    this.hidePlayerTopBar = false,
+  });
 
   final VideoDetail video;
   final VoidCallback? onBack;
   final VoidCallback? onHome;
+
+  /// 独立播放窗口里隐去播放器自带的顶部条（窗口那条已经有回到主界面 / 标题）。
+  final bool hidePlayerTopBar;
 
   @override
   ConsumerState<_DetailBody> createState() => _DetailBodyState();
@@ -237,6 +299,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             onPrevious: () => _playPrevious(context, video),
             onNext: () => _playNext(context, video),
             onEpisodeSelected: (episode) => _playEpisode(context, episode),
+            hidePlayerTopBar: widget.hidePlayerTopBar,
           ),
           Positioned(
             left: isTablet ? null : 0,
