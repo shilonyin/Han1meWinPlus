@@ -123,7 +123,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
 
   Future<void> _open(DownloadTask task) async {
     if (task.status != DownloadStatus.completed) return;
-    await openCachedVideo(context, task);
+    await openCachedVideo(context, ref, task);
   }
 
   Future<void> _run(Future<void> future) async {

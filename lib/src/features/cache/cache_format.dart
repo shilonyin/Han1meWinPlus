@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/download.dart';
 import '../../domain/models/video.dart';
+import '../video/play_window.dart';
 import '../video/video_page.dart';
 
 /// 分组名的展示文案：内置的默认分组用本地化文案，其余用用户存储的名字。
@@ -81,7 +83,15 @@ String taskStatusLabel(AppLocalizations l10n, DownloadStatus status) => switch (
 ///
 /// 缓存页与文件夹页都要这个动作，放在这里共用：本地文件已被外部删掉时给一句
 /// 提示，而不是让播放器去打开一个不存在的路径。
-Future<void> openCachedVideo(BuildContext context, DownloadTask task) async {
+///
+/// 桌面端开着「独立播放窗口」时与其它入口行为一致——拉起播放窗口，由那个进程
+/// 自己按 id 读本地缓存（跨进程传不了 VideoDetail 对象）。拉不起来或没开这个
+/// 设置时，退回在当前窗口内播本地文件（那时能直接把合成的 VideoDetail 传进去）。
+Future<void> openCachedVideo(
+  BuildContext context,
+  WidgetRef ref,
+  DownloadTask task,
+) async {
   final path = task.localVideoPath;
   if (path == null || !File(path).existsSync()) {
     if (context.mounted) {
@@ -89,8 +99,8 @@ Future<void> openCachedVideo(BuildContext context, DownloadTask task) async {
     }
     return;
   }
+  if (await openVideoInPlayWindow(context, ref, task.videoCode)) return;
+  if (!context.mounted) return;
   final localVideo = VideoDetail(id: task.videoCode, title: task.title, coverUrl: task.coverUrl, sources: [VideoSource(quality: task.quality, url: path)], tags: const [], playlist: const [], related: const []);
-  if (context.mounted) {
-    await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute<void>(builder: (_) => VideoPage(id: task.videoCode, localVideo: localVideo)));
-  }
+  await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute<void>(builder: (_) => VideoPage(id: task.videoCode, localVideo: localVideo)));
 }

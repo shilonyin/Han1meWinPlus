@@ -172,7 +172,7 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
   }
 
   Future<void> _openTask(DownloadTask task) async {
-    await openCachedVideo(context, task);
+    await openCachedVideo(context, ref, task);
   }
 }
 
@@ -380,7 +380,7 @@ class CacheTaskActions extends ConsumerWidget {
       DownloadStatus.downloading || DownloadStatus.queued => IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Icons.pause_circle_outline)),
       DownloadStatus.paused => IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Icons.play_circle_outline)),
       DownloadStatus.failed => IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Icons.refresh)),
-      DownloadStatus.completed => IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, task), icon: const Icon(Icons.play_arrow_outlined)),
+      DownloadStatus.completed => IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Icons.play_arrow_outlined)),
     };
   }
 }

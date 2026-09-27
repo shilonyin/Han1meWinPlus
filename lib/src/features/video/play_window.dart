@@ -89,7 +89,7 @@ Future<bool> _launchExecutable(List<String> arguments) async {
 /// 点击视频封面的统一入口：桌面 Windows 且设置开启时弹出独立播放窗口，
 /// 其余情况照旧在当前窗口内 push 播放页。
 ///
-/// 只用于「从列表进播放页」的入口（首页 / 搜索 / 库 / 预告）。播放页内部的
+/// 只用于「从列表进播放页」的入口（首页 / 搜索 / 库 / 预告 / 缓存）。播放页内部的
 /// 换集、相关推荐仍走窗口内导航——b 站也是这样：窗口内换内容，不开新窗口。
 /// Getchu 预告片这种「合成 VideoDetail 只能靠 extra 传对象」的入口不要走这里，
 /// 跨进程传不了对象，继续用 `context.push('/video/…', extra: video)`。
@@ -98,12 +98,24 @@ Future<void> openVideo(
   WidgetRef ref,
   String videoId,
 ) async {
+  if (await openVideoInPlayWindow(context, ref, videoId)) return;
+  if (context.mounted) context.push('/video/$videoId');
+}
+
+/// 尝试把 [videoId] 放进独立播放窗口打开；返回 true 表示已经打开、调用方不要再导航。
+///
+/// 抽出来是为了让**缓存页**复用同一套判断：本地缓存以前是在主窗口内 push
+/// `VideoPage`，于是「从缓存播」和「从列表播」行为不一致（前者不开独立窗口）。
+/// 播放窗口那一侧会自己按 id 去读本地缓存（见 play_window_app.dart 的
+/// `_PlayWindowVideo`），所以这里同样只需要传 id。
+Future<bool> openVideoInPlayWindow(
+  BuildContext context,
+  WidgetRef ref,
+  String videoId,
+) async {
   final settings = ref.read(settingsProvider).valueOrNull;
-  if (Platform.isWindows && (settings?.openVideoInWindow ?? true)) {
-    if (await launchPlayWindow(videoId)) return;
-    // 进程拉不起来（exe 被移动 / 删除等）时回退到窗口内播放，别让用户点不开视频。
-    if (context.mounted) context.push('/video/$videoId');
-    return;
-  }
-  context.push('/video/$videoId');
+  if (!Platform.isWindows || !(settings?.openVideoInWindow ?? true)) return false;
+  // 拉起成功就直接返回；拉不起来（exe 被移动 / 删除等）回退窗口内播放，
+  // 别让用户点不开视频。
+  return launchPlayWindow(videoId);
 }
