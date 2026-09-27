@@ -53,6 +53,23 @@ class AppWindowFrame extends ConsumerWidget {
                 child: bar,
               );
             }
+            // 自定义标题栏要自带一个 Overlay。
+            //
+            // AppWindowFrame 跑在 MaterialApp.builder 里，也就是包在 Navigator **外面**；
+            // 而 Overlay 是每个 route 各自建在 Navigator **内部**。播放窗口那条标题栏用了
+            // Tooltip，它需要 Overlay 祖先 —— 缺了就抛
+            // 「No Overlay widget found ... RawTooltip widgets require an Overlay widget
+            // ancestor」，整条标题栏被 RenderErrorBox（默认底色 0xF0C0C0C0，叠在深色上
+            // 就是截图里那个 (183,183,183) 灰块）顶掉。
+            // 悬停才发作是因为 Tooltip 懒构建，鼠标移上去才第一次要 Overlay。
+            //
+            // 用官方的 Overlay.wrap：它替我们管好 entry 的增删（dispose 前先 remove，
+            // 这是 OverlayEntry 的硬性要求），并且 alwaysSizeToContent 让 Overlay 自己
+            // 按内容定高 —— 这里位于 Column 中、高度是无界的，普通 Overlay 会因拿不到
+            // 有界约束而布局失败。主窗口的 AppTitleBar 从不用 Tooltip，所以以前没暴露。
+            if (titleBar != null) {
+              bar = Overlay.wrap(alwaysSizeToContent: true, child: bar);
+            }
             return Column(children: [bar, Expanded(child: child)]);
           },
         );
