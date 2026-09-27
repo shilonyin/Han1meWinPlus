@@ -25,6 +25,12 @@ RestartApplications=no
 [Files]
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; 升级安装时 Inno 不会清理「旧版本装过、新版本已不再分发」的文件，得显式删除。
+; desktop_multi_window 的多引擎方案已放弃（播放窗口改为独立进程），这个插件 DLL
+; 早期版本被装进过 {app}，留着既是死代码，也正是当初让主窗口假死的那套实现。
+Type: files; Name: "{app}\desktop_multi_window_plugin.dll"
+
 [Icons]
 Name: "{autoprograms}\Han1meWinPlus"; Filename: "{app}\han1me_win_plus.exe"
 Name: "{autodesktop}\Han1meWinPlus"; Filename: "{app}\han1me_win_plus.exe"; Tasks: desktopicon
