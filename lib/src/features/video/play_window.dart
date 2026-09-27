@@ -46,7 +46,7 @@ class PlayWindowArgs {
 /// [workingDirectory] 必须指向 exe 所在目录：runner 用相对路径 `data` 加载
 /// Flutter 资源，跟随主进程的 cwd（比如从 IDE 里跑）就会找不到。
 Future<bool> launchPlayWindow(String videoId) async {
-  return _launchExecutable([kPlayWindowFlag, '$_kVideoArgumentPrefix$videoId']);
+  return launchExecutable([kPlayWindowFlag, '$_kVideoArgumentPrefix$videoId']);
 }
 
 /// 把主窗口唤到前台；没在运行就直接冷启动一个。
@@ -54,8 +54,19 @@ Future<bool> launchPlayWindow(String videoId) async {
 /// 播放窗口里「回到主界面」用：无参启动时 runner 的单实例逻辑会激活已运行的
 /// 主窗口（ActivateExistingWindow）然后自己退出，主窗口没在跑则正常启动。
 Future<void> revealMainWindow() async {
-  await _launchExecutable(const []);
+  await launchExecutable(const []);
 }
+
+/// 进程启动器的签名：接命令行参数，起得来返回 true。
+typedef LaunchExecutable = Future<bool> Function(List<String> arguments);
+
+/// 当前使用的进程启动器。生产环境就是 [_launchExecutable]。
+///
+/// 测试会把它换成不真正拉进程的实现，用来断言参数、并模拟「拉不起来」——
+/// [openVideo] 里那条回退到窗口内播放的分支只能这样覆盖（真实的
+/// `Process.start` 在测试进程里既不该被调用，也没法让它失败）。
+@visibleForTesting
+LaunchExecutable launchExecutable = _launchExecutable;
 
 Future<bool> _launchExecutable(List<String> arguments) async {
   final executable = Platform.resolvedExecutable;

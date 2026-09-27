@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../core/local_media_scanner.dart';
 import '../../data/local/local_media_repository.dart';
 import '../settings/settings_controller.dart';
 import '../settings/settings_sub_page.dart';

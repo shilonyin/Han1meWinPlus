@@ -461,7 +461,7 @@ class AppSettings {
     downloadSpeedLimitMbps:
         (json['downloadSpeedLimitMbps'] as num?)?.toDouble() ?? 0,
     concurrentDownloads:
-        (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5) as int,
+        (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5),
     autoGroupDownloads: json['autoGroupDownloads'] as bool? ?? true,
     groupNameFromSeries: json['groupNameFromSeries'] as bool? ?? false,
     groupNameTraditional: json['groupNameTraditional'] as bool? ?? false,
@@ -475,7 +475,7 @@ class AppSettings {
             .clamp(1, 3)
             .toDouble(),
     playerControlsTimeoutSeconds:
-        (json['playerControlsTimeoutSeconds'] as int? ?? 4).clamp(1, 15) as int,
+        (json['playerControlsTimeoutSeconds'] as int? ?? 4).clamp(1, 15),
     seekSensitivity: ((json['seekSensitivity'] as num?)?.toDouble() ?? .35)
         .clamp(.1, 1)
         .toDouble(),
@@ -506,12 +506,12 @@ class AppSettings {
     dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
     dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
     dohTimeoutSeconds:
-        (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60) as int,
+        (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60),
     proxyMode: _proxyMode(json['proxyMode'] as String?),
     customProxy: (json['customProxy'] as String? ?? '').trim(),
     useHorizontalSearchCards: json['useHorizontalSearchCards'] as bool? ?? true,
     searchCardsPerRow:
-        (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3) as int,
+        (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3),
     useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
     expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
     useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? true,
@@ -552,10 +552,9 @@ class AppSettings {
         .whereType<String>()
         .toList(),
     minimumVideoDurationSeconds:
-        (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400)
-            as int,
+        (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400),
     minimumVideoViews:
-        (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000) as int,
+        (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000),
     exemptSubscribedAuthors: json['exemptSubscribedAuthors'] as bool? ?? true,
     applyRecommendationFiltersToRelated:
         json['applyRecommendationFiltersToRelated'] as bool? ?? true,
@@ -574,7 +573,7 @@ class AppSettings {
           json['videoAspectRatio'] as String?,
         ) ??
         VideoAspectRatio.auto,
-    skipSeconds: (json['skipSeconds'] as int? ?? 80).clamp(1, 3600) as int,
+    skipSeconds: (json['skipSeconds'] as int? ?? 80).clamp(1, 3600),
     webDavEnabled: json['webDavEnabled'] as bool? ?? false,
     webDavHistorySync: json['webDavHistorySync'] as bool? ?? false,
     webDavFavoriteSync: json['webDavFavoriteSync'] as bool? ?? false,

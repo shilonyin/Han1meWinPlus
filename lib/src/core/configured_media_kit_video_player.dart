@@ -136,9 +136,6 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 该主机这次该用的传输方式。默认走代理（只要机器上有），实测过的按记录来。
   static bool _prefersProxy(String host) => _hostUsesProxy[host] ?? (_availableProxy != null);
 
-  /// 对应传输方式的 mpv `http-proxy` 取值（null = 直连）。
-  static String? _proxyFor(String host) => _prefersProxy(host) ? _availableProxy : null;
-
   static void registerWith() {
     VideoPlayerPlatform.instance = _instance;
   }
