@@ -38,6 +38,28 @@ class VideoOutputArea extends InheritedWidget {
   bool updateShouldNotify(VideoOutputArea oldWidget) => size != oldWidget.size || enabled != oldWidget.enabled || fill != oldWidget.fill;
 }
 
+/// 画面卡死看门狗的判定，抽成纯函数以便单测（见 test/stall_watchdog_test.dart）。
+///
+/// 判定「这一刻能否算作画面卡死」：
+/// 1. 必须已经真的播稳过（[ready]）：否则会把**开播缓冲**误判成卡死——mpv 一进
+///    playing 就上报 `playing = true`（画面还在等首个关键帧），而
+///    `demuxer-readahead-secs=60` 让 `buffer - position` 一眼就领先几十秒，
+///    于是开播缓冲只要超过 6 秒就会触发一次重载。用户看到的是「加载出来、过几秒
+///    画面又重载一遍才正常」。
+/// 2. 在播且在缓冲：画面不再更新。
+/// 3. 缓冲领先播放位置 ≥3 秒：数据早就够了，卡的是画面输出。
+///    只靠「在缓冲」判断不够——网络真卡时也缓冲，那种情况不能动手。
+bool shouldCountAsStalled({
+  required bool ready,
+  required bool playing,
+  required bool buffering,
+  required Duration bufferAhead,
+}) =>
+    ready &&
+    playing &&
+    buffering &&
+    bufferAhead >= const Duration(seconds: 3);
+
 class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   static AppSettings settings = const AppSettings();
   static final ConfiguredMediaKitVideoPlayer _instance = ConfiguredMediaKitVideoPlayer();
@@ -63,6 +85,15 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   final _stallSeconds = HashMap<int, int>();
   final _stallTimers = HashMap<int, Timer>();
   final _stallRecovered = HashMap<int, bool>();
+  /// 该纹理「真的播稳过」的时间点：`buffering` 转为 false 时记下。
+  ///
+  /// 看门狗必须等到这一刻才允许动手，否则会把**开播缓冲**误判成画面卡死：
+  /// mpv 一进 playing 就上报 `playing = true`（但画面还在等首个关键帧），
+  /// 而 [_applyStreamTuning] 把预读拉到 60 秒，`buffer - position` 立刻就有几十秒，
+  /// 于是开播缓冲只要超过 6 秒就触发一次重载。用户看到的是「加载出来、过几秒画面
+  /// 又重载一遍才正常」——重载后缓存命中、缓冲变快，就不再触发（[_stallRecovered]
+  /// 也保证每个播放器只重载一次）。要求先播稳过，开播阶段就不会再误伤。
+  final _readyAt = HashMap<int, DateTime>();
   /// 正在改画质（重新编译着色器链）的纹理：这段时间内核上报的「缓冲」要压掉。
   final _switchingQuality = HashMap<int, bool>();
   final _switchingTimers = HashMap<int, Timer>();
@@ -196,6 +227,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _resizeRetryCounts.clear();
     _stallSeconds.clear();
     _stallRecovered.clear();
+    _readyAt.clear();
   }
 
   @override
@@ -217,6 +249,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     _stallTimers.remove(textureId)?.cancel();
     _stallSeconds.remove(textureId);
     _stallRecovered.remove(textureId);
+    _readyAt.remove(textureId);
     _switchingTimers.remove(textureId)?.cancel();
     if (_switchingQuality.remove(textureId) != null) {
       switchingSuperResolution.value = _switchingQuality.isNotEmpty;
@@ -303,6 +336,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
           _playingSince.remove(id);
         } else {
           _playingSince[id] = DateTime.now();
+          // 脱离缓冲 = 这一轮真的播起来了，看门狗从此刻起才有资格判定卡死。
+          _readyAt[id] = DateTime.now();
           // 切画质造成的短暂缓冲到此结束，提示条可以收了。
           _endSwitchingQuality(id);
         }
@@ -788,14 +823,21 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   /// 兜底看门狗：渲染上下文万一还是坏了，通报界面层重载。
   ///
-  /// 只用「在缓冲」判断不够：网络真卡时也会缓冲，那种情况不能动手。
-  /// 缓冲区明明领先播放位置却一直不播，说明数据早就够了，卡的是画面输出。
+  /// 判据见 [shouldCountAsStalled]（纯函数，单测在 test/stall_watchdog_test.dart）。
+  /// 要点是必须**真的播稳过**（[_readyAt]）才允许动手，否则刚加载出来就会自己
+  /// 重载一遍——那是用户报的「过几秒画面重新加载」。
   void _checkStall(int textureId) {
     final player = _players[textureId];
     if (player == null) return;
     final state = player.state;
-    final ahead = state.buffer - state.position;
-    if (!state.playing || !state.buffering || ahead < const Duration(seconds: 3)) {
+    final stalled = shouldCountAsStalled(
+      // 从没播稳过（还在开播缓冲）= 不是画面卡死。
+      ready: _readyAt[textureId] != null,
+      playing: state.playing,
+      buffering: state.buffering,
+      bufferAhead: state.buffer - state.position,
+    );
+    if (!stalled) {
       _stallSeconds[textureId] = 0;
       return;
     }
