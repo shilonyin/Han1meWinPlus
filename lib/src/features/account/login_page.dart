@@ -3,6 +3,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/remote/han1me_api.dart';
@@ -53,7 +54,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       floatingActionButton: FloatingActionButton(
         tooltip: AppLocalizations.of(context)!.manualCookieLogin,
         onPressed: () => context.push('/login/cookies'),
-        child: const Icon(Icons.cookie_outlined),
+        child: const Icon(Symbols.cookie_rounded),
       ),
       body: Stack(
         fit: StackFit.expand,

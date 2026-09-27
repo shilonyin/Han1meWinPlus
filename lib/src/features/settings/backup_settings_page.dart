@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/backup_service.dart';
 import '../../data/local/download_repository.dart';
@@ -34,8 +35,8 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         children: [
           SettingsCardList(
             children: [
-              SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Icons.archive_outlined), enabled: !busy, onTap: _export),
-              SettingsCardItem(title: l10n.importDataBackup, subtitle: l10n.importDataBackupDescription, leading: const Icon(Icons.unarchive_outlined), enabled: !busy, onTap: _import),
+              SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Symbols.archive_rounded), enabled: !busy, onTap: _export),
+              SettingsCardItem(title: l10n.importDataBackup, subtitle: l10n.importDataBackupDescription, leading: const Icon(Symbols.unarchive_rounded), enabled: !busy, onTap: _import),
             ],
           ),
           if (busy) const Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()),

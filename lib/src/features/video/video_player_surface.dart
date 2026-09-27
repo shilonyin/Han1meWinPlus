@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
@@ -560,7 +561,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                             setState(() => _locked = false);
                             _restartTimer();
                           },
-                          icon: const Icon(Icons.lock),
+                          icon: const Icon(Symbols.lock_rounded),
                         ),
                       ),
                     // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致
@@ -600,7 +601,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                           color: Colors.white,
                           tooltip: l10n.lockControls,
                           onPressed: () => setState(() => _locked = true),
-                          icon: const Icon(Icons.lock_open_outlined),
+                          icon: const Icon(Symbols.lock_open_rounded),
                         ),
                       ),
                     if (widget.fullscreen && widget.keyframes.isNotEmpty)
@@ -708,7 +709,7 @@ class _PlayerTopBar extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 onPressed: onBack,
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Symbols.arrow_back_rounded),
               ),
             if (onHome != null)
               IconButton(
@@ -716,7 +717,7 @@ class _PlayerTopBar extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: l10n.home,
                 onPressed: onHome,
-                icon: const Icon(Icons.home_outlined),
+                icon: const Icon(Symbols.home_rounded),
               ),
             const SizedBox(width: 6),
             Expanded(child: _MarqueeTitle(title: video.title)),
@@ -726,7 +727,7 @@ class _PlayerTopBar extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: l10n.pictureInPicture,
                 onPressed: onPictureInPicture,
-                icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                icon: const Icon(Symbols.picture_in_picture_rounded),
               ),
             if (onKeyframes != null)
               Tooltip(
@@ -783,7 +784,7 @@ class PlayerNavCapsule extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: onBack,
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Symbols.arrow_back_rounded),
         ),
         if (onHome != null) ...[
           SizedBox(
@@ -799,7 +800,7 @@ class PlayerNavCapsule extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             tooltip: AppLocalizations.of(context)!.home,
             onPressed: onHome,
-            icon: const Icon(Icons.home_outlined),
+            icon: const Icon(Symbols.home_rounded),
           ),
         ],
       ],
@@ -1024,7 +1025,7 @@ class _AdjustmentHud extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            delta >= 0 ? Icons.fast_forward : Icons.fast_rewind,
+            delta >= 0 ? Symbols.fast_forward_rounded : Symbols.fast_rewind_rounded,
             color: Colors.white,
             size: 28,
           ),
@@ -1074,8 +1075,8 @@ class _VolumeHud extends StatelessWidget {
             children: [
               Icon(
                 percent <= 0
-                    ? Icons.volume_off
-                    : (percent < 50 ? Icons.volume_down : Icons.volume_up),
+                    ? Symbols.volume_off_rounded
+                    : (percent < 50 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded),
                 color: Colors.black,
                 size: 26,
               ),
@@ -1110,7 +1111,7 @@ class _PausedBadge extends StatelessWidget {
     ),
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Icon(Icons.play_arrow, color: Colors.black, size: 28),
+      child: Icon(Symbols.play_arrow_rounded, color: Colors.black, size: 28),
     ),
   );
 }

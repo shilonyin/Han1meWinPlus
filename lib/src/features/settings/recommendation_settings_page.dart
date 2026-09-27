@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
@@ -34,14 +35,14 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
           SettingsCardList(
             title: l10n.filters,
             children: [
-              SettingsCardItem(title: l10n.videoTitleKeywordFilter, subtitle: l10n.videoTitleKeywordFilterDescription, leading: const Icon(Icons.title_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'titles')),
-              SettingsMenuItem(title: l10n.minimumVideoDuration, leading: const Icon(Icons.timer_outlined), value: settings.minimumVideoDurationSeconds, options: const [0, 30, 60, 90, 120, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : l10n.seconds(value), onSelected: (value) => _selectCustom(context, value, settings.minimumVideoDurationSeconds, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoDurationSeconds: result)))),
-              SettingsMenuItem(title: l10n.minimumVideoViews, leading: const Icon(Icons.visibility_outlined), value: settings.minimumVideoViews, options: const [0, 50, 100, 500, 1000, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : '$value', onSelected: (value) => _selectCustom(context, value, settings.minimumVideoViews, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoViews: result)))),
-              SettingsCardItem(title: l10n.authorFilter, subtitle: l10n.authorFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'authors')),
-              SettingsCardItem(title: l10n.videoTagFilter, subtitle: l10n.videoTagFilterDescription, leading: const Icon(Icons.label_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'tags')),
-              SettingsCardItem(title: l10n.exemptSubscribedAuthors, subtitle: l10n.exemptSubscribedAuthorsDescription, leading: const Icon(Icons.person_add_alt_1_outlined), trailing: Switch(value: settings.exemptSubscribedAuthors, onChanged: (value) => controller.saveChanges((current) => current.copyWith(exemptSubscribedAuthors: value)))),
-              SettingsCardItem(title: l10n.applyFiltersToRelated, subtitle: l10n.applyFiltersToRelatedDescription, leading: const Icon(Icons.video_library_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToRelated, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToRelated: value)))),
-              SettingsCardItem(title: l10n.applyFiltersToSearch, subtitle: l10n.applyFiltersToSearchDescription, leading: const Icon(Icons.manage_search_outlined), trailing: Switch(value: settings.applyRecommendationFiltersToSearch, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToSearch: value)))),
+              SettingsCardItem(title: l10n.videoTitleKeywordFilter, subtitle: l10n.videoTitleKeywordFilterDescription, leading: const Icon(Symbols.title_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'titles')),
+              SettingsMenuItem(title: l10n.minimumVideoDuration, leading: const Icon(Symbols.timer_rounded), value: settings.minimumVideoDurationSeconds, options: const [0, 30, 60, 90, 120, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : l10n.seconds(value), onSelected: (value) => _selectCustom(context, value, settings.minimumVideoDurationSeconds, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoDurationSeconds: result)))),
+              SettingsMenuItem(title: l10n.minimumVideoViews, leading: const Icon(Symbols.visibility_rounded), value: settings.minimumVideoViews, options: const [0, 50, 100, 500, 1000, -1], label: (value) => value == -1 ? l10n.custom : value == 0 ? l10n.noFilter : '$value', onSelected: (value) => _selectCustom(context, value, settings.minimumVideoViews, (result) => controller.saveChanges((current) => current.copyWith(minimumVideoViews: result)))),
+              SettingsCardItem(title: l10n.authorFilter, subtitle: l10n.authorFilterDescription, leading: const Icon(Symbols.person_off_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'authors')),
+              SettingsCardItem(title: l10n.videoTagFilter, subtitle: l10n.videoTagFilterDescription, leading: const Icon(Symbols.label_off_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'tags')),
+              SettingsCardItem(title: l10n.exemptSubscribedAuthors, subtitle: l10n.exemptSubscribedAuthorsDescription, leading: const Icon(Symbols.person_add_rounded), trailing: Switch(value: settings.exemptSubscribedAuthors, onChanged: (value) => controller.saveChanges((current) => current.copyWith(exemptSubscribedAuthors: value)))),
+              SettingsCardItem(title: l10n.applyFiltersToRelated, subtitle: l10n.applyFiltersToRelatedDescription, leading: const Icon(Symbols.video_library_rounded), trailing: Switch(value: settings.applyRecommendationFiltersToRelated, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToRelated: value)))),
+              SettingsCardItem(title: l10n.applyFiltersToSearch, subtitle: l10n.applyFiltersToSearchDescription, leading: const Icon(Symbols.manage_search_rounded), trailing: Switch(value: settings.applyRecommendationFiltersToSearch, onChanged: (value) => controller.saveChanges((current) => current.copyWith(applyRecommendationFiltersToSearch: value)))),
             ],
           ),
         ],

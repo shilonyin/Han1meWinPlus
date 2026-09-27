@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -332,7 +333,7 @@ class VideoCardTile extends ConsumerWidget {
                   ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
               errorWidget: (context, url, error) => ColoredBox(
                 color: theme.colorScheme.surfaceContainerHighest,
-                child: const Center(child: Icon(Icons.broken_image_outlined)),
+                child: const Center(child: Icon(Symbols.broken_image_rounded)),
               ),
             ),
           if (video.duration != null)
@@ -346,7 +347,7 @@ class VideoCardTile extends ConsumerWidget {
               left: dense ? 3 : 6,
               bottom: dense ? 3 : 6,
               child: _OverlayText(
-                icon: Icons.visibility_outlined,
+                icon: Symbols.visibility_rounded,
                 text: video.views!,
                 dense: dense,
               ),
@@ -408,7 +409,7 @@ class VideoCardTile extends ConsumerWidget {
                       : Row(
                           children: [
                             Icon(
-                              Icons.thumb_up_outlined,
+                              Symbols.thumb_up_rounded,
                               size: dense ? 11 : 14,
                               color: theme.colorScheme.outline,
                             ),

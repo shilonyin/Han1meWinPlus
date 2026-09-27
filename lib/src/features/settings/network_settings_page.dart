@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/cast_receiver.dart';
 import '../../core/settings.dart';
@@ -42,10 +43,10 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(appBar: AppBar(title: Text(l10n.networkSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.general, children: [
-        SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Icons.language_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => showSitePicker(context, ref, settings, onManageGroups: () => setState(() => _showSiteGroups = true))),
-       SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Icons.link_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
-       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Icons.dns_outlined), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),        SettingsCardItem(title: l10n.siteDiagnostics, subtitle: l10n.siteDiagnosticsDescription, leading: const Icon(Icons.network_check_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showDiagnostics = true)),       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Icons.vpn_lock_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showProxySettings(context, settings, controller)),
-       SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Icons.security_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _showDohSettings(context, settings, controller)),
+        SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Symbols.language_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => showSitePicker(context, ref, settings, onManageGroups: () => setState(() => _showSiteGroups = true))),
+       SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Symbols.link_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
+       SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Symbols.dns_rounded), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value, useDoh: value ? false : current.useDoh)))),        SettingsCardItem(title: l10n.siteDiagnostics, subtitle: l10n.siteDiagnosticsDescription, leading: const Icon(Symbols.network_check_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _showDiagnostics = true)),       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Symbols.vpn_lock_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showProxySettings(context, settings, controller)),
+       SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Symbols.security_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
       if (CastReceiver.isSupported)
         SettingsCardList(title: l10n.dlnaReceiver, children: [
@@ -54,7 +55,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
             builder: (context, running, _) => SettingsCardItem(
               title: l10n.dlnaReceiver,
               subtitle: running ? '${l10n.dlnaReceiverRunning}\n${CastReceiver.instance.location}' : l10n.dlnaReceiverDescription,
-              leading: const Icon(Icons.cast_connected_outlined),
+              leading: const Icon(Symbols.cast_connected_rounded),
               trailing: Switch(value: settings.dlnaReceiverEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(dlnaReceiverEnabled: value))),
             ),
           ),
@@ -110,7 +111,7 @@ class _ProxySettingsDialogState extends State<_ProxySettingsDialog> {
     return AlertDialog(title: Text(l10n.proxy), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l10n.proxyDescription, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
       const SizedBox(height: 4),
-      for (final option in options) ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(option.$2), trailing: _mode == option.$1 ? const Icon(Icons.check) : null, onTap: () => setState(() => _mode = option.$1)),
+      for (final option in options) ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(option.$2), trailing: _mode == option.$1 ? const Icon(Symbols.check_rounded) : null, onTap: () => setState(() => _mode = option.$1)),
       const SizedBox(height: 8),
       TextField(controller: _custom, enabled: _mode == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.proxyCustomAddress, helperText: l10n.proxyCustomAddressHint)),
     ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save))]);
@@ -209,7 +210,7 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
           RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: true, groupValue: _appendPath, title: Text(l10n.customMirrorPathFollowHome), subtitle: Text(l10n.customMirrorPathFollowHomeSummary), onChanged: (value) => setState(() => _appendPath = value!)),
           RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: false, groupValue: _appendPath, title: Text(l10n.customMirrorPathRoot), subtitle: Text(l10n.customMirrorPathRootSummary), onChanged: (value) => setState(() => _appendPath = value!)),
           const SizedBox(height: 8),
-          SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _testing ? null : () => _testConnection(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.network_check_outlined), label: Text(l10n.testConnection))),
+          SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _testing ? null : () => _testConnection(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.network_check_rounded), label: Text(l10n.testConnection))),
           if (_testResult != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_testResult!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))),
         ],
       ])),

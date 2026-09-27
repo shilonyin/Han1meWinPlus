@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/window_chrome.dart';
@@ -133,14 +134,14 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
               // 与 Windows 标题栏图标的常规尺寸一致。
               Image.asset('assets/logo_lockup_compact.png', height: 16, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
               const Spacer(),
-              _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Icons.remove, iconSize: 16),
+              _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 16),
               _TitleBarButton(
                 label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
                 onPressed: WindowChrome.toggleMaximize,
-                icon: _maximized ? Icons.filter_none : Icons.crop_square,
+                icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
                 iconSize: _maximized ? 14 : 13,
               ),
-              _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Icons.close, iconSize: 16, danger: true),
+              _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Symbols.close_rounded, iconSize: 16, danger: true),
             ],
           ),
         ),

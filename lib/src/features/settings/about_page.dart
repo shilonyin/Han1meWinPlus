@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_identity.dart';
 import '../../core/app_info.dart';
@@ -27,19 +28,19 @@ class AboutPage extends ConsumerWidget {
     final project = _AboutSection(
       title: l10n.projectSection,
       children: [
-        _AboutItem(icon: Icons.code, title: l10n.sourceCode, onTap: () => _open(repoUrl)),
-        _AboutItem(icon: Icons.account_tree_outlined, title: l10n.upstreamProject, onTap: () => _open(upstreamRepoUrl)),
-        _AboutItem(icon: Icons.bug_report_outlined, title: l10n.reportIssue, onTap: () => _open('$repoUrl/issues/new/choose')),
-        _AboutItem(icon: Icons.language_outlined, title: l10n.dataSource, subtitle: l10n.dataSourceDescription, onTap: () => _open(dataSourceUrl)),
+        _AboutItem(icon: Symbols.code_rounded, title: l10n.sourceCode, onTap: () => _open(repoUrl)),
+        _AboutItem(icon: Symbols.account_tree_rounded, title: l10n.upstreamProject, onTap: () => _open(upstreamRepoUrl)),
+        _AboutItem(icon: Symbols.bug_report_rounded, title: l10n.reportIssue, onTap: () => _open('$repoUrl/issues/new/choose')),
+        _AboutItem(icon: Symbols.language_rounded, title: l10n.dataSource, subtitle: l10n.dataSourceDescription, onTap: () => _open(dataSourceUrl)),
       ],
     );
     final openSource = _AboutSection(
       title: l10n.openSourceSection,
       children: [
-        _AboutItem(icon: Icons.volunteer_activism_outlined, title: l10n.acknowledgements, inApp: true, onTap: () => _showAcknowledgements(context, l10n)),
-        _AboutItem(icon: Icons.fork_right_outlined, title: l10n.contributing, onTap: () => _open('$repoUrl/pulls')),
-        _AboutItem(icon: Icons.balance_outlined, title: l10n.agplLicense, onTap: () => _open('$repoUrl/blob/win/LICENSE')),
-        _AboutItem(icon: Icons.description_outlined, title: l10n.thirdPartyLicenses, inApp: true, onTap: () => context.push('/settings/license')),
+        _AboutItem(icon: Symbols.volunteer_activism_rounded, title: l10n.acknowledgements, inApp: true, onTap: () => _showAcknowledgements(context, l10n)),
+        _AboutItem(icon: Symbols.fork_right_rounded, title: l10n.contributing, onTap: () => _open('$repoUrl/pulls')),
+        _AboutItem(icon: Symbols.balance_rounded, title: l10n.agplLicense, onTap: () => _open('$repoUrl/blob/win/LICENSE')),
+        _AboutItem(icon: Symbols.description_rounded, title: l10n.thirdPartyLicenses, inApp: true, onTap: () => context.push('/settings/license')),
       ],
     );
     return Scaffold(
@@ -69,13 +70,13 @@ class AboutPage extends ConsumerWidget {
                       title: l10n.updateSection,
                       children: [
                         _AboutItem(
-                          icon: Icons.autorenew_outlined,
+                          icon: Symbols.autorenew_rounded,
                           title: l10n.autoCheckUpdates,
                           trailing: Switch(value: settings?.autoUpdate ?? true, onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(autoUpdate: value))),
                           onTap: () => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(autoUpdate: !(settings?.autoUpdate ?? true))),
                         ),
                         _AboutItem(
-                          icon: Icons.route_outlined,
+                          icon: Symbols.route_rounded,
                           title: l10n.useUpdateMirror,
                           subtitle: l10n.useUpdateMirrorDescription,
                           trailing: Switch(value: settings?.useUpdateMirror ?? true, onChanged: (value) => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(useUpdateMirror: value))),
@@ -98,7 +99,7 @@ class AboutPage extends ConsumerWidget {
     final release = await ref.read(updateCheckerProvider).latestRelease();
     if (!context.mounted) return;
     if (release == null) {
-      showAppToast(context, l10n.changelogUnavailable, icon: Icons.error_outline);
+      showAppToast(context, l10n.changelogUnavailable, icon: Symbols.error_rounded);
       return;
     }
     final notes = release.body.trim();
@@ -138,9 +139,9 @@ class AboutPage extends ConsumerWidget {
     if (update == null) {
       // 网络不可用或额度用尽时会拿不到任何数据，不能把它说成「已是最新版本」。
       if (checker.lastCallFailed) {
-        showAppToast(context, l10n.updateCheckFailed, icon: Icons.error_outline);
+        showAppToast(context, l10n.updateCheckFailed, icon: Symbols.error_rounded);
       } else {
-        showAppToast(context, l10n.latestVersion, icon: Icons.check_circle_outline);
+        showAppToast(context, l10n.latestVersion, icon: Symbols.check_circle_rounded);
       }
       return;
     }
@@ -203,7 +204,7 @@ class _AboutHeader extends StatelessWidget {
         const SizedBox(height: 18),
         Row(
           children: [
-            FilledButton.icon(onPressed: onCheckUpdate, icon: const Icon(Icons.refresh, size: 18), label: Text(l10n.checkUpdates)),
+            FilledButton.icon(onPressed: onCheckUpdate, icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(l10n.checkUpdates)),
             const SizedBox(width: 8),
             TextButton(onPressed: onChangelog, child: Text(l10n.changelog)),
           ],
@@ -231,7 +232,7 @@ class _VersionBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.sell_outlined, size: 14, color: colorScheme.primary),
+            Icon(Symbols.sell_rounded, size: 14, color: colorScheme.primary),
             const SizedBox(width: 6),
             Text('v$version', style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700, letterSpacing: .4)),
           ],
@@ -339,7 +340,7 @@ class _AboutItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  trailing ?? Icon(inApp ? Icons.chevron_right : Icons.open_in_new, size: 18, color: hovered ? colorScheme.primary : colorScheme.onSurfaceVariant),
+                  trailing ?? Icon(inApp ? Symbols.chevron_right_rounded : Symbols.open_in_new_rounded, size: 18, color: hovered ? colorScheme.primary : colorScheme.onSurfaceVariant),
                 ],
               ),
             ),

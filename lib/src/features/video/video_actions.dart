@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
@@ -21,11 +22,14 @@ import 'video_controller.dart';
 
 /// 一个操作项（图标 / 文案 / 回调），悬浮工具条和侧栏操作排都用它
 class _VideoAction {
-  const _VideoAction(this.icon, this.label, this.onPressed);
+  const _VideoAction(this.icon, this.label, this.onPressed, {this.filled = false});
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+
+  /// 已生效的操作（比如已收藏）画成实心，和未生效的描边态区分开。
+  final bool filled;
 }
 
 /// 播放页侧栏里的操作排（图标在上、文案在下一排平铺）
@@ -51,7 +55,7 @@ class VideoActionRow extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(action.icon, size: 18, color: action.onPressed == null ? theme.colorScheme.outline : theme.colorScheme.onSurface),
+                      Icon(action.icon, size: 18, color: action.onPressed == null ? theme.colorScheme.outline : theme.colorScheme.onSurface, fill: action.filled ? 1 : 0),
                       const SizedBox(height: 4),
                       Text(action.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     ],
@@ -90,10 +94,10 @@ List<_VideoAction> _videoActions(BuildContext context, WidgetRef ref, VideoDetai
   final inFavorites = ref.watch(favoriteOverrideProvider(video.id)) ?? persistedFavorite;
   final l10n = AppLocalizations.of(context)!;
   return [
-    _VideoAction(inWatchLater ? Icons.playlist_add_check : Icons.playlist_add, l10n.addToPlaylist, () => account == null ? _pickLocalPlaylist(context, ref, video, library) : _pickPlaylist(context, ref, video, video.csrfToken ?? remote?.csrfToken ?? account.csrfToken, remote)),
-    _VideoAction(inFavorites ? Icons.favorite : Icons.favorite_border, l10n.favorite, () => _toggleFavorite(ref, video, account == null ? null : video.csrfToken ?? account.csrfToken, account == null ? null : video.currentUserId ?? account.id, !inFavorites)),
-    _VideoAction(Icons.download_outlined, l10n.download, video.sources.any((item) => !_isStreamPlaylist(item)) ? () => _showDownloadPicker(context, ref, video) : null),
-    _VideoAction(Icons.share_outlined, l10n.share, () => Share.share('${video.title} (${video.id})', subject: video.title)),
+    _VideoAction(inWatchLater ? Symbols.playlist_add_check_rounded : Symbols.playlist_add_rounded, l10n.addToPlaylist, () => account == null ? _pickLocalPlaylist(context, ref, video, library) : _pickPlaylist(context, ref, video, video.csrfToken ?? remote?.csrfToken ?? account.csrfToken, remote)),
+    _VideoAction(Symbols.favorite_rounded, l10n.favorite, () => _toggleFavorite(ref, video, account == null ? null : video.csrfToken ?? account.csrfToken, account == null ? null : video.currentUserId ?? account.id, !inFavorites), filled: inFavorites),
+    _VideoAction(Symbols.download_rounded, l10n.download, video.sources.any((item) => !_isStreamPlaylist(item)) ? () => _showDownloadPicker(context, ref, video) : null),
+    _VideoAction(Symbols.share_rounded, l10n.share, () => Share.share('${video.title} (${video.id})', subject: video.title)),
   ];
 }
 
@@ -121,9 +125,9 @@ Future<void> _pickLocalPlaylist(BuildContext context, WidgetRef ref, VideoDetail
         shrinkWrap: true,
         children: [
           ListTile(title: Text(AppLocalizations.of(context)!.addToPlaylist)),
-          ListTile(leading: const Icon(Icons.watch_later_outlined), title: Text(AppLocalizations.of(context)!.watchLater), onTap: () => Navigator.pop(context, '__watch_later__')),
-          ...library.playlists.map((item) => ListTile(leading: const Icon(Icons.playlist_play), title: Text(item.title), subtitle: Text(AppLocalizations.of(context)!.videoCount(item.count)), onTap: () => Navigator.pop(context, item.id))),
-          ListTile(leading: const Icon(Icons.add), title: Text(AppLocalizations.of(context)!.newPlaylist), onTap: () => Navigator.pop(context, '__create__')),
+          ListTile(leading: const Icon(Symbols.watch_later_rounded), title: Text(AppLocalizations.of(context)!.watchLater), onTap: () => Navigator.pop(context, '__watch_later__')),
+          ...library.playlists.map((item) => ListTile(leading: const Icon(Symbols.playlist_play_rounded), title: Text(item.title), subtitle: Text(AppLocalizations.of(context)!.videoCount(item.count)), onTap: () => Navigator.pop(context, item.id))),
+          ListTile(leading: const Icon(Symbols.add_rounded), title: Text(AppLocalizations.of(context)!.newPlaylist), onTap: () => Navigator.pop(context, '__create__')),
         ],
       ),
     ),
@@ -153,9 +157,9 @@ Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail vide
         shrinkWrap: true,
         children: [
           ListTile(title: Text(AppLocalizations.of(context)!.addToPlaylist)),
-          ListTile(leading: const Icon(Icons.watch_later_outlined), title: Text(AppLocalizations.of(context)!.watchLater), onTap: () => Navigator.pop(context, 'save')),
-          ...(library?.playlists ?? const <Playlist>[]).map((item) => ListTile(leading: const Icon(Icons.playlist_play), title: Text(item.title), subtitle: Text(AppLocalizations.of(context)!.videoCount(item.count)), onTap: () => Navigator.pop(context, item.id))),
-          ListTile(leading: const Icon(Icons.add), title: Text(AppLocalizations.of(context)!.newPlaylist), onTap: () => Navigator.pop(context, '__create__')),
+          ListTile(leading: const Icon(Symbols.watch_later_rounded), title: Text(AppLocalizations.of(context)!.watchLater), onTap: () => Navigator.pop(context, 'save')),
+          ...(library?.playlists ?? const <Playlist>[]).map((item) => ListTile(leading: const Icon(Symbols.playlist_play_rounded), title: Text(item.title), subtitle: Text(AppLocalizations.of(context)!.videoCount(item.count)), onTap: () => Navigator.pop(context, item.id))),
+          ListTile(leading: const Icon(Symbols.add_rounded), title: Text(AppLocalizations.of(context)!.newPlaylist), onTap: () => Navigator.pop(context, '__create__')),
         ],
       ),
     ),

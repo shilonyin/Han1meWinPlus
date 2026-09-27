@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/video.dart';
@@ -77,10 +78,10 @@ class HomeCategoriesPage extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: ListTile(
                     dense: true,
-                    leading: ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_indicator)),
+                    leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded)),
                     title: Text(label(selected[index])),
                     subtitle: Text('${index + 1}'),
-                    trailing: IconButton(tooltip: l10n.delete, onPressed: () => save([...selected]..removeAt(index)), icon: const Icon(Icons.remove_circle_outline, size: 20)),
+                    trailing: IconButton(tooltip: l10n.delete, onPressed: () => save([...selected]..removeAt(index)), icon: const Icon(Symbols.remove_circle_rounded, size: 20)),
                   ),
                 ),
               ),
@@ -105,7 +106,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                           child: ListTile(
                             dense: true,
                             enabled: !isFull,
-                            leading: const Icon(Icons.add_circle_outline, size: 20),
+                            leading: const Icon(Symbols.add_circle_rounded, size: 20),
                             title: Text(label(raw)),
                             onTap: isFull ? null : () => save([...selected, raw]),
                           ),

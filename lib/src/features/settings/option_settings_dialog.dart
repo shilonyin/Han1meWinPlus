@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 单选项分组：给「站点」这种既有 Hanime1 系、又有 AV 视频源的列表加一层分类，
@@ -110,7 +111,7 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
                     dense: true,
                     title: Text(widget.label(option)),
                     subtitle: widget.optionDescription == null ? null : Text(widget.optionDescription!(option)),
-                    trailing: option == _value ? const Icon(Icons.check) : null,
+                    trailing: option == _value ? const Icon(Symbols.check_rounded) : null,
                     onTap: () => setState(() => _value = option),
                   ),
             ],
@@ -138,7 +139,7 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
         padding: const EdgeInsets.only(top: 8, bottom: 2),
         child: Row(children: [
           Expanded(child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w600))),
-          Icon(collapsed ? Icons.expand_more : Icons.expand_less, size: 18, color: scheme.primary),
+          Icon(collapsed ? Symbols.expand_more_rounded : Symbols.expand_less_rounded, size: 18, color: scheme.primary),
         ]),
       ),
     );

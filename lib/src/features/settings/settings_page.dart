@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import 'about_page.dart';
@@ -36,13 +37,13 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.appearance,
         [
           _SettingsEntry(
-            Icons.palette_outlined,
+            Symbols.palette_rounded,
             l10n.themeAndColor,
             const ThemeSettingsPage(),
             '/settings/theme',
           ),
           _SettingsEntry(
-            Icons.dashboard_customize_outlined,
+            Symbols.dashboard_customize_rounded,
             l10n.interfaceLayout,
             const LayoutSettingsPage(),
             '/settings/layout',
@@ -53,13 +54,13 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.playback,
         [
           _SettingsEntry(
-            Icons.smart_display_outlined,
+            Symbols.smart_display_rounded,
             l10n.playbackSettings,
             const PlaybackSettingsPage(),
             '/settings/playback',
           ),
           _SettingsEntry(
-            Icons.keyboard_outlined,
+            Symbols.keyboard_rounded,
             l10n.settingsHotkeys,
             const HotkeySettingsPage(),
             '/settings/hotkeys',
@@ -70,13 +71,13 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.network,
         [
           _SettingsEntry(
-            Icons.language_outlined,
+            Symbols.language_rounded,
             l10n.networkSettings,
             const NetworkSettingsPage(),
             '/settings/network',
           ),
           _SettingsEntry(
-            Icons.cloud_sync_outlined,
+            Symbols.cloud_sync_rounded,
             l10n.webDavSettings,
             const WebDavSettingsPage(),
             '/settings/webdav',
@@ -87,19 +88,19 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.content,
         [
           _SettingsEntry(
-            Icons.calendar_month_outlined,
+            Symbols.calendar_month_rounded,
             l10n.previewSource,
             const PreviewSourceSettingsPage(),
             '/settings/previews',
           ),
           _SettingsEntry(
-            Icons.forum_outlined,
+            Symbols.forum_rounded,
             l10n.commentSettings,
             const CommentSettingsPage(),
             '/settings/comments',
           ),
           _SettingsEntry(
-            Icons.translate_outlined,
+            Symbols.translate_rounded,
             l10n.languageSettings,
             const LanguageSettingsPage(),
             '/settings/language',
@@ -110,7 +111,7 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.storage,
         [
           _SettingsEntry(
-            Icons.sd_storage_outlined,
+            Symbols.sd_storage_rounded,
             l10n.storage,
             const StorageSettingsPage(),
             '/settings/storage',
@@ -121,7 +122,7 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
         l10n.other,
         [
           _SettingsEntry(
-            Icons.info_outline,
+            Symbols.info_rounded,
             l10n.about,
             const AboutPage(),
             '/settings/about',
@@ -322,7 +323,7 @@ class _SettingsCategoryList extends ConsumerWidget {
                   ? null
                   : IconButton(
                       onPressed: openAppDrawer,
-                      icon: const Icon(Icons.menu),
+                      icon: const Icon(Symbols.menu_rounded),
                     ))
             : null,
         title: Text(l10n.settings),
@@ -340,7 +341,7 @@ class _SettingsCategoryList extends ConsumerWidget {
                   SettingsTile.navigation(
                     leading: Icon(entry.icon),
                     title: Text(entry.label),
-                    value: const Icon(Icons.chevron_right),
+                    value: const Icon(Symbols.chevron_right_rounded),
                     onPressed: (context) => context.push(entry.route),
                   ),
               ],

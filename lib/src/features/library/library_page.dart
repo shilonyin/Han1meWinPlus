@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/local/library_repository.dart';
@@ -39,7 +40,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Icons.bar_chart_outlined))] : null),
+        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded))] : null),
         body: LibraryTabView(index: widget.initialTab),
       );
     }
@@ -48,9 +49,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null,
+          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
           title: Text(l10n.myLibrary),
-          actions: [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Icons.bar_chart_outlined))],
+          actions: [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded))],
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n)),
         ),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
@@ -115,7 +116,7 @@ class _RemoteLibrary extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)), title: Text(_tabTitle(l10n, initialTab))),
+        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)), title: Text(_tabTitle(l10n, initialTab))),
         body: LibraryTabView(index: initialTab),
       );
     }
@@ -123,7 +124,7 @@ class _RemoteLibrary extends ConsumerWidget {
       length: 5,
       initialIndex: initialTab,
       child: Scaffold(
-        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
+        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
       ),
     );
@@ -212,12 +213,12 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(item.id) : null, onLongPress: () => _startSelection(item.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
                     ],
                   );
                 },
               ),
-        Positioned(right: 16, bottom: 16 + MediaQuery.paddingOf(context).bottom, child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: _selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection, child: Icon(_selectionMode ? Icons.delete_outline : Icons.checklist_outlined))),
+        Positioned(right: 16, bottom: 16 + MediaQuery.paddingOf(context).bottom, child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: _selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection, child: Icon(_selectionMode ? Symbols.delete_rounded : Symbols.checklist_rounded))),
       ],
     );
   }
@@ -358,7 +359,7 @@ class _ArtistStripCard extends StatelessWidget {
                   radius: 22,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   backgroundImage: hasAvatar ? appNetworkImage(avatarUrl!) : null,
-                  child: hasAvatar ? null : Icon(isAll ? Icons.people_alt_outlined : Icons.person_outline, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                  child: hasAvatar ? null : Icon(isAll ? Symbols.group_rounded : Symbols.person_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 6),
                 Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(fontWeight: selected ? FontWeight.w700 : null)),
@@ -429,7 +430,7 @@ class _Playlists extends ConsumerWidget {
           child: FloatingActionButton(
             tooltip: l10n.newPlaylist,
             onPressed: token == null ? null : () => _createPlaylist(context, ref, token!),
-            child: const Icon(Icons.playlist_add),
+            child: const Icon(Symbols.playlist_add_rounded),
           ),
         ),
       ],
@@ -507,7 +508,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
                     ],
                   );
                 },
@@ -515,7 +516,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
         Positioned(
           right: 16,
           bottom: 16 + MediaQuery.paddingOf(context).bottom,
-          child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: widget.token == null ? null : (_selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection), child: Icon(_selectionMode ? Icons.delete_outline : Icons.checklist_outlined)),
+          child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: widget.token == null ? null : (_selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection), child: Icon(_selectionMode ? Symbols.delete_rounded : Symbols.checklist_rounded)),
         ),
       ],
     );
@@ -577,7 +578,7 @@ class _PlaylistGridCard extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? CachedNetworkImage(imageUrl: playlist.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 480) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.playlist_play, size: 40)))),
+            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? CachedNetworkImage(imageUrl: playlist.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 480) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
             Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 2), child: Text(playlist.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 8), child: Text(AppLocalizations.of(context)!.videoCount(playlist.count), style: Theme.of(context).textTheme.bodySmall)),
           ]),
@@ -646,9 +647,9 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
               Text(l10n.playlistStats(playlist.playlist.count, playlist.viewCount ?? 0), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
               if (playlist.description?.isNotEmpty == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text(playlist.description!)),
               const SizedBox(height: 16),
-              Row(children: [Expanded(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => openVideo(context, ref, playlist.videos.first.videoCode), icon: const Icon(Icons.play_arrow), label: Text(l10n.playAll))), const SizedBox(width: 8), IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Icons.edit_outlined)), const SizedBox(width: 8), IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Icons.share_outlined))]),
+              Row(children: [Expanded(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => openVideo(context, ref, playlist.videos.first.videoCode), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playAll))), const SizedBox(width: 8), IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Symbols.edit_rounded)), const SizedBox(width: 8), IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Symbols.share_rounded))]),
               const SizedBox(height: 20),
-              Row(children: [for (final value in ['latest', 'popular', 'oldest']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_sortLabel(l10n, value)), selected: _sort == value, onSelected: _editing ? null : (_) => _changeSort(value))), const Spacer(), TextButton.icon(onPressed: _editing ? _removeSelected : () => setState(() => _editing = true), icon: Icon(_editing ? Icons.delete_outline : Icons.edit_outlined), label: Text(_editing ? l10n.delete : l10n.edit))]),
+              Row(children: [for (final value in ['latest', 'popular', 'oldest']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_sortLabel(l10n, value)), selected: _sort == value, onSelected: _editing ? null : (_) => _changeSort(value))), const Spacer(), TextButton.icon(onPressed: _editing ? _removeSelected : () => setState(() => _editing = true), icon: Icon(_editing ? Symbols.delete_rounded : Symbols.edit_rounded), label: Text(_editing ? l10n.delete : l10n.edit))]),
               const SizedBox(height: 4),
               if (playlist.videos.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(l10n.playlistEmpty))) else _PlaylistVideoGrid(videos: playlist.videos, editing: _editing, selected: _selectedItems, onToggle: _toggleItem),
             ],
@@ -805,12 +806,12 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
                     ],
                   );
                 },
               ),
-        Positioned(right: 16, bottom: 16 + MediaQuery.paddingOf(context).bottom, child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: _selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection, child: Icon(_selectionMode ? Icons.delete_outline : Icons.checklist_outlined))),
+        Positioned(right: 16, bottom: 16 + MediaQuery.paddingOf(context).bottom, child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: _selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection, child: Icon(_selectionMode ? Symbols.delete_rounded : Symbols.checklist_rounded))),
       ],
     );
   }

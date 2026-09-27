@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/cast_receiver.dart';
 import '../../core/dlna_media_renderer.dart';
@@ -159,7 +160,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
         actions: [
           IconButton(
             tooltip: l10n.castDisconnect,
-            icon: const Icon(Icons.cast_connected),
+            icon: const Icon(Symbols.cast_connected_rounded),
             onPressed: () {
               CastReceiver.instance.incoming.value = null;
               if (mounted) Navigator.pop(context);
@@ -184,7 +185,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.white70, size: 48),
+            const Icon(Symbols.error_rounded, color: Colors.white70, size: 48),
             const SizedBox(height: 12),
             Text(l10n.castLoadFailed('$_error'), style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
           ],
@@ -219,7 +220,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
             children: [
               IconButton(
                 color: Colors.white,
-                icon: Icon(controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
+                icon: Icon(controller.value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded),
                 onPressed: () => controller.value.isPlaying ? unawaited(pause()) : unawaited(play()),
               ),
               Expanded(
@@ -234,7 +235,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
           ),
           Row(
             children: [
-              const Icon(Icons.volume_up, color: Colors.white70),
+              const Icon(Symbols.volume_up_rounded, color: Colors.white70),
               Expanded(
                 child: Slider(
                   value: _volume,

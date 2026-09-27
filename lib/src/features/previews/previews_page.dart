@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,12 +59,12 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
           IconButton(
             tooltip: l10n.getchuPreviews,
             onPressed: () => context.push('/previews/getchu/${widget.month}'),
-            icon: const Icon(Icons.calendar_month_outlined),
+            icon: const Icon(Symbols.calendar_month_rounded),
           ),
           IconButton(
             tooltip: l10n.comments,
             onPressed: () => context.push('/comments/preview/${widget.month}', extra: l10n.previews),
-            icon: const Icon(Icons.forum_outlined),
+            icon: const Icon(Symbols.forum_rounded),
           ),
         ],
       ),
@@ -186,15 +187,15 @@ class _MonthNavigation extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Icons.chevron_left)),
+            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded)),
             Expanded(
               child: TextButton.icon(
                 onPressed: onSelect,
-                icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                icon: const Icon(Symbols.calendar_month_rounded, size: 18),
                 label: Text(l10n.previewMonth(month.label)),
               ),
             ),
-            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Icons.chevron_right)),
+            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded)),
           ],
         ),
       ),
@@ -219,7 +220,7 @@ class _PreviewUnavailable extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event_busy_outlined, size: 56),
+            const Icon(Symbols.event_busy_rounded, size: 56),
             const SizedBox(height: 16),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -228,8 +229,8 @@ class _PreviewUnavailable extends StatelessWidget {
             Wrap(
               spacing: 8,
               children: [
-                FilledButton.tonalIcon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left), label: Text(l10n.previousMonth)),
-                OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: Text(l10n.reload)),
+                FilledButton.tonalIcon(onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded), label: Text(l10n.previousMonth)),
+                OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload)),
               ],
             ),
           ],
@@ -323,7 +324,7 @@ class _PreviewCard extends ConsumerWidget {
                   Expanded(child: Text(item.videoTitle ?? item.brand ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))),
                   if (item.previewImages.isNotEmpty) ...[
                     const SizedBox(width: 6),
-                    Icon(Icons.collections_outlined, size: 14, color: theme.colorScheme.outline),
+                    Icon(Symbols.collections_rounded, size: 14, color: theme.colorScheme.outline),
                     const SizedBox(width: 2),
                     Text('${item.previewImages.length}', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
                   ],

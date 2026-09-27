@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 
@@ -27,7 +28,7 @@ class AndroidCastButton extends ConsumerWidget {
           color: Colors.white,
           tooltip: AppLocalizations.of(context)!.castToDevice,
           onPressed: () => _showDevices(context, source.url),
-          icon: const Icon(Icons.cast),
+          icon: const Icon(Symbols.cast_rounded),
         );
       },
     );
@@ -59,7 +60,7 @@ class AndroidCastButton extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final device = devices[index];
                           return ListTile(
-                            leading: const Icon(Icons.cast_connected),
+                            leading: const Icon(Symbols.cast_connected_rounded),
                             title: Text(device.info.friendlyName),
                             subtitle: Text(device.info.deviceType.split(':').last),
                             onTap: () async {

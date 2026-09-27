@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/han1me_repository.dart';
@@ -50,7 +51,7 @@ class CommentsPage extends ConsumerWidget {
                 ? Center(child: Text(l10n.noComments))
                 : _commentList(page, settings!.blockedCommentKeywords, settings.blockedCommentUsers, sort, target, ref),
           ),
-      floatingActionButton: account == null || settings?.commentsEnabled != true ? null : FloatingActionButton(onPressed: () => _writeComment(context, ref, target), child: const Icon(Icons.add_comment_outlined)),
+      floatingActionButton: account == null || settings?.commentsEnabled != true ? null : FloatingActionButton(onPressed: () => _writeComment(context, ref, target), child: const Icon(Symbols.add_comment_rounded)),
     );
   }
 
@@ -98,7 +99,7 @@ class _SortButton extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
         child: MenuAnchor(
-          builder: (context, controller, child) => OutlinedButton.icon(onPressed: controller.open, icon: const Icon(Icons.sort), label: Text(_label(context, value))),
+          builder: (context, controller, child) => OutlinedButton.icon(onPressed: controller.open, icon: const Icon(Symbols.sort_rounded), label: Text(_label(context, value))),
           menuChildren: CommentSort.values.map((item) => MenuItemButton(onPressed: () => onSelected(item), child: Text(_label(context, item)))).toList(),
         ),
       );
@@ -121,14 +122,14 @@ class CommentCard extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [CircleAvatar(backgroundImage: comment.avatarUrl?.isNotEmpty == true ? appNetworkImage(comment.avatarUrl!) : null, child: comment.avatarUrl?.isNotEmpty == true ? null : Text(comment.username.characters.first)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comment.username, style: Theme.of(context).textTheme.titleSmall), if (comment.timeAgo != null) Text(comment.timeAgo!, style: Theme.of(context).textTheme.bodySmall)])), MenuAnchor(builder: (context, controller, child) => IconButton(tooltip: AppLocalizations.of(context)!.more, onPressed: controller.open, icon: const Icon(Icons.more_vert)), menuChildren: [MenuItemButton(onPressed: token == null ? null : () => _report(context, ref), leadingIcon: const Icon(Icons.flag_outlined), child: Text(AppLocalizations.of(context)!.report)), MenuItemButton(onPressed: () => _filterUser(ref), leadingIcon: const Icon(Icons.person_off_outlined), child: Text(AppLocalizations.of(context)!.filter))])]),
+            Row(children: [CircleAvatar(backgroundImage: comment.avatarUrl?.isNotEmpty == true ? appNetworkImage(comment.avatarUrl!) : null, child: comment.avatarUrl?.isNotEmpty == true ? null : Text(comment.username.characters.first)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comment.username, style: Theme.of(context).textTheme.titleSmall), if (comment.timeAgo != null) Text(comment.timeAgo!, style: Theme.of(context).textTheme.bodySmall)])), MenuAnchor(builder: (context, controller, child) => IconButton(tooltip: AppLocalizations.of(context)!.more, onPressed: controller.open, icon: const Icon(Symbols.more_vert_rounded)), menuChildren: [MenuItemButton(onPressed: token == null ? null : () => _report(context, ref), leadingIcon: const Icon(Symbols.flag_rounded), child: Text(AppLocalizations.of(context)!.report)), MenuItemButton(onPressed: () => _filterUser(ref), leadingIcon: const Icon(Symbols.person_off_rounded), child: Text(AppLocalizations.of(context)!.filter))])]),
             const SizedBox(height: 10),
             Text(comment.content),
             const SizedBox(height: 6),
             Row(children: [
-              IconButton(onPressed: token == null ? null : () => _vote(ref, true), icon: Icon(comment.liked ? Icons.thumb_up : Icons.thumb_up_outlined), visualDensity: VisualDensity.compact),
+              IconButton(onPressed: token == null ? null : () => _vote(ref, true), icon: Icon(Symbols.thumb_up_rounded, fill: comment.liked ? 1 : 0), visualDensity: VisualDensity.compact),
               Text(comment.likesSum?.toString() ?? comment.likeCount ?? '0'),
-              IconButton(onPressed: token == null ? null : () => _vote(ref, false), icon: Icon(comment.disliked ? Icons.thumb_down : Icons.thumb_down_outlined), visualDensity: VisualDensity.compact),
+              IconButton(onPressed: token == null ? null : () => _vote(ref, false), icon: Icon(Symbols.thumb_down_rounded, fill: comment.disliked ? 1 : 0), visualDensity: VisualDensity.compact),
               if (comment.hasMoreReplies) TextButton(onPressed: () => _showReplies(context, ref), child: Text(comment.replyCount == null ? AppLocalizations.of(context)!.viewReplies : AppLocalizations.of(context)!.viewRepliesCount(comment.replyCount!))),
               if (comment.id.isNotEmpty) TextButton(onPressed: token == null ? null : () => _reply(context, ref), child: Text(AppLocalizations.of(context)!.reply)),
             ]),

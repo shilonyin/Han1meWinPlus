@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/play_window_title_target.dart';
@@ -339,7 +340,7 @@ class _FloatingControls extends ConsumerWidget {
         if (showComment) ...[
           FloatingActionButton(
             onPressed: () => writeSelectedVideoComment(context, ref, video.id),
-            child: const Icon(Icons.add_comment_outlined),
+            child: const Icon(Symbols.add_comment_rounded),
           ),
           const SizedBox(height: 8),
         ],

@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, SearchResult;
@@ -81,7 +82,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded)),
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
@@ -217,9 +218,9 @@ class _SearchInput extends StatelessWidget {
               valueListenable: controller,
               builder: (context, value, _) => value.text.isEmpty
                   ? const SizedBox.shrink()
-                  : IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: onClear, icon: const Icon(Icons.close)),
+                  : IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: onClear, icon: const Icon(Symbols.close_rounded)),
             ),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: () => onSubmitted(controller.text), icon: const Icon(Icons.search, size: 20)),
+            IconButton(visualDensity: VisualDensity.compact, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded, size: 20)),
             const SizedBox(width: 4),
           ],
         ),
@@ -342,7 +343,7 @@ class _MoreFiltersMenu extends StatelessWidget {
     return MenuAnchor(
       menuChildren: [
         SubmenuButton(
-          leadingIcon: const Icon(Icons.calendar_month_outlined, size: 18),
+          leadingIcon: const Icon(Symbols.calendar_month_rounded, size: 18),
           menuChildren: [
             for (final item in dates.options)
               MenuItemButton(onPressed: () => notifier.date(item.searchKey ?? ''), child: Text((item.searchKey ?? '').isEmpty ? l10n.all : item.labelFor(locale))),
@@ -358,7 +359,7 @@ class _MoreFiltersMenu extends StatelessWidget {
           child: Text(l10n.releaseDate(query.date.isEmpty ? l10n.all : dates.localize(query.date, locale) ?? query.date)),
         ),
         SubmenuButton(
-          leadingIcon: const Icon(Icons.schedule_outlined, size: 18),
+          leadingIcon: const Icon(Symbols.schedule_rounded, size: 18),
           menuChildren: [
             for (final item in durations.options)
               MenuItemButton(onPressed: () => notifier.duration(item.searchKey ?? ''), child: Text((item.searchKey ?? '').isEmpty ? l10n.all : item.labelFor(locale))),
@@ -366,7 +367,7 @@ class _MoreFiltersMenu extends StatelessWidget {
           child: Text(l10n.duration(query.duration.isEmpty ? l10n.all : durations.localize(query.duration, locale) ?? query.duration)),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.sell_outlined, size: 18),
+          leadingIcon: const Icon(Symbols.sell_rounded, size: 18),
           onPressed: () async {
             final selection = await _showTagFilter(context, query.tags, query.broad, options, locale);
             if (selection != null) notifier.tags(selection.tags, selection.broad);
@@ -374,14 +375,14 @@ class _MoreFiltersMenu extends StatelessWidget {
           child: Text(query.tags.isEmpty ? l10n.tags : l10n.tagsSelected(query.tags.length)),
         ),
         MenuItemButton(
-          leadingIcon: Icon(query.type == 'artist' ? Icons.check : Icons.person_search_outlined, size: 18),
+          leadingIcon: Icon(query.type == 'artist' ? Symbols.check_rounded : Symbols.person_search_rounded, size: 18),
           onPressed: () => notifier.type(query.type == 'artist' ? '' : 'artist'),
           child: Text(l10n.searchAuthors),
         ),
       ],
       builder: (context, controller, child) => TextButton.icon(
         onPressed: controller.open,
-        icon: const Icon(Icons.tune, size: 18),
+        icon: const Icon(Symbols.tune_rounded, size: 18),
         label: Text(l10n.searchMoreFilters),
       ),
     );
@@ -623,9 +624,9 @@ class _PaginationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(onPressed: value.page > 1 ? () => onChanged(value.page - 1) : null, icon: const Icon(Icons.chevron_left)),
+          IconButton(onPressed: value.page > 1 ? () => onChanged(value.page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded)),
           Text('${value.page} / ${value.totalPages}', style: Theme.of(context).textTheme.labelLarge),
-          IconButton(onPressed: value.page < value.totalPages ? () => onChanged(value.page + 1) : null, icon: const Icon(Icons.chevron_right)),
+          IconButton(onPressed: value.page < value.totalPages ? () => onChanged(value.page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded)),
         ],
       ),
     );
@@ -646,7 +647,7 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.wifi_off, size: 56),
+              const Icon(Symbols.wifi_off_rounded, size: 56),
               const SizedBox(height: 12),
               Text('$error', textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -668,7 +669,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, size: 56),
+            const Icon(Symbols.search_off_rounded, size: 56),
             const SizedBox(height: 12),
             Text(message, style: Theme.of(context).textTheme.bodyLarge),
           ],

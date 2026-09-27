@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
@@ -55,17 +56,17 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
         final name = localizedGroupName(group, l10n);
         return Scaffold(
           appBar: AppBar(
-            leading: _selecting ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Icons.close)) : null,
+            leading: _selecting ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded)) : null,
             // 标题栏放不下长系列名时交给省略号：原来直接把整个名字塞进 title，
             // 超长分组名（自动建组用系列名，常常就是整条标题）会把操作按钮挤掉。
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : name, maxLines: 1, overflow: TextOverflow.ellipsis),
             actions: [
               if (_selecting) ...[
-                IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(tasks.map((task) => task.id))), icon: const Icon(Icons.select_all)),
-                IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Icons.play_arrow_outlined)),
-                IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Icons.delete_outline)),
+                IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(tasks.map((task) => task.id))), icon: const Icon(Symbols.select_all_rounded)),
+                IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Symbols.play_arrow_rounded)),
+                IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Symbols.delete_rounded)),
               ] else
-                IconButton(tooltip: l10n.groupSettings, onPressed: () => showGroupEditor(context, ref, groupId: group.id), icon: const Icon(Icons.tune)),
+                IconButton(tooltip: l10n.groupSettings, onPressed: () => showGroupEditor(context, ref, groupId: group.id), icon: const Icon(Symbols.tune_rounded)),
             ],
           ),
           body: tasks.isEmpty
@@ -143,16 +144,16 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.play_arrow_outlined),
+              leading: const Icon(Symbols.play_arrow_rounded),
               title: Text(l10n.play),
               enabled: task.status == DownloadStatus.completed,
               onTap: () => Navigator.pop(sheetContext, 'play'),
             ),
             if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.queued)
-              ListTile(leading: const Icon(Icons.pause_circle_outline), title: Text(l10n.pause), onTap: () => Navigator.pop(sheetContext, 'pause')),
+              ListTile(leading: const Icon(Symbols.pause_circle_rounded), title: Text(l10n.pause), onTap: () => Navigator.pop(sheetContext, 'pause')),
             if (task.status == DownloadStatus.paused || task.status == DownloadStatus.failed)
-              ListTile(leading: const Icon(Icons.play_circle_outline), title: Text(task.status == DownloadStatus.failed ? l10n.retry : l10n.resume), onTap: () => Navigator.pop(sheetContext, 'resume')),
-            ListTile(leading: const Icon(Icons.delete_outline), title: Text(l10n.deleteCache), onTap: () => Navigator.pop(sheetContext, 'delete')),
+              ListTile(leading: const Icon(Symbols.play_circle_rounded), title: Text(task.status == DownloadStatus.failed ? l10n.retry : l10n.resume), onTap: () => Navigator.pop(sheetContext, 'resume')),
+            ListTile(leading: const Icon(Symbols.delete_rounded), title: Text(l10n.deleteCache), onTap: () => Navigator.pop(sheetContext, 'delete')),
           ],
         ),
       ),
@@ -252,12 +253,12 @@ class _FolderHeader extends StatelessWidget {
                   // 「播放全部」是集合级的主操作，用实心按钮突出（b 站同款）。
                   FilledButton.icon(
                     onPressed: completed == 0 ? null : onPlayAll,
-                    icon: const Icon(Icons.play_arrow, size: 20),
+                    icon: const Icon(Symbols.play_arrow_rounded, size: 20),
                     label: Text(l10n.playAll),
                   ),
                   OutlinedButton.icon(
                     onPressed: tasks.isEmpty ? null : onToggleAll,
-                    icon: Icon(selecting && allSelected ? Icons.check_circle : Icons.check_circle_outline, size: 18),
+                    icon: Icon(Symbols.check_circle_rounded, fill: selecting && allSelected ? 1 : 0, size: 18),
                     label: Text(l10n.selectAll),
                   ),
                 ],
@@ -303,8 +304,8 @@ class _HeaderCover extends StatelessWidget {
                   if (cover != null)
                     Image(image: cover, fit: BoxFit.cover)
                   else
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Icons.folder_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant)),
-                  Positioned(right: 8, bottom: 8, child: CacheCoverBadge(icon: Icons.folder_outlined, text: l10n.folderContents(tasks.length))),
+                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.folder_rounded, size: 40, color: theme.colorScheme.onSurfaceVariant)),
+                  Positioned(right: 8, bottom: 8, child: CacheCoverBadge(icon: Symbols.folder_rounded, text: l10n.folderContents(tasks.length))),
                 ],
               ),
             ),
@@ -387,7 +388,7 @@ class _EmptyFolder extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.folder_open_outlined, size: 48, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .6)),
+          Icon(Symbols.folder_open_rounded, size: 48, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .6)),
           const SizedBox(height: 12),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 32), child: Text(name, textAlign: TextAlign.center, style: theme.textTheme.titleMedium)),
           const SizedBox(height: 6),

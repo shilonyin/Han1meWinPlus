@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/player_hotkey_registry.dart';
@@ -49,7 +50,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
               SettingsCardItem(
                 title: l10n.hotkeyActionExitFullscreen,
                 subtitle: l10n.hotkeyExitFullscreenFixed,
-                leading: const Icon(Icons.close_fullscreen_outlined),
+                leading: const Icon(Symbols.close_fullscreen_rounded),
                 trailing: const _ComboChip(label: 'Esc'),
                 enabled: false,
               ),
@@ -62,17 +63,17 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
                 if (GlobalHotkeys.lastFailures.isNotEmpty)
                   SettingsCardItem(
                     title: l10n.hotkeyRegisterFailed,
-                    leading: const Icon(Icons.warning_amber_rounded),
+                    leading: const Icon(Symbols.warning_rounded),
                     // 警告色标题：SettingsCardItem 没有 per-item 样式入口，借用 leading 图标 + 语义色。
                     trailing: Icon(
-                      Icons.warning_amber_rounded,
+                      Symbols.warning_rounded,
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                 SettingsCardItem(
                   title: l10n.globalHotkeys,
                   subtitle: l10n.globalHotkeysDescription,
-                  leading: const Icon(Icons.keyboard_outlined),
+                  leading: const Icon(Symbols.keyboard_rounded),
                   trailing: Switch(
                     value: settings.globalHotkeysEnabled,
                     onChanged: (value) => controller.saveChanges(
@@ -90,7 +91,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
             children: [
               SettingsCardItem(
                 title: l10n.hotkeyResetDefaults,
-                leading: const Icon(Icons.restart_alt_outlined),
+                leading: const Icon(Symbols.restart_alt_rounded),
                 onTap: () => controller.saveChanges(
                   (current) => current.copyWith(hotkeyBindings: const {}),
                 ),
@@ -231,18 +232,18 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
       };
 
   IconData _iconFor(PlayerHotkeyAction action) => switch (action.id) {
-    'inApp.playPause' || 'global.playPause' => Icons.play_arrow_outlined,
-    'inApp.seekBackward' => Icons.replay_5_outlined,
-    'inApp.seekForward' => Icons.forward_5_outlined,
-    'inApp.volumeUp' => Icons.volume_up_outlined,
-    'inApp.volumeDown' => Icons.volume_down_outlined,
-    'inApp.mute' => Icons.volume_off_outlined,
-    'inApp.fullscreen' => Icons.fullscreen_outlined,
+    'inApp.playPause' || 'global.playPause' => Symbols.play_arrow_rounded,
+    'inApp.seekBackward' => Symbols.replay_5_rounded,
+    'inApp.seekForward' => Symbols.forward_5_rounded,
+    'inApp.volumeUp' => Symbols.volume_up_rounded,
+    'inApp.volumeDown' => Symbols.volume_down_rounded,
+    'inApp.mute' => Symbols.volume_off_rounded,
+    'inApp.fullscreen' => Symbols.fullscreen_rounded,
     'inApp.previousEpisode' ||
-    'global.previousEpisode' => Icons.skip_previous_outlined,
-    'inApp.nextEpisode' || 'global.nextEpisode' => Icons.skip_next_outlined,
-    'global.toggleWindow' => Icons.desktop_windows_outlined,
-    _ => Icons.keyboard_outlined,
+    'global.previousEpisode' => Symbols.skip_previous_rounded,
+    'inApp.nextEpisode' || 'global.nextEpisode' => Symbols.skip_next_rounded,
+    'global.toggleWindow' => Symbols.desktop_windows_rounded,
+    _ => Symbols.keyboard_rounded,
   };
 
   /// `ctrl+alt+arrowleft` → `Ctrl+Alt+←`，给用户看的友好写法。

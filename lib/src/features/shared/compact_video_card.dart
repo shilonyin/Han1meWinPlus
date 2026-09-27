@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import 'app_image_cache.dart';
 
 import '../../domain/models/video.dart';
@@ -70,7 +71,7 @@ class CompactVideoCard extends ConsumerWidget {
               ),
               errorWidget: (context, url, error) => ColoredBox(
                 color: theme.colorScheme.surfaceContainerHighest,
-                child: const Center(child: Icon(Icons.broken_image_outlined)),
+                child: const Center(child: Icon(Symbols.broken_image_rounded)),
               ),
             ),
             if (video.duration != null)

@@ -45,6 +45,22 @@ const double _surfaceContainerAlpha = .70;
 const double _surfaceContainerHighAlpha = .78;
 const double _surfaceContainerHighestAlpha = .86;
 
+/// 全局图标轴：把 Material Symbols 统一到「线性描边 + 常规字重」。
+///
+/// 这四条是 `material_symbols_icons` 暴露的可变字体轴，只有 Material Symbols 字体会读，
+/// Material 内置图标（MD3 组件内部的下拉箭头、SnackBar 关闭钮等）会忽略——两者共存无冲突。
+///
+/// - `fill: 0` 线性描边（选中/激活态在调用处显式给 `fill: 1`）
+/// - `weight: 400` 与正文的常规字重对齐
+/// - `opticalSize: 48` 与界面里图标的主流字号一致
+/// - 深色下细线条会发糊，把 `grade` 压到 -25 提清晰度（浅色保持 0）
+IconThemeData _iconTheme(Brightness brightness) => IconThemeData(
+  fill: 0,
+  weight: 400,
+  grade: brightness == Brightness.dark ? -25 : 0,
+  opticalSize: 48,
+);
+
 ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot, bool neutralSurfaces = false, WindowBackdrop backdrop = WindowBackdrop.none}) {
   var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness, dynamicSchemeVariant: variant);
   if (neutralSurfaces) scheme = _neutralSurfaces(scheme, brightness);
@@ -73,6 +89,7 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    iconTheme: _iconTheme(brightness),
     // 默认用内置 HarmonyOS Sans SC（可变字体，单文件自带 9 档字重）；
     // 系统字体开关打开时交回平台默认字体。
     // fallback 用于该字体没有的字符（emoji、生僻字）与彩色 emoji。

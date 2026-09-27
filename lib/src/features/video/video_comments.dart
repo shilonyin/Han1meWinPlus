@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
@@ -84,10 +85,10 @@ class _CommentEpisodeBar extends ConsumerWidget {
               final episode = await showCommentEpisodeDialog(context, episodes: video.playlist, selectedId: commentVideoId);
               if (episode != null) onSelected(episode.id);
             },
-            icon: const Icon(Icons.switch_video_outlined),
+            icon: const Icon(Symbols.switch_video_rounded),
           ),
           MenuAnchor(
-            builder: (context, controller, child) => IconButton(tooltip: l10n.sort(l10n.defaultValue), onPressed: controller.open, icon: const Icon(Icons.sort)),
+            builder: (context, controller, child) => IconButton(tooltip: l10n.sort(l10n.defaultValue), onPressed: controller.open, icon: const Icon(Symbols.sort_rounded)),
             menuChildren: CommentSort.values.map((item) => MenuItemButton(onPressed: () => ref.read(videoCommentSortProvider(commentVideoId).notifier).state = item, child: Text(_sortLabel(context, item), style: item == sort ? TextStyle(color: Theme.of(context).colorScheme.primary) : null))).toList(),
           ),
         ],

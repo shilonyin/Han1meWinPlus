@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/play_window_title_target.dart';
 import '../../core/window_chrome.dart';
@@ -130,7 +131,7 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
               _BarButton(
                 label: l10n.backToMainWindow,
                 text: l10n.backToMainWindow,
-                icon: Icons.home_outlined,
+                icon: Symbols.home_rounded,
                 onPressed: widget.onHome,
               ),
               const SizedBox(width: 2),
@@ -139,7 +140,7 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
                 valueListenable: PlayWindowTitleTarget.hasPrevious,
                 builder: (context, enabled, _) => _BarButton(
                   label: l10n.hotkeyActionPreviousEpisode,
-                  icon: Icons.chevron_left,
+                  icon: Symbols.chevron_left_rounded,
                   iconSize: 22,
                   width: 36,
                   onPressed: enabled
@@ -151,7 +152,7 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
                 valueListenable: PlayWindowTitleTarget.hasNext,
                 builder: (context, enabled, _) => _BarButton(
                   label: l10n.hotkeyActionNextEpisode,
-                  icon: Icons.chevron_right,
+                  icon: Symbols.chevron_right_rounded,
                   iconSize: 22,
                   width: 36,
                   onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
@@ -177,16 +178,14 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
               ),
               _BarButton(
                 label: _pinned ? l10n.unpinWindow : l10n.pinWindow,
-                icon: _pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                icon: Symbols.push_pin_rounded,
                 width: 36,
                 active: _pinned,
                 onPressed: _togglePin,
               ),
               _BarButton(
                 label: l10n.pictureInPicture,
-                icon: inPip
-                    ? Icons.branding_watermark
-                    : Icons.branding_watermark_outlined,
+                icon: Symbols.branding_watermark_rounded,
                 width: 36,
                 active: inPip,
                 onPressed: _togglePictureInPicture,
@@ -195,21 +194,21 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
               // 窗口按钮与应用内标题栏保持同一套尺寸（46 宽、圆角高亮）。
               _BarButton(
                 label: l10n.minimizeWindow,
-                icon: Icons.remove,
+                icon: Symbols.remove_rounded,
                 iconSize: 16,
                 width: 46,
                 onPressed: WindowChrome.minimize,
               ),
               _BarButton(
                 label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
-                icon: _maximized ? Icons.filter_none : Icons.crop_square,
+                icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
                 iconSize: _maximized ? 14 : 13,
                 width: 46,
                 onPressed: () => _toggleMaximize(),
               ),
               _BarButton(
                 label: l10n.close,
-                icon: Icons.close,
+                icon: Symbols.close_rounded,
                 iconSize: 16,
                 width: 46,
                 danger: true,
@@ -297,7 +296,8 @@ class _BarButtonState extends State<_BarButton> {
 
     final label = widget.text;
     final content = label == null
-        ? Icon(widget.icon, size: widget.iconSize, color: foreground)
+        // 激活态（置顶 / 画中画已开）：图标走 fill:1 实心，与强调色一起表达「已开启」。
+        ? Icon(widget.icon, size: widget.iconSize, color: foreground, fill: widget.active ? 1 : 0)
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [

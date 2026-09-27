@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/settings.dart';
@@ -73,7 +74,7 @@ class _ThemeSchemeDialog extends ConsumerWidget {
                   _Swatch(
                     color: _hexColor(settings.customThemeColor),
                     label: l10n.colorCustom,
-                    icon: Icons.colorize_outlined,
+                    icon: Symbols.colorize_rounded,
                     selected: !settings.useMonetColors && settings.themeColor == AppThemeColor.custom,
                     onTap: () => _pickCustomColor(context, controller, settings.customThemeColor),
                   ),
@@ -134,7 +135,7 @@ class _Swatch extends StatelessWidget {
               ),
               child: icon != null
                   ? Icon(icon, color: foreground)
-                  : (selected ? Icon(Icons.check, color: foreground) : null),
+                  : (selected ? Icon(Symbols.check_rounded, color: foreground) : null),
             ),
             const SizedBox(height: 8),
             Text(

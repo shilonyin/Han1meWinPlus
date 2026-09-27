@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
@@ -710,7 +711,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
                             color: Colors.white,
                             tooltip: AppLocalizations.of(context)!.retry,
                             onPressed: _syncSource,
-                            icon: const Icon(Icons.refresh),
+                            icon: const Icon(Symbols.refresh_rounded),
                           ),
                       ],
                     ),

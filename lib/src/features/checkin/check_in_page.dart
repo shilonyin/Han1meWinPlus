@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
 import 'check_in_controller.dart';
@@ -89,13 +90,13 @@ class _TodayCard extends ConsumerWidget {
             if (count > 0)
               TextButton.icon(
                 onPressed: () => ref.read(checkInProvider.notifier).clearDate(today),
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: const Icon(Symbols.delete_rounded, size: 18),
                 label: Text(l10n.clear),
               ),
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: isMaxed ? null : () => _addCheckIn(context, ref, today),
-              icon: const Icon(Icons.add, size: 18),
+              icon: const Icon(Symbols.add_rounded, size: 18),
               label: Text(l10n.checkInNow),
             ),
           ],
@@ -172,8 +173,8 @@ class _MonthCalendar extends ConsumerWidget {
             Row(
               children: [
                 Expanded(child: Text('${month.year} / ${month.month}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Icons.chevron_left)),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Icons.chevron_right)),
+                IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_left_rounded)),
+                IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_right_rounded)),
               ],
             ),
             Row(children: [for (var i = 0; i < 7; i++) Expanded(child: Center(child: Text(material.narrowWeekdays[(firstDayOfWeek + i) % 7], style: Theme.of(context).textTheme.labelSmall)))]),
@@ -197,11 +198,11 @@ class _StatsRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        Expanded(child: _StatCard(icon: Icons.calendar_month_outlined, value: '${state.monthDays}', label: l10n.checkInMonthDays)),
+        Expanded(child: _StatCard(icon: Symbols.calendar_month_rounded, value: '${state.monthDays}', label: l10n.checkInMonthDays)),
         const SizedBox(width: 12),
-        Expanded(child: _StatCard(icon: Icons.repeat_outlined, value: '${state.monthTotal}', label: l10n.checkInMonthTotal)),
+        Expanded(child: _StatCard(icon: Symbols.repeat_rounded, value: '${state.monthTotal}', label: l10n.checkInMonthTotal)),
         const SizedBox(width: 12),
-        Expanded(child: _StatCard(icon: Icons.local_fire_department_outlined, value: '${state.bestStreak}', label: l10n.checkInBestStreak)),
+        Expanded(child: _StatCard(icon: Symbols.local_fire_department_rounded, value: '${state.bestStreak}', label: l10n.checkInBestStreak)),
       ],
     );
   }

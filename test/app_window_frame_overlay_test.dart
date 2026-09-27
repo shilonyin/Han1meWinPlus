@@ -24,6 +24,7 @@ import 'package:han1me_win_plus/src/core/settings.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
 import 'package:han1me_win_plus/src/features/window/app_title_bar.dart';
 import 'package:han1me_win_plus/src/features/window/play_window_title_bar.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 /// 固定返回一份设置的替身：不读盘、不碰网络。
 class _StubSettings extends SettingsController {
@@ -69,9 +70,9 @@ class _PlainTitleBar extends StatelessWidget {
           const Spacer(),
           Text(label, style: const TextStyle(color: Colors.white)),
           const Spacer(),
-          const Icon(Icons.push_pin_outlined, color: Colors.white),
-          const Icon(Icons.branding_watermark_outlined, color: Colors.white),
-          const Icon(Icons.close, color: Colors.white),
+          const Icon(Symbols.push_pin_rounded, color: Colors.white),
+          const Icon(Symbols.branding_watermark_rounded, color: Colors.white),
+          const Icon(Symbols.close_rounded, color: Colors.white),
         ],
       ),
     ),
@@ -85,8 +86,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('回到主界面'), findsOneWidget);
-    expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(find.byIcon(Symbols.push_pin_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.close_rounded), findsOneWidget);
   });
 
   testWidgets('标题栏内容更新后仍然生效', (tester) async {
@@ -141,10 +142,10 @@ void main() {
 
     // 逐个悬停到右侧那些图标按钮上
     for (final icon in [
-      Icons.push_pin_outlined,
-      Icons.branding_watermark_outlined,
-      Icons.remove,
-      Icons.close,
+      Symbols.push_pin_rounded,
+      Symbols.branding_watermark_rounded,
+      Symbols.remove_rounded,
+      Symbols.close_rounded,
     ]) {
       final finder = find.byIcon(icon);
       if (finder.evaluate().isEmpty) continue;

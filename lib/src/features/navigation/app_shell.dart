@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../../core/platform_service.dart';
@@ -78,10 +79,10 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
     final permanentDrawer = drawerMode && largeScreen;
     final useRail = !drawerMode && largeScreen;
     final destinations = [
-      (icon: Icons.explore_outlined, selectedIcon: Icons.explore, label: AppLocalizations.of(context)!.explore),
-      (icon: Icons.bookmark_outline, selectedIcon: Icons.bookmark, label: AppLocalizations.of(context)!.library),
-      (icon: Icons.download_outlined, selectedIcon: Icons.download, label: AppLocalizations.of(context)!.cache),
-      (icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: AppLocalizations.of(context)!.settings),
+      (icon: Symbols.explore_rounded, selectedIcon: Symbols.explore_rounded, label: AppLocalizations.of(context)!.explore),
+      (icon: Symbols.bookmark_rounded, selectedIcon: Symbols.bookmark_rounded, label: AppLocalizations.of(context)!.library),
+      (icon: Symbols.download_rounded, selectedIcon: Symbols.download_rounded, label: AppLocalizations.of(context)!.cache),
+      (icon: Symbols.settings_rounded, selectedIcon: Symbols.settings_rounded, label: AppLocalizations.of(context)!.settings),
     ];
     void select(int index) => widget.navigationShell.goBranch(index, initialLocation: index == widget.navigationShell.currentIndex);
     final content = comicMode
@@ -124,7 +125,7 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
                         // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
                         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                         onDestinationSelected: select,
-                        destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: Text(destination.label))).toList(),
+                        destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon, fill: 1), label: Text(destination.label))).toList(),
                       ),
                       Expanded(child: animatedContent),
                     ],
@@ -135,7 +136,7 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
             : NavigationBar(
                 selectedIndex: widget.navigationShell.currentIndex,
                 onDestinationSelected: select,
-                destinations: destinations.map((destination) => NavigationDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon), label: destination.label)).toList(),
+                destinations: destinations.map((destination) => NavigationDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon, fill: 1), label: destination.label)).toList(),
               ),
       ),
     );
@@ -185,22 +186,22 @@ List<_DrawerSection> _drawerSections(BuildContext context, {bool comicMode = fal
   final previewsLocation = previewSource == 'getchu' ? '/previews/getchu/$month' : '/previews/$month';
   return [
     _DrawerSection(items: [
-      _DrawerItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: l10n.home, location: '/'),
-      _DrawerItem(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: l10n.previews, shortLabel: l10n.railPreviews, location: previewsLocation),
-      _DrawerItem(icon: Icons.thumb_up_alt_outlined, selectedIcon: Icons.thumb_up_alt, label: l10n.checkIn, location: '/check-in'),
+      _DrawerItem(icon: Symbols.home_rounded, selectedIcon: Symbols.home_rounded, label: l10n.home, location: '/'),
+      _DrawerItem(icon: Symbols.calendar_month_rounded, selectedIcon: Symbols.calendar_month_rounded, label: l10n.previews, shortLabel: l10n.railPreviews, location: previewsLocation),
+      _DrawerItem(icon: Symbols.thumb_up_rounded, selectedIcon: Symbols.thumb_up_rounded, label: l10n.checkIn, location: '/check-in'),
     ]),
     _DrawerSection(title: l10n.myListSection, items: [
-      _DrawerItem(icon: Icons.watch_later_outlined, selectedIcon: Icons.watch_later, label: l10n.watchLater, shortLabel: l10n.railWatchLater, location: '/library/watch-later'),
-      _DrawerItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: l10n.favoriteVideos, shortLabel: l10n.railFavorites, location: '/library/favorites'),
+      _DrawerItem(icon: Symbols.watch_later_rounded, selectedIcon: Symbols.watch_later_rounded, label: l10n.watchLater, shortLabel: l10n.railWatchLater, location: '/library/watch-later'),
+      _DrawerItem(icon: Symbols.favorite_rounded, selectedIcon: Symbols.favorite_rounded, label: l10n.favoriteVideos, shortLabel: l10n.railFavorites, location: '/library/favorites'),
       if (!comicMode) ...[
-        _DrawerItem(icon: Icons.playlist_play_outlined, selectedIcon: Icons.playlist_play, label: l10n.playlists, shortLabel: l10n.railPlaylists, location: '/library/playlists'),
-        _DrawerItem(icon: Icons.subscriptions_outlined, selectedIcon: Icons.subscriptions, label: l10n.subscriptions, shortLabel: l10n.railSubscriptions, location: '/library/subscriptions'),
+        _DrawerItem(icon: Symbols.playlist_play_rounded, selectedIcon: Symbols.playlist_play_rounded, label: l10n.playlists, shortLabel: l10n.railPlaylists, location: '/library/playlists'),
+        _DrawerItem(icon: Symbols.subscriptions_rounded, selectedIcon: Symbols.subscriptions_rounded, label: l10n.subscriptions, shortLabel: l10n.railSubscriptions, location: '/library/subscriptions'),
       ],
     ]),
     _DrawerSection(title: l10n.videoSection, items: [
-      if (!comicMode) _DrawerItem(icon: Icons.history_outlined, selectedIcon: Icons.history, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history', iconOnly: true),
-      _DrawerItem(icon: Icons.download_for_offline_outlined, selectedIcon: Icons.download_for_offline, label: l10n.download, location: '/cache', iconOnly: true),
-      _DrawerItem(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l10n.settings, location: '/settings', iconOnly: true),
+      if (!comicMode) _DrawerItem(icon: Symbols.history_rounded, selectedIcon: Symbols.history_rounded, label: l10n.watchHistory, shortLabel: l10n.railHistory, location: '/library/history', iconOnly: true),
+      _DrawerItem(icon: Symbols.download_for_offline_rounded, selectedIcon: Symbols.download_for_offline_rounded, label: l10n.download, location: '/cache', iconOnly: true),
+      _DrawerItem(icon: Symbols.settings_rounded, selectedIcon: Symbols.settings_rounded, label: l10n.settings, location: '/settings', iconOnly: true),
     ]),
   ];
 }
@@ -256,7 +257,7 @@ class _AppDrawer extends ConsumerWidget {
         const SizedBox(height: 12),
         for (final section in sections) ...[
           if (section.title != null) _drawerSectionTitle(context, section.title!),
-          for (final item in section.items) NavigationDrawerDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon), label: Text(item.label)),
+          for (final item in section.items) NavigationDrawerDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon, fill: 1), label: Text(item.label)),
         ],
         const SizedBox(height: 12),
       ],
@@ -404,7 +405,7 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
               child: CircleAvatar(
                 radius: radius,
                 backgroundImage: hasAvatar ? appNetworkImage(account!.avatarUrl!) : null,
-                child: hasAvatar ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: radius, color: highlighted ? scheme.primary : scheme.onSurfaceVariant),
+                child: hasAvatar ? null : Icon(loggedIn ? Symbols.person_rounded : Symbols.person_rounded, size: radius, color: highlighted ? scheme.primary : scheme.onSurfaceVariant),
               ),
             ),
           ),
@@ -416,9 +417,9 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
 
 /// 主题模式图标：跟随系统 / 浅色 / 深色 各一个。
 IconData _themeModeIcon(AppThemeMode mode) => switch (mode) {
-      AppThemeMode.system => Icons.brightness_auto_outlined,
-      AppThemeMode.light => Icons.light_mode_outlined,
-      AppThemeMode.dark => Icons.dark_mode_outlined,
+      AppThemeMode.system => Symbols.brightness_auto_rounded,
+      AppThemeMode.light => Symbols.light_mode_rounded,
+      AppThemeMode.dark => Symbols.dark_mode_rounded,
     };
 
 /// 左下角的主题模式入口：点一下在「跟随系统 → 浅色 → 深色」之间循环，
@@ -492,7 +493,7 @@ class _CompactRailItemState extends State<_CompactRailItem> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color),
+              Icon(selected ? item.selectedIcon : item.icon, size: iconSize, color: color, fill: selected ? 1 : 0),
               if (!item.iconOnly) ...[
                 SizedBox(height: gap),
                 Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: labelSize, height: 1.0, color: color, fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400)),
@@ -543,7 +544,7 @@ class _DrawerAccountCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(radius: 28, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? appNetworkImage(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Icons.person : Icons.person_outline, size: 30)),
+                CircleAvatar(radius: 28, backgroundImage: account?.avatarUrl?.isNotEmpty == true ? appNetworkImage(account!.avatarUrl!) : null, child: account?.avatarUrl?.isNotEmpty == true ? null : Icon(loggedIn ? Symbols.person_rounded : Symbols.person_rounded, size: 30)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

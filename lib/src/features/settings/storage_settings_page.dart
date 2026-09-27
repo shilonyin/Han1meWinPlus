@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/cache_cleaner.dart';
 import '../../core/settings.dart';
@@ -56,19 +57,19 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
       appBar: AppBar(title: Text(l10n.storage)),
       body: ListView(children: [
         SettingsCardList(title: l10n.downloadSettings, children: [
-          SettingsCardItem(title: l10n.downloadPath, subtitle: settings.downloadPath, leading: const Icon(Icons.folder_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _editDownloadPath(context, settings, controller)),
-          SettingsCardItem(title: l10n.exportDownloads, subtitle: l10n.exportDownloadsDescription, leading: const Icon(Icons.drive_folder_upload_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => _exportDownloads(context, ref)),
-          _SliderTile(icon: Icons.speed_outlined, title: l10n.downloadSpeedLimit, value: settings.downloadSpeedLimitMbps, min: 0, max: 20, divisions: 40, label: settings.downloadSpeedLimitMbps == 0 ? l10n.unlimited : '${settings.downloadSpeedLimitMbps.toStringAsFixed(1)} MB/s', onChanged: (value) => controller.saveChanges((current) => current.copyWith(downloadSpeedLimitMbps: value))),
-          _SliderTile(icon: Icons.download_for_offline_outlined, title: l10n.concurrentDownloads, subtitle: l10n.concurrentDownloadsDescription(settings.concurrentDownloads), value: settings.concurrentDownloads.toDouble(), min: 1, max: 5, divisions: 4, label: '${settings.concurrentDownloads}', onChanged: (value) => controller.saveChanges((current) => current.copyWith(concurrentDownloads: value.round()))),
+          SettingsCardItem(title: l10n.downloadPath, subtitle: settings.downloadPath, leading: const Icon(Symbols.folder_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _editDownloadPath(context, settings, controller)),
+          SettingsCardItem(title: l10n.exportDownloads, subtitle: l10n.exportDownloadsDescription, leading: const Icon(Symbols.drive_folder_upload_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _exportDownloads(context, ref)),
+          _SliderTile(icon: Symbols.speed_rounded, title: l10n.downloadSpeedLimit, value: settings.downloadSpeedLimitMbps, min: 0, max: 20, divisions: 40, label: settings.downloadSpeedLimitMbps == 0 ? l10n.unlimited : '${settings.downloadSpeedLimitMbps.toStringAsFixed(1)} MB/s', onChanged: (value) => controller.saveChanges((current) => current.copyWith(downloadSpeedLimitMbps: value))),
+          _SliderTile(icon: Symbols.download_for_offline_rounded, title: l10n.concurrentDownloads, subtitle: l10n.concurrentDownloadsDescription(settings.concurrentDownloads), value: settings.concurrentDownloads.toDouble(), min: 1, max: 5, divisions: 4, label: '${settings.concurrentDownloads}', onChanged: (value) => controller.saveChanges((current) => current.copyWith(concurrentDownloads: value.round()))),
         ]),
         SettingsCardList(title: l10n.localMedia, children: [
-          SettingsCardItem(title: l10n.localMediaDirectory, subtitle: settings.localMediaDirectory.isEmpty ? l10n.localMediaHint : settings.localMediaDirectory, leading: const Icon(Icons.movie_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalMediaPage()))),
+          SettingsCardItem(title: l10n.localMediaDirectory, subtitle: settings.localMediaDirectory.isEmpty ? l10n.localMediaHint : settings.localMediaDirectory, leading: const Icon(Symbols.movie_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalMediaPage()))),
         ]),
         SettingsCardList(title: l10n.cache, children: [
-          SettingsCardItem(title: l10n.clearCache, subtitle: cacheSize == null ? l10n.clearCacheDescription : l10n.cacheUsage(CacheCleaner.formatSize(cacheSize)), leading: const Icon(Icons.cleaning_services_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => unawaited(_clearCache())),
+          SettingsCardItem(title: l10n.clearCache, subtitle: cacheSize == null ? l10n.clearCacheDescription : l10n.cacheUsage(CacheCleaner.formatSize(cacheSize)), leading: const Icon(Symbols.cleaning_services_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => unawaited(_clearCache())),
         ]),
         SettingsCardList(title: l10n.backupSettings, children: [
-          SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Icons.archive_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showBackup = true)),
+          SettingsCardItem(title: l10n.exportDataBackup, subtitle: l10n.exportDataBackupDescription, leading: const Icon(Symbols.archive_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _showBackup = true)),
         ]),
       ]),
     );
@@ -126,7 +127,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
 }
 
 class _PathDialog extends StatefulWidget { const _PathDialog({required this.title, required this.initialPath}); final String title; final String initialPath; @override State<_PathDialog> createState() => _PathDialogState(); }
-class _PathDialogState extends State<_PathDialog> { late final _controller = TextEditingController(text: widget.initialPath); @override void dispose() { _controller.dispose(); super.dispose(); } Future<void> _browse() async { final selected = await FilePicker.platform.getDirectoryPath(dialogTitle: widget.title, initialDirectory: _controller.text.trim().isEmpty ? null : _controller.text.trim()); if (selected != null) setState(() => _controller.text = selected); } @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(widget.title), content: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.downloadPath, hintText: platformDownloadPathHint(l10n.defaultDownloadPath)))), const SizedBox(width: 8), IconButton(tooltip: l10n.chooseFolder, onPressed: _browse, icon: const Icon(Icons.folder_open_outlined))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text(l10n.save))]); } }
+class _PathDialogState extends State<_PathDialog> { late final _controller = TextEditingController(text: widget.initialPath); @override void dispose() { _controller.dispose(); super.dispose(); } Future<void> _browse() async { final selected = await FilePicker.platform.getDirectoryPath(dialogTitle: widget.title, initialDirectory: _controller.text.trim().isEmpty ? null : _controller.text.trim()); if (selected != null) setState(() => _controller.text = selected); } @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(widget.title), content: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.downloadPath, hintText: platformDownloadPathHint(l10n.defaultDownloadPath)))), const SizedBox(width: 8), IconButton(tooltip: l10n.chooseFolder, onPressed: _browse, icon: const Icon(Symbols.folder_open_rounded))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text(l10n.save))]); } }
 
 class _SliderTile extends SettingsSliderItem {
   _SliderTile({required IconData icon, required String title, String? subtitle, required double value, required double min, required double max, required int divisions, required String label, required ValueChanged<double> onChanged})

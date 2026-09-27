@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -112,9 +113,9 @@ class _MonthNavigation extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Icons.chevron_left)),
-            Expanded(child: TextButton.icon(onPressed: onSelect, icon: const Icon(Icons.calendar_month_outlined, size: 18), label: Text(l10n.getchuPreviewMonth(month.value)))),
-            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Icons.chevron_right)),
+            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded)),
+            Expanded(child: TextButton.icon(onPressed: onSelect, icon: const Icon(Symbols.calendar_month_rounded, size: 18), label: Text(l10n.getchuPreviewMonth(month.value)))),
+            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded)),
           ],
         ),
       ),
@@ -156,7 +157,7 @@ class _PreviewCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (item.coverUrl == null)
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Icons.image_not_supported_outlined))
+                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Symbols.image_not_supported_rounded))
                   else
                     CachedNetworkImage(
                       imageUrl: item.coverUrl!,
@@ -230,11 +231,11 @@ class _Unavailable extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event_busy_outlined, size: 56),
+            const Icon(Symbols.event_busy_rounded, size: 56),
             const SizedBox(height: 16),
             Text(error == null ? l10n.noGetchuPreviews : l10n.getchuPreviewUnavailable, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: Text(l10n.reload)),
+            OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload)),
           ],
         ),
       ),

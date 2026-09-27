@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
@@ -45,7 +46,7 @@ class _SearchHistorySheet extends ConsumerWidget {
                         onTap: () => Navigator.of(context).pop(query),
                         trailing: IconButton(
                           tooltip: l10n.deleteSearchHistory,
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const Icon(Symbols.delete_rounded),
                           onPressed: () => ref.read(searchHistoryProvider.notifier).remove(query),
                         ),
                       ),

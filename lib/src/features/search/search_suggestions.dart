@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
@@ -180,7 +181,7 @@ class _PopularTagTile extends StatelessWidget {
               child: Text('${index + 1}', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: index < 3 ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant)),
             ),
             Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium)),
-            if (hot) Icon(Icons.local_fire_department, size: 14, color: theme.colorScheme.error),
+            if (hot) Icon(Symbols.local_fire_department_rounded, size: 14, color: theme.colorScheme.error),
           ],
         ),
       ),
@@ -228,7 +229,7 @@ class _MoreChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5, color: theme.colorScheme.primary)),
-            Icon(Icons.keyboard_arrow_down, size: 16, color: theme.colorScheme.primary),
+            Icon(Symbols.keyboard_arrow_down_rounded, size: 16, color: theme.colorScheme.primary),
           ],
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -117,10 +118,10 @@ class _TitleBlock extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    if (video.views != null) _MetaText(icon: Icons.visibility_outlined, label: video.views!),
-                    if (video.commentCount != null) _MetaText(icon: Icons.mode_comment_outlined, label: '${video.commentCount}'),
-                    if (video.uploadDate != null) _MetaText(icon: Icons.calendar_today_outlined, label: video.uploadDate!),
-                    if (video.genre != null) _MetaText(icon: Icons.local_offer_outlined, label: video.genre!),
+                    if (video.views != null) _MetaText(icon: Symbols.visibility_rounded, label: video.views!),
+                    if (video.commentCount != null) _MetaText(icon: Symbols.mode_comment_rounded, label: '${video.commentCount}'),
+                    if (video.uploadDate != null) _MetaText(icon: Symbols.calendar_today_rounded, label: video.uploadDate!),
+                    if (video.genre != null) _MetaText(icon: Symbols.local_offer_rounded, label: video.genre!),
                   ],
                 ),
               ],
@@ -133,7 +134,7 @@ class _TitleBlock extends StatelessWidget {
               child: TextButton(
                 onPressed: onToggleDescription,
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8), minimumSize: const Size(0, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 18)]),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded, size: 18)]),
               ),
             ),
         ],
@@ -317,8 +318,8 @@ class _TagListState extends ConsumerState<_TagList> {
             context.push(url, extra: SearchRouteRequest(initialUrl: url));
           },
         ),
-      IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Icons.add), onPressed: enabled ? () => _editTags('add') : null),
-      IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Icons.remove), onPressed: enabled ? () => _editTags('remove') : null),
+      IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.add_rounded), onPressed: enabled ? () => _editTags('add') : null),
+      IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.remove_rounded), onPressed: enabled ? () => _editTags('remove') : null),
     ];
     if (tags.isEmpty) children.first = SizedBox(key: _firstChipKey, width: 32, height: 32, child: children.first);
     _measure();
@@ -362,7 +363,7 @@ class _TagListState extends ConsumerState<_TagList> {
                   ),
                 ),
               ),
-            if (_canExpand) IconButton(tooltip: _expanded ? l10n.collapse : l10n.expand, visualDensity: VisualDensity.compact, iconSize: 20, onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more)),
+            if (_canExpand) IconButton(tooltip: _expanded ? l10n.collapse : l10n.expand, visualDensity: VisualDensity.compact, iconSize: 20, onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded)),
           ],
         ),
       ),
@@ -437,8 +438,8 @@ class _SeriesVideosState extends State<_SeriesVideos> {
             child: Stack(
               children: [
                 ListView.separated(controller: _controller, padding: const EdgeInsets.symmetric(horizontal: 16), scrollDirection: Axis.horizontal, itemCount: widget.videos.length, separatorBuilder: (context, index) => const SizedBox(width: 8), itemBuilder: (context, index) => SizedBox(width: 90, child: VideoCardTile(video: widget.videos[index], horizontal: true, dense: true, selected: widget.videos[index].id == widget.currentVideoId))),
-                if (_canBack) Positioned(left: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Icons.chevron_left, tooltip: l10n.previousPage, visible: _hovered, onPressed: () => _page(-1)))),
-                if (_canForward) Positioned(right: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Icons.chevron_right, tooltip: l10n.nextPage, visible: _hovered, onPressed: () => _page(1)))),
+                if (_canBack) Positioned(left: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Symbols.chevron_left_rounded, tooltip: l10n.previousPage, visible: _hovered, onPressed: () => _page(-1)))),
+                if (_canForward) Positioned(right: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Symbols.chevron_right_rounded, tooltip: l10n.nextPage, visible: _hovered, onPressed: () => _page(1)))),
               ],
             ),
           ),
@@ -528,7 +529,7 @@ class _RelatedVideoTile extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image_outlined))))),
+              ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Symbols.broken_image_rounded))))),
               const SizedBox(width: 12),
               Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 6), if (video.artist != null) Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)), if (video.views != null) Text(video.views!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
             ],

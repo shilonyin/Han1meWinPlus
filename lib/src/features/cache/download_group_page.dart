@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
@@ -84,7 +85,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
                 SettingsMenuItem<DownloadGroupSort>(
                   title: l10n.sortOrder,
                   subtitle: _sortLabel(sort, l10n),
-                  leading: const Icon(Icons.sort),
+                  leading: const Icon(Symbols.sort_rounded),
                   value: sort,
                   options: DownloadGroupSort.values,
                   label: (value) => _sortLabel(value, l10n),
@@ -94,7 +95,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
                   SettingsCardItem(
                     title: l10n.deleteGroup,
                     subtitle: l10n.deleteGroupDescription,
-                    leading: const Icon(Icons.delete_outline),
+                    leading: const Icon(Symbols.delete_rounded),
                     onTap: () => _delete(group, l10n),
                   ),
               ],

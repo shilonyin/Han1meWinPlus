@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,7 +90,7 @@ class _SignedInProfile extends ConsumerWidget {
             InkWell(
               borderRadius: BorderRadius.circular(40),
               onTap: () => _openProfile(context, ref, account),
-              child: CircleAvatar(radius: 32, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Icons.person, size: 32)),
+              child: CircleAvatar(radius: 32, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 32)),
             ),
             const SizedBox(width: 18),
             Expanded(
@@ -108,7 +109,7 @@ class _SignedInProfile extends ConsumerWidget {
             ),
             TextButton(
               onPressed: () => _openProfile(context, ref, account),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [Text(l10n.accountProfile), const Icon(Icons.chevron_right, size: 18)]),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [Text(l10n.accountProfile), const Icon(Symbols.chevron_right_rounded, size: 18)]),
             ),
           ],
         ),
@@ -117,10 +118,10 @@ class _SignedInProfile extends ConsumerWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            _AccountAction(icon: Icons.switch_account_outlined, label: l10n.accountManage, onTap: () => _showAccountSheet(context, ref)),
-            _AccountAction(icon: Icons.edit_outlined, label: l10n.editProfile, onTap: () => _showEditProfile(context, account)),
-            _AccountAction(icon: Icons.lock_outline, label: l10n.changePassword, onTap: () => _showChangePassword(context)),
-            _AccountAction(icon: Icons.logout, label: l10n.logout, onTap: () => _confirmLogout(context, ref)),
+            _AccountAction(icon: Symbols.switch_account_rounded, label: l10n.accountManage, onTap: () => _showAccountSheet(context, ref)),
+            _AccountAction(icon: Symbols.edit_rounded, label: l10n.editProfile, onTap: () => _showEditProfile(context, account)),
+            _AccountAction(icon: Symbols.lock_rounded, label: l10n.changePassword, onTap: () => _showChangePassword(context)),
+            _AccountAction(icon: Symbols.logout_rounded, label: l10n.logout, onTap: () => _confirmLogout(context, ref)),
           ],
         ),
       ],
@@ -138,7 +139,7 @@ class _SignedOutProfile extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        const CircleAvatar(radius: 32, child: Icon(Icons.person_outline, size: 32)),
+        const CircleAvatar(radius: 32, child: Icon(Symbols.person_rounded, size: 32)),
         const SizedBox(width: 18),
         Expanded(
           child: Column(
@@ -248,16 +249,16 @@ class _AccountSheet extends ConsumerWidget {
               (item) => ListTile(
                 leading: CircleAvatar(
                   backgroundImage: item.avatarUrl?.isNotEmpty == true ? appNetworkImage(item.avatarUrl!) : null,
-                  child: item.avatarUrl?.isNotEmpty == true ? null : const Icon(Icons.person_outline),
+                  child: item.avatarUrl?.isNotEmpty == true ? null : const Icon(Symbols.person_rounded),
                 ),
                 title: Text(item.name?.isNotEmpty == true ? item.name! : item.id ?? ''),
                 subtitle: Text(item.email ?? item.id ?? ''),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (item.id == active?.id) const Icon(Icons.check_circle),
+                    if (item.id == active?.id) const Icon(Symbols.check_circle_rounded),
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
+                      icon: const Icon(Symbols.remove_circle_rounded),
                       tooltip: AppLocalizations.of(context)!.removeAccount,
                       onPressed: () async {
                         if (item.id == null) return;
@@ -277,7 +278,7 @@ class _AccountSheet extends ConsumerWidget {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.person_add_alt_1_outlined),
+              leading: const Icon(Symbols.person_add_rounded),
               title: Text(AppLocalizations.of(context)!.addAccount),
               onTap: () {
                 final router = GoRouter.of(context);

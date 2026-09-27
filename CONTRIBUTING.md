@@ -62,6 +62,13 @@ flutter build windows --release
 6. **Provider**：`camelCase` + `Provider` 后缀（如 `accountProvider`、`appLockProvider`、`backupServiceProvider`）
 7. **注释**：公共 API 与非显然逻辑必须注释「为什么」，中文、面向维护者（参考 `settings.dart` 中 `SuperResolutionMode` 的注释与 `pubspec.yaml` 的字体注释）
 
+8. **图标**：统一用 `Symbols.xxx_rounded`（`material_symbols_icons`），**全项目只用 rounded 一种风格**
+
+   - 材质（Mica / Acrylic）图标走可变字体轴，由 `appTheme` 的 `iconTheme` 给全局默认值：`fill: 0` 线性描边、`weight: 400`、`opticalSize: 48`；深色主题 `grade: -25`（细线条在深色下会发糊）
+   - 选中 / 激活态在调用处显式给 `fill: 1`（实心）；**不再写 `*_outlined` / `*_border` / `*_outline` 变体**——它们是旧 Material Icons 的「另一套字体」，在新体系里同一图标会变成两种描边，属于假统一
+   - `IconThemeData` 的这四个参数只有 Material Symbols 字体会读，Material 内置图标（MD3 组件内部的下拉箭头、SnackBar 关闭钮等）会忽略，二者共存无冲突
+   - 新增图标请到 [Material Symbols 浏览器](https://fonts.google.com/icons?icon.set=Material+Symbols) 按语义确认存在，不要凭记忆拼名字（`copy` 在新体系里叫 `content_copy`、`help_outline` 叫 `help`）
+
 ### 提交信息
 
 提交信息会被 GitHub Actions 直接用来生成每个版本的更新日志，所以请按 Conventional Commits 写：

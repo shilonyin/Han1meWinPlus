@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 
@@ -28,7 +29,7 @@ Future<VideoCard?> showCommentEpisodeDialog(
                 final selected = episode.id == selectedId;
                 return ListTile(
                   selected: selected,
-                  leading: Icon(selected ? Icons.play_arrow : Icons.video_library_outlined),
+                  leading: Icon(selected ? Symbols.play_arrow_rounded : Symbols.video_library_rounded),
                   title: Text(episode.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                   onTap: () => Navigator.pop(context, episode),
                 );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 列表页右下角的悬浮操作：刷新 + 回到顶部。
@@ -64,7 +65,7 @@ class _ScrollActionsState extends State<ScrollActions> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.refresh, size: 22, color: Colors.white)),
+          _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Symbols.refresh_rounded, size: 22, color: Colors.white)),
           AnimatedSize(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
@@ -78,7 +79,7 @@ class _ScrollActionsState extends State<ScrollActions> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.arrow_upward, size: 18, color: Colors.white),
+                          const Icon(Symbols.arrow_upward_rounded, size: 18, color: Colors.white),
                           const SizedBox(height: 1),
                           Text(l10n.backToTop, style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
                         ],

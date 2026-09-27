@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -161,7 +162,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
                     child: Row(
                       children: [
-                        if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu))),
+                        if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))),
                         Expanded(
                           child: Stack(
                             key: _topBarKey,
@@ -436,9 +437,9 @@ class _HomeSearchField extends StatelessWidget {
                   valueListenable: controller,
                   builder: (context, value, _) => value.text.isEmpty
                       ? const SizedBox.shrink()
-                      : IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: onClear, icon: const Icon(Icons.close)),
+                      : IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: onClear, icon: const Icon(Symbols.close_rounded)),
                 ),
-                IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: () => onSubmitted(controller.text), icon: const Icon(Icons.search)),
+                IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded)),
                 const SizedBox(width: 4),
               ],
             ),
@@ -481,7 +482,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
               _controller.close();
               if (index != widget.index) widget.onSelected(index);
             },
-            leadingIcon: Icon(index == widget.index ? Icons.check : Icons.label_outline, size: 18),
+            leadingIcon: Icon(index == widget.index ? Symbols.check_rounded : Symbols.label_rounded, size: 18),
             child: Text(widget.sections[index].title),
           ),
       ],
@@ -495,7 +496,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
             children: [
               Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down),
+              const Icon(Symbols.keyboard_arrow_down_rounded),
             ],
           ),
         ),
@@ -930,7 +931,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                 child: _loading
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                     : _failed
-                        ? TextButton.icon(onPressed: () => unawaited(_retry()), icon: const Icon(Icons.refresh, size: 18), label: Text(AppLocalizations.of(context)!.retry))
+                        ? TextButton.icon(onPressed: () => unawaited(_retry()), icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(AppLocalizations.of(context)!.retry))
                         : const SizedBox(height: 24),
               ),
             ),

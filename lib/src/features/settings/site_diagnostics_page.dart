@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/remote/address_ranker.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -97,7 +98,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
         const SizedBox(height: 12),
         SizedBox(width: double.infinity, child: FilledButton.icon(
           onPressed: _running ? null : _runAll,
-          icon: _running ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+          icon: _running ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.refresh_rounded),
           label: Text(l10n.diagnose),
         )),
         const SizedBox(height: 16),
@@ -113,7 +114,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: .35), borderRadius: BorderRadius.circular(8)),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.info_outline, size: 16, color: scheme.onPrimaryContainer),
+              Icon(Symbols.info_rounded, size: 16, color: scheme.onPrimaryContainer),
               const SizedBox(width: 8),
               Expanded(child: Text(l10n.addressLatencyProxyNotice, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onPrimaryContainer, height: 1.4))),
             ]),
@@ -129,9 +130,9 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
   Color _okColor(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF6BD08A) : const Color(0xFF2E7D32);
 
   (IconData, Color) _statusVisual(BuildContext context, DiagnosticStatus status) => switch (status) {
-        DiagnosticStatus.ok => (Icons.check, _okColor(context)),
-        DiagnosticStatus.fail => (Icons.close, Theme.of(context).colorScheme.error),
-        DiagnosticStatus.skipped => (Icons.remove, Theme.of(context).colorScheme.outline),
+        DiagnosticStatus.ok => (Symbols.check_rounded, _okColor(context)),
+        DiagnosticStatus.fail => (Symbols.close_rounded, Theme.of(context).colorScheme.error),
+        DiagnosticStatus.skipped => (Symbols.remove_rounded, Theme.of(context).colorScheme.outline),
       };
 
   String _statusText(AppLocalizations l10n, DiagnosticStatus status) => switch (status) {
@@ -219,7 +220,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
         for (final address in addresses) Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Row(children: [
-            Icon(address == preferred ? Icons.bolt_outlined : failed.contains(address) ? Icons.error_outline : Icons.circle_outlined, size: 16, color: address == preferred ? scheme.primary : failed.contains(address) ? scheme.error : scheme.outline),
+            Icon(address == preferred ? Symbols.bolt_rounded : failed.contains(address) ? Symbols.error_rounded : Symbols.circle_rounded, size: 16, color: address == preferred ? scheme.primary : failed.contains(address) ? scheme.error : scheme.outline),
             const SizedBox(width: 8),
             Expanded(child: Text(address, style: textTheme.bodyMedium)),
             Text(_addressMeasurement(l10n, measured[address], ranked[address], failed.contains(address)), style: textTheme.bodyMedium?.copyWith(color: address == preferred ? scheme.primary : scheme.onSurfaceVariant, fontWeight: address == preferred ? FontWeight.w600 : null)),

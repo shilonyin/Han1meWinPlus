@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import 'video_comments.dart';
@@ -360,7 +361,7 @@ class _SidebarHandle extends StatelessWidget {
                 width: kSidebarHandleWidth,
                 height: 64,
                 child: Icon(
-                  collapsed ? Icons.chevron_left : Icons.chevron_right,
+                  collapsed ? Symbols.chevron_left_rounded : Symbols.chevron_right_rounded,
                   size: 24,
                   color: Colors.white,
                 ),
@@ -507,7 +508,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
                     width: double.infinity,
                     child: TextButton.icon(
                       onPressed: () => _playerCollapse.value = 0,
-                      icon: const Icon(Icons.play_arrow),
+                      icon: const Icon(Symbols.play_arrow_rounded),
                       label: Text(l10n.play),
                     ),
                   ),

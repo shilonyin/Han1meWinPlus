@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/local_media_repository.dart';
 import '../settings/settings_controller.dart';
@@ -61,8 +62,8 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(spacing: 8, children: [
-              FilledButton.icon(onPressed: _scanning ? null : _pickDirectory, icon: const Icon(Icons.folder_open_outlined), label: Text(l10n.localMediaPickDirectory)),
-              OutlinedButton.icon(onPressed: _scanning || directory.isEmpty ? null : () => _rescan(directory), icon: const Icon(Icons.refresh), label: Text(l10n.localMediaRescan)),
+              FilledButton.icon(onPressed: _scanning ? null : _pickDirectory, icon: const Icon(Symbols.folder_open_rounded), label: Text(l10n.localMediaPickDirectory)),
+              OutlinedButton.icon(onPressed: _scanning || directory.isEmpty ? null : () => _rescan(directory), icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.localMediaRescan)),
             ]),
           ),
           if (_scanning) const Padding(padding: EdgeInsets.all(24), child: Center(child: M3EContainedLoadingIndicator())),
@@ -70,7 +71,7 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
             Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(l10n.localMediaEmpty)))
           else
             ...entries.map((entry) => ListTile(
-                  leading: const Icon(Icons.movie_outlined),
+                  leading: const Icon(Symbols.movie_rounded),
                   title: Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                   subtitle: Text(entry.path, maxLines: 1, overflow: TextOverflow.ellipsis),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => VideoPage(id: entry.id, localVideo: entry.toVideoDetail()))),

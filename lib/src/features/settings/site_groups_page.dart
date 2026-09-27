@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/site_group_store.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -81,7 +82,7 @@ class SiteGroupsPage extends ConsumerWidget {
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-          sliver: SliverToBoxAdapter(child: FilledButton.tonalIcon(onPressed: () => _addGroup(context, ref, groups), icon: const Icon(Icons.add), label: Text(l10n.siteGroupAdd))),
+          sliver: SliverToBoxAdapter(child: FilledButton.tonalIcon(onPressed: () => _addGroup(context, ref, groups), icon: const Icon(Symbols.add_rounded), label: Text(l10n.siteGroupAdd))),
         ),
       ]),
     );
@@ -94,12 +95,12 @@ class SiteGroupsPage extends ConsumerWidget {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
         dense: true,
-        leading: ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_indicator)),
+        leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded)),
         title: Text(siteGroupName(group, l10n), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(tooltip: l10n.siteGroupRename, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Icons.edit_outlined, size: 20)),
-          IconButton(tooltip: l10n.delete, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Icons.remove_circle_outline, size: 20)),
+          IconButton(tooltip: l10n.siteGroupRename, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20)),
+          IconButton(tooltip: l10n.delete, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20)),
         ]),
       ),
       if (group.hosts.isEmpty)
@@ -110,7 +111,7 @@ class SiteGroupsPage extends ConsumerWidget {
           contentPadding: const EdgeInsets.only(left: 56, right: 8),
           title: Text(siteHostLabel(host, l10n)),
           subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n)),
-          trailing: IconButton(tooltip: l10n.siteGroupMoveTo, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Icons.drive_file_move_outlined, size: 20)),
+          trailing: IconButton(tooltip: l10n.siteGroupMoveTo, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20)),
         ),
     ]);
   }

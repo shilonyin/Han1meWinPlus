@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/l10n/app_localizations.dart';
 import 'package:han1me_win_plus/src/core/play_window_title_target.dart';
 import 'package:han1me_win_plus/src/features/window/play_window_title_bar.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 Widget _host({VoidCallback? onHome}) => MaterialApp(
   locale: const Locale('zh'),
@@ -44,17 +45,17 @@ void main() {
   testWidgets('画出了「回到主界面」与上一集 / 下一集', (tester) async {
     await tester.pumpWidget(_host());
     expect(find.text('回到主界面'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    expect(find.byIcon(Symbols.chevron_left_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.chevron_right_rounded), findsOneWidget);
   });
 
   testWidgets('画出了置顶 / 画中画 / 三个窗口按钮', (tester) async {
     await tester.pumpWidget(_host());
-    expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.branding_watermark_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.remove), findsOneWidget); // 最小化
-    expect(find.byIcon(Icons.crop_square), findsOneWidget); // 最大化
-    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(find.byIcon(Symbols.push_pin_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.branding_watermark_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.remove_rounded), findsOneWidget); // 最小化
+    expect(find.byIcon(Symbols.crop_square_rounded), findsOneWidget); // 最大化
+    expect(find.byIcon(Symbols.close_rounded), findsOneWidget);
   });
 
   testWidgets('所有可点项的悬停高亮是同一个圆角矩形（用户报过形状不统一）', (tester) async {
@@ -112,14 +113,14 @@ void main() {
 
     final sizes = <String, Size>{};
     for (final entry in <String, IconData>{
-      '回到主界面': Icons.home_outlined,
-      '上一集': Icons.chevron_left,
-      '下一集': Icons.chevron_right,
-      '置顶': Icons.push_pin_outlined,
-      '画中画': Icons.branding_watermark_outlined,
-      '最小化': Icons.remove,
-      '最大化': Icons.crop_square,
-      '关闭': Icons.close,
+      '回到主界面': Symbols.home_rounded,
+      '上一集': Symbols.chevron_left_rounded,
+      '下一集': Symbols.chevron_right_rounded,
+      '置顶': Symbols.push_pin_rounded,
+      '画中画': Symbols.branding_watermark_rounded,
+      '最小化': Symbols.remove_rounded,
+      '最大化': Symbols.crop_square_rounded,
+      '关闭': Symbols.close_rounded,
     }.entries) {
       // 找到图标外层那个带圆角背景的 Container
       final container = find
@@ -182,7 +183,7 @@ void main() {
     final left = tester.widget<Semantics>(
       find
           .ancestor(
-            of: find.byIcon(Icons.chevron_left),
+            of: find.byIcon(Symbols.chevron_left_rounded),
             matching: find.byType(Semantics),
           )
           .first,
@@ -190,7 +191,7 @@ void main() {
     final right = tester.widget<Semantics>(
       find
           .ancestor(
-            of: find.byIcon(Icons.chevron_right),
+            of: find.byIcon(Symbols.chevron_right_rounded),
             matching: find.byType(Semantics),
           )
           .first,

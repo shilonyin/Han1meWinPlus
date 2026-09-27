@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
@@ -74,14 +75,14 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
         return Scaffold(
           appBar: AppBar(
             leading: _selecting
-                ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Icons.close))
+                ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded))
                 : ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false
-                    ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Icons.menu)))
+                    ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))
                     : null,
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : l10n.cache),
             actions: _selecting
                 ? _selectionActions(state, [...completed, ...active])
-                : [IconButton(tooltip: l10n.createGroup, onPressed: () => showGroupEditor(context, ref), icon: const Icon(Icons.create_new_folder_outlined))],
+                : [IconButton(tooltip: l10n.createGroup, onPressed: () => showGroupEditor(context, ref), icon: const Icon(Symbols.create_new_folder_rounded))],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(48),
               child: TabBar(
@@ -125,9 +126,9 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
   List<Widget> _selectionActions(DownloadState state, List<DownloadTask> visible) {
     final l10n = AppLocalizations.of(context)!;
     return [
-      IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(visible.map((task) => task.id))), icon: const Icon(Icons.select_all)),
-      IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Icons.play_arrow_outlined)),
-      IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Icons.delete_outline)),
+      IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(visible.map((task) => task.id))), icon: const Icon(Symbols.select_all_rounded)),
+      IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Symbols.play_arrow_rounded)),
+      IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Symbols.delete_rounded)),
     ];
   }
 
@@ -329,7 +330,7 @@ class _ActiveTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.download_done_outlined, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: .6)),
+            Icon(Symbols.download_done_rounded, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: .6)),
             const SizedBox(height: 12),
             Text(l10n.cacheEmptyActive, style: Theme.of(context).textTheme.bodyMedium),
           ],
@@ -377,10 +378,10 @@ class CacheTaskActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final controller = ref.read(downloadProvider.notifier);
     return switch (task.status) {
-      DownloadStatus.downloading || DownloadStatus.queued => IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Icons.pause_circle_outline)),
-      DownloadStatus.paused => IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Icons.play_circle_outline)),
-      DownloadStatus.failed => IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Icons.refresh)),
-      DownloadStatus.completed => IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Icons.play_arrow_outlined)),
+      DownloadStatus.downloading || DownloadStatus.queued => IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Symbols.pause_circle_rounded)),
+      DownloadStatus.paused => IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Symbols.play_circle_rounded)),
+      DownloadStatus.failed => IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Symbols.refresh_rounded)),
+      DownloadStatus.completed => IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Symbols.play_arrow_rounded)),
     };
   }
 }
@@ -403,19 +404,19 @@ class _CacheToolbar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
       child: Row(
         children: [
-          Icon(Icons.folder_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Icon(Symbols.folder_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Expanded(child: Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
           ...actions,
           _ToolbarMenu(
             tooltip: l10n.taskSort,
-            icon: Icons.sort,
+            icon: Symbols.sort_rounded,
             entries: [
               for (final value in DownloadGroupSort.values)
                 (label: _sortLabel(l10n, value), selected: value == sort, onTap: () => onSortChanged(value)),
             ],
           ),
-          IconButton(tooltip: l10n.groupSettings, visualDensity: VisualDensity.compact, onPressed: onManageGroups, icon: const Icon(Icons.tune, size: 20)),
+          IconButton(tooltip: l10n.groupSettings, visualDensity: VisualDensity.compact, onPressed: onManageGroups, icon: const Icon(Symbols.tune_rounded, size: 20)),
         ],
       ),
     );
@@ -447,7 +448,7 @@ class _ToolbarMenu extends StatelessWidget {
               onTap: entry.onTap,
               child: Row(
                 children: [
-                  SizedBox(width: 20, child: entry.selected ? Icon(Icons.check, size: 16, color: Theme.of(context).colorScheme.primary) : null),
+                  SizedBox(width: 20, child: entry.selected ? Icon(Symbols.check_rounded, size: 16, color: Theme.of(context).colorScheme.primary) : null),
                   const SizedBox(width: 8),
                   Text(entry.label),
                 ],
@@ -468,7 +469,7 @@ class _EmptyCache extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.video_library_outlined, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .6)),
+          Icon(Symbols.video_library_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .6)),
           const SizedBox(height: 14),
           Text(l10n.noCache, style: theme.textTheme.titleMedium),
           const SizedBox(height: 6),

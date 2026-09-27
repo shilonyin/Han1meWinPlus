@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/watch_repository.dart';
 import '../../data/local/webdav_sync_service.dart';
@@ -31,11 +32,11 @@ class _WebDavSettingsPageState extends ConsumerState<WebDavSettingsPage> {
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavSettings)), body: ListView(children: [SettingsCardList(title: l10n.webDav, children: [
-      SettingsCardItem(title: l10n.webDavSync, leading: const Icon(Icons.cloud_sync_outlined), trailing: Switch(value: settings.webDavEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(webDavEnabled: value, webDavHistorySync: value ? current.webDavHistorySync : false, webDavFavoriteSync: value ? current.webDavFavoriteSync : false)))),
-      SettingsCardItem(title: l10n.watchHistorySync, leading: const Icon(Icons.history_outlined), trailing: Switch(value: settings.webDavHistorySync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavHistorySync: value)) : null)),
-      SettingsCardItem(title: l10n.favoriteSync, leading: const Icon(Icons.favorite_outline), trailing: Switch(value: settings.webDavFavoriteSync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavFavoriteSync: value)) : null)),
-      SettingsCardItem(title: l10n.webDavConfiguration, leading: const Icon(Icons.settings_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _showConfiguration = true)),
-      SettingsCardItem(title: l10n.syncWatchHistoryNow, leading: const Icon(Icons.sync_outlined), onTap: () => _sync(context, ref, settings)),
+      SettingsCardItem(title: l10n.webDavSync, leading: const Icon(Symbols.cloud_sync_rounded), trailing: Switch(value: settings.webDavEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(webDavEnabled: value, webDavHistorySync: value ? current.webDavHistorySync : false, webDavFavoriteSync: value ? current.webDavFavoriteSync : false)))),
+      SettingsCardItem(title: l10n.watchHistorySync, leading: const Icon(Symbols.history_rounded), trailing: Switch(value: settings.webDavHistorySync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavHistorySync: value)) : null)),
+      SettingsCardItem(title: l10n.favoriteSync, leading: const Icon(Symbols.favorite_rounded), trailing: Switch(value: settings.webDavFavoriteSync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavFavoriteSync: value)) : null)),
+      SettingsCardItem(title: l10n.webDavConfiguration, leading: const Icon(Symbols.settings_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _showConfiguration = true)),
+      SettingsCardItem(title: l10n.syncWatchHistoryNow, leading: const Icon(Symbols.sync_rounded), onTap: () => _sync(context, ref, settings)),
     ])]));
   }
 

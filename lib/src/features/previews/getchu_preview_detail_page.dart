@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,7 +28,7 @@ class GetchuPreviewDetailPage extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.getchuPreviewDetail)),
       body: result.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => Center(child: OutlinedButton.icon(onPressed: () => ref.invalidate(getchuPreviewDetailProvider(id)), icon: const Icon(Icons.refresh), label: Text(l10n.reload))),
+        error: (error, _) => Center(child: OutlinedButton.icon(onPressed: () => ref.invalidate(getchuPreviewDetailProvider(id)), icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload))),
         data: (detail) => _DetailContent(detail: detail),
       ),
     );
@@ -97,8 +98,8 @@ class _ProductSummary extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     if (detail.trailers.isNotEmpty)
-                      FilledButton.icon(onPressed: () => _play(context, 0), icon: const Icon(Icons.play_arrow), label: Text(l10n.playTrailer)),
-                    OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse(detail.productUrl), mode: LaunchMode.externalApplication), icon: const Icon(Icons.open_in_new), label: Text(l10n.openGetchu)),
+                      FilledButton.icon(onPressed: () => _play(context, 0), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playTrailer)),
+                    OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse(detail.productUrl), mode: LaunchMode.externalApplication), icon: const Icon(Symbols.open_in_new_rounded), label: Text(l10n.openGetchu)),
                   ],
                 ),
                 if (detail.trailers.length > 1) ...[
@@ -107,7 +108,7 @@ class _ProductSummary extends StatelessWidget {
                     spacing: 8,
                     children: [
                       for (var index = 1; index < detail.trailers.length; index++)
-                        TextButton.icon(onPressed: () => _play(context, index), icon: const Icon(Icons.play_circle_outline), label: Text(l10n.trailerNumber(index + 1))),
+                        TextButton.icon(onPressed: () => _play(context, index), icon: const Icon(Symbols.play_circle_rounded), label: Text(l10n.trailerNumber(index + 1))),
                     ],
                   ),
                 ],
@@ -249,7 +250,7 @@ class _SeriesCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: item.coverUrl == null
-                      ? const ColoredBox(color: Colors.black12, child: Icon(Icons.image_not_supported_outlined))
+                      ? const ColoredBox(color: Colors.black12, child: Icon(Symbols.image_not_supported_rounded))
                       : CachedNetworkImage(imageUrl: item.coverUrl!, cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
                 ),
                 Padding(
@@ -300,7 +301,7 @@ class _ImageViewerState extends State<_ImageViewer> {
               onPageChanged: (value) => setState(() => _index = value),
               itemBuilder: (context, index) => InteractiveViewer(child: Center(child: CachedNetworkImage(imageUrl: widget.images[index], cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, fit: BoxFit.contain, fadeInDuration: Duration.zero))),
             ),
-            SafeArea(child: IconButton(onPressed: () => Navigator.pop(context), color: Colors.white, icon: const Icon(Icons.close))),
+            SafeArea(child: IconButton(onPressed: () => Navigator.pop(context), color: Colors.white, icon: const Icon(Symbols.close_rounded))),
             Positioned(left: 0, right: 0, bottom: 24, child: Text('${_index + 1} / ${widget.images.length}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
           ],
         ),

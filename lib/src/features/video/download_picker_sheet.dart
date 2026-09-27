@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import '../../domain/series_name.dart';
@@ -245,7 +246,7 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
                   child: ExpansionTile(
                     tilePadding: const EdgeInsets.symmetric(horizontal: 24),
                     childrenPadding: const EdgeInsets.only(bottom: 8),
-                    leading: const Icon(Icons.create_new_folder_outlined),
+                    leading: const Icon(Symbols.create_new_folder_rounded),
                     title: Text(l10n.downloadGroupSection),
                     subtitle: Text(
                       _autoGroup ? (existing ? l10n.willUseExistingGroup(name) : l10n.willCreateNewGroup(name)) : l10n.noGrouping,
@@ -404,7 +405,7 @@ class _QualityDropdown extends StatelessWidget {
               isExpanded: true,
               borderRadius: BorderRadius.circular(12),
               padding: const EdgeInsets.symmetric(vertical: 10),
-              icon: const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.arrow_drop_down, size: 22)),
+              icon: const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Symbols.arrow_drop_down_rounded, size: 22)),
               dropdownColor: theme.colorScheme.surfaceContainerHigh,
               style: theme.textTheme.bodyMedium,
               items: [
@@ -436,7 +437,7 @@ class _DialogHeader extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: IconButton(tooltip: AppLocalizations.of(context)!.cancel, onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                child: IconButton(tooltip: AppLocalizations.of(context)!.cancel, onPressed: () => Navigator.pop(context), icon: const Icon(Symbols.close_rounded)),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/download.dart';
 import '../shared/app_image_cache.dart';
@@ -66,8 +67,8 @@ class CacheVideoCard extends StatelessWidget {
                   if (cover != null)
                     Image(image: cover, fit: BoxFit.cover)
                   else
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Icons.movie_outlined, size: 32, color: theme.colorScheme.onSurfaceVariant)),
-                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Icons.save_alt_outlined, text: formatBytes(bytes))),
+                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 32, color: theme.colorScheme.onSurfaceVariant)),
+                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
                   if (duration != null && duration.isNotEmpty) Positioned(right: 6, bottom: 6, child: CacheCoverBadge(text: duration)),
                 ],
               ),
@@ -157,17 +158,17 @@ class CacheEpisodeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: cover != null
                         ? Image(image: cover, fit: BoxFit.cover)
-                        : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Icons.movie_outlined, size: 28, color: theme.colorScheme.onSurfaceVariant)),
+                        : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 28, color: theme.colorScheme.onSurfaceVariant)),
                   ),
                   // 下载中/暂停的在封面底部画一条进度，未完成的也一眼能看出状态。
                   if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.paused)
                     Align(alignment: Alignment.bottomCenter, child: LinearProgressIndicator(value: task.progress <= 0 ? null : task.progress, minHeight: 3)),
-                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Icons.save_alt_outlined, text: formatBytes(bytes))),
+                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
                   if (duration != null && duration.isNotEmpty) Positioned(right: 6, bottom: 6, child: CacheCoverBadge(text: duration)),
                   // 未下完的状态角标（排队/暂停/失败）放左上角，别和体积撞在一起。
                   if (task.status != DownloadStatus.completed)
                     Positioned(left: 6, top: 6, child: CacheCoverBadge(text: taskStatusLabel(l10n, task.status))),
-                  if (selecting) Positioned(right: 6, top: 6, child: Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: Colors.white)),
+                  if (selecting) Positioned(right: 6, top: 6, child: Icon(selected ? Symbols.check_circle_rounded : Symbols.radio_button_unchecked_rounded, fill: selected ? 1 : 0, size: 20, color: Colors.white)),
                 ],
               ),
             ),
@@ -192,7 +193,7 @@ class CacheEpisodeCard extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     iconSize: 18,
                     onPressed: onMenu,
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(Symbols.more_vert_rounded),
                   ),
                 ),
               ],
@@ -251,16 +252,16 @@ class CacheFolderCard extends StatelessWidget {
                         if (cover != null)
                           Image(image: cover, fit: BoxFit.cover)
                         else
-                          ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Icons.folder_outlined, size: 36, color: theme.colorScheme.onSurfaceVariant)),
+                          ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.folder_rounded, size: 36, color: theme.colorScheme.onSurfaceVariant)),
                         if (progress != null)
                           Align(alignment: Alignment.bottomCenter, child: LinearProgressIndicator(value: progress <= 0 ? null : progress, minHeight: 3)),
                         Positioned(
                           right: 6,
                           bottom: 8,
-                          child: CacheCoverBadge(icon: Icons.folder_outlined, text: l10n.folderContents(tasks.length)),
+                          child: CacheCoverBadge(icon: Symbols.folder_rounded, text: l10n.folderContents(tasks.length)),
                         ),
                         if (bytes > 0)
-                          Positioned(left: 6, bottom: 8, child: CacheCoverBadge(icon: Icons.save_alt_outlined, text: formatBytes(bytes))),
+                          Positioned(left: 6, bottom: 8, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
                       ],
                     ),
                   ),
@@ -348,7 +349,7 @@ class CacheTaskRow extends StatelessWidget {
                   height: 54,
                   child: cover != null
                       ? Image(image: cover, fit: BoxFit.cover)
-                      : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Icons.movie_outlined, size: 20, color: theme.colorScheme.onSurfaceVariant)),
+                      : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant)),
                 ),
               ),
               const SizedBox(width: 12),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
@@ -28,9 +29,9 @@ class _CommentSettingsPageState extends ConsumerState<CommentSettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(appBar: AppBar(title: Text(l10n.commentSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.comments, children: [
-         SettingsCardItem(title: l10n.enableComments, leading: const Icon(Icons.forum_outlined), trailing: Switch(value: settings.commentsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(commentsEnabled: value)))),
-          SettingsCardItem(title: l10n.commentKeywordFilter, subtitle: l10n.commentKeywordFilterDescription, leading: const Icon(Icons.block_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'keywords')),
-          SettingsCardItem(title: l10n.commentUserFilter, subtitle: l10n.commentUserFilterDescription, leading: const Icon(Icons.person_off_outlined), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _subPage = 'users')),
+         SettingsCardItem(title: l10n.enableComments, leading: const Icon(Symbols.forum_rounded), trailing: Switch(value: settings.commentsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(commentsEnabled: value)))),
+          SettingsCardItem(title: l10n.commentKeywordFilter, subtitle: l10n.commentKeywordFilterDescription, leading: const Icon(Symbols.block_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'keywords')),
+          SettingsCardItem(title: l10n.commentUserFilter, subtitle: l10n.commentUserFilterDescription, leading: const Icon(Symbols.person_off_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'users')),
        ]),
     ]));
   }

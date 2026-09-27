@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_notifications.dart';
 import '../../core/global_hotkeys.dart';
@@ -38,20 +39,20 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
             SettingsCardItem(
               title: l10n.themeMode,
               subtitle: _themeModeLabel(l10n, settings.themeMode),
-              leading: const Icon(Icons.brightness_auto_outlined),
-              trailing: const Icon(Icons.chevron_right),
+              leading: const Icon(Symbols.brightness_auto_rounded),
+              trailing: const Icon(Symbols.chevron_right_rounded),
               onTap: () => _pickThemeMode(context, controller, settings),
             ),
             SettingsCardItem(
               title: l10n.colorScheme,
               subtitle: settings.useMonetColors ? l10n.dynamicColor : themeColorLabel(l10n, settings.themeColor),
-              leading: const Icon(Icons.palette_outlined),
-              trailing: const Icon(Icons.chevron_right),
+              leading: const Icon(Symbols.palette_rounded),
+              trailing: const Icon(Symbols.chevron_right_rounded),
               onTap: () => showThemeSchemeDialog(context),
             ),
             SettingsCardItem(
               title: l10n.dynamicColor,
-              leading: const Icon(Icons.colorize_outlined),
+              leading: const Icon(Symbols.colorize_rounded),
               trailing: Switch(
                 value: settings.useMonetColors,
                 onChanged: (value) => controller.saveChanges((current) => current.copyWith(useMonetColors: value)),
@@ -60,7 +61,7 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
             SettingsCardItem(
               title: l10n.useSystemFont,
               subtitle: l10n.useSystemFontDescription,
-              leading: const Icon(Icons.text_fields_outlined),
+              leading: const Icon(Symbols.text_fields_rounded),
               trailing: Switch(
                 value: settings.useSystemFont,
                 onChanged: (value) => controller.saveChanges((current) => current.copyWith(useSystemFont: value)),
@@ -71,7 +72,7 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
               SettingsCardItem(
                 title: l10n.amoledMode,
                 subtitle: l10n.amoledModeDescription,
-                leading: const Icon(Icons.contrast_outlined),
+                leading: const Icon(Symbols.contrast_rounded),
                 trailing: Switch(value: settings.amoledMode, onChanged: (value) => controller.saveChanges((current) => current.copyWith(amoledMode: value))),
               ),
               SettingsSliderItem(
@@ -89,36 +90,36 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
               SettingsCardItem(
                 title: l10n.useSystemTitleBar,
                 subtitle: l10n.useSystemTitleBarDescription,
-                leading: const Icon(Icons.web_asset_outlined),
+                leading: const Icon(Symbols.web_asset_rounded),
                 trailing: Switch(value: settings.useSystemTitleBar, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useSystemTitleBar: value))),
               ),
               if (SystemTray.isSupported)
                 SettingsCardItem(
                   title: l10n.minimizeToTray,
                   subtitle: l10n.minimizeToTrayDescription,
-                  leading: const Icon(Icons.call_to_action_outlined),
+                  leading: const Icon(Symbols.call_to_action_rounded),
                   trailing: Switch(value: settings.minimizeToTray, onChanged: (value) => controller.saveChanges((current) => current.copyWith(minimizeToTray: value))),
                 ),
               if (GlobalHotkeys.isSupported)
                 SettingsCardItem(
                   title: l10n.globalHotkeys,
                   subtitle: l10n.globalHotkeysDescription,
-                  leading: const Icon(Icons.keyboard_outlined),
+                  leading: const Icon(Symbols.keyboard_rounded),
                   trailing: Switch(value: settings.globalHotkeysEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(globalHotkeysEnabled: value))),
                 ),
               if (AppNotifications.isSupported)
                 SettingsCardItem(
                   title: l10n.notifications,
                   subtitle: l10n.notificationsDescription,
-                  leading: const Icon(Icons.notifications_outlined),
+                  leading: const Icon(Symbols.notifications_rounded),
                   trailing: Switch(value: settings.notificationsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(notificationsEnabled: value))),
                 ),
               if (WindowBackdropEffect.isSupported)
                 SettingsCardItem(
                   title: l10n.windowBackdrop,
                   subtitle: _backdropLabel(l10n, settings.windowBackdrop),
-                  leading: const Icon(Icons.blur_on_outlined),
-                  trailing: const Icon(Icons.chevron_right),
+                  leading: const Icon(Symbols.blur_on_rounded),
+                  trailing: const Icon(Symbols.chevron_right_rounded),
                   onTap: () => _pickWindowBackdrop(context, controller, settings),
                 ),
             ]),

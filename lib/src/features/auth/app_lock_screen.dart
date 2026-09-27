@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import 'app_lock_controller.dart';
 
@@ -68,7 +69,7 @@ class AppLockScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, shape: BoxShape.circle),
-                child: Icon(Icons.lock_outline, size: 40, color: theme.colorScheme.primary),
+                child: Icon(Symbols.lock_rounded, size: 40, color: theme.colorScheme.primary),
               ),
               const SizedBox(height: 24),
               Text(l10n.appLocked, style: theme.textTheme.titleLarge),
@@ -79,7 +80,7 @@ class AppLockScreen extends ConsumerWidget {
                 onPressed: busy ? null : () => ref.read(appLockProvider.notifier).retry(),
                 icon: busy
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.fingerprint),
+                    : const Icon(Symbols.fingerprint_rounded),
                 label: Text(busy ? l10n.unlocking : l10n.unlock),
               ),
             ],

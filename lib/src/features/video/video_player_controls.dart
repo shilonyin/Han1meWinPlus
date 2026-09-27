@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
@@ -68,8 +69,8 @@ class VideoPlayerControls extends StatelessWidget {
                     // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
                     final roomy = constraints.maxWidth >= 620;
                     return Row(children: [
-                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow)),
-                      if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Icons.skip_next)),
+                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded)),
+                      if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded)),
                       // 快进按钮：从顶部条移到左下角控制行
                       VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),
                       VideoPlayerVolumeButton(controller: controller, onInteraction: onInteraction),
@@ -87,8 +88,8 @@ class VideoPlayerControls extends StatelessWidget {
                         AndroidCastButton(sources: video.sources, quality: quality),
                       ] else
                         VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
-                      IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Icons.fullscreen_exit : Icons.fullscreen)),
-                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Icons.picture_in_picture_alt)),
+                      IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded)),
+                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded)),
                     ]);
                   }),
                 ),
@@ -216,7 +217,7 @@ class VideoPlayerVolumeButton extends StatelessWidget {
             tooltip: AppLocalizations.of(context)!.volume,
             // 用 position 直接指定弹层位置：面板顶边 = 按钮顶边 - (面板高度 + 进度条高度 + 间距)，也就是让它停在进度条上方
             onPressed: () => menu.isOpen ? menu.close() : menu.open(position: const Offset((40 - _volumePanelWidth) / 2, -(_volumePanelHeight + _progressBarHeight + _volumePanelGap))),
-            icon: Icon(value.volume <= 0 ? Icons.volume_off : (value.volume < .5 ? Icons.volume_down : Icons.volume_up)),
+            icon: Icon(value.volume <= 0 ? Symbols.volume_off_rounded : (value.volume < .5 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded)),
           ),
         ),
       );
@@ -231,7 +232,7 @@ class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButto
     final seconds = ref.watch(settingsProvider).valueOrNull?.skipSeconds ?? 80;
     return GestureDetector(
       onLongPress: () => _configure(context, ref, seconds),
-      child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.seconds(seconds), visualDensity: VisualDensity.compact, onPressed: () { final value = controller.value; final target = (value.position.inSeconds + seconds).clamp(0, value.duration.inSeconds); controller.seekTo(Duration(seconds: target)); onInteraction(); }, icon: const Icon(Icons.forward_10)),
+      child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.seconds(seconds), visualDensity: VisualDensity.compact, onPressed: () { final value = controller.value; final target = (value.position.inSeconds + seconds).clamp(0, value.duration.inSeconds); controller.seekTo(Duration(seconds: target)); onInteraction(); }, icon: const Icon(Symbols.forward_10_rounded)),
     );
   }
 
@@ -277,8 +278,8 @@ class _AspectMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final aspect = ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ?? VideoAspectRatio.auto;
     return MenuAnchor(
-      builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.videoAspectRatio, onPressed: controller.open, icon: const Icon(Icons.aspect_ratio)),
-      menuChildren: VideoAspectRatio.values.map((item) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: item)), leadingIcon: item == aspect ? const Icon(Icons.check, size: 18) : null, child: Text(_aspectLabel(AppLocalizations.of(context)!, item)))).toList(),
+      builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.videoAspectRatio, onPressed: controller.open, icon: const Icon(Symbols.aspect_ratio_rounded)),
+      menuChildren: VideoAspectRatio.values.map((item) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: item)), leadingIcon: item == aspect ? const Icon(Symbols.check_rounded, size: 18) : null, child: Text(_aspectLabel(AppLocalizations.of(context)!, item)))).toList(),
     );
   }
 }
@@ -290,8 +291,8 @@ class _EpisodeMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.episodeList, onPressed: controller.open, icon: const Icon(Icons.view_list_outlined)),
-        menuChildren: video.playlist.map((episode) => MenuItemButton(onPressed: episode.id == video.id ? null : () => onSelected(episode), leadingIcon: episode.id == video.id ? const Icon(Icons.play_arrow) : null, child: SizedBox(width: 280, child: Text(episode.title, maxLines: 1, overflow: TextOverflow.ellipsis)))).toList(),
+        builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.episodeList, onPressed: controller.open, icon: const Icon(Symbols.view_list_rounded)),
+        menuChildren: video.playlist.map((episode) => MenuItemButton(onPressed: episode.id == video.id ? null : () => onSelected(episode), leadingIcon: episode.id == video.id ? const Icon(Symbols.play_arrow_rounded) : null, child: SizedBox(width: 280, child: Text(episode.title, maxLines: 1, overflow: TextOverflow.ellipsis)))).toList(),
       );
 }
 
@@ -305,13 +306,13 @@ class VideoPlayerPortraitMoreMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MenuAnchor(
-        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Icons.more_vert)),
+        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded)),
         menuChildren: [
           SubmenuButton(menuChildren: VideoAspectRatio.values.map((aspect) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: aspect)), child: Text(_aspectLabel(AppLocalizations.of(context)!, aspect)))).toList(), child: Text(AppLocalizations.of(context)!.videoAspectRatio)),
           SubmenuButton(menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) => MenuItemButton(onPressed: () => controller.setPlaybackSpeed(speed), child: Text('${speed}x'))).toList(), child: Text(AppLocalizations.of(context)!.playbackSpeed)),
           SubmenuButton(menuChildren: SuperResolutionMode.values.map((mode) => MenuItemButton(onPressed: () => onSuperResolutionSelected(mode), child: Text(_superResolutionLabel(AppLocalizations.of(context)!, mode)))).toList(), child: Text(AppLocalizations.of(context)!.superResolution)),
           if (video.sources.isNotEmpty) SubmenuButton(menuChildren: video.sources.map((source) => MenuItemButton(onPressed: () => onQualitySelected(source), child: Text(source.quality))).toList(), child: Text(AppLocalizations.of(context)!.quality)),
-          if (video.sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(video.sources, quality.value), leadingIcon: const Icon(Icons.open_in_new), child: Text(AppLocalizations.of(context)!.externalPlayback)),
+          if (video.sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(video.sources, quality.value), leadingIcon: const Icon(Symbols.open_in_new_rounded), child: Text(AppLocalizations.of(context)!.externalPlayback)),
         ],
       );
 
@@ -328,9 +329,9 @@ class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Icons.more_vert)),
+        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded)),
         menuChildren: [
-          if (sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(), leadingIcon: const Icon(Icons.open_in_new), child: Text(AppLocalizations.of(context)!.externalPlayback)),
+          if (sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(), leadingIcon: const Icon(Symbols.open_in_new_rounded), child: Text(AppLocalizations.of(context)!.externalPlayback)),
         ],
       );
 
@@ -358,13 +359,13 @@ class _Anime4KMenu extends ConsumerWidget {
         color: Colors.white,
         tooltip: l10n.superResolution,
         onPressed: menu.open,
-        icon: Icon(mode == SuperResolutionMode.off ? Icons.auto_awesome_outlined : Icons.auto_awesome),
+        icon: Icon(mode == SuperResolutionMode.off ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded),
       ),
       menuChildren: SuperResolutionMode.values.map((option) {
         final selected = option == mode;
         return MenuItemButton(
           onPressed: () => onSelected(option),
-          leadingIcon: selected ? const Icon(Icons.check, size: 18) : null,
+          leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
           child: Text(
             _superResolutionLabel(l10n, option),
             style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null,
@@ -391,12 +392,12 @@ class _QualityMenu extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<String?>(
         valueListenable: quality,
         builder: (context, current, _) => MenuAnchor(
-          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.quality, onPressed: menu.open, icon: const Icon(Icons.high_quality_outlined)),
+          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.quality, onPressed: menu.open, icon: const Icon(Symbols.high_quality_rounded)),
           menuChildren: sources.map((source) {
             final selected = source.quality == current;
             return MenuItemButton(
               onPressed: () => onSelected(source),
-              leadingIcon: selected ? const Icon(Icons.check, size: 18) : null,
+              leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
               child: Text(source.quality, style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null),
             );
           }).toList(),
@@ -412,12 +413,12 @@ class _SpeedMenu extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
         valueListenable: controller,
         builder: (context, value, _) => MenuAnchor(
-          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.playbackSpeed, onPressed: menu.open, icon: const Icon(Icons.speed)),
+          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.playbackSpeed, onPressed: menu.open, icon: const Icon(Symbols.speed_rounded)),
           menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) {
             final selected = value.playbackSpeed == speed;
             return MenuItemButton(
               onPressed: () { controller.setPlaybackSpeed(speed); onInteraction(); },
-              leadingIcon: selected ? const Icon(Icons.check, size: 18) : null,
+              leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
               child: Text('${speed}x', style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null),
             );
           }).toList(),
@@ -438,7 +439,7 @@ class VideoKeyframeDrawer extends ConsumerWidget {
       const Divider(height: 1),
       Expanded(child: keyframes.isEmpty ? Center(child: Text(AppLocalizations.of(context)!.noKeyframes)) : ListView.separated(itemCount: keyframes.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (context, index) {
         final position = keyframes[index];
-        return ListTile(title: Text(_formatKeyframe(position)), subtitle: Text('$position ms'), onTap: () { controller.value?.seekTo(Duration(milliseconds: position)); Navigator.of(context).pop(); }, trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => ref.read(keyframesProvider(video.id).notifier).remove(position)));
+        return ListTile(title: Text(_formatKeyframe(position)), subtitle: Text('$position ms'), onTap: () { controller.value?.seekTo(Duration(milliseconds: position)); Navigator.of(context).pop(); }, trailing: IconButton(icon: const Icon(Symbols.delete_rounded), onPressed: () => ref.read(keyframesProvider(video.id).notifier).remove(position)));
       })),
     ])));
   }

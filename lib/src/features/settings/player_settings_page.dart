@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
@@ -27,14 +28,14 @@ class PlayerSettingsPage extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           SettingsCardList(children: [
-            SettingsCardItem(title: l10n.hardwareDecode, subtitle: l10n.hardwareDecodeDescription, leading: const Icon(Icons.settings_input_hdmi_outlined), trailing: Switch(value: settings.hardwareAcceleration, onChanged: libmpv ? (value) => controller.saveChanges((current) => current.copyWith(hardwareAcceleration: value)) : null)),
-            _OptionTile(icon: Icons.memory_outlined, title: l10n.hardwareDecoder, description: l10n.hardwareDecoderDescription, value: settings.hardwareDecoder, enabled: libmpv && settings.hardwareAcceleration, onTap: libmpv && settings.hardwareAcceleration ? () => _pickHardwareDecoder(context, ref, settings) : null),
-            _OptionTile(icon: Icons.developer_board_outlined, title: l10n.decoder, value: _engineLabel(l10n, settings.playerEngine), enabled: true, onTap: () => _pickEngine(context, ref, settings)),
-            _OptionTile(icon: Icons.video_settings_outlined, title: l10n.videoRenderer, value: _rendererLabel(l10n, settings.videoRenderer), enabled: libmpv, onTap: libmpv ? () => _pickRenderer(context, ref, settings) : null),
-            _ViewMenuTile(icon: Icons.layers_outlined, title: l10n.viewSettings, value: settings.videoView, enabled: libmpv, label: (value) => _viewLabel(l10n, value), onSelected: (value) => controller.saveChanges((current) => current.copyWith(videoView: value))),
-            _OptionTile(icon: Icons.graphic_eq_outlined, title: l10n.gpuApi, description: l10n.gpuApiDescription, value: _gpuApiLabel(l10n, settings.gpuApi), enabled: libmpv, onTap: libmpv ? () => _pickGpuApi(context, ref, settings) : null),
-            _OptionTile(icon: Icons.tune_outlined, title: l10n.customParameters, value: settings.customParameters.isEmpty ? l10n.none : '${settings.customParameters.length}', enabled: libmpv, onTap: libmpv ? () => _editCustomParameters(context, ref, settings) : null),
-            _OptionTile(icon: Icons.auto_awesome_outlined, title: l10n.superResolution, value: _superResolutionLabel(l10n, settings.superResolutionMode), enabled: libmpv, onTap: libmpv ? () => _pickSuperResolution(context, ref, settings) : null),
+            SettingsCardItem(title: l10n.hardwareDecode, subtitle: l10n.hardwareDecodeDescription, leading: const Icon(Symbols.settings_input_hdmi_rounded), trailing: Switch(value: settings.hardwareAcceleration, onChanged: libmpv ? (value) => controller.saveChanges((current) => current.copyWith(hardwareAcceleration: value)) : null)),
+            _OptionTile(icon: Symbols.memory_rounded, title: l10n.hardwareDecoder, description: l10n.hardwareDecoderDescription, value: settings.hardwareDecoder, enabled: libmpv && settings.hardwareAcceleration, onTap: libmpv && settings.hardwareAcceleration ? () => _pickHardwareDecoder(context, ref, settings) : null),
+            _OptionTile(icon: Symbols.developer_board_rounded, title: l10n.decoder, value: _engineLabel(l10n, settings.playerEngine), enabled: true, onTap: () => _pickEngine(context, ref, settings)),
+            _OptionTile(icon: Symbols.video_settings_rounded, title: l10n.videoRenderer, value: _rendererLabel(l10n, settings.videoRenderer), enabled: libmpv, onTap: libmpv ? () => _pickRenderer(context, ref, settings) : null),
+            _ViewMenuTile(icon: Symbols.layers_rounded, title: l10n.viewSettings, value: settings.videoView, enabled: libmpv, label: (value) => _viewLabel(l10n, value), onSelected: (value) => controller.saveChanges((current) => current.copyWith(videoView: value))),
+            _OptionTile(icon: Symbols.graphic_eq_rounded, title: l10n.gpuApi, description: l10n.gpuApiDescription, value: _gpuApiLabel(l10n, settings.gpuApi), enabled: libmpv, onTap: libmpv ? () => _pickGpuApi(context, ref, settings) : null),
+            _OptionTile(icon: Symbols.tune_rounded, title: l10n.customParameters, value: settings.customParameters.isEmpty ? l10n.none : '${settings.customParameters.length}', enabled: libmpv, onTap: libmpv ? () => _editCustomParameters(context, ref, settings) : null),
+            _OptionTile(icon: Symbols.auto_awesome_rounded, title: l10n.superResolution, value: _superResolutionLabel(l10n, settings.superResolutionMode), enabled: libmpv, onTap: libmpv ? () => _pickSuperResolution(context, ref, settings) : null),
           ]),
         ],
       ),
@@ -206,7 +207,7 @@ class _CustomParametersDialogState extends State<_CustomParametersDialog> {
 
 class _OptionTile extends SettingsCardItem {
   _OptionTile({required IconData icon, required String title, required String value, required bool enabled, required VoidCallback? onTap, String? description, Widget? trailing})
-      : super(title: title, subtitle: description == null ? value : '$description · $value', leading: Icon(icon), trailing: trailing ?? const Icon(Icons.chevron_right), onTap: onTap, enabled: enabled);
+      : super(title: title, subtitle: description == null ? value : '$description · $value', leading: Icon(icon), trailing: trailing ?? const Icon(Symbols.chevron_right_rounded), onTap: onTap, enabled: enabled);
 }
 
 class _ViewMenuTile extends SettingsMenuItem<VideoView> {

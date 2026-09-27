@@ -1,3 +1,4 @@
+import 'package:material_symbols_icons/symbols.dart';
 import 'settings_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +36,7 @@ Future<void> showSitePicker(BuildContext context, WidgetRef ref, AppSettings set
     // 直接放在这份列表下面，而不是另开一张设置卡片 —— 否则用户得在两个入口之间猜。
     footer: onManageGroups == null ? null : Builder(builder: (dialogContext) => Align(alignment: Alignment.centerLeft, child: TextButton.icon(
       onPressed: () { Navigator.pop(dialogContext); onManageGroups(); },
-      icon: const Icon(Icons.tune, size: 18),
+      icon: const Icon(Symbols.tune_rounded, size: 18),
       label: Text(l10n.siteGroups),
     ))),
   );
