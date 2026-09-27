@@ -31,6 +31,24 @@ const double playWindowTitleBarHeight = 48;
 /// 用浅色主题的 surface 会在纯黑画面之上割出一块亮条。
 const Color _barColor = Color(0xFF1E2022);
 
+// ---------- 标题栏里所有可点项共用的一套视觉参数 ----------
+//
+// 之前四处各写各的：「回到主界面」是 8px 圆角胶囊、上一集/下一集直接用了
+// IconButton（Material 默认是**圆形**水波）、置顶/画中画是**直角**满高方块、
+// 最小化/最大化/关闭也是直角方块。鼠标在栏上扫过去，高亮形状一直在变
+// （圆角→圆形→直角），看着就不是一套东西。
+//
+// 现在统一成**同一个圆角矩形**：圆角、悬停底色、尺寸都从这里取，改一处即可。
+const double _barButtonRadius = 8;
+const Color _barHoverColor = Color(0xFF2E3134);
+const Color _barActiveColor = Color(0xFF4FC3F7);
+const Color _barDangerColor = Color(0xFFC42B1C);
+const Color _barIconColor = Color(0xFFE6E6E9);
+const Color _barDisabledColor = Color(0xFF5A5E63);
+
+/// 标题栏里图标按钮的统一高度；上下各留 6px，让圆角高亮不贴满整条栏。
+const double _barButtonHeight = playWindowTitleBarHeight - 12;
+
 class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
   var _maximized = false;
   var _pinned = false;
@@ -109,22 +127,33 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
           child: Row(
             children: [
               const SizedBox(width: 8),
-              _HomeButton(label: l10n.backToMainWindow, onPressed: widget.onHome),
-              const SizedBox(width: 4),
+              _BarButton(
+                label: l10n.backToMainWindow,
+                text: l10n.backToMainWindow,
+                icon: Icons.home_outlined,
+                onPressed: widget.onHome,
+              ),
+              const SizedBox(width: 2),
               // 上一集 / 下一集：能不能点由播放页登记的可用性决定。
               ValueListenableBuilder<bool>(
                 valueListenable: PlayWindowTitleTarget.hasPrevious,
-                builder: (context, enabled, _) => _NavArrow(
-                  icon: Icons.chevron_left,
+                builder: (context, enabled, _) => _BarButton(
                   label: l10n.hotkeyActionPreviousEpisode,
-                  onPressed: enabled ? PlayWindowTitleTarget.previousEpisode : null,
+                  icon: Icons.chevron_left,
+                  iconSize: 22,
+                  width: 36,
+                  onPressed: enabled
+                      ? PlayWindowTitleTarget.previousEpisode
+                      : null,
                 ),
               ),
               ValueListenableBuilder<bool>(
                 valueListenable: PlayWindowTitleTarget.hasNext,
-                builder: (context, enabled, _) => _NavArrow(
-                  icon: Icons.chevron_right,
+                builder: (context, enabled, _) => _BarButton(
                   label: l10n.hotkeyActionNextEpisode,
+                  icon: Icons.chevron_right,
+                  iconSize: 22,
+                  width: 36,
                   onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
                 ),
               ),
@@ -146,35 +175,43 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
                   ),
                 ),
               ),
-              _IconAction(
-                icon: _pinned ? Icons.push_pin : Icons.push_pin_outlined,
+              _BarButton(
                 label: _pinned ? l10n.unpinWindow : l10n.pinWindow,
+                icon: _pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                width: 36,
                 active: _pinned,
                 onPressed: _togglePin,
               ),
-              _IconAction(
+              _BarButton(
+                label: l10n.pictureInPicture,
                 icon: inPip
                     ? Icons.branding_watermark
                     : Icons.branding_watermark_outlined,
-                label: l10n.pictureInPicture,
+                width: 36,
                 active: inPip,
                 onPressed: _togglePictureInPicture,
               ),
               const _BarDivider(),
-              _WindowButton(
+              // 窗口按钮与应用内标题栏保持同一套尺寸（46 宽、圆角高亮）。
+              _BarButton(
                 label: l10n.minimizeWindow,
                 icon: Icons.remove,
+                iconSize: 16,
+                width: 46,
                 onPressed: WindowChrome.minimize,
               ),
-              _WindowButton(
+              _BarButton(
                 label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
                 icon: _maximized ? Icons.filter_none : Icons.crop_square,
                 iconSize: _maximized ? 14 : 13,
+                width: 46,
                 onPressed: () => _toggleMaximize(),
               ),
-              _WindowButton(
+              _BarButton(
                 label: l10n.close,
                 icon: Icons.close,
+                iconSize: 16,
+                width: 46,
                 danger: true,
                 onPressed: WindowChrome.close,
               ),
@@ -192,122 +229,116 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
   }
 }
 
-/// 「回到主界面」：图标 + 文字的胶囊按钮。
-class _HomeButton extends StatefulWidget {
-  const _HomeButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  State<_HomeButton> createState() => _HomeButtonState();
-}
-
-class _HomeButtonState extends State<_HomeButton> {
-  var _hovered = false;
-
-  @override
-  Widget build(BuildContext context) => MouseRegion(
-    cursor: SystemMouseCursors.click,
-    onEnter: (_) => setState(() => _hovered = true),
-    onExit: (_) => setState(() => _hovered = false),
-    child: GestureDetector(
-      // opaque：整个胶囊（含内边距）都可点，而不是只有文字那几像素。
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: _hovered ? const Color(0xFF2E3134) : const Color(0xFF25282B),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.home_outlined, size: 17, color: Color(0xFFE6E6E9)),
-            const SizedBox(width: 6),
-            Text(
-              widget.label,
-              style: const TextStyle(color: Color(0xFFE6E6E9), fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// 上一集 / 下一集箭头；[onPressed] 为 null 时置灰不可点。
+/// 标题栏里所有可点项的**唯一**实现：统一的圆角悬停高亮。
 ///
-/// 不挂 Tooltip：标题栏那条 Overlay 只有标题栏本身那么高（见 app_title_bar.dart 的
-/// Overlay.wrap），提示气泡往下弹会落到视频区域被裁掉/盖住，只剩半截很难看。
-/// 这两个箭头的含义也够直白，不需要提示。
-class _NavArrow extends StatelessWidget {
-  const _NavArrow({required this.icon, required this.label, this.onPressed});
-
-  final IconData icon;
-
-  /// 无障碍标签（语义树里仍可读，只是不再画气泡）。
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: label,
-    child: IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 22),
-      color: const Color(0xFFE6E6E9),
-      disabledColor: const Color(0xFF5A5E63),
-      visualDensity: VisualDensity.compact,
-      splashRadius: 18,
-    ),
-  );
-}
-
-/// 置顶 / 画中画这类图标按钮。
-class _IconAction extends StatefulWidget {
-  const _IconAction({
-    required this.icon,
+/// 之前这里是四份各写各的（胶囊 / IconButton 圆形水波 / 直角方块 / 直角方块），
+/// 鼠标扫过去高亮形状会变，看着不是一套。现在形状、尺寸、配色都走
+/// [_barButtonRadius] / [_barButtonHeight] / [_barHoverColor] 这几个常量。
+///
+/// 不挂 Tooltip：AppWindowFrame 位于 MaterialApp.builder 里（Navigator 之外，
+/// 没有 Overlay 祖先），Tooltip 会在第一次悬停时抛「No Overlay widget found」，
+/// 把整条标题栏换成灰色错误框。无障碍标签走 Semantics。
+class _BarButton extends StatefulWidget {
+  const _BarButton({
     required this.label,
     required this.onPressed,
+    this.icon,
+    this.iconSize = 18,
+    this.text,
+    this.width,
     this.active = false,
+    this.danger = false,
   });
 
-  final IconData icon;
+  /// 无障碍标签。
   final String label;
-  final VoidCallback onPressed;
+
+  /// 为 null 表示禁用（图标置灰）。
+  final VoidCallback? onPressed;
+
+  final IconData? icon;
+  final double iconSize;
+
+  /// 给了文字就画成「图标 + 文字」的宽按钮（回到主界面）。
+  final String? text;
+
+  /// 固定宽度；不给就按内容自适应。
+  final double? width;
+
+  /// 激活态（置顶 / 画中画已开启）用强调色。
   final bool active;
 
+  /// 关闭键：悬停变红底白字。
+  final bool danger;
+
   @override
-  State<_IconAction> createState() => _IconActionState();
+  State<_BarButton> createState() => _BarButtonState();
 }
 
-class _IconActionState extends State<_IconAction> {
+class _BarButtonState extends State<_BarButton> {
   var _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.active
-        ? const Color(0xFF4FC3F7)
-        : const Color(0xFFE6E6E9);
-    // 同样不挂 Tooltip（原因见 _NavArrow 的说明）：气泡会被标题栏那条 Overlay 裁掉。
-    // 按钮本身有悬停高亮 + 激活态变色，状态是看得出来的。
+    final enabled = widget.onPressed != null;
+    final foreground = !enabled
+        ? _barDisabledColor
+        : widget.danger && _hovered
+        ? Colors.white
+        : widget.active
+        ? _barActiveColor
+        : _barIconColor;
+
+    final background = !_hovered || !enabled
+        ? Colors.transparent
+        : widget.danger
+        ? _barDangerColor
+        : _barHoverColor;
+
+    final label = widget.text;
+    final content = label == null
+        ? Icon(widget.icon, size: widget.iconSize, color: foreground)
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 17, color: foreground),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          );
+
     return Semantics(
       button: true,
+      enabled: enabled,
       label: widget.label,
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
+          // opaque：整个圆角块（含内边距）都可点，而不是只有图标那几像素。
+          behavior: HitTestBehavior.opaque,
           onTap: widget.onPressed,
-          child: Container(
-            width: 38,
-            height: playWindowTitleBarHeight,
-            color: _hovered ? const Color(0xFF2E3134) : Colors.transparent,
-            child: Icon(widget.icon, size: 18, color: color),
+          child: Center(
+            child: Container(
+              width: widget.width,
+              height: _barButtonHeight,
+              padding: label == null
+                  ? null
+                  : const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(_barButtonRadius),
+              ),
+              child: Center(child: content),
+            ),
           ),
         ),
       ),
@@ -325,61 +356,5 @@ class _BarDivider extends StatelessWidget {
     height: 20,
     margin: const EdgeInsets.symmetric(horizontal: 4),
     color: const Color(0xFF3A3D41),
-  );
-}
-
-/// 最小化 / 最大化 / 关闭，行为与应用内标题栏一致（含关闭键的红色悬停）。
-class _WindowButton extends StatefulWidget {
-  const _WindowButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-    this.iconSize = 16,
-    this.danger = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-  final double iconSize;
-  final bool danger;
-
-  @override
-  State<_WindowButton> createState() => _WindowButtonState();
-}
-
-class _WindowButtonState extends State<_WindowButton> {
-  static const _closeColor = Color(0xFFC42B1C);
-  var _hovered = false;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: widget.label,
-    child: MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onPressed,
-        child: Container(
-          width: 46,
-          height: playWindowTitleBarHeight,
-          color: !_hovered
-              ? Colors.transparent
-              : widget.danger
-              ? _closeColor
-              : const Color(0xFF2E3134),
-          child: Icon(
-            widget.icon,
-            size: widget.iconSize,
-            color: widget.danger && _hovered
-                ? Colors.white
-                : const Color(0xFFE6E6E9),
-          ),
-        ),
-      ),
-    ),
   );
 }
