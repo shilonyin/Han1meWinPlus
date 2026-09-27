@@ -49,6 +49,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   var _appliedPrivacySettings = false;
   late final AppLifecycleListener _lifecycleListener;
 
+  /// 窗口材质下发器：串行、去重、失败重试都在它里面（见 [WindowBackdropController]）。
+  final _backdrop = WindowBackdropController();
+
   @override
   void initState() {
     super.initState();
@@ -152,6 +155,23 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 系统深浅色变化（`themeMode = system`）时窗口材质要跟着换。
+    //
+    // 这里读 [MediaQuery.platformBrightnessOf] 是为了**注册依赖**，值本身不用
+    // —— 真正的亮度由 [AppSettings.effectiveBrightness] 推导。刻意不读
+    // `Theme.of(context)`：MaterialApp 用 AnimatedTheme 包主题，它的新值要等
+    // 动画 tick 之后才生效，在这里读可能仍是切换前的旧亮度。
+    //
+    // 用户手动切 `themeMode` 时 MediaQuery 不变、这里收不到通知，那条路径由
+    // settingsProvider 的回调覆盖（fireImmediately + 变化时触发），两者互补。
+    MediaQuery.platformBrightnessOf(context);
+    final settings = ref.read(settingsProvider).valueOrNull;
+    if (settings != null) _applyWindowBackdrop(settings);
+  }
+
+  @override
   void dispose() {
     CastReceiver.instance.incoming.removeListener(_onCastIncoming);
     _lifecycleListener.dispose();
@@ -194,15 +214,21 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     }
   }
 
-  /// 材质的深浅由**实际生效的**主题决定（`system` 模式要跟系统走），
-  /// 所以从 context 里读而非直接用 `themeMode`。
+  /// 材质的深浅由**实际生效的**主题决定：`system` 模式跟系统走，其余按用户选择。
+  ///
+  /// 用 [AppSettings.effectiveBrightness] 推导，而不是读 `Theme.of(context)`：
+  /// provider 的回调早于 widget 重建，那时 `Theme.of` 还是切换前的亮度 ——
+  /// 从深色切回浅色时会把 Mica 留在深色上，浅色半透明的表面盖在深色材质上，
+  /// 侧栏与标题栏就整片发灰（AMOLED 只是把半透明表面调得更明显）。
   void _applyWindowBackdrop(AppSettings settings) {
     if (!WindowBackdropEffect.isSupported) return;
-    final context = widget.navigatorKey.currentContext;
-    final dark = context == null
-        ? false
-        : Theme.of(context).brightness == Brightness.dark;
-    unawaited(WindowBackdropEffect.apply(settings.windowBackdrop, dark: dark));
+    final platformBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final dark =
+        settings.effectiveBrightness(platformBrightness) == Brightness.dark;
+    // 去重、串行、失败重试都在控制器里；[didChangeDependencies] 反复触发也不会
+    // 重复打扰 DWM。
+    unawaited(_backdrop.request(settings.windowBackdrop, dark: dark));
   }
 
   Future<AppExitResponse> _handleExitRequest() async {

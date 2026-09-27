@@ -294,9 +294,14 @@ class _CompactNavigationRail extends ConsumerWidget {
     final path = GoRouterState.of(context).uri.path;
     final colorScheme = Theme.of(context).colorScheme;
     // 侧栏与内容区之间不画分隔线，改用色块深浅区分（比内容区深/浅一档）。
-    // AMOLED 下所有 surface 都是纯黑，再加一层极淡的白叠出可分度。
-    final amoled = ref.watch(settingsProvider).valueOrNull?.amoledMode ?? false;
-    final railColor = amoled ? Colors.white.withValues(alpha: 0.04) : colorScheme.surfaceContainer;
+    // AMOLED 下所有 surface 都是纯黑，再加一层极淡的白叠出可分度；
+    // 这个叠加只该出现在深色主题下（见 [AppSettings.amoledApplies]）。
+    final amoledActive =
+        ref.watch(settingsProvider).valueOrNull?.amoledApplies(
+          Theme.of(context).brightness,
+        ) ??
+        false;
+    final railColor = amoledActive ? Colors.white.withValues(alpha: 0.04) : colorScheme.surfaceContainer;
     // 桌面窄侧栏分两段（与参考布局一致）：
     //   上段 = 主项（首页 / 新番预告 / 冲了么）
     //   下段 = 「我的」（头像打头）+ 观看历史 / 下载 + 主题模式 + 设置

@@ -313,6 +313,27 @@ class AppSettings {
     AppThemeMode.dark => ThemeMode.dark,
   };
 
+  /// 实际生效的明暗：`system` 跟系统走，其余按用户选择。
+  ///
+  /// 窗口材质（Mica / Acrylic）要用它，而不是直接读 `Theme.of(context)`：
+  /// provider 的回调先于 widget 重建触发，那时 `Theme.of` 还是切换前的旧亮度，
+  /// 从深色切到浅色就会把材质留在深色上。这里是纯推导，跟重建时序无关。
+  Brightness effectiveBrightness(Brightness platformBrightness) =>
+      switch (themeMode) {
+        AppThemeMode.system => platformBrightness,
+        AppThemeMode.light => Brightness.light,
+        AppThemeMode.dark => Brightness.dark,
+      };
+
+  /// AMOLED（表面纯黑）**只作用于深色主题**：`appTheme` 里这个开关只传给
+  /// darkTheme，浅色主题下它不该改变任何颜色。
+  ///
+  /// 拿裸的 [amoledMode] 去改颜色就会在浅色主题下出错——侧栏曾据此把底色换成
+  /// 4% 白，开着窗口材质时几乎全透明、直接透出材质，看着就是「侧栏发灰、
+  /// 和内容区不是一套」。所以判断要带上实际生效的 [brightness]。
+  bool amoledApplies(Brightness brightness) =>
+      amoledMode && brightness == Brightness.dark;
+
   bool get mirrorActive => useCustomMirrorSite && customMirrorSite.isNotEmpty;
 
   String get homeBaseUrl => mirrorActive ? customMirrorSite : baseUrl;

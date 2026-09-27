@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import '../../core/app_scroll_behavior.dart';
 import '../../core/m3e_theme_bridge.dart';
 import '../../core/route_observer.dart';
 import '../../core/settings.dart';
+import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/cached_video_lookup.dart';
 import '../../domain/models/video.dart';
@@ -44,9 +47,25 @@ class PlayWindowApp extends ConsumerStatefulWidget {
 class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
   late final GoRouter _router;
 
+  /// 本窗口的材质下发器。播放窗口与主窗口是两个进程、两个顶层窗口，各持一个。
+  /// 去重与串行都在它里面，所以设置反复变化也不会重复打扰 DWM。
+  final _backdrop = WindowBackdropController();
+
   @override
   void initState() {
     super.initState();
+    // 播放窗口也要材质：它和主窗口一样给 appTheme 传了 backdrop（表面是半透明的），
+    // 但材质本身必须**单独**下发——AppStartupEffects 只挂在主窗口上，播放进程不会
+    // 经过它。少了这一步，半透明的设置页 / 搜索页透出的是 runner 的纯色底刷，
+    // 而不是桌面壁纸，观感比主窗口"平"一块。
+    //
+    // 播放窗口没有 AppStartupEffects 那套 provider 监听，所以在这里直接挂一个：
+    // 设置（材质开关 / 主题模式）变了就重新下发。
+    ref.listenManual(settingsProvider, (previous, next) {
+      final settings = next.valueOrNull;
+      if (settings == null) return;
+      _applyBackdrop(settings);
+    }, fireImmediately: true);
     _router = GoRouter(
       observers: [routeObserver],
       initialLocation: '/video/${widget.videoId}',
@@ -71,6 +90,29 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         GoRoute(path: '/search', builder: searchRouteBuilder),
       ],
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // `themeMode = system` 时系统深浅色变化要让材质跟着换，与主窗口同一套逻辑：
+    // 读 [MediaQuery.platformBrightnessOf] 只为注册依赖，真正的亮度由
+    // [AppSettings.effectiveBrightness] 推导（不读 Theme.of——provider 回调早于
+    // widget 重建，那时 Theme 还是切换前的亮度）。
+    MediaQuery.platformBrightnessOf(context);
+    final settings = ref.read(settingsProvider).valueOrNull;
+    if (settings != null) _applyBackdrop(settings);
+  }
+
+  /// 把材质下发给本窗口的系统层。深浅取**实际生效的**主题，与主窗口一致。
+  void _applyBackdrop(AppSettings settings) {
+    if (!WindowBackdropEffect.isSupported) return;
+    final dark =
+        settings.effectiveBrightness(
+          WidgetsBinding.instance.platformDispatcher.platformBrightness,
+        ) ==
+        Brightness.dark;
+    unawaited(_backdrop.request(settings.windowBackdrop, dark: dark));
   }
 
   @override
