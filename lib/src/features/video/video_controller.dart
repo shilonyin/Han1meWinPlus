@@ -19,7 +19,21 @@ final videoTranslationProvider = AsyncNotifierProvider.autoDispose.family<VideoT
 final videoDetailProvider = FutureProvider.autoDispose.family<VideoDetail, String>((ref, id) async {
   // 详情页数据量大、站点响应慢，保留住避免来回进出时重复加载。
   ref.keepAlive();
-  ref.watch(accountProvider);
+  // 只依赖「登录 cookie」，不要 watch 整个 accountProvider。
+  //
+  // AccountController.build() 里有个 unawaited 的资料刷新（_refresh 会发网络请求
+  // 拉用户资料），回来时 `state = AsyncData(next)`。以前这里直接 watch
+  // accountProvider，于是那次刷新会连带让详情 provider 失效重建、退回 loading 态；
+  // 而 video_page.dart 是 `ref.watch(videoDetailProvider).when(...)`，loading 分支
+  // 会把整个播放器从树上摘掉 —— 表现就是「播放几秒后画面自动重新加载一遍」，
+  // 那几秒正是资料请求的往返时间。
+  //
+  // 详情请求真正需要的只是 cookie（决定能否拿到登录态内容），而 _refresh 前后
+  // cookie 并不变（它只更新 id / 昵称 / 头像这些资料字段），所以 select 出 cookie
+  // 就够：资料刷新不再影响详情，登录 / 登出仍会正常触发重取。
+  ref.watch(
+    accountProvider.select((value) => value.valueOrNull?.cookie ?? ''),
+  );
   // 只依赖「站点地址」这一个字段。
   //
   // 不能写成 await ref.watch(settingsProvider.future)：那等于依赖整个设置对象，
