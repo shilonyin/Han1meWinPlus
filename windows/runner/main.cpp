@@ -415,6 +415,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   // (IsHungAppWindow stays false) but its Flutter engine stops processing input
   // and never repaints again. Keep this runner free of the multi window plugin
   // until the runner is replaced by the stock FlutterWindow template.
+  //
+  // The desktop_multi_window dependency has since been removed from pubspec.yaml
+  // (playback windows are separate processes, see --play-window above), so the
+  // plugin is no longer even compiled in. This note stays as the reason not to
+  // bring it back.
   const auto flutter_view = app.controller->view()->GetNativeWindow();
   SetParent(flutter_view, window);
   // Showing the window above happened before the Flutter view existed, so that
