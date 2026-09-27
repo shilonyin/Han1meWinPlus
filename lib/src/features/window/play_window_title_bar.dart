@@ -238,16 +238,23 @@ class _HomeButtonState extends State<_HomeButton> {
 }
 
 /// 上一集 / 下一集箭头；[onPressed] 为 null 时置灰不可点。
+///
+/// 不挂 Tooltip：标题栏那条 Overlay 只有标题栏本身那么高（见 app_title_bar.dart 的
+/// Overlay.wrap），提示气泡往下弹会落到视频区域被裁掉/盖住，只剩半截很难看。
+/// 这两个箭头的含义也够直白，不需要提示。
 class _NavArrow extends StatelessWidget {
   const _NavArrow({required this.icon, required this.label, this.onPressed});
 
   final IconData icon;
+
+  /// 无障碍标签（语义树里仍可读，只是不再画气泡）。
   final String label;
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: label,
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
     child: IconButton(
       onPressed: onPressed,
       icon: Icon(icon, size: 22),
@@ -285,8 +292,11 @@ class _IconActionState extends State<_IconAction> {
     final color = widget.active
         ? const Color(0xFF4FC3F7)
         : const Color(0xFFE6E6E9);
-    return Tooltip(
-      message: widget.label,
+    // 同样不挂 Tooltip（原因见 _NavArrow 的说明）：气泡会被标题栏那条 Overlay 裁掉。
+    // 按钮本身有悬停高亮 + 激活态变色，状态是看得出来的。
+    return Semantics(
+      button: true,
+      label: widget.label,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hovered = true),

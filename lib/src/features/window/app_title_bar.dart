@@ -53,23 +53,20 @@ class AppWindowFrame extends ConsumerWidget {
                 child: bar,
               );
             }
-            // 自定义标题栏要自带一个 Overlay。
+            // 注意：这里的自定义标题栏**没有 Overlay 祖先**。
             //
             // AppWindowFrame 跑在 MaterialApp.builder 里，也就是包在 Navigator **外面**；
-            // 而 Overlay 是每个 route 各自建在 Navigator **内部**。播放窗口那条标题栏用了
-            // Tooltip，它需要 Overlay 祖先 —— 缺了就抛
-            // 「No Overlay widget found ... RawTooltip widgets require an Overlay widget
+            // 而 Overlay 是每个 route 各自建在 Navigator **内部**。所以标题栏里**不要放
+            // 依赖 Overlay 的组件**（Tooltip / PopupMenuButton / showMenu 等）：
+            // 缺 Overlay 会抛「No Overlay widget found ... require an Overlay widget
             // ancestor」，整条标题栏被 RenderErrorBox（默认底色 0xF0C0C0C0，叠在深色上
-            // 就是截图里那个 (183,183,183) 灰块）顶掉。
-            // 悬停才发作是因为 Tooltip 懒构建，鼠标移上去才第一次要 Overlay。
+            // 就是一块 (183,183,183) 灰块）顶掉。
             //
-            // 用官方的 Overlay.wrap：它替我们管好 entry 的增删（dispose 前先 remove，
-            // 这是 OverlayEntry 的硬性要求），并且 alwaysSizeToContent 让 Overlay 自己
-            // 按内容定高 —— 这里位于 Column 中、高度是无界的，普通 Overlay 会因拿不到
-            // 有界约束而布局失败。主窗口的 AppTitleBar 从不用 Tooltip，所以以前没暴露。
-            if (titleBar != null) {
-              bar = Overlay.wrap(alwaysSizeToContent: true, child: bar);
-            }
+            // 曾经试过套一层 `Overlay.wrap(alwaysSizeToContent: true)` 来喂 Tooltip，
+            // 但那条 Overlay 只有标题栏本身那么高，提示气泡往下弹就被裁掉半截（实测），
+            // 所以改成不挂 Tooltip —— 图标按钮用悬停高亮表达状态，无障碍标签走 Semantics。
+            // 若将来确实需要气泡/菜单，正确做法是把**整个 Column（标题栏 + 内容）**包进
+            // Overlay，而不是只包标题栏。
             return Column(children: [bar, Expanded(child: child)]);
           },
         );
