@@ -114,9 +114,16 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
   DateTime _lastSaved = DateTime.fromMillisecondsSinceEpoch(0);
   var _autoNextTriggered = false;
   bool? _wasPlaying;
+
+  /// 正在监听播放状态的那个 controller（见 [_handleControllerChanged]）。
+  VideoPlayerController? _playingStateOwner;
   Duration _watched = Duration.zero;
   DateTime? _lastWatchedAt;
   late final WatchController _watchController;
+
+  /// 音量持久化的防抖：连续调整（滚轮/拖动）时不要在每一步都写盘。
+  double? _lastPersistedVolume;
+  Timer? _volumeSaveTimer;
 
   @override
   void initState() {
@@ -188,7 +195,25 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
   }
 
   void _handleControllerChanged() {
+    // 播放 / 暂停发生在 controller 自己身上（它是个 ValueNotifier），
+    // `_controllerNotifier` 只在「换了一个 controller 实例」时通知。
+    // 所以这里跟住当前实例，把它的播放状态转给窗口级的画中画按钮。
+    final controller = _controllerNotifier.value;
+    if (!identical(_playingStateOwner, controller)) {
+      _playingStateOwner?.removeListener(_syncPlayingState);
+      _playingStateOwner = controller;
+      controller?.addListener(_syncPlayingState);
+    }
+    _syncPlayingState();
     if (mounted && !_disposed) setState(() {});
+  }
+
+  void _syncPlayingState() {
+    final controller = _controllerNotifier.value;
+    PlaybackHotkeyTarget.isPlaying.value =
+        controller != null &&
+        controller.value.isInitialized &&
+        controller.value.isPlaying;
   }
 
   @override
@@ -468,6 +493,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         return;
       await controller.setPlaybackSpeed(settings.defaultPlaybackSpeed);
       await controller.setLooping(settings.loopPlayback);
+      // 恢复上次的音量：VideoPlayerController 默认满音量（1.0），不恢复的话
+      // 每次打开视频都会回到满音量——用户调低过一次就该记住。
+      await controller.setVolume(settings.playbackVolume);
       if (startAt != null) {
         await controller.seekTo(startAt);
       } else if (!_restored && settings.resumePlayback) {
@@ -491,6 +519,27 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     } catch (_) {}
   }
 
+  /// 把音量写进设置（带防抖）。
+  ///
+  /// 音量调整的入口有四个（滑块 / 滚轮 / 快捷键 / 静音），它们都走
+  /// `controller.setVolume` → 触发 controller 通知 → 进 [_saveProgress]，
+  /// 所以在这里统一持久化就能覆盖全部入口，不用逐个改。
+  ///
+  /// 连续调整（按住滚轮、拖动滑块）会在几十毫秒内触发几十次通知，
+  /// 不能每次都写 setting.json —— 攒 500ms 再写一次。
+  void _persistVolumeIfChanged(double volume) {
+    final clamped = volume.clamp(0.0, 1.0);
+    if (_lastPersistedVolume != null && (_lastPersistedVolume! - clamped).abs() < 0.001) return;
+    _lastPersistedVolume = clamped;
+    _volumeSaveTimer?.cancel();
+    _volumeSaveTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      final current = ref.read(settingsProvider).valueOrNull;
+      if (current == null || (current.playbackVolume - clamped).abs() < 0.001) return;
+      ref.read(settingsProvider.notifier).saveChanges((s) => s.copyWith(playbackVolume: clamped));
+    });
+  }
+
   void _saveProgress([VideoPlayerController? triggering]) {
     final controller = triggering ?? _controllerNotifier.value;
     if (!identical(controller, _controllerNotifier.value)) return;
@@ -499,6 +548,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       _lastWatchedAt = null;
       return;
     }
+    _persistVolumeIfChanged(value.volume);
     final now = DateTime.now();
     final lastWatchedAt = _lastWatchedAt;
     if (value.isPlaying && lastWatchedAt != null)
@@ -623,6 +673,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     }
     _disposed = true;
     _loadVersion++;
+    _volumeSaveTimer?.cancel();
     try {
       _saveProgress();
     } catch (_) {}
@@ -644,6 +695,8 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       }
     }
     _controllerNotifier.removeListener(_handleControllerChanged);
+    _playingStateOwner?.removeListener(_syncPlayingState);
+    _playingStateOwner = null;
     if (!_fullscreenOpen) {
       _disposeNotifiers();
     }

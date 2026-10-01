@@ -107,6 +107,7 @@ class AppSettings {
     this.groupNameTraditional = false,
     this.downloadPath = defaultDownloadPath,
     this.defaultPlaybackSpeed = 1,
+    this.playbackVolume = 1,
     this.longPressPlaybackSpeed = 2,
     this.playerControlsTimeoutSeconds = 4,
     this.seekSensitivity = .35,
@@ -202,6 +203,10 @@ class AppSettings {
   final bool groupNameTraditional;
   final String downloadPath;
   final double defaultPlaybackSpeed;
+
+  /// 播放器音量（0–1）。每次新建播放器时恢复这个值，否则每次都回到满音量
+  /// （`VideoPlayerController` 的默认值就是 1.0，没人管的话每次都满）。
+  final double playbackVolume;
   final double longPressPlaybackSpeed;
   final int playerControlsTimeoutSeconds;
   final double seekSensitivity;
@@ -379,6 +384,7 @@ class AppSettings {
     'groupNameTraditional': groupNameTraditional,
     'downloadPath': downloadPath,
     'defaultPlaybackSpeed': defaultPlaybackSpeed,
+    'playbackVolume': playbackVolume,
     'longPressPlaybackSpeed': longPressPlaybackSpeed,
     'playerControlsTimeoutSeconds': playerControlsTimeoutSeconds,
     'seekSensitivity': seekSensitivity,
@@ -491,6 +497,9 @@ class AppSettings {
         ((json['defaultPlaybackSpeed'] as num?)?.toDouble() ?? 1)
             .clamp(.25, 3)
             .toDouble(),
+    playbackVolume: ((json['playbackVolume'] as num?)?.toDouble() ?? 1)
+        .clamp(0, 1)
+        .toDouble(),
     longPressPlaybackSpeed:
         ((json['longPressPlaybackSpeed'] as num?)?.toDouble() ?? 2)
             .clamp(1, 3)
@@ -694,6 +703,7 @@ class AppSettings {
     bool? groupNameTraditional,
     String? downloadPath,
     double? defaultPlaybackSpeed,
+    double? playbackVolume,
     double? longPressPlaybackSpeed,
     int? playerControlsTimeoutSeconds,
     double? seekSensitivity,
@@ -787,6 +797,7 @@ class AppSettings {
     groupNameTraditional: groupNameTraditional ?? this.groupNameTraditional,
     downloadPath: downloadPath ?? this.downloadPath,
     defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
+    playbackVolume: playbackVolume ?? this.playbackVolume,
     longPressPlaybackSpeed:
         longPressPlaybackSpeed ?? this.longPressPlaybackSpeed,
     playerControlsTimeoutSeconds:
