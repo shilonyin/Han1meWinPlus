@@ -370,6 +370,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'A proxy is in use, so built-in hosts have no effect';
 
   @override
+  String get proxyAddressEmpty => 'Enter a proxy address';
+
+  @override
+  String get proxyAddressMissingPort =>
+      'The address needs a port, e.g. 127.0.0.1:7897';
+
+  @override
+  String get proxyAddressUnsupportedScheme =>
+      'Only http:// and https:// are supported, e.g. http://127.0.0.1:7897';
+
+  @override
+  String get proxyAddressSocksUnsupported =>
+      'Neither the player nor the web component supports SOCKS proxies; use the HTTP mixed port provided by your proxy tool instead (usually 7897)';
+
+  @override
+  String proxyCurrent(String value) {
+    return 'Active: $value';
+  }
+
+  @override
+  String get proxyCurrentDirect => 'Active: direct connection';
+
+  @override
+  String get proxyPlayerCredentialsHint =>
+      'This address carries credentials: browser requests will use them, but the video player does not support authenticated proxies';
+
+  @override
   String get doh => 'DNS over HTTPS';
 
   @override

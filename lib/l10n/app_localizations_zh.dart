@@ -355,6 +355,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proxyDirectOnlyHint => '当前走了代理，内置 Hosts 不会生效';
 
   @override
+  String get proxyAddressEmpty => '请输入代理地址';
+
+  @override
+  String get proxyAddressMissingPort => '地址需要包含端口，例如 127.0.0.1:7897';
+
+  @override
+  String get proxyAddressUnsupportedScheme =>
+      '仅支持 http:// 与 https://，例如 http://127.0.0.1:7897';
+
+  @override
+  String get proxyAddressSocksUnsupported =>
+      '播放器与网页组件均不支持 SOCKS 代理，请改用代理工具提供的 HTTP 混合端口（通常是 7897）';
+
+  @override
+  String proxyCurrent(String value) {
+    return '当前生效：$value';
+  }
+
+  @override
+  String get proxyCurrentDirect => '当前生效：直连';
+
+  @override
+  String get proxyPlayerCredentialsHint => '该地址带账号密码：浏览器请求会使用，视频播放器不支持带凭据的代理';
+
+  @override
   String get doh => 'DNS over HTTPS';
 
   @override
@@ -2912,6 +2937,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get proxyDirectOnlyHint => '目前走了代理，內建 Hosts 不會生效';
+
+  @override
+  String get proxyAddressEmpty => '請輸入代理位址';
+
+  @override
+  String get proxyAddressMissingPort => '位址需要包含連接埠，例如 127.0.0.1:7897';
+
+  @override
+  String get proxyAddressUnsupportedScheme =>
+      '僅支援 http:// 與 https://，例如 http://127.0.0.1:7897';
+
+  @override
+  String get proxyAddressSocksUnsupported =>
+      '播放器與網頁元件均不支援 SOCKS 代理，請改用代理工具提供的 HTTP 混合埠（通常是 7897）';
+
+  @override
+  String proxyCurrent(String value) {
+    return '目前生效：$value';
+  }
+
+  @override
+  String get proxyCurrentDirect => '目前生效：直連';
+
+  @override
+  String get proxyPlayerCredentialsHint => '此位址帶帳號密碼：瀏覽器請求會使用，影片播放器不支援帶憑證的代理';
 
   @override
   String get doh => 'DNS over HTTPS';

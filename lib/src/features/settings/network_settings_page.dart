@@ -8,6 +8,8 @@ import '../../core/cast_receiver.dart';
 import '../../core/settings.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../data/remote/han1me_http_client.dart';
+import '../../data/remote/webview_environment.dart';
+import '../../data/remote/windows_proxy.dart';
 import '../../data/remote/jav/jav_api.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
@@ -84,13 +86,17 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
         _ => l10n.proxySystem,
       };
 
-  /// 代理模式会影响两套网络栈：Dart 的 HttpClient（图片/页面/评论）与 mpv（视频），
-  /// 所以保存后要额外让播放器重新解析一次代理，否则视频仍走旧的代理设置。
+  /// 代理模式会影响三套网络栈：Dart 的 HttpClient（图片/页面/评论）、mpv（视频）
+  /// 与 WebView2（登录、Cloudflare 挑战），所以保存后要把三者都刷新一遍，
+  /// 否则只有其中一部分跟随新设置。
   Future<void> _showProxySettings(BuildContext context, AppSettings settings, SettingsController controller) async {
     final result = await showDialog<_ProxySettings>(context: context, builder: (_) => _ProxySettingsDialog(settings: settings));
     if (result == null) return;
     await controller.saveChanges((current) => current.copyWith(proxyMode: result.mode, customProxy: result.custom));
     await ConfiguredMediaKitVideoPlayer.refreshHttpProxy();
+    // WebView 环境的代理参数只在创建时下发，且已创建的实例也改不了，
+    // 只能重建（下次进入登录页/CF 页时自然生效）。
+    ref.invalidate(webViewEnvironmentProvider);
   }
 
 }
@@ -104,17 +110,79 @@ class _ProxySettingsDialog extends StatefulWidget { const _ProxySettingsDialog({
 class _ProxySettingsDialogState extends State<_ProxySettingsDialog> {
   late var _mode = widget.settings.proxyMode;
   late final _custom = TextEditingController(text: widget.settings.customProxy);
-  @override void dispose() { _custom.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) {
+
+  @override
+  void initState() {
+    super.initState();
+    // 地址是边打边校验的，所以要监听输入。
+    _custom.addListener(_onChanged);
+  }
+
+  void _onChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _custom.removeListener(_onChanged);
+    _custom.dispose();
+    super.dispose();
+  }
+
+  /// 当前输入框里地址的校验结果；只有手动模式才需要校验。
+  ProxyAddressStatus get _status => WindowsProxy.validate(_custom.text);
+
+  bool get _canSave => _mode != 'custom' || _status == ProxyAddressStatus.valid;
+
+  String? _errorText(AppLocalizations l10n) => switch (_status) {
+        ProxyAddressStatus.empty => l10n.proxyAddressEmpty,
+        ProxyAddressStatus.missingHostOrPort => l10n.proxyAddressMissingPort,
+        ProxyAddressStatus.unsupportedScheme => l10n.proxyAddressUnsupportedScheme,
+        ProxyAddressStatus.socksUnsupported => l10n.proxyAddressSocksUnsupported,
+        ProxyAddressStatus.valid => null,
+      };
+
+  /// 把「当前会实际生效什么」摊开给用户看。
+  ///
+  /// 展示的是 Dart 侧的规则（界面、图片、评论走的那条路）。「跟随系统」模式下
+  /// 系统代理要异步读注册表才能知道，弹窗里同步展示不了，所以只说明来源；
+  /// 站点诊断页那栏已经有解析后的实际值。
+  Widget _currentStatus(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final (text, tone) = switch (_mode) {
+      'direct' => (l10n.proxyCurrentDirect, theme.colorScheme.onSurfaceVariant),
+      'custom' => switch (_status) {
+          ProxyAddressStatus.valid => (l10n.proxyCurrent(WindowsProxy.rule(_custom.text) ?? 'DIRECT'), theme.colorScheme.onSurfaceVariant),
+          // 填错了最终也走直连，用错误色和「当前生效：直连」把后果说清楚。
+          _ => (l10n.proxyCurrentDirect, theme.colorScheme.error),
+        },
+      _ => (l10n.proxyDescription, theme.colorScheme.onSurfaceVariant),
+    };
+    return Text(text, style: theme.textTheme.bodySmall?.copyWith(color: tone, height: 1.4));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final options = [('system', l10n.proxySystem), ('direct', l10n.proxyDirect), ('custom', l10n.proxyCustom)];
+    final custom = _mode == 'custom';
     return AlertDialog(title: Text(l10n.proxy), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l10n.proxyDescription, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
       const SizedBox(height: 4),
       for (final option in options) ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(option.$2), trailing: _mode == option.$1 ? const Icon(Symbols.check_rounded) : null, onTap: () => setState(() => _mode = option.$1)),
       const SizedBox(height: 8),
-      TextField(controller: _custom, enabled: _mode == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.proxyCustomAddress, helperText: l10n.proxyCustomAddressHint)),
-    ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save))]);
+      TextField(
+        controller: _custom,
+        enabled: custom,
+        keyboardType: TextInputType.url,
+        decoration: InputDecoration(
+          labelText: l10n.proxyCustomAddress,
+          helperText: l10n.proxyCustomAddressHint,
+          // 只在手动模式下报错：其它模式里这个框是灰的，报错会让人以为选错了。
+          errorText: custom ? _errorText(l10n) : null,
+        ),
+      ),
+      const SizedBox(height: 4),
+      _currentStatus(context, l10n),
+    ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: !_canSave ? null : () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save))]);
   }
 }
 

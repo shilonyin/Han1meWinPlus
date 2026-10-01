@@ -729,6 +729,48 @@ abstract class AppLocalizations {
   /// **'A proxy is in use, so built-in hosts have no effect'**
   String get proxyDirectOnlyHint;
 
+  /// No description provided for @proxyAddressEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a proxy address'**
+  String get proxyAddressEmpty;
+
+  /// No description provided for @proxyAddressMissingPort.
+  ///
+  /// In en, this message translates to:
+  /// **'The address needs a port, e.g. 127.0.0.1:7897'**
+  String get proxyAddressMissingPort;
+
+  /// No description provided for @proxyAddressUnsupportedScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Only http:// and https:// are supported, e.g. http://127.0.0.1:7897'**
+  String get proxyAddressUnsupportedScheme;
+
+  /// No description provided for @proxyAddressSocksUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Neither the player nor the web component supports SOCKS proxies; use the HTTP mixed port provided by your proxy tool instead (usually 7897)'**
+  String get proxyAddressSocksUnsupported;
+
+  /// No description provided for @proxyCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Active: {value}'**
+  String proxyCurrent(String value);
+
+  /// No description provided for @proxyCurrentDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Active: direct connection'**
+  String get proxyCurrentDirect;
+
+  /// No description provided for @proxyPlayerCredentialsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This address carries credentials: browser requests will use them, but the video player does not support authenticated proxies'**
+  String get proxyPlayerCredentialsHint;
+
   /// No description provided for @doh.
   ///
   /// In en, this message translates to:

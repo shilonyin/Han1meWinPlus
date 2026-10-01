@@ -119,6 +119,20 @@
   "proxyCustomAddress": "Proxy address",
   "proxyCustomAddressHint": "e.g. 127.0.0.1:7897 (http:// optional)",
   "proxyDirectOnlyHint": "A proxy is in use, so built-in hosts have no effect",
+  "proxyAddressEmpty": "Enter a proxy address",
+  "proxyAddressMissingPort": "The address needs a port, e.g. 127.0.0.1:7897",
+  "proxyAddressUnsupportedScheme": "Only http:// and https:// are supported, e.g. http://127.0.0.1:7897",
+  "proxyAddressSocksUnsupported": "Neither the player nor the web component supports SOCKS proxies; use the HTTP mixed port provided by your proxy tool instead (usually 7897)",
+  "proxyCurrent": "Active: {value}",
+  "@proxyCurrent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "proxyCurrentDirect": "Active: direct connection",
+  "proxyPlayerCredentialsHint": "This address carries credentials: browser requests will use them, but the video player does not support authenticated proxies",
   "doh": "DNS over HTTPS",
   "useDoh": "Use DNS over HTTPS",
   "dohSettings": "DNS over HTTPS Settings",
