@@ -26,6 +26,10 @@ class WindowsHttpOverrides extends HttpOverrides {
   ///
   /// `direct` 返回 `DIRECT`——只有这时「内置 Hosts」与 DoH 才真正生效，因为走代理时
   /// 连接工厂会把连接交给代理，内置地址一律被绕过（实测直连内置 IP 反而更快）。
+  ///
+  /// `custom` 模式下地址非法（缺少端口、scheme 不支持等）时同样返回 `DIRECT`：
+  /// 报错在设置页给出（见 [WindowsProxy.validate]），网络栈这边只保证不崩、
+  /// 不把 SOCKS 端口当 HTTP 代理去说话。
   static Future<String> resolveRule({required String mode, required String custom}) async {
     if (mode == 'direct') return 'DIRECT';
     if (mode == 'custom') return WindowsProxy.rule(custom) ?? 'DIRECT';
