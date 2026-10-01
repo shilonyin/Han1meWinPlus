@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -159,11 +160,11 @@ class _ArtistRow extends ConsumerWidget {
     final subscribed = ref.watch(subscriptionOverrideProvider(video.id)) ?? persisted;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
+      child: GlassPanel(
+        borderRadius: BorderRadius.circular(18),
+        solidColor: theme.colorScheme.surfaceContainerLow,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(18),
           // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
           // 那时搜索页会退化成「没有关键词」的页，看起来就是点了作者没内容。
           onTap: () {
@@ -223,11 +224,11 @@ class _Description extends StatelessWidget {
       child: AnimatedSize(
         duration: const Duration(milliseconds: 200),
         alignment: Alignment.topCenter,
-        child: Material(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
+        child: GlassPanel(
+        borderRadius: BorderRadius.circular(18),
+        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(18),
             onTap: onToggle,
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -448,7 +449,7 @@ class _SeriesVideosState extends State<_SeriesVideos> {
     );
   }
 
-  Future<void> _showAll(BuildContext context) => showModalBottomSheet<void>(context: context, showDragHandle: true, isScrollControlled: true, builder: (context) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height * .78, child: Column(children: [Padding(padding: const EdgeInsets.fromLTRB(24, 8, 24, 12), child: Align(alignment: Alignment.centerLeft, child: Text(AppLocalizations.of(context)!.seriesVideos, style: Theme.of(context).textTheme.titleLarge))), Expanded(child: VideoCardGrid(videos: widget.videos, itemBuilder: (context, index, video, horizontal) => VideoCardTile(video: video, horizontal: horizontal, selected: video.id == widget.currentVideoId)))]))));
+  Future<void> _showAll(BuildContext context) => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, isScrollControlled: true, builder: (context) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height * .78, child: Column(children: [Padding(padding: const EdgeInsets.fromLTRB(24, 8, 24, 12), child: Align(alignment: Alignment.centerLeft, child: Text(AppLocalizations.of(context)!.seriesVideos, style: Theme.of(context).textTheme.titleLarge))), Expanded(child: VideoCardGrid(videos: widget.videos, itemBuilder: (context, index, video, horizontal) => VideoCardTile(video: video, horizontal: horizontal, selected: video.id == widget.currentVideoId)))]))));
 }
 
 /// 系列影片左右翻页箭头：半透明圆角，鼠标移开自动隐藏（参考侧栏手把）
@@ -519,11 +520,11 @@ class _RelatedVideoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(8),
+    return GlassPanel(
+        borderRadius: BorderRadius.circular(18),
+        solidColor: theme.colorScheme.surfaceContainerLow,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
         onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
         child: Padding(
           padding: const EdgeInsets.all(8),

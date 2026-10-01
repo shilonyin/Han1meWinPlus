@@ -10,6 +10,7 @@ import '../../domain/models/account.dart';
 import '../library/library_page.dart';
 import '../shared/underline_tab_strip.dart';
 import 'account_controller.dart';
+import '../../core/app_dialog.dart';
 
 /// 「我的」：顶部资料卡（头像 / 昵称 / 统计 + 账号操作），下面是清单页签。
 ///
@@ -193,11 +194,11 @@ Future<void> _openProfile(BuildContext context, WidgetRef ref, Account account) 
 Future<void> _showAccountSheet(BuildContext context, WidgetRef ref) {
   final accounts = ref.read(accountsProvider).valueOrNull ?? const <Account>[];
   final active = ref.read(accountProvider).valueOrNull;
-  return showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (sheetContext) => _AccountSheet(accounts: accounts, active: active));
+  return showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (sheetContext) => _AccountSheet(accounts: accounts, active: active));
 }
 
 /// 编辑个人资料（昵称 / 邮箱）—— 弹出对话框，保存后自动关闭。
-Future<void> _showEditProfile(BuildContext context, Account account) => showDialog<void>(
+Future<void> _showEditProfile(BuildContext context, Account account) => showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.editProfile),
@@ -207,7 +208,7 @@ Future<void> _showEditProfile(BuildContext context, Account account) => showDial
     );
 
 /// 更改密码 —— 同样弹对话框，保存后自动关闭。
-Future<void> _showChangePassword(BuildContext context) => showDialog<void>(
+Future<void> _showChangePassword(BuildContext context) => showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.changePassword),
@@ -218,7 +219,7 @@ Future<void> _showChangePassword(BuildContext context) => showDialog<void>(
 
 Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context)!;
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showAppDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text(l10n.logout),

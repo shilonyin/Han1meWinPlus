@@ -10,6 +10,7 @@ import '../features/auth/app_lock_gate.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
 import '../features/window/app_title_bar.dart';
+import 'app_backdrop.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
 import 'startup_effects.dart';
@@ -50,14 +51,21 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         debugShowCheckedModeBanner: false,
         routerConfig: _appRouter.router,
         builder: (context, child) => M3EThemeBridge(
-          child: AppWindowFrame(
-            child: AppStartupEffects(
-              navigatorKey: _appRouter.navigatorKey,
-              exitCoordinator: _exitCoordinator,
-              initialLink: widget.initialLink,
-              child: MediaQuery(
-                data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-                child: AppLockGate(child: child ?? const SizedBox.shrink()),
+          child: AppBackdrop(
+            // AMOLED 要的是纯黑省电，铺渐变就白搭了；深色下也只在非 AMOLED 时启用。
+            enabled: !(settings.amoledMode && Theme.of(context).brightness == Brightness.dark),
+            // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
+            // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
+            opacity: settings.windowBackdrop == WindowBackdrop.none ? 1 : .78,
+            child: AppWindowFrame(
+              child: AppStartupEffects(
+                navigatorKey: _appRouter.navigatorKey,
+                exitCoordinator: _exitCoordinator,
+                initialLink: widget.initialLink,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                  child: AppLockGate(child: child ?? const SizedBox.shrink()),
+                ),
               ),
             ),
           ),

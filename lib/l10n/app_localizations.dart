@@ -3290,6 +3290,42 @@ abstract class AppLocalizations {
   /// **'Custom'**
   String get colorCustom;
 
+  /// No description provided for @colorCompassTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme color compass'**
+  String get colorCompassTitle;
+
+  /// No description provided for @colorCompassGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the wheel to pick hue and saturation, then adjust brightness. You can also type a hex value.'**
+  String get colorCompassGuide;
+
+  /// No description provided for @colorHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Hex value'**
+  String get colorHex;
+
+  /// No description provided for @colorHexInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 6-digit hex value'**
+  String get colorHexInvalid;
+
+  /// No description provided for @colorPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview color'**
+  String get colorPreview;
+
+  /// No description provided for @colorApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply color'**
+  String get colorApply;
+
   /// No description provided for @dynamicColor.
   ///
   /// In en, this message translates to:
@@ -3475,6 +3511,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Acrylic (Windows 10)'**
   String get windowBackdropAcrylic;
+
+  /// No description provided for @glassSurface.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass material'**
+  String get glassSurface;
+
+  /// No description provided for @glassSurfaceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted panels with edge refraction on cards and dialogs'**
+  String get glassSurfaceDescription;
+
+  /// No description provided for @glassTexture.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass texture'**
+  String get glassTexture;
+
+  /// No description provided for @glassOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get glassOff;
+
+  /// No description provided for @glassFrosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted'**
+  String get glassFrosted;
+
+  /// No description provided for @glassClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get glassClear;
+
+  /// No description provided for @glassLiquid.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid glass'**
+  String get glassLiquid;
+
+  /// No description provided for @glassFrostOpacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Frost opacity'**
+  String get glassFrostOpacity;
+
+  /// No description provided for @glassOpacityLight.
+  ///
+  /// In en, this message translates to:
+  /// **'20% · Airy'**
+  String get glassOpacityLight;
+
+  /// No description provided for @glassOpacitySolid.
+  ///
+  /// In en, this message translates to:
+  /// **'100% · Solid'**
+  String get glassOpacitySolid;
 
   /// No description provided for @globalHotkeys.
   ///

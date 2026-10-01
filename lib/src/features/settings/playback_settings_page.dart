@@ -9,6 +9,7 @@ import 'keyframes_page.dart';
 import 'player_settings_page.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import 'settings_pane_scope.dart';
 
 class PlaybackSettingsPage extends ConsumerStatefulWidget {
   const PlaybackSettingsPage({super.key});
@@ -31,7 +32,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.playbackSettings)),
+      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.playbackSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [

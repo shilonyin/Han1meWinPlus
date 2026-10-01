@@ -1812,6 +1812,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorCustom => 'Custom';
 
   @override
+  String get colorCompassTitle => 'Theme color compass';
+
+  @override
+  String get colorCompassGuide =>
+      'Drag the wheel to pick hue and saturation, then adjust brightness. You can also type a hex value.';
+
+  @override
+  String get colorHex => 'Hex value';
+
+  @override
+  String get colorHexInvalid => 'Enter a 6-digit hex value';
+
+  @override
+  String get colorPreview => 'Preview color';
+
+  @override
+  String get colorApply => 'Apply color';
+
+  @override
   String get dynamicColor => 'Dynamic color';
 
   @override
@@ -1909,6 +1928,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get windowBackdropAcrylic => 'Acrylic (Windows 10)';
+
+  @override
+  String get glassSurface => 'Glass material';
+
+  @override
+  String get glassSurfaceDescription =>
+      'Frosted panels with edge refraction on cards and dialogs';
+
+  @override
+  String get glassTexture => 'Glass texture';
+
+  @override
+  String get glassOff => 'Off';
+
+  @override
+  String get glassFrosted => 'Frosted';
+
+  @override
+  String get glassClear => 'Clear';
+
+  @override
+  String get glassLiquid => 'Liquid glass';
+
+  @override
+  String get glassFrostOpacity => 'Frost opacity';
+
+  @override
+  String get glassOpacityLight => '20% · Airy';
+
+  @override
+  String get glassOpacitySolid => '100% · Solid';
 
   @override
   String get globalHotkeys => 'Global hotkeys';

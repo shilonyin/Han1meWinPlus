@@ -19,6 +19,7 @@ import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import 'download_picker_sheet.dart';
 import 'video_controller.dart';
+import '../../core/app_dialog.dart';
 
 /// 一个操作项（图标 / 文案 / 回调），悬浮工具条和侧栏操作排都用它
 class _VideoAction {
@@ -118,7 +119,7 @@ Future<void> _toggleFavorite(WidgetRef ref, VideoDetail video, String? token, St
 
 Future<void> _pickLocalPlaylist(BuildContext context, WidgetRef ref, VideoDetail video, LibraryState library) async {
   final selected = await showModalBottomSheet<String>(
-    context: context,
+    context: context, barrierColor: Colors.transparent,
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: ListView(
@@ -142,7 +143,7 @@ Future<void> _pickLocalPlaylist(BuildContext context, WidgetRef ref, VideoDetail
     await controller.saveToPlaylist(video, selected);
     return;
   }
-  final result = await showDialog<String>(context: context, builder: (_) => const _PlaylistNameDialog());
+  final result = await showAppDialog<String>(context: context, builder: (_) => const _PlaylistNameDialog());
   if (result?.isEmpty != false) return;
   await controller.createPlaylist(video, result!);
 }
@@ -150,7 +151,7 @@ Future<void> _pickLocalPlaylist(BuildContext context, WidgetRef ref, VideoDetail
 Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail video, String? token, RemoteLibrary? library) async {
   if (token == null) return;
   final selected = await showModalBottomSheet<String>(
-    context: context,
+    context: context, barrierColor: Colors.transparent,
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: ListView(
@@ -167,7 +168,7 @@ Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail vide
   if (selected == null) return;
   final settings = await ref.read(settingsProvider.future);
   if (selected == '__create__') {
-    final result = await showDialog<(String, String)>(context: context, builder: (_) => const _PlaylistEditorDialog());
+    final result = await showAppDialog<(String, String)>(context: context, builder: (_) => const _PlaylistEditorDialog());
     if (result == null || result.$1.isEmpty) return;
     await ref.read(han1meRepositoryProvider).createPlaylist(settings.resolvedBaseUrl, token, video.id, result.$1, result.$2);
   } else {

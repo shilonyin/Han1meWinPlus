@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import 'settings_controller.dart';
+import 'settings_pane_scope.dart';
+import 'settings_pane_scope.dart';
 
 class LanguageSettingsPage extends ConsumerWidget {
   const LanguageSettingsPage({super.key});
@@ -14,7 +16,7 @@ class LanguageSettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final current = ref.watch(settingsProvider).valueOrNull?.language ?? AppLanguage.system;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.languageSettings)),
+      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.languageSettings)),
       body: SettingsList(
         sections: [
           SettingsSection(

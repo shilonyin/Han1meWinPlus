@@ -17,6 +17,7 @@ import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import '../video/play_window.dart';
 import 'search_controller.dart';
+import '../../core/app_dialog.dart';
 
 const _searchColumns = 4;
 
@@ -391,7 +392,7 @@ class _MoreFiltersMenu extends StatelessWidget {
 
 enum _DateMode { range, month }
 
-Future<String?> _showDateFilter(BuildContext context, String currentDate, List<SearchOption> options, String locale) => showDialog<String>(
+Future<String?> _showDateFilter(BuildContext context, String currentDate, List<SearchOption> options, String locale) => showAppDialog<String>(
       context: context,
       builder: (context) => _DateFilterDialog(currentDate: currentDate, options: options, locale: locale),
     );
@@ -479,7 +480,7 @@ class _TagSelection {
   final bool broad;
 }
 
-Future<_TagSelection?> _showTagFilter(BuildContext context, List<String> selectedTags, bool broad, SearchOptionCatalog catalog, String locale) => showDialog<_TagSelection>(
+Future<_TagSelection?> _showTagFilter(BuildContext context, List<String> selectedTags, bool broad, SearchOptionCatalog catalog, String locale) => showAppDialog<_TagSelection>(
       context: context,
       builder: (context) => _TagFilterDialog(selectedTags: selectedTags, broad: broad, catalog: catalog, locale: locale),
     );

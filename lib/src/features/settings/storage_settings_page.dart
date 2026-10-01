@@ -19,6 +19,8 @@ import 'backup_settings_page.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import 'settings_pane_scope.dart';
+import '../../core/app_dialog.dart';
 
 /// 「存储」：下载、缓存与备份 —— 磁盘相关的设置都收在这里。
 class StorageSettingsPage extends ConsumerStatefulWidget {
@@ -54,7 +56,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final cacheSize = _cacheSize;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.storage)),
+      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.storage)),
       body: ListView(children: [
         SettingsCardList(title: l10n.downloadSettings, children: [
           SettingsCardItem(title: l10n.downloadPath, subtitle: settings.downloadPath, leading: const Icon(Symbols.folder_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _editDownloadPath(context, settings, controller)),
@@ -82,7 +84,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.privateDownloadPath)));
       return;
     }
-    final path = await showDialog<String>(context: context, builder: (_) => _PathDialog(title: AppLocalizations.of(context)!.downloadPath, initialPath: settings.downloadPath));
+    final path = await showAppDialog<String>(context: context, builder: (_) => _PathDialog(title: AppLocalizations.of(context)!.downloadPath, initialPath: settings.downloadPath));
     if (path == null) return;
     await controller.saveChanges((current) => current.copyWith(downloadPath: path));
   }
@@ -102,7 +104,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
   /// 清缓存：封面图的磁盘/内存缓存 + 列表卡片补全用的元数据缓存。
   Future<void> _clearCache() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.clearCache),

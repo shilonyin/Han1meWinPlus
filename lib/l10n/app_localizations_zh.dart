@@ -1757,6 +1757,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get colorCustom => '自定义';
 
   @override
+  String get colorCompassTitle => '主题色彩色罗盘';
+
+  @override
+  String get colorCompassGuide => '拖动罗盘选取色相与饱和度，再调整明暗。也可以直接输入色值。';
+
+  @override
+  String get colorHex => 'HEX 色值';
+
+  @override
+  String get colorHexInvalid => '请输入 6 位十六进制色值';
+
+  @override
+  String get colorPreview => '预览颜色';
+
+  @override
+  String get colorApply => '应用颜色';
+
+  @override
   String get dynamicColor => '动态配色';
 
   @override
@@ -1850,6 +1868,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get windowBackdropAcrylic => 'Acrylic（Windows 10）';
+
+  @override
+  String get glassSurface => '毛玻璃材质';
+
+  @override
+  String get glassSurfaceDescription => '卡片与弹层使用带边缘折射的磨砂面板';
+
+  @override
+  String get glassTexture => '玻璃质感';
+
+  @override
+  String get glassOff => '关闭';
+
+  @override
+  String get glassFrosted => '磨砂';
+
+  @override
+  String get glassClear => '超透';
+
+  @override
+  String get glassLiquid => '液体玻璃';
+
+  @override
+  String get glassFrostOpacity => '磨砂不透明度';
+
+  @override
+  String get glassOpacityLight => '20% · 轻盈';
+
+  @override
+  String get glassOpacitySolid => '100% · 纯粹';
 
   @override
   String get globalHotkeys => '全局热键';
@@ -4341,6 +4389,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get colorCustom => '自訂';
 
   @override
+  String get colorCompassTitle => '主題色彩色羅盤';
+
+  @override
+  String get colorCompassGuide => '拖動羅盤選取色相與飽和度，再調整明暗。也可以直接輸入色值。';
+
+  @override
+  String get colorHex => 'HEX 色值';
+
+  @override
+  String get colorHexInvalid => '請輸入 6 位十六進位色值';
+
+  @override
+  String get colorPreview => '預覽顏色';
+
+  @override
+  String get colorApply => '套用顏色';
+
+  @override
   String get dynamicColor => '動態配色';
 
   @override
@@ -4433,6 +4499,36 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get windowBackdropAcrylic => 'Acrylic（Windows 10）';
+
+  @override
+  String get glassSurface => '毛玻璃材質';
+
+  @override
+  String get glassSurfaceDescription => '卡片與彈層使用帶邊緣折射的磨砂面板';
+
+  @override
+  String get glassTexture => '玻璃質感';
+
+  @override
+  String get glassOff => '關閉';
+
+  @override
+  String get glassFrosted => '磨砂';
+
+  @override
+  String get glassClear => '超透';
+
+  @override
+  String get glassLiquid => '液體玻璃';
+
+  @override
+  String get glassFrostOpacity => '磨砂不透明度';
+
+  @override
+  String get glassOpacityLight => '20% · 輕盈';
+
+  @override
+  String get glassOpacitySolid => '100% · 純粹';
 
   @override
   String get globalHotkeys => '全域快捷鍵';

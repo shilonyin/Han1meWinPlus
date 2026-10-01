@@ -20,6 +20,9 @@ import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
 import 'site_diagnostics_page.dart';
 import 'site_groups_page.dart';
+import 'settings_pane_scope.dart';
+import 'settings_pane_scope.dart';
+import '../../core/app_dialog.dart';
 
 class NetworkSettingsPage extends ConsumerStatefulWidget {
   const NetworkSettingsPage({super.key});
@@ -43,7 +46,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.networkSettings)), body: ListView(children: [
+    return Scaffold(appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.networkSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.general, children: [
         SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Symbols.language_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => showSitePicker(context, ref, settings, onManageGroups: () => setState(() => _showSiteGroups = true))),
        SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Symbols.link_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
@@ -68,7 +71,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
   String _dohSummary(AppLocalizations l10n, AppSettings settings) => !settings.useDoh ? l10n.dohDisabled : settings.dohPreset == 'custom' ? settings.dohCustomUrl.ifEmpty(l10n.custom) : _dohPresets[settings.dohPreset]!;
 
   Future<void> _showMirrorSettings(BuildContext context, WidgetRef ref, AppSettings settings, SettingsController controller) async {
-    final result = await showDialog<_MirrorSettings>(context: context, builder: (_) => _MirrorSettingsDialog(settings: settings));
+    final result = await showAppDialog<_MirrorSettings>(context: context, builder: (_) => _MirrorSettingsDialog(settings: settings));
     if (result == null || result.enabled == settings.useCustomMirrorSite && result.url == settings.customMirrorSite && result.appendPath == settings.appendCustomMirrorPath) return;
     await controller.saveChanges((current) => current.copyWith(useCustomMirrorSite: result.enabled, customMirrorSite: result.url, appendCustomMirrorPath: result.appendPath));
     ref.invalidate(accountProvider);
@@ -76,7 +79,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
   }
 
   Future<void> _showDohSettings(BuildContext context, AppSettings settings, SettingsController controller) async {
-    final result = await showDialog<_DohSettings>(context: context, builder: (_) => _DohSettingsDialog(settings: settings));
+    final result = await showAppDialog<_DohSettings>(context: context, builder: (_) => _DohSettingsDialog(settings: settings));
     if (result != null) await controller.saveChanges((current) => current.copyWith(useDoh: result.enabled, useBuiltInHosts: result.enabled ? false : current.useBuiltInHosts, dohPreset: result.preset, dohCustomUrl: result.customUrl, dohBootstrapIps: result.bootstrapIps, dohTimeoutSeconds: result.timeoutSeconds));
   }
 
@@ -90,7 +93,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
   /// 与 WebView2（登录、Cloudflare 挑战），所以保存后要把三者都刷新一遍，
   /// 否则只有其中一部分跟随新设置。
   Future<void> _showProxySettings(BuildContext context, AppSettings settings, SettingsController controller) async {
-    final result = await showDialog<_ProxySettings>(context: context, builder: (_) => _ProxySettingsDialog(settings: settings));
+    final result = await showAppDialog<_ProxySettings>(context: context, builder: (_) => _ProxySettingsDialog(settings: settings));
     if (result == null) return;
     await controller.saveChanges((current) => current.copyWith(proxyMode: result.mode, customProxy: result.custom));
     await ConfiguredMediaKitVideoPlayer.refreshHttpProxy();

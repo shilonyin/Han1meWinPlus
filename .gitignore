@@ -23,3 +23,7 @@ android/workspace.json
 # 本机编辑工具生成的状态文件，不参与版本控制
 .dsh-edit-review.json
 .dsh-edit-review-archive.json
+
+# 截图与图像工具的临时产物
+.dsh_shots/
+.dsh-tool-vision/

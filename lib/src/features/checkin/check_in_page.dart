@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
 import 'check_in_controller.dart';
+import '../../core/app_dialog.dart';
 
 /// 类型对应的表情（与类型 id 一一对应，便于在日历/明细里一眼区分）。
 const Map<String, String> _typeEmoji = {'masturbation': '🤜', 'wetDream': '💤', 'sex': '👫', 'oral': '👅', 'other': '❓'};
@@ -164,8 +166,9 @@ class _MonthCalendar extends ConsumerWidget {
       );
     }
 
-    return Card(
-      color: scheme.surfaceContainerLow,
+    return GlassPanel(
+          borderRadius: BorderRadius.circular(18),
+          solidColor: scheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
         child: Column(
@@ -216,8 +219,9 @@ class _StatCard extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Card(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
+  Widget build(BuildContext context) => GlassPanel(
+          borderRadius: BorderRadius.circular(18),
+          solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(
@@ -236,7 +240,7 @@ class _StatCard extends StatelessWidget {
 /// 选择类型后写入一条记录（今天或补记某天）。
 Future<void> _addCheckIn(BuildContext context, WidgetRef ref, DateTime date) async {
   final l10n = AppLocalizations.of(context)!;
-  final type = await showDialog<String>(
+  final type = await showAppDialog<String>(
     context: context,
     builder: (context) => SimpleDialog(
       title: Text(l10n.checkInType),
@@ -265,7 +269,7 @@ Future<void> _openDay(BuildContext context, WidgetRef ref, DateTime date) async 
     grouped[record.type] = (grouped[record.type] ?? 0) + 1;
   }
   final isToday = dateKey == checkInDateKey(DateTime.now());
-  final action = await showDialog<String>(
+  final action = await showAppDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(isToday ? '${l10n.checkInToday} · ${date.month}/${date.day}' : '${date.month}/${date.day}'),

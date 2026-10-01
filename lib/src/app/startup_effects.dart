@@ -23,6 +23,7 @@ import '../data/local/update_installer.dart';
 import '../data/remote/update_checker.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
+import '../core/app_dialog.dart';
 
 class AppStartupEffects extends ConsumerStatefulWidget {
   const AppStartupEffects({
@@ -255,7 +256,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     final context = widget.navigatorKey.currentContext;
     if (context == null) return;
     final l10n = AppLocalizations.of(context)!;
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.newVersionAvailable(update.tagName)),
@@ -295,7 +296,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     bool useMirror,
   ) async {
     if (url.isEmpty) return;
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _StartupUpdateDownload(url: url, useMirror: useMirror),

@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/local/keyframe_repository.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import '../../core/app_dialog.dart';
 
 class KeyframesPage extends ConsumerWidget {
   const KeyframesPage({super.key});
@@ -101,7 +102,7 @@ class _KeyframeVideoTile extends ConsumerWidget {
 
   Future<void> _confirmDeleteVideo(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.deleteKeyframeTitle),
@@ -120,7 +121,7 @@ class _KeyframeVideoTile extends ConsumerWidget {
     final controller = TextEditingController(text: video.title);
     String? title;
     try {
-      title = await showDialog<String>(
+      title = await showAppDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
         title: Text(l10n.editVideoTitle),
@@ -148,7 +149,7 @@ class _KeyframeVideoTile extends ConsumerWidget {
     final controller = TextEditingController(text: position.toString());
     int? next;
     try {
-      next = await showDialog<int>(
+      next = await showAppDialog<int>(
         context: context,
         builder: (context) => AlertDialog(
         title: Text(l10n.editKeyframe),

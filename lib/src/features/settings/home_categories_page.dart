@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/video.dart';
@@ -73,9 +74,9 @@ class HomeCategoriesPage extends ConsumerWidget {
               itemBuilder: (context, index) => Padding(
                 key: ValueKey(selected[index]),
                 padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Material(
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
+                child: GlassPanel(
+   borderRadius: BorderRadius.circular(18),
+   solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                   child: ListTile(
                     dense: true,
                     leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded)),
@@ -100,9 +101,9 @@ class HomeCategoriesPage extends ConsumerWidget {
                     for (final raw in available)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Material(
-                          color: Theme.of(context).colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
+                        child: GlassPanel(
+   borderRadius: BorderRadius.circular(18),
+   solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                           child: ListTile(
                             dense: true,
                             enabled: !isFull,

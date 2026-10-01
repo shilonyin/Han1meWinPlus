@@ -17,7 +17,16 @@ import 'app_image_cache.dart';
 int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
     (cardWidth * devicePixelRatio).round().clamp(240, 480).toInt();
 
-const _horizontalCardMetaHeight = 120.0;
+/// 视频卡片统一圆角：卡片本体、封面切口与选中描边共用这一个值，
+/// 避免几处各写一个数字后慢慢走样。
+const videoCardRadius = 8.0;
+
+/// 封面下方详情区的预留高度：标题两行(40) + 间隙(2) + 作者(16) + 间隙(2) + 评分行(16)。
+///
+/// 原值是 120，比实际内容高出 40 多像素 —— 卡片底部会空出一大块，
+/// 加上投影之后看起来像"卡片下面还有一层"。这里收到贴近实际内容的高度，
+/// 卡片按真实内容收口（`_details` 自身 overflow 由外层 ClipRect 兜底）。
+const _horizontalCardMetaHeight = 84.0;
 
 /// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出两行空间。
 const _horizontalCardCompactMetaHeight = 78.0;
@@ -235,12 +244,14 @@ class VideoCardTile extends ConsumerWidget {
           constraints.maxWidth,
           MediaQuery.devicePixelRatioOf(context),
         );
+        final radius = BorderRadius.circular(videoCardRadius);
         return Material(
+          // 整张卡片一个**不透明纯色底**：封面和文字区同属这一层，不再分两截。
           color: selected
               ? theme.colorScheme.secondaryContainer
-              : Colors.transparent,
+              : theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: radius,
             side: selected
                 ? BorderSide(color: theme.colorScheme.primary, width: 2)
                 : BorderSide.none,
@@ -315,7 +326,12 @@ class VideoCardTile extends ConsumerWidget {
     VideoCard video,
   ) => RepaintBoundary(
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      // 只切上面两个角，和卡片顶部的圆角对齐。
+      // 底部也切圆角的话，封面下缘会从卡片底上"翘"起来一条缝隙，
+      // 看起来就像封面和文字是两块不同的底 —— 这是"两层感"的主要来源。
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(videoCardRadius),
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [

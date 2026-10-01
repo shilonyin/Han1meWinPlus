@@ -8,6 +8,7 @@ import '../../core/global_hotkeys.dart';
 import '../../core/player_hotkey_registry.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
+import 'settings_pane_scope.dart';
 
 /// 快捷键设置：应用内键位（播放页）与全局热键分开两组，点击条目就地捕获
 /// 新组合键；同组撞键、全局键缺修饰符都会被拦下并提示，底部一键恢复默认。
@@ -39,7 +40,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final bindings = settings.hotkeyBindings;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settingsHotkeys)),
+      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.settingsHotkeys)),
       body: ListView(
         children: [
           SettingsCardList(

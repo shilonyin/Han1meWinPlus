@@ -11,6 +11,7 @@ import '../explore/explore_controller.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'site_groups_page.dart';
+import 'settings_pane_scope.dart';
 
 /// 站点选择：默认站点与 AV 视频源放在同一个单选项弹层里。
 ///
@@ -78,7 +79,7 @@ class _RadioSettingsPage<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
+        appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(title)),
         body: SettingsList(
           sections: [
             SettingsSection(

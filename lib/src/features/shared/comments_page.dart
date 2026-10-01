@@ -13,6 +13,7 @@ import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../account/account_controller.dart';
 import 'app_image_cache.dart';
+import '../../core/app_dialog.dart';
 
 enum CommentSort { latest, earliest, mostReplies, mostLikes, mostDislikes }
 
@@ -81,7 +82,7 @@ class CommentsPage extends ConsumerWidget {
 
   Future<void> _writeComment(BuildContext context, WidgetRef ref, ({String id, String type}) target) async {
     final l10n = AppLocalizations.of(context)!;
-    final text = await showDialog<String>(context: context, builder: (_) => CommentEditor(title: l10n.writeComment, hint: l10n.commentHint));
+    final text = await showAppDialog<String>(context: context, builder: (_) => CommentEditor(title: l10n.writeComment, hint: l10n.commentHint));
     if (text == null || text.isEmpty) return;
     final page = ref.read(contentCommentsProvider(target)).valueOrNull;
     if (page?.csrfToken == null || page?.currentUserId == null) return;
@@ -145,7 +146,7 @@ class CommentCard extends ConsumerWidget {
   }
 
   Future<void> _reply(BuildContext context, WidgetRef ref) async {
-    final text = await showDialog<String>(context: context, builder: (_) => CommentEditor(title: AppLocalizations.of(context)!.replyComment));
+    final text = await showAppDialog<String>(context: context, builder: (_) => CommentEditor(title: AppLocalizations.of(context)!.replyComment));
     if (text == null || text.isEmpty || token == null) return;
     final settings = await ref.read(settingsProvider.future);
     await ref.read(han1meRepositoryProvider).replyComment(settings.resolvedBaseUrl, token!, comment.id, text);
@@ -156,7 +157,7 @@ class CommentCard extends ConsumerWidget {
     final settings = await ref.read(settingsProvider.future);
     final page = await ref.read(han1meRepositoryProvider).replies(settings.resolvedBaseUrl, comment.id);
     if (!context.mounted) return;
-    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: ListView.builder(itemCount: page.comments.length, itemBuilder: (context, index) => CommentCard(comment: page.comments[index], token: token, onChanged: onChanged))));
+    await showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: ListView.builder(itemCount: page.comments.length, itemBuilder: (context, index) => CommentCard(comment: page.comments[index], token: token, onChanged: onChanged))));
   }
 
   Future<void> _filterUser(WidgetRef ref) => ref.read(settingsProvider.notifier).saveChanges((current) => current.blockedCommentUsers.any((user) => user.toLowerCase() == comment.username.toLowerCase()) ? current : current.copyWith(blockedCommentUsers: [...current.blockedCommentUsers, comment.username]));
@@ -166,7 +167,7 @@ class CommentCard extends ConsumerWidget {
     if (token == null || account?.id == null) return;
     final reasons = await _reportReasons(context);
     if (!context.mounted || reasons.isEmpty) return;
-    final reason = await showDialog<String>(context: context, builder: (context) => SimpleDialog(title: Text(AppLocalizations.of(context)!.report), children: reasons.map((item) => SimpleDialogOption(onPressed: () => Navigator.pop(context, item), child: Text(item))).toList()));
+    final reason = await showAppDialog<String>(context: context, builder: (context) => SimpleDialog(title: Text(AppLocalizations.of(context)!.report), children: reasons.map((item) => SimpleDialogOption(onPressed: () => Navigator.pop(context, item), child: Text(item))).toList()));
     if (reason == null) return;
     final settings = await ref.read(settingsProvider.future);
     await ref.read(han1meRepositoryProvider).reportComment(settings.resolvedBaseUrl, token!, account!.id!, comment, reason);

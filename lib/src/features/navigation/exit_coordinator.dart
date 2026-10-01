@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_dialog.dart';
 
 class AppExitCoordinator {
   var _dialogOpen = false;
@@ -25,7 +26,7 @@ class AppExitCoordinator {
     _dialogOpen = true;
     try {
       final l10n = AppLocalizations.of(context)!;
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAppDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.confirmExitTitle),

@@ -12,6 +12,7 @@ import '../../core/settings.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
+import 'settings_pane_scope.dart';
 
 class WebDavSettingsPage extends ConsumerStatefulWidget {
   const WebDavSettingsPage({super.key});
@@ -31,7 +32,7 @@ class _WebDavSettingsPageState extends ConsumerState<WebDavSettingsPage> {
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavSettings)), body: ListView(children: [SettingsCardList(title: l10n.webDav, children: [
+    return Scaffold(appBar: embeddedInSettingsPanes(context) ? null : AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavSettings)), body: ListView(children: [SettingsCardList(title: l10n.webDav, children: [
       SettingsCardItem(title: l10n.webDavSync, leading: const Icon(Symbols.cloud_sync_rounded), trailing: Switch(value: settings.webDavEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(webDavEnabled: value, webDavHistorySync: value ? current.webDavHistorySync : false, webDavFavoriteSync: value ? current.webDavFavoriteSync : false)))),
       SettingsCardItem(title: l10n.watchHistorySync, leading: const Icon(Symbols.history_rounded), trailing: Switch(value: settings.webDavHistorySync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavHistorySync: value)) : null)),
       SettingsCardItem(title: l10n.favoriteSync, leading: const Icon(Symbols.favorite_rounded), trailing: Switch(value: settings.webDavFavoriteSync, onChanged: settings.webDavEnabled ? (value) => controller.saveChanges((current) => current.copyWith(webDavFavoriteSync: value)) : null)),

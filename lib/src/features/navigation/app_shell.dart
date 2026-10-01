@@ -122,8 +122,8 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
                         extended: railExpanded,
                         labelType: railExpanded ? NavigationRailLabelType.all : NavigationRailLabelType.none,
                         minWidth: railExpanded ? 192 : 72,
-                        // 与常驻窄侧栏一致：靠色块深浅区分侧栏和内容，不画分隔线。
-                        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                        // 与常驻窄侧栏一致：整块透出背景画布，靠圆形指示器和文字颜色区分选中。
+                        backgroundColor: Colors.transparent,
                         onDestinationSelected: select,
                         destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon, fill: 1), label: Text(destination.label))).toList(),
                       ),
@@ -293,8 +293,8 @@ class _CompactNavigationRail extends ConsumerWidget {
     final comicMode = ref.watch(settingsProvider).valueOrNull?.comicMode ?? false;
     final sections = _drawerSections(context, comicMode: comicMode, previewSource: ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto');
     final path = GoRouterState.of(context).uri.path;
-    final colorScheme = Theme.of(context).colorScheme;
-    // 侧栏与内容区之间不画分隔线，改用色块深浅区分（比内容区深/浅一档）。
+    // 侧栏与内容区之间不画分隔线，也不铺自己的底色：整块透出背景画布，
+    // 否则最左边会是一块不跟随主题的实色。
     // AMOLED 下所有 surface 都是纯黑，再加一层极淡的白叠出可分度；
     // 这个叠加只该出现在深色主题下（见 [AppSettings.amoledApplies]）。
     final amoledActive =
@@ -302,7 +302,9 @@ class _CompactNavigationRail extends ConsumerWidget {
           Theme.of(context).brightness,
         ) ??
         false;
-    final railColor = amoledActive ? Colors.white.withValues(alpha: 0.04) : colorScheme.surfaceContainer;
+    // 侧栏同样让出底色：Scaffold 已透明，这里再铺一层实色，
+    // 最左边就会是一块不跟随主题/画布的白色，和右边的渐变对不上。
+    final railColor = amoledActive ? Colors.white.withValues(alpha: 0.04) : Colors.transparent;
     // 桌面窄侧栏分两段（与参考布局一致）：
     //   上段 = 主项（首页 / 新番预告 / 冲了么）
     //   下段 = 「我的」（头像打头）+ 观看历史 / 下载 + 主题模式 + 设置

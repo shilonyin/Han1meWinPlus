@@ -11,10 +11,11 @@ import '../shared/comments_page.dart' show CommentCard, CommentEditor, CommentSo
 import 'comment_episode_dialog.dart';
 import 'comments_controller.dart';
 import 'video_controller.dart';
+import '../../core/app_dialog.dart';
 
 Future<void> writeSelectedVideoComment(BuildContext context, WidgetRef ref, String parentVideoId) async {
   final id = ref.read(selectedCommentVideoIdProvider(parentVideoId));
-  final text = await showDialog<String>(context: context, builder: (_) => CommentEditor(title: AppLocalizations.of(context)!.writeComment));
+  final text = await showAppDialog<String>(context: context, builder: (_) => CommentEditor(title: AppLocalizations.of(context)!.writeComment));
   final page = ref.read(commentsProvider(id)).valueOrNull;
   if (text == null || text.isEmpty || page?.csrfToken == null || page?.currentUserId == null) return;
   final settings = await ref.read(settingsProvider.future);

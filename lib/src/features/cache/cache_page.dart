@@ -12,6 +12,7 @@ import 'cache_cards.dart';
 import 'cache_folder_page.dart';
 import 'cache_format.dart';
 import 'download_group_page.dart';
+import '../../core/app_dialog.dart';
 
 /// 缓存管理页的分栏宽度上限。
 ///
@@ -147,7 +148,7 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
 
   Future<void> _deleteSelected() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.deleteSelectedCache),

@@ -7,6 +7,7 @@ import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../settings/settings_card_list.dart';
 import 'cache_format.dart';
+import '../../core/app_dialog.dart';
 
 /// 打开分组设置弹窗。
 ///
@@ -19,7 +20,7 @@ Future<void> showGroupEditor(BuildContext context, WidgetRef ref, {String? group
   // 分组已经被删掉时不再弹空壳。
   if (groupId != null && group == null) return;
   if (!context.mounted) return;
-  await showDialog<void>(
+  await showAppDialog<void>(
     context: context,
     builder: (context) => _GroupEditorDialog(group: group),
   );
@@ -134,7 +135,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
   }
 
   Future<void> _delete(DownloadGroup group, AppLocalizations l10n) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.deleteGroup),

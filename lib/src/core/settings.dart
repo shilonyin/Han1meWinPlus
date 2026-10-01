@@ -52,6 +52,17 @@ enum MpvGpuApi { auto, vulkan, d3d11 }
 /// 序列化按枚举名保存，新值只能往后追加。
 enum WindowBackdrop { none, mica, acrylic }
 
+/// 玻璃质感（卡片与弹层的磨砂面板）。四档 = **三种渲染 + 一种关闭**：
+/// - `off`     关闭：卡片走纯色底
+/// - `frosted` 磨砂：纯模糊，不折射
+/// - `clear`   超透：很低的模糊 + 更高的透明度，能看清底下的画布
+/// - `liquid`  液体玻璃：边缘折射 + 光照跟随（着色器）
+///
+/// 档位**直接决定是否启用**（不再有单独的开关）—— 原来拆成「开关 + 档位」两个控件，
+/// 开关关着时档位形同虚设，切了看不出任何变化。
+/// 序列化按枚举名保存，新值只能往后追加。
+enum GlassQuality { off, frosted, clear, liquid }
+
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
@@ -79,7 +90,7 @@ const defaultDownloadPath = '';
 
 class AppSettings {
   const AppSettings({
-    this.themeMode = AppThemeMode.system,
+    this.themeMode = AppThemeMode.light,
     this.baseUrl = 'https://hanime1.com',
     this.preferredQuality = 720,
     this.resumePlayback = true,
@@ -95,7 +106,7 @@ class AppSettings {
     this.superResolutionMode = SuperResolutionMode.off,
     this.autoUpdate = true,
     this.useUpdateMirror = true,
-    this.themeColor = AppThemeColor.purple,
+    this.themeColor = AppThemeColor.white,
     this.customThemeColor = '62539F',
     this.useMonetColors = false,
     this.amoledMode = false,
@@ -144,6 +155,9 @@ class AppSettings {
     this.hotkeyBindings = const {},
     this.hotkeyDefaultsMigrated = false,
     this.windowBackdrop = WindowBackdrop.none,
+    this.glassSurfaceEnabled = false,
+    this.glassSurfaceOpacity = .5,
+    this.glassQuality = GlassQuality.frosted,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
     this.localMediaDirectory = '',
@@ -272,6 +286,16 @@ class AppSettings {
 
   /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
   final WindowBackdrop windowBackdrop;
+
+  /// 界面是否使用毛玻璃材质（`LiquidGlassSurface`）。默认关闭：它要采样背景，
+  /// 在列表密集滚动时比纯色卡片更耗，且需要 Impeller 后端才有折射效果。
+  final bool glassSurfaceEnabled;
+
+  /// 毛玻璃面板的不透明度（0.2–1.0）。越低越透，越能看出底下的画布渐变。
+  final double glassSurfaceOpacity;
+
+  /// 磨砂面板的质感档位（磨砂 / 超透 / 液体玻璃）。
+  final GlassQuality glassQuality;
 
   /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
   final bool notificationsEnabled;
@@ -421,6 +445,9 @@ class AppSettings {
     'hotkeyBindings': hotkeyBindings,
     'hotkeyDefaultsMigrated': hotkeyDefaultsMigrated,
     'windowBackdrop': windowBackdrop.name,
+    'glassSurfaceEnabled': glassSurfaceEnabled,
+    'glassSurfaceOpacity': glassSurfaceOpacity,
+    'glassQuality': glassQuality.name,
     'notificationsEnabled': notificationsEnabled,
     'gpuApi': gpuApi.name,
     'localMediaDirectory': localMediaDirectory,
@@ -561,6 +588,14 @@ class AppSettings {
     windowBackdrop:
         _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ??
         WindowBackdrop.none,
+    glassSurfaceEnabled: json['glassSurfaceEnabled'] as bool? ?? false,
+    glassSurfaceOpacity: (json['glassSurfaceOpacity'] as num?)?.toDouble().clamp(.2, 1) ?? .5,
+    // 老配置是「开关 + 档位」两个字段：开关关着 → off，开着 → 保留原档位（液体玻璃）。
+    // 两个字段都没有（全新配置）→ 用新的默认档位「磨砂」。
+    glassQuality: _enumByName(GlassQuality.values, json['glassQuality'] as String?) ??
+        (json.containsKey('glassSurfaceEnabled')
+            ? ((json['glassSurfaceEnabled'] as bool? ?? false) ? GlassQuality.liquid : GlassQuality.off)
+            : GlassQuality.frosted),
     notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
     gpuApi:
         _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ??
@@ -616,12 +651,12 @@ class AppSettings {
     for (final mode in AppThemeMode.values) {
       if (mode.name == name) return mode;
     }
-    return AppThemeMode.system;
+    return AppThemeMode.light;
   }
 
   static AppThemeColor _themeColor(String? name) =>
       AppThemeColor.values.where((value) => value.name == name).firstOrNull ??
-      AppThemeColor.purple;
+      AppThemeColor.white;
 
   static AppLanguage _language(String? name) =>
       AppLanguage.values.where((value) => value.name == name).firstOrNull ??
@@ -740,6 +775,9 @@ class AppSettings {
     Map<String, String>? hotkeyBindings,
     bool? hotkeyDefaultsMigrated,
     WindowBackdrop? windowBackdrop,
+    bool? glassSurfaceEnabled,
+    double? glassSurfaceOpacity,
+    GlassQuality? glassQuality,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
     String? localMediaDirectory,
@@ -840,6 +878,9 @@ class AppSettings {
     hotkeyDefaultsMigrated:
         hotkeyDefaultsMigrated ?? this.hotkeyDefaultsMigrated,
     windowBackdrop: windowBackdrop ?? this.windowBackdrop,
+    glassSurfaceEnabled: glassSurfaceEnabled ?? this.glassSurfaceEnabled,
+    glassSurfaceOpacity: glassSurfaceOpacity ?? this.glassSurfaceOpacity,
+    glassQuality: glassQuality ?? this.glassQuality,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     gpuApi: gpuApi ?? this.gpuApi,
     localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,

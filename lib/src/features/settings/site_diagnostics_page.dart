@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/remote/address_ranker.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -205,10 +206,11 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final preferredMs = ranked[preferred] ?? measured[preferred]?.milliseconds;
     final fastest = addresses.map((address) => measured[address]?.ok == true ? measured[address]!.milliseconds : ranked[address]).whereType<int>().fold<int?>(null, (best, value) => best == null || value < best ? value : best);
 
-    return Container(
+    return GlassPanel(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
+          borderRadius: BorderRadius.circular(18),
+          solidColor: scheme.surfaceContainerLow,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(_addressGroupLabel(l10n, host), style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
@@ -240,10 +242,11 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
   Widget _card(BuildContext context, {required IconData icon, required Color color, required String title, required String? measurement, required String status, required String detail, required String? suggestion}) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Container(
+    return GlassPanel(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
+          borderRadius: BorderRadius.circular(18),
+          solidColor: scheme.surfaceContainerLow,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: color.withValues(alpha: .14), shape: BoxShape.circle), child: Icon(icon, size: 20, color: color)),

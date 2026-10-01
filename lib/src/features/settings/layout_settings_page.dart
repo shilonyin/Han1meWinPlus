@@ -12,6 +12,7 @@ import 'recommendation_settings_page.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import 'settings_pane_scope.dart';
 
 class LayoutSettingsPage extends ConsumerStatefulWidget {
   const LayoutSettingsPage({super.key});
@@ -32,7 +33,7 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.interfaceLayout)), body: ListView(children: [
+    return Scaffold(appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.interfaceLayout)), body: ListView(children: [
       SettingsCardList(title: l10n.general, children: [
         SettingsCardItem(title: l10n.navigationDrawer, subtitle: l10n.navigationDrawerDescription, leading: const Icon(Symbols.menu_open_rounded), trailing: Switch(value: settings.useNavigationDrawer, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useNavigationDrawer: value)))),
         SettingsCardItem(title: l10n.comicMode, subtitle: l10n.comicModeDescription, leading: const Icon(Symbols.menu_book_rounded), trailing: Switch(value: settings.comicMode, onChanged: (value) async { await controller.saveChanges((current) => current.copyWith(comicMode: value, baseUrl: value ? 'https://hanimeone.me' : current.videoBaseUrl, videoBaseUrl: value ? current.baseUrl : current.videoBaseUrl)); resetHomeFeed(ref); })),

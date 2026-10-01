@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_dialog.dart';
 import '../../../l10n/app_localizations.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../data/local/site_group_store.dart';
 import '../../data/remote/jav/jav_site.dart';
 import 'option_settings_dialog.dart';
@@ -76,7 +78,7 @@ class SiteGroupsPage extends ConsumerWidget {
             itemBuilder: (context, index) => Padding(
               key: ValueKey(groups[index].id),
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Material(color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(12), child: _groupCard(context, ref, groups, index, l10n)),
+              child: GlassPanel(borderRadius: BorderRadius.circular(18), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
             ),
           ),
         ),
@@ -137,7 +139,7 @@ class SiteGroupsPage extends ConsumerWidget {
   /// （否则下次读取时「自动归类」又会把它加回来，看起来像删不掉）。
   Future<void> _delete(BuildContext context, WidgetRef ref, List<SiteGroup> groups, int index) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.delete),
@@ -175,7 +177,7 @@ class SiteGroupsPage extends ConsumerWidget {
   Future<String?> _askName(BuildContext context, {required String title, String initial = ''}) async {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: initial);
-    final result = await showDialog<String>(
+    final result = await showAppDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),

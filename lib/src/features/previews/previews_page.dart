@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -181,8 +182,9 @@ class _MonthNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+    return GlassPanel(
+          borderRadius: BorderRadius.circular(18),
+          solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
@@ -271,10 +273,9 @@ class _PreviewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
+    return GlassPanel(
+          solidColor: theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
         onTap: () => openVideo(context, ref, item.id),

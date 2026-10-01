@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
+import '../../core/app_dialog.dart';
 
 class AndroidCastButton extends ConsumerWidget {
   const AndroidCastButton({super.key, required this.sources, required this.quality});
@@ -40,7 +41,7 @@ class AndroidCastButton extends ConsumerWidget {
     try {
       final session = await manager.start();
       var devices = <dynamic>[];
-      await showDialog<void>(
+      await showAppDialog<void>(
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setState) {

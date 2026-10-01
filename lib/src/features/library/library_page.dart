@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/local/library_repository.dart';
@@ -21,6 +22,7 @@ import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
 import 'remote_library_controller.dart';
+import '../../core/app_dialog.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key, this.initialTab = 0});
@@ -229,7 +231,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
   void _exitSelection() => setState(() { _selectionMode = false; _selected.clear(); });
 
   Future<void> _deleteSelected() async {
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
     if (confirmed != true) return;
     await ref.read(watchProvider.notifier).deleteHistories(_selected);
     if (mounted) setState(() { _selectionMode = false; _selected.clear(); });
@@ -343,11 +345,13 @@ class _ArtistStripCard extends StatelessWidget {
     final hasAvatar = avatarUrl?.isNotEmpty == true;
     return SizedBox(
       width: 96,
-      child: Material(
-        color: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: selected ? BorderSide(color: theme.colorScheme.primary, width: 2) : BorderSide.none),
+      child: GlassPanel(
+        solidColor: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerLow,
+        border: selected ? BorderSide(color: theme.colorScheme.primary, width: 2) : null,
+        glassEnabled: !selected,
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           onLongPress: onLongPress,
           child: Padding(
@@ -404,7 +408,7 @@ class _LocalPlaylistCard extends StatelessWidget {
   final Playlist playlist;
 
   @override
-  Widget build(BuildContext context) => _PlaylistGridCard(playlist: playlist, onTap: () => showModalBottomSheet<void>(context: context, showDragHandle: true, isScrollControlled: true, builder: (context) => _LocalPlaylistItemsSheet(playlist: playlist)));
+  Widget build(BuildContext context) => _PlaylistGridCard(playlist: playlist, onTap: () => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, isScrollControlled: true, builder: (context) => _LocalPlaylistItemsSheet(playlist: playlist)));
 }
 
 class _Playlists extends ConsumerWidget {
@@ -438,7 +442,7 @@ class _Playlists extends ConsumerWidget {
   }
 
   Future<void> _createPlaylist(BuildContext context, WidgetRef ref, String token) async {
-    final result = await showDialog<(String, String)>(context: context, builder: (_) => const _CreatePlaylistDialog());
+    final result = await showAppDialog<(String, String)>(context: context, builder: (_) => const _CreatePlaylistDialog());
     if (result == null || result.$1.isEmpty) return;
     final settings = await ref.read(settingsProvider.future);
     await ref.read(han1meRepositoryProvider).createPlaylist(settings.resolvedBaseUrl, token, '', result.$1, result.$2);
@@ -530,7 +534,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
   Future<void> _deleteSelected() async {
     final token = widget.token;
     if (token == null) return;
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
     if (confirmed != true) return;
     final settings = await ref.read(settingsProvider.future);
     for (final id in _selected) {
@@ -552,7 +556,7 @@ class _PlaylistCard extends ConsumerStatefulWidget {
 class _PlaylistCardState extends ConsumerState<_PlaylistCard> {
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.deletePlaylist), content: Text(l10n.deletePlaylistConfirmation(widget.playlist.title)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.deletePlaylist), content: Text(l10n.deletePlaylistConfirmation(widget.playlist.title)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
     final account = ref.read(accountProvider).valueOrNull;
     if (confirmed != true || account?.csrfToken == null) return;
     final settings = await ref.read(settingsProvider.future);
@@ -664,7 +668,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
   void _changeSort(String value) => setState(() { _sort = value; _playlist = _load(); });
 
   Future<void> _edit(PlaylistDetail playlist) async {
-    final result = await showDialog<(String, String, bool)>(context: context, builder: (_) => _PlaylistEditDialog(playlist: playlist));
+    final result = await showAppDialog<(String, String, bool)>(context: context, builder: (_) => _PlaylistEditDialog(playlist: playlist));
     if (result == null) return;
     final account = ref.read(accountProvider).valueOrNull;
     if (account?.csrfToken == null) return;
@@ -691,7 +695,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
       setState(() => _editing = false);
       return;
     }
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selectedItems.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selectedItems.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
     final account = ref.read(accountProvider).valueOrNull;
     if (confirmed != true || account?.csrfToken == null) return;
     final settings = await ref.read(settingsProvider.future);
@@ -823,7 +827,7 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
 
   Future<void> _deleteSelected() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.delete), content: Text(l10n.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.delete), content: Text(l10n.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
     if (confirmed != true || !mounted) return;
     await widget.remover(ref, _selected);
     if (mounted) setState(() { _selectionMode = false; _selected.clear(); });

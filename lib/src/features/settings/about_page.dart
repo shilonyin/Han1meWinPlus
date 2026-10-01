@@ -6,11 +6,14 @@ import 'package:dio/dio.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_dialog.dart';
 import '../../core/app_identity.dart';
 import '../../core/app_info.dart';
 import '../../data/remote/update_checker.dart';
 import '../../data/local/update_installer.dart';
+import '../shared/glass/glass_panel.dart';
 import '../shared/app_toast.dart';
+import 'settings_pane_scope.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
 
@@ -44,7 +47,7 @@ class AboutPage extends ConsumerWidget {
       ],
     );
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.aboutTitle)),
+      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.aboutTitle)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 20),
         children: [
@@ -103,7 +106,7 @@ class AboutPage extends ConsumerWidget {
       return;
     }
     final notes = release.body.trim();
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('${l10n.changelog} · ${release.tagName}'),
@@ -119,7 +122,7 @@ class AboutPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAcknowledgements(BuildContext context, AppLocalizations l10n) => showDialog<void>(
+  Future<void> _showAcknowledgements(BuildContext context, AppLocalizations l10n) => showAppDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.acknowledgements),
@@ -145,7 +148,7 @@ class AboutPage extends ConsumerWidget {
       }
       return;
     }
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.newVersionAvailable(update.tagName)),
@@ -277,12 +280,9 @@ class _AboutRow extends StatelessWidget {
   final double bottomRadius;
 
   @override
-  Widget build(BuildContext context) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(topRadius), bottom: Radius.circular(bottomRadius)),
-        ),
+  Widget build(BuildContext context) => GlassPanel(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(topRadius), bottom: Radius.circular(bottomRadius)),
+        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
         child: Material(type: MaterialType.transparency, child: child),
       );
 }

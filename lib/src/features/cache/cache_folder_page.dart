@@ -8,6 +8,7 @@ import '../../domain/models/download.dart';
 import 'cache_cards.dart';
 import 'cache_format.dart';
 import 'download_group_page.dart';
+import '../../core/app_dialog.dart';
 
 /// 网格里单张卡片的目标宽度区间。
 ///
@@ -137,7 +138,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
     final l10n = AppLocalizations.of(context)!;
     final controller = ref.read(downloadProvider.notifier);
     final action = await showModalBottomSheet<String>(
-      context: context,
+      context: context, barrierColor: Colors.transparent,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Column(
@@ -172,7 +173,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
 
   Future<void> _deleteOne(DownloadTask task) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.deleteCache),
@@ -189,7 +190,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
 
   Future<void> _deleteSelected() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.deleteSelectedCache),

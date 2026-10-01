@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
+import '../../core/app_dialog.dart';
 
 Future<VideoCard?> showCommentEpisodeDialog(
   BuildContext context, {
   required List<VideoCard> episodes,
   required String selectedId,
 }) =>
-    showDialog<VideoCard>(
+    showAppDialog<VideoCard>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.episodeList),

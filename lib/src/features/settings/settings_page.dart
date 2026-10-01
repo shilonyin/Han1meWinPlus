@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
+import '../shared/glass/glass_panel.dart';
 import 'about_page.dart';
 import 'comment_settings_page.dart';
 import 'hotkey_settings_page.dart';
@@ -15,13 +16,16 @@ import 'playback_settings_page.dart';
 import 'selection_settings_pages.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
+import 'settings_pane_scope.dart';
 import 'storage_settings_page.dart';
 import 'theme_settings_page.dart';
 import 'webdav_settings_page.dart';
 
+/// 左栏分组卡片的圆角：与右侧设置卡片的外层圆角一致，两边是同一套造型。
+const double _navGroupRadius = 20;
+
 /// One entry in the settings navigation, used by both layouts.
-class _SettingsEntry {
-  const _SettingsEntry(this.icon, this.label, this.page, this.route);
+class _SettingsEntry {  const _SettingsEntry(this.icon, this.label, this.page, this.route);
 
   final IconData icon;
   final String label;
@@ -136,7 +140,7 @@ class SettingsPage extends StatelessWidget {
 
   /// Below this width the two panes do not fit, so the categories fall back to
   /// a plain pushed list.
-  static const double minPaneWidth = 760;
+  static const double minPaneWidth = settingsPaneMinWidth;
 
   @override
   Widget build(BuildContext context) =>
@@ -179,26 +183,44 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                     child: Semantics(
                       header: true,
                       child: DefaultTextStyle.merge(
-                        // 分组标题用中性强文本色：主题色要留给「选中 / 悬停」的条目，
-                        // 两者同色时分不清哪个是分类、哪个是当前页。
+                        // 与右侧卡片的分组标题（「外观 / 窗口」）同一种样式：主题色小字 + 半粗。
                         style: textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSurface,
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                         child: Text(sections[group].$1),
                       ),
                     ),
                   ),
-                  for (var item = 0; item < sections[group].$2.length; item++)
-                    _NavItem(
-                      icon: sections[group].$2[item].icon,
-                      label: sections[group].$2[item].label,
-                      selected: group == _group && item == _item,
-                      onTap: () => setState(() {
-                        _group = group;
-                        _item = item;
-                      }),
+                  // 同一分组的条目共用**一整块底色**，和右侧设置卡片是同一套造型
+                  // （圆角一致、底色一致），两侧因此看起来是一个界面而不是两种设计。
+                  // 选中态仍由条目自己的文字/图标变色表达，卡片只负责"这几条属于一组"。
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    // 用共用的 GlassPanel：左右两栏走同一套质感，
+                    // 改玻璃档位时整个设置页一起变，而不是只有右栏。
+                    child: GlassPanel(
+                      borderRadius: BorderRadius.circular(_navGroupRadius),
+                      child: Column(
+                        children: [
+                          for (
+                            var item = 0;
+                            item < sections[group].$2.length;
+                            item++
+                          )
+                            _NavItem(
+                              icon: sections[group].$2[item].icon,
+                              label: sections[group].$2[item].label,
+                              selected: group == _group && item == _item,
+                              onTap: () => setState(() {
+                                _group = group;
+                                _item = item;
+                              }),
+                            ),
+                        ],
+                      ),
                     ),
+                  ),
                 ],
               ],
             ),
@@ -240,60 +262,59 @@ class _NavItemState extends State<_NavItem> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    // 选中与悬停都靠「左侧竖条 + 文字/图标变色」表示，不铺底色块 —— 底色块比图标还抢眼。
+    // 选中与悬停都靠「文字 / 图标变主题色」表示。
+    // 底色由所属的**分组卡片**统一提供，条目自己不再铺色 ——
+    // 分组底色上再叠一层条目底色，反而看不出"这几条属于一组"。
     final highlighted = widget.selected || _hovered;
     final foreground = highlighted
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(28),
-          // 不能出现矩形水波纹，否则悬停/点击会冒出底色块。
-          hoverColor: Colors.transparent,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              children: [
-                // 选中竖条：常驻占位，避免选中时内容左右跳动。
-                SizedBox(
-                  width: 3,
-                  child: widget.selected
-                      ? Center(
-                          child: Container(
-                            width: 3,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(10),
+        // 不能出现矩形水波纹，否则悬停/点击会在分组底色上再冒一块。
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: SizedBox(
+          height: 50,
+          child: Row(
+            children: [
+              // 选中竖条：常驻占位，避免选中时内容左右跳动。
+              SizedBox(
+                width: 3,
+                child: widget.selected
+                    ? Center(
+                        child: Container(
+                          width: 3,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 13),
-                Icon(widget.icon, size: 24, color: foreground),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: textTheme.labelLarge?.copyWith(
-                      color: foreground,
-                      fontWeight: widget.selected ? FontWeight.w600 : null,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 13),
+              Icon(widget.icon, size: 22, color: foreground),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: widget.selected ? FontWeight.w600 : null,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 12),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+            ],
           ),
         ),
       ),

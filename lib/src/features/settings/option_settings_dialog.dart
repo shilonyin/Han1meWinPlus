@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_dialog.dart';
 
 /// 单选项分组：给「站点」这种既有 Hanime1 系、又有 AV 视频源的列表加一层分类，
 /// 每组的标题可以点击折叠。
@@ -34,7 +35,7 @@ Future<T?> showOptionSettingsDialog<T>({
   Widget? footer,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  return showDialog<T>(
+  return showAppDialog<T>(
     context: context,
     builder: (context) {
       final scheme = Theme.of(context).colorScheme;

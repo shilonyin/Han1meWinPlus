@@ -8,7 +8,7 @@ import '../../domain/models/search_query.dart';
 import 'search_controller.dart';
 
 Future<SearchQuery?> showSearchHistorySheet(BuildContext context, WidgetRef ref) => showModalBottomSheet<SearchQuery>(
-      context: context,
+      context: context, barrierColor: Colors.transparent,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) => const _SearchHistorySheet(),

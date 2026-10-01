@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import '../../domain/series_name.dart';
+import '../../core/app_dialog.dart';
 
 /// 用户在下载弹窗里确认后的选择。
 class DownloadPickerResult {
@@ -52,9 +53,8 @@ Future<DownloadPickerResult?> showDownloadPickerSheet(
   required bool initialTraditional,
   required Set<String> groupNames,
 }) =>
-    showDialog<DownloadPickerResult>(
+    showAppDialog<DownloadPickerResult>(
       context: context,
-      barrierColor: Colors.transparent,
       builder: (_) => DownloadPickerSheet(
         sources: sources,
         episodes: episodes,

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/app_motion.dart';
+import '../shared/glass/glass_panel.dart';
 
 /// Settings list primitives.
 ///
@@ -7,10 +11,12 @@ import 'package:flutter/material.dart';
 /// radius. Content is centred with a maximum width so settings do not stretch
 /// across a wide desktop window.
 const double settingsListMaxWidth = 1000;
-const double _groupOuterRadius = 16;
-const double _groupInnerRadius = 4;
-const double _rowGap = 4;
-const Duration _pressDuration = Duration(milliseconds: 250);
+// 参考 morrow（明隙）：大圆角 + 更宽的卡片间距，靠"一块块浮起来的卡片"分区。
+// 每张卡片四角**统一** —— 卡片之间有 `_rowGap` 间隙，本来就是独立的块，
+// 再按分组给首尾大、中间小的圆角，只会看起来像圆角没对齐。
+const double _cardRadius = 18;
+const double _rowGap = 6;
+const Duration _pressDuration = AppMotion.emphasis;
 
 /// Scrollable list of [SettingsSection]s.
 class SettingsList extends StatelessWidget {
@@ -315,63 +321,35 @@ class _SplitListGroup extends StatelessWidget {
         children: [
           for (var i = 0; i < children.length; i++) ...[
             if (i > 0) const SizedBox(height: _rowGap),
-            _SplitListRow(
-              topRadius: i == 0 ? _groupOuterRadius : _groupInnerRadius,
-              bottomRadius: i == children.length - 1 ? _groupOuterRadius : _groupInnerRadius,
-              child: children[i],
-            ),
+            _SplitListRow(child: children[i]),
           ],
         ],
       );
 }
 
-class _SplitListRow extends StatefulWidget {
-  const _SplitListRow({required this.child, required this.topRadius, required this.bottomRadius});
+class _SplitListRow extends StatelessWidget {
+  const _SplitListRow({required this.child});
 
   final Widget child;
-  final double topRadius;
-  final double bottomRadius;
 
   /// Tiles forward their InkWell highlight here so the row can animate its
   /// shape as well as its colour.
   static ValueChanged<bool>? pressReporterOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<_SplitRowScope>()?.onPressChanged;
 
   @override
-  State<_SplitListRow> createState() => _SplitListRowState();
-}
-
-class _SplitListRowState extends State<_SplitListRow> {
-  var _pressed = false;
-
-  void _reportPress(bool pressed) {
-    if (mounted) setState(() => _pressed = pressed);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final duration = MediaQuery.disableAnimationsOf(context) ? Duration.zero : _pressDuration;
-    // 只给「按下时圆角变化」做动画：底色必须直接用当前主题色，**不能**放进
-    // AnimatedContainer 里补间 —— 否则切换主题时页面瞬间换色、这组卡片却要 250ms
-    // 后才跟上，看起来就是一半浅、一半深（用户报的「底色切换异常」）。
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: _pressed ? 1 : 0),
-      duration: duration,
-      curve: Curves.easeInOutCubic,
-      builder: (context, t, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(widget.topRadius + (_groupOuterRadius - widget.topRadius) * t),
-            bottom: Radius.circular(widget.bottomRadius + (_groupOuterRadius - widget.bottomRadius) * t),
-          ),
-        ),
-        child: child,
-      ),
+    // 四角统一（此前按分组给首行 20/6、中间 6/6、尾行 6/20）。
+    // 卡片之间本来就有 `_rowGap` 间隙，连不成一整块，分组圆角只会让
+    // 每张卡的四个角各不相同 —— 看起来就是「圆角不统一」。
+    // 底色交给共用的 GlassPanel，质感和左栏、其他卡片保持一致；
+    // 这里同样不加投影：卡片上下紧挨着，投影会连成一条灰带。
+    return GlassPanel(
+      borderRadius: BorderRadius.circular(_cardRadius),
       child: Material(
         type: MaterialType.transparency,
-        child: _SplitRowScope(onPressChanged: _reportPress, child: widget.child),
+        // 圆角已固定，按下态不再影响外观；保留这个 scope 是因为条目的 InkWell
+        // 仍会通过 `pressReporterOf` 取它。
+        child: _SplitRowScope(onPressChanged: (_) {}, child: child),
       ),
     );
   }

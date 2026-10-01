@@ -126,9 +126,11 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
     return Material(
-      color: colorScheme.surface,
+      // 标题栏让出底色，和内容区共用同一层背景（AppBackdrop 的画布）。
+      // 原来这里写死 surface：Scaffold 已经透明了，标题栏还是实色，
+      // 顶部就会横着一条和下面内容不同色的实色条。
+      color: Colors.transparent,
       child: GestureDetector(
         // The window is frameless, so dragging and double clicking have to be
         // forwarded to the platform by hand.

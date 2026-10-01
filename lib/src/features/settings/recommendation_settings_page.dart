@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
+import '../../core/app_dialog.dart';
 
 class RecommendationSettingsPage extends ConsumerStatefulWidget {
   const RecommendationSettingsPage({super.key});
@@ -55,7 +56,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
       onSelected(value);
       return;
     }
-    final result = await showDialog<int>(context: context, builder: (_) => _CustomValueDialog(initialValue: current == 0 ? '' : '$current'));
+    final result = await showAppDialog<int>(context: context, builder: (_) => _CustomValueDialog(initialValue: current == 0 ? '' : '$current'));
     if (result != null && result >= 0) onSelected(result);
   }
 }

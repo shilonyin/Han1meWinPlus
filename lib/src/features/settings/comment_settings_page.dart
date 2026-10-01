@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import 'settings_pane_scope.dart';
 
 class CommentSettingsPage extends ConsumerStatefulWidget {
   const CommentSettingsPage({super.key});
@@ -27,7 +28,7 @@ class _CommentSettingsPageState extends ConsumerState<CommentSettingsPage> {
     if (settings == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(title: Text(l10n.commentSettings)), body: ListView(children: [
+    return Scaffold(appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.commentSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.comments, children: [
          SettingsCardItem(title: l10n.enableComments, leading: const Icon(Symbols.forum_rounded), trailing: Switch(value: settings.commentsEnabled, onChanged: (value) => controller.saveChanges((current) => current.copyWith(commentsEnabled: value)))),
           SettingsCardItem(title: l10n.commentKeywordFilter, subtitle: l10n.commentKeywordFilterDescription, leading: const Icon(Symbols.block_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _subPage = 'keywords')),

@@ -18,6 +18,7 @@ import '../../data/local/home_cache.dart';
 import '../../domain/models/comic.dart';
 import '../../core/app_shell.dart';
 import '../settings/settings_controller.dart';
+import '../../core/app_dialog.dart';
 
 final comicHomeCacheProvider = Provider((_) => HomeCache());
 final comicHomeProvider = AsyncNotifierProvider<ComicHomeController, ComicHome>(ComicHomeController.new);
@@ -196,7 +197,7 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
     final l10n = AppLocalizations.of(context)!;
     final choices = name == 'sort' ? values : [l10n.all, ...values];
     final selected = await showModalBottomSheet<String>(
-      context: context,
+      context: context, barrierColor: Colors.transparent,
       showDragHandle: true,
       builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: choices.map((choice) => ListTile(title: Text(choice), onTap: () => Navigator.pop(context, choice))).toList())),
     );
@@ -274,7 +275,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<void> _save(ComicCard card) async {
     final l10n = AppLocalizations.of(context)!;
-    final favorite = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.addToLibrary), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.watchLater)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.favoriteVideos))]));
+    final favorite = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.addToLibrary), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.watchLater)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.favoriteVideos))]));
     if (favorite == null) return;
     if (favorite) await ref.read(comicLibraryProvider.notifier).setFavorite(card, true);
     if (!favorite) await ref.read(comicLibraryProvider.notifier).setWatchLater(card, true);
@@ -282,7 +283,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<void> _cache(ComicDetail comic) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cache), content: Text(l10n.cacheComicConfirmation), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.confirm))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cache), content: Text(l10n.cacheComicConfirmation), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.confirm))]));
     if (confirmed != true) return;
     final category = await _chooseCategory();
     if (category == null) return;
@@ -297,10 +298,10 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
   Future<String?> _chooseCategory() async {
     final existing = await ref.read(comicCacheProvider.notifier).categories();
     final l10n = AppLocalizations.of(context)!;
-    return showDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))]));
+    return showAppDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))]));
   }
 
-  void _info(ComicDetail comic) => showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [ListTile(title: Text(comic.title), onTap: () => Clipboard.setData(ClipboardData(text: comic.title))), ListTile(title: Text(comic.description ?? ''), onTap: () => Clipboard.setData(ClipboardData(text: comic.description ?? '')))])));
+  void _info(ComicDetail comic) => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [ListTile(title: Text(comic.title), onTap: () => Clipboard.setData(ClipboardData(text: comic.title))), ListTile(title: Text(comic.description ?? ''), onTap: () => Clipboard.setData(ClipboardData(text: comic.description ?? '')))])));
 }
 
 class ComicReaderPage extends StatefulWidget {
@@ -433,7 +434,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     var value = (_page + 1).toDouble();
     final controller = TextEditingController(text: '${_page + 1}');
     showModalBottomSheet<void>(
-      context: context,
+      context: context, barrierColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheet) => Padding(
           padding: const EdgeInsets.all(24),
@@ -446,7 +447,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   void _settings() {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
-      context: context,
+      context: context, barrierColor: Colors.transparent,
       showDragHandle: true,
       builder: (context) => DefaultTabController(
         length: 2,
@@ -597,7 +598,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final controller = TextEditingController();
     try {
       await showModalBottomSheet<void>(
-        context: context,
+        context: context, barrierColor: Colors.transparent,
         showDragHandle: true,
         builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheet) => SafeArea(
@@ -690,7 +691,7 @@ class _Pager extends StatelessWidget {
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [IconButton(onPressed: page > 1 ? () => onChanged(page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded)), TextButton(onPressed: () => _showPages(context), child: Text('$page/$total')), IconButton(onPressed: page < total ? () => onChanged(page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded))]));
 
   Future<void> _showPages(BuildContext context) async {
-    final selected = await showModalBottomSheet<int>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: GridView.builder(shrinkWrap: true, padding: const EdgeInsets.all(16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5), itemCount: total, itemBuilder: (_, index) => TextButton(onPressed: () => Navigator.pop(context, index + 1), child: Text('${index + 1}')))));
+    final selected = await showModalBottomSheet<int>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: GridView.builder(shrinkWrap: true, padding: const EdgeInsets.all(16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5), itemCount: total, itemBuilder: (_, index) => TextButton(onPressed: () => Navigator.pop(context, index + 1), child: Text('${index + 1}')))));
     if (selected != null) onChanged(selected);
   }
 }

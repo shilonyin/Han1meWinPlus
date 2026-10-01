@@ -11,6 +11,7 @@ import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
+import '../../core/app_dialog.dart';
 
 class PlayerSettingsPage extends ConsumerWidget {
   const PlayerSettingsPage({super.key});
@@ -153,7 +154,7 @@ class PlayerSettingsPage extends ConsumerWidget {
   }
 
   Future<void> _editCustomParameters(BuildContext context, WidgetRef ref, AppSettings settings) async {
-    final result = await showDialog<String>(
+    final result = await showAppDialog<String>(
       context: context,
       builder: (context) => _CustomParametersDialog(initial: settings.customParameters.join('\n')),
     );

@@ -13,6 +13,7 @@ import '../../data/local/keyframe_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import 'android_cast_button.dart';
+import '../../core/app_dialog.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
 const double _progressBarHeight = 48;
@@ -277,7 +278,7 @@ class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButto
   }
 
   Future<void> _configure(BuildContext context, WidgetRef ref, int current) async {
-    final result = await showDialog<int>(context: context, builder: (_) => _SkipSecondsDialog(initialValue: '$current'));
+    final result = await showAppDialog<int>(context: context, builder: (_) => _SkipSecondsDialog(initialValue: '$current'));
     if (result != null && result > 0) await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(skipSeconds: result));
   }
 }

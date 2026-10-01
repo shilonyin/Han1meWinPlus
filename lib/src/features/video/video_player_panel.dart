@@ -25,6 +25,7 @@ import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import 'video_player_controls.dart';
 import 'video_player_surface.dart';
+import '../../core/app_dialog.dart';
 
 class VideoPlayerPanel extends ConsumerStatefulWidget {
   const VideoPlayerPanel({
@@ -941,7 +942,7 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
       return;
     }
     final position = controller.value.position.inMilliseconds;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.addKeyframe),
