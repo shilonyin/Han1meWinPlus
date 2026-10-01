@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'browser_user_agent.dart';
 import 'webview_environment.dart';
 
 final webViewPageFetcherProvider = Provider((ref) => WebViewPageFetcher(() => ref.read(webViewEnvironmentProvider.future)));
@@ -28,7 +29,12 @@ class WebViewPageFetcher {
 
   /// 抓这些 AV 站点固定用桌面版 Chrome 的 UA（与 `JavApi.userAgent` 同一个值，
   /// 这样 WebView 拿到的 `cf_clearance` 与之后 Dart 请求的 UA 一致）。
-  static const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+  ///
+  /// 版本号**动态取自本机 WebView2 内核**，不写死：`cf_clearance` 与 UA 绑定，
+  /// 且 Cloudflare 会核对请求头 UA 与页面内 `navigator.userAgent`；写死的版本
+  /// 一旦与真实内核不符（内核升到 154、代码还是 140）就会被判定成伪造浏览器，
+  /// 验证永远过不去。详见 [BrowserUserAgent]。
+  static String get userAgent => BrowserUserAgent.value;
 
   final Future<WebViewEnvironment?> Function() _environment;
 

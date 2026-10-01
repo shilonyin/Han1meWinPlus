@@ -42,7 +42,10 @@ class JavApi {
   /// 两个原因：① 它们对移动 UA 可能返回精简页（Getchu 上踩过同样的坑）；
   /// ② Cloudflare 的 `cf_clearance` 与 UA 绑定，所以应用内的验证页与
   /// WebView 代取都必须用同一串 UA（取值同 [WebViewPageFetcher.userAgent]）。
-  static const userAgent = WebViewPageFetcher.userAgent;
+  ///
+  /// 版本号由 [WebViewPageFetcher.userAgent] 动态取自本机 WebView2 内核——
+  /// 不能写死，否则与真实 `navigator.userAgent` 不一致会被 Cloudflare 判为伪造。
+  static String get userAgent => WebViewPageFetcher.userAgent;
 
   /// 首页：把 [JavSite.sections] 里的列表页并行抓一遍。
   ///
