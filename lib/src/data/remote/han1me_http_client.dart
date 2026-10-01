@@ -32,8 +32,8 @@ class Han1meHttpClient {
   /// `403 you have been blocked`；反过来用自报家门的 UA（或不带 UA）则是 200。
   /// 2026-09-25 用同一 cookie、同一秒对 `https://hanime1.me/user/605056/likes` 实测：
   /// 移动 Chrome UA / 桌面 Chrome UA / `curl/8.4.0` 全部 403（len=5484），
-  /// `Han1meWinPlus/1.1.23` 与不带 UA 都是 200 且拿到完整的 60 条收藏。
-  static const selfIdentifiedUserAgent = 'Han1meWinPlus/1.1.23';
+  /// `Han1meWinPlus/1.1.24` 与不带 UA 都是 200 且拿到完整的 60 条收藏。
+  static const selfIdentifiedUserAgent = 'Han1meWinPlus/1.1.24';
 
   /// 浏览器 UA —— 只有真正的浏览器内核才该用它：登录/Cloudflare 的 WebView
   /// （`login_page.dart`、`cloudflare_page.dart`）和播放器请求头。
