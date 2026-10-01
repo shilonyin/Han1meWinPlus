@@ -281,8 +281,19 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
     // minimum size first, before the message is forwarded to the plugins.
     auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
     const auto dpi = GetDpiForWindow(window);
-    info->ptMinTrackSize.x = DpiScale(720, dpi);
-    info->ptMinTrackSize.y = DpiScale(540, dpi);
+    // The player window has to shrink into the picture-in-picture corner window
+    // (380x240 logical, see PlayWindowTitleBar._togglePictureInPicture). It has no
+    // navigation shell, so 320x200 leaves enough room for its title bar and player.
+    // The main window keeps 720x540: below that the navigation rail plus the content
+    // area no longer lay out.
+    //
+    // These floors must differ. WM_GETMINMAXINFO clamps SetWindowPos back up to the
+    // minimum, so a shared 720x540 floor made the PiP bounds impossible to apply
+    // (measured: 380x240 came back as 720x540) - the feature looked present but was
+    // dead.
+    const bool play_window = IsPlayWindowLaunch();
+    info->ptMinTrackSize.x = DpiScale(play_window ? 320 : 720, dpi);
+    info->ptMinTrackSize.y = DpiScale(play_window ? 200 : 540, dpi);
   }
   if (app != nullptr && app->controller != nullptr) {
     const auto result = app->controller->HandleTopLevelWindowProc(window, message, wparam, lparam);

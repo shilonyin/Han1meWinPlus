@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/window_chrome.dart';
 import '../settings/settings_controller.dart';
+import 'pip_overlay_controls.dart';
 
 /// Height of the in-app title bar. Close to the system caption height so the
 /// window keeps roughly the same proportions whichever style is selected.
@@ -68,7 +69,18 @@ class AppWindowFrame extends ConsumerWidget {
             // 所以改成不挂 Tooltip —— 图标按钮用悬停高亮表达状态，无障碍标签走 Semantics。
             // 若将来确实需要气泡/菜单，正确做法是把**整个 Column（标题栏 + 内容）**包进
             // Overlay，而不是只包标题栏。
-            return Column(children: [bar, Expanded(child: child)]);
+            return ValueListenableBuilder<bool>(
+              valueListenable: WindowChrome.pipMode,
+              builder: (context, pip, ___) => pip
+                  // 画中画小窗：视频铺满整窗，标题栏与中央大圆按钮**浮在画面上**，
+                  // 而不是把画面挤掉一条（参考实现 b 站小窗就是这么做的）。
+                  ? Stack(children: [
+                      Positioned.fill(child: child),
+                      Positioned(top: 0, left: 0, right: 0, child: bar),
+                      const Center(child: PipOverlayControls()),
+                    ])
+                  : Column(children: [bar, Expanded(child: child)]),
+            );
           },
         );
       },

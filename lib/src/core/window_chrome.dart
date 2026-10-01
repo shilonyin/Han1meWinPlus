@@ -23,6 +23,14 @@ class WindowChrome {
   /// Lets immersive pages (the full screen player) hide the in-app title bar.
   static final ValueNotifier<bool> visible = ValueNotifier(true);
 
+  /// 独立播放窗口正处于画中画小窗状态（见 PlayWindowTitleBar 的画中画按钮）。
+  ///
+  /// 窗口级外壳（[AppWindowFrame]）据此把标题栏从「占位」换成「半透明浮层」，
+  /// 让视频铺满整窗——这是画中画小窗该有的样子：控件浮在画面上，而不是把画面
+  /// 挤掉一条。原先只有 PlayWindowTitleBar 自己知道这个状态，外壳读不到，
+  /// 所以标题栏只能占位。
+  static final ValueNotifier<bool> pipMode = ValueNotifier(false);
+
   /// 正在显示沉浸页（播放页）时为真：应用内标题栏也跟着走深色，
   /// 免得浅色主题下出现「浅色标题栏 + 全黑播放页」的割裂感。
   ///

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/l10n/app_localizations.dart';
 import 'package:han1me_win_plus/src/core/play_window_title_target.dart';
+import 'package:han1me_win_plus/src/core/window_chrome.dart';
 import 'package:han1me_win_plus/src/features/window/play_window_title_bar.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -236,5 +237,107 @@ void main() {
     await tester.pump();
     expect(find.text('第2话'), findsOneWidget);
     expect(find.text('第1话'), findsNothing);
+  });
+  // ── 窄窗（画中画小窗）适配 ──────────────────────────────────────────────
+  //
+  // 用户报「小窗口缩到最小 UI 时按键不见了」：栏里固定宽度合计约 414px
+  // （回到主界面含文字 113 + 上下集 72 + 置顶/画中画 72 + 分隔线 9 + 窗口按钮 138
+  // + 间距 10），而画中画小窗只有 380 逻辑像素宽 —— 实测「关闭」被推到
+  // x383..399（窗口外，用户点不到），标题被压成 0 宽。
+  // 现在低于阈值就收起「回到主界面」的文字、缩窄按钮，下面锁住这个行为。
+
+  testWidgets('画中画小窗（380 宽）下不溢出，且 8 个图标全部留在窗口内', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(380, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host());
+    await tester.pump();
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: '380 宽下不该出现 RenderFlex overflow',
+    );
+
+    for (final entry in <String, IconData>{
+      '回到主界面': Symbols.home_rounded,
+      '上一集': Symbols.chevron_left_rounded,
+      '下一集': Symbols.chevron_right_rounded,
+      '置顶': Symbols.push_pin_rounded,
+      '画中画': Symbols.branding_watermark_rounded,
+      '最小化': Symbols.remove_rounded,
+      '最大化': Symbols.crop_square_rounded,
+      '关闭': Symbols.close_rounded,
+    }.entries) {
+      final rect = tester.getRect(find.byIcon(entry.value).first);
+      expect(
+        rect.right,
+        lessThanOrEqualTo(380),
+        reason: '${entry.key} 被挤出窗口右界，用户点不到',
+      );
+      expect(rect.left, greaterThanOrEqualTo(0), reason: '${entry.key} 超出窗口左界');
+    }
+  });
+
+  testWidgets('窄窗收起「回到主界面」的文字，宽窗恢复（腾空间给标题与窗口按钮）', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(380, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host());
+    await tester.pump();
+    expect(find.text('回到主界面'), findsNothing, reason: '窄窗只留图标');
+
+    await tester.binding.setSurfaceSize(const Size(900, 300));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('回到主界面'), findsOneWidget, reason: '宽窗恢复文字');
+  });
+
+  testWidgets('窄窗下标题仍有可读宽度（不再被压成 0）', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(380, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    PlayWindowTitleTarget.register(
+      owner: Object(),
+      title: '[akinoya]【動画】フェルン/Fern【video】',
+      hasPrevious: true,
+      hasNext: true,
+    );
+    await tester.pumpWidget(_host());
+    await tester.pump();
+
+    final titleRect = tester.getRect(
+      find.text('[akinoya]【動画】フェルン/Fern【video】'),
+    );
+    expect(
+      titleRect.width,
+      greaterThan(80),
+      reason: '画中画小窗里标题也要能看清，修复前是 0 宽',
+    );
+  });
+  // ── 画中画小窗（照 b 站小窗改造） ──────────────────────────────────────
+
+  testWidgets('画中画模式下标题栏精简成参考实现那组', (tester) async {
+    // b 站小窗只留「主页 / 标题 / 置顶 / 画中画 / 关闭」。上下集已经放大到画面
+    // 中央（PipOverlayControls），最小化 / 最大化在浮窗里没有意义，都收掉。
+    WindowChrome.pipMode.value = true;
+    addTearDown(() => WindowChrome.pipMode.value = false);
+    await tester.pumpWidget(_host());
+    await tester.pump();
+
+    expect(find.byIcon(Symbols.home_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.push_pin_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.branding_watermark_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.close_rounded), findsOneWidget);
+
+    expect(find.byIcon(Symbols.chevron_left_rounded), findsNothing, reason: '上下集已移到画面中央');
+    expect(find.byIcon(Symbols.chevron_right_rounded), findsNothing);
+    expect(find.byIcon(Symbols.remove_rounded), findsNothing, reason: '浮窗里最小化没有意义');
+    expect(find.byIcon(Symbols.crop_square_rounded), findsNothing);
+  });
+
+  testWidgets('非画中画时窗口按钮照旧（不能被上面的精简误伤）', (tester) async {
+    await tester.pumpWidget(_host());
+    await tester.pump();
+    expect(find.byIcon(Symbols.remove_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.crop_square_rounded), findsOneWidget);
+    expect(find.byIcon(Symbols.chevron_left_rounded), findsOneWidget);
   });
 }

@@ -28,6 +28,16 @@ class PlayWindowTitleBar extends StatefulWidget {
 /// 与参考实现一致：72 物理 px @150% = 48 逻辑 px。
 const double playWindowTitleBarHeight = 48;
 
+/// 标题栏的两档收缩阈值（逻辑像素）。
+///
+/// 栏里固定宽度的东西加起来约 414px：回到主界面（含文字）113 + 上下集 72 +
+/// 置顶/画中画 72 + 分隔线 9 + 三个窗口按钮 138 + 间距 10。而画中画小窗只有
+/// 380px 宽 —— 不收缩就会溢出：实测「关闭」被推到 x383..399（窗口外，用户点不到），
+/// 标题被压成 0 宽。低于 [_compactTitleBarWidth] 收起「回到主界面」文字并缩窄按钮，
+/// 低于 [_tightTitleBarWidth]（画中画 380 落在这一档）再缩一档。
+const double _compactTitleBarWidth = 600;
+const double _tightTitleBarWidth = 400;
+
 /// 标题栏底色。参考实现是固定的深色，不跟主题走——播放窗口整条都是深色调，
 /// 用浅色主题的 surface 会在纯黑画面之上割出一块亮条。
 const Color _barColor = Color(0xFF1E2022);
@@ -95,6 +105,9 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
       final pinned = await WindowChrome.setAlwaysOnTop(true);
       if (!await WindowChrome.setBounds(target)) return;
       if (!mounted) return;
+      // 外壳（AppWindowFrame）据此把标题栏从「占位」换成「半透明浮层」，
+      // 并把中央大圆按钮浮到画面上。
+      WindowChrome.pipMode.value = true;
       setState(() {
         _boundsBeforePip = current;
         _pinned = pinned;
@@ -105,6 +118,7 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
       // 退出画中画时取消置顶，回到进入前的状态。
       await WindowChrome.setAlwaysOnTop(false);
       if (!mounted) return;
+      WindowChrome.pipMode.value = false;
       setState(() {
         _boundsBeforePip = null;
         _pinned = false;
@@ -115,9 +129,14 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final inPip = _boundsBeforePip != null;
+    // 画中画的唯一状态源是 [WindowChrome.pipMode]：外壳（AppWindowFrame）也读它，
+    // 两边各判各的（这里原来用 _boundsBeforePip）迟早会不同步——外壳已经把标题栏
+    // 换成浮层了，标题栏自己却还画着实心底色。[_boundsBeforePip] 只用来还原窗口尺寸。
+    final inPip = WindowChrome.pipMode.value;
     return Material(
-      color: _barColor,
+      // 画中画小窗里这条标题栏是**浮在画面上**的：用半透明黑（参考实现实测约
+      // 30% 不透明度，透光率 0.72），视频从底下透出来；普通播放窗口保持实心 #1E2022。
+      color: inPip ? Colors.black.withValues(alpha: 0.30) : _barColor,
       child: GestureDetector(
         // 窗口无边框，拖动与双击最大化要自己转给平台。
         behavior: HitTestBehavior.opaque,
@@ -125,96 +144,120 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
         onDoubleTap: () => _toggleMaximize(),
         child: SizedBox(
           height: playWindowTitleBarHeight,
-          child: Row(
-            children: [
-              const SizedBox(width: 8),
-              _BarButton(
-                label: l10n.backToMainWindow,
-                text: l10n.backToMainWindow,
-                icon: Symbols.home_rounded,
-                onPressed: widget.onHome,
-              ),
-              const SizedBox(width: 2),
-              // 上一集 / 下一集：能不能点由播放页登记的可用性决定。
-              ValueListenableBuilder<bool>(
-                valueListenable: PlayWindowTitleTarget.hasPrevious,
-                builder: (context, enabled, _) => _BarButton(
-                  label: l10n.hotkeyActionPreviousEpisode,
-                  icon: Symbols.chevron_left_rounded,
-                  iconSize: 22,
-                  width: 36,
-                  onPressed: enabled
-                      ? PlayWindowTitleTarget.previousEpisode
-                      : null,
-                ),
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: PlayWindowTitleTarget.hasNext,
-                builder: (context, enabled, _) => _BarButton(
-                  label: l10n.hotkeyActionNextEpisode,
-                  icon: Symbols.chevron_right_rounded,
-                  iconSize: 22,
-                  width: 36,
-                  onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
-                ),
-              ),
-              // 居中标题：Expanded 让它占据剩余空间并居中。
-              Expanded(
-                child: ValueListenableBuilder<String>(
-                  valueListenable: PlayWindowTitleTarget.title,
-                  builder: (context, title, _) => Center(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFE6E6E9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < _compactTitleBarWidth;
+              final tight = constraints.maxWidth < _tightTitleBarWidth;
+              // 窄窗收起「回到主界面」的文字（省 66px），按钮统一收窄成同一宽度——
+              // 一栏里混着 26/30/32 三种宽度会显得参差。
+              final buttonWidth = tight ? 30.0 : 34.0;
+              final navIconSize = tight ? 18.0 : 20.0;
+              final windowIconSize = tight ? 14.0 : 15.0;
+              return Row(
+                children: [
+                  const SizedBox(width: 8),
+                  _BarButton(
+                    label: l10n.backToMainWindow,
+                    // 画中画小窗里文字占 66px，收掉它才腾得出标题和窗口按钮的位置。
+                    text: compact ? null : l10n.backToMainWindow,
+                    icon: Symbols.home_rounded,
+                    width: compact ? buttonWidth : null,
+                    onPressed: widget.onHome,
+                  ),
+                  const SizedBox(width: 2),
+                  // 上一集 / 下一集：能不能点由播放页登记的可用性决定。
+                  //
+                  // 画中画小窗里这两个操作已经放大到画面中央（PipOverlayControls），
+                  // 这里不再重复占位——参考实现的小窗也只留主页 / 标题 / 置顶 / 关闭。
+                  if (!inPip) ...[
+                    ValueListenableBuilder<bool>(
+                      valueListenable: PlayWindowTitleTarget.hasPrevious,
+                      builder: (context, enabled, _) => _BarButton(
+                        label: l10n.hotkeyActionPreviousEpisode,
+                        icon: Symbols.chevron_left_rounded,
+                        iconSize: compact ? navIconSize : 22,
+                        width: compact ? buttonWidth : 36,
+                        onPressed: enabled
+                            ? PlayWindowTitleTarget.previousEpisode
+                            : null,
+                      ),
+                    ),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: PlayWindowTitleTarget.hasNext,
+                      builder: (context, enabled, _) => _BarButton(
+                        label: l10n.hotkeyActionNextEpisode,
+                        icon: Symbols.chevron_right_rounded,
+                        iconSize: compact ? navIconSize : 22,
+                        width: compact ? buttonWidth : 36,
+                        onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
+                      ),
+                    ),
+                  ],
+                  // 居中标题：Expanded 让它占据剩余空间并居中。
+                  Expanded(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: PlayWindowTitleTarget.title,
+                      builder: (context, title, _) => Center(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFE6E6E9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              _BarButton(
-                label: _pinned ? l10n.unpinWindow : l10n.pinWindow,
-                icon: Symbols.push_pin_rounded,
-                width: 36,
-                active: _pinned,
-                onPressed: _togglePin,
-              ),
-              _BarButton(
-                label: l10n.pictureInPicture,
-                icon: Symbols.branding_watermark_rounded,
-                width: 36,
-                active: inPip,
-                onPressed: _togglePictureInPicture,
-              ),
-              const _BarDivider(),
-              // 窗口按钮与应用内标题栏保持同一套尺寸（46 宽、圆角高亮）。
-              _BarButton(
-                label: l10n.minimizeWindow,
-                icon: Symbols.remove_rounded,
-                iconSize: 16,
-                width: 46,
-                onPressed: WindowChrome.minimize,
-              ),
-              _BarButton(
-                label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
-                icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
-                iconSize: _maximized ? 14 : 13,
-                width: 46,
-                onPressed: () => _toggleMaximize(),
-              ),
-              _BarButton(
-                label: l10n.close,
-                icon: Symbols.close_rounded,
-                iconSize: 16,
-                width: 46,
-                danger: true,
-                onPressed: WindowChrome.close,
-              ),
-            ],
+                  _BarButton(
+                    label: _pinned ? l10n.unpinWindow : l10n.pinWindow,
+                    icon: Symbols.push_pin_rounded,
+                    width: compact ? buttonWidth : 36,
+                    active: _pinned,
+                    onPressed: _togglePin,
+                  ),
+                  _BarButton(
+                    label: l10n.pictureInPicture,
+                    icon: Symbols.branding_watermark_rounded,
+                    width: compact ? buttonWidth : 36,
+                    active: inPip,
+                    onPressed: _togglePictureInPicture,
+                  ),
+                  // 窄窗把分隔线也收掉：它连外边距占 9px，小窗里不值这个宽度。
+                  if (!compact && !inPip) const _BarDivider(),
+                  // 窗口按钮与应用内标题栏保持同一套尺寸（宽屏 46 宽、圆角高亮）。
+                  //
+                  // 画中画小窗里最小化 / 最大化没有意义（本来就是浮在角上的小窗），
+                  // 收掉它们把宽度让给标题，只留关闭——与参考实现一致。
+                  if (!inPip) ...[
+                    _BarButton(
+                      label: l10n.minimizeWindow,
+                      icon: Symbols.remove_rounded,
+                      iconSize: compact ? windowIconSize : 16,
+                      width: compact ? buttonWidth : 46,
+                      onPressed: WindowChrome.minimize,
+                    ),
+                    _BarButton(
+                      label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
+                      icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
+                      iconSize: _maximized ? (compact ? 13 : 14) : (compact ? 12 : 13),
+                      width: compact ? buttonWidth : 46,
+                      onPressed: () => _toggleMaximize(),
+                    ),
+                  ],
+                  _BarButton(
+                    label: l10n.close,
+                    icon: Symbols.close_rounded,
+                    iconSize: compact ? windowIconSize : 16,
+                    width: compact ? buttonWidth : 46,
+                    danger: true,
+                    onPressed: WindowChrome.close,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
