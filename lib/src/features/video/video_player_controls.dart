@@ -68,29 +68,69 @@ class VideoPlayerControls extends StatelessWidget {
                   child: LayoutBuilder(builder: (context, constraints) {
                     // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
                     final roomy = constraints.maxWidth >= 620;
-                    return Row(children: [
+                    // 画中画小窗（380 逻辑像素）里，7 个 48px 按钮加时间文本要 440px，
+                    // 必然溢出、右侧的全屏/画中画被裁掉。用 IconButtonTheme 把这一行的
+                    // 按钮统一收到 32px —— Skip 与音量是各自独立的组件，只有主题能一次
+                    // 改到它们内部的 IconButton。
+                    final tight = constraints.maxWidth < 420;
+                    final row = Row(children: [
                       IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded)),
                       if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded)),
                       // 快进按钮：从顶部条移到左下角控制行
                       VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),
                       VideoPlayerVolumeButton(controller: controller, onInteraction: onInteraction),
+                      // 时间文本：固定宽度，不参与 flex。
+                      //
+                      // 实测（test/player_controls_alignment_test.dart）：把它包进
+                      // Flexible(flex:1) 会与后面的 Spacer(flex:1) 平分剩余空间，
+                      // 窄窗口下确实能自动收缩防溢出，但**宽窗口下会让整行铺不满、
+                      // 右侧按钮离开右缘上百像素**（1000 逻辑像素时实测偏 130.8px）。
+                      // 实测时间文本自身宽度 197.3px 在任何宽度下都够用，真正会溢出
+                      // 的是右侧那一组菜单，所以防溢出交给下面的 Expanded，而不是这里。
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text('${_formatDuration(value.position)} / ${_formatDuration(value.duration)}', style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()])),
+                        child: Text('${_formatDuration(value.position)} / ${_formatDuration(value.duration)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()])),
                       ),
-                      const Spacer(),
-                      if (roomy) ...[
-                        _AspectMenu(),
-                        if (onEpisodeSelected != null && video.playlist.isNotEmpty) _EpisodeMenu(video: video, onSelected: onEpisodeSelected!),
-                        _Anime4KMenu(onSelected: onSuperResolutionSelected),
-                        if (video.sources.isNotEmpty) _QualityMenu(sources: video.sources, quality: quality, onSelected: onQualitySelected),
-                        _SpeedMenu(controller: controller, onInteraction: onInteraction),
-                        AndroidCastButton(sources: video.sources, quality: quality),
-                      ] else
-                        VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
-                      IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded)),
-                      if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded)),
+                      // 右侧按钮组：吃掉剩余空间并右对齐。
+                      //
+                      // 用 Expanded + Align 而不是「Spacer + 固定子节点」：Expanded 会把
+                      // 剩余宽度全部拿走后交给 Align 右对齐，右侧按钮因此始终贴右缘；
+                      // 而里面加一层 SingleChildScrollView(horizontal) 让**极窄窗口**下
+                      // 按钮组自己可横向滚动，而不是把这一行撑破（原 Flexible 写法的用意）。
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            reverse: true,
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              if (roomy) ...[
+                                _AspectMenu(),
+                                if (onEpisodeSelected != null && video.playlist.isNotEmpty) _EpisodeMenu(video: video, onSelected: onEpisodeSelected!),
+                                _Anime4KMenu(onSelected: onSuperResolutionSelected),
+                                if (video.sources.isNotEmpty) _QualityMenu(sources: video.sources, quality: quality, onSelected: onQualitySelected),
+                                _SpeedMenu(controller: controller, onInteraction: onInteraction),
+                                AndroidCastButton(sources: video.sources, quality: quality),
+                              ] else
+                                VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
+                              IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded)),
+                              if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded)),
+                            ]),
+                          ),
+                        ),
+                      ),
                     ]);
+                    if (!tight) return row;
+                    return IconButtonTheme(
+                      data: const IconButtonThemeData(
+                        style: ButtonStyle(
+                          minimumSize: WidgetStatePropertyAll(Size(32, 32)),
+                          padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      child: row,
+                    );
                   }),
                 ),
               ]);
