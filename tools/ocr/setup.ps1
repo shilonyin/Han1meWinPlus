@@ -1,6 +1,6 @@
 # 拉取本地代码审查所需的 ocr CLI（OpenCodeReview 官方预编译二进制）
 #
-# 二进制有 55MB，不入库，所以换机器或清理过 .tools/ 之后需要跑一次这个脚本。
+# 二进制有 55MB，不入库，所以换机器或清理过 tools/ocr/bin/ 之后需要跑一次这个脚本。
 # 装好后用 .\tools\ocr\review.ps1 做审查 —— 走 delegate 模式，不需要任何 LLM API Key。
 #
 # 用法：
@@ -36,23 +36,30 @@ Write-Host "正在拉取 $pkg@$Version ..."
 # --ignore-scripts：npm 的 postinstall 会 spawn 子进程，在受限环境里会被拦，
 # 而我们只需要解包出来的二进制，不需要它跑安装脚本。
 # --cache 指到仓库内，避免污染全局 npm 缓存。
-Push-Location $tmp
+#
+# 整个下载流程包在 try/finally 里：npm 失败（版本号写错、断网）时若把 .dl 留在
+# 仓库里，它会出现在 git status 里，看起来像一份没写完的改动。
 try {
-    npm init -y 2>&1 | Out-Null
-    npm install "$pkg@$Version" --no-audit --no-fund --ignore-scripts --cache (Join-Path $tmp 'npm-cache') 2>&1 |
-        Select-Object -Last 3 | ForEach-Object { Write-Host "  $_" }
+    Push-Location $tmp
+    try {
+        npm init -y 2>&1 | Out-Null
+        npm install "$pkg@$Version" --no-audit --no-fund --ignore-scripts --cache (Join-Path $tmp 'npm-cache') 2>&1 |
+            Select-Object -Last 3 | ForEach-Object { Write-Host "  $_" }
+    }
+    finally {
+        Pop-Location
+    }
+
+    $src = Join-Path $tmp "node_modules\$pkg\bin\opencodereview.exe"
+    if (-not (Test-Path $src)) {
+        throw "解包后找不到二进制：$src"
+    }
+
+    Copy-Item $src $exe -Force
 }
 finally {
-    Pop-Location
+    if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
 }
-
-$src = Join-Path $tmp "node_modules\$pkg\bin\opencodereview.exe"
-if (-not (Test-Path $src)) {
-    throw "解包后找不到二进制：$src"
-}
-
-Copy-Item $src $exe -Force
-Remove-Item -Recurse -Force $tmp
 
 $ver = (& $exe version 2>&1 | Select-Object -First 1)
 Write-Host ''

@@ -41,7 +41,7 @@ ARB 三语言同步等），提交进仓库后本地和 CI 共用同一份。
 改规则后可以用这条确认它对某个文件是否生效：
 
 ```powershell
-.tools\ocr\bin\opencodereview.exe rules check lib/src/core/settings.dart
+.\tools\ocr\bin\opencodereview.exe rules check lib/src/core/settings.dart
 ```
 
 ## 可选参数

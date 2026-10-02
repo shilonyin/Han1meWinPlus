@@ -31,6 +31,8 @@ android/workspace.json
 # 本地代码审查用的 ocr CLI（55MB 的官方预编译二进制，不入库）
 # 脚本在 tools/ocr/ 下入库，换机器后跑 tools/ocr/setup.ps1 重新拉取
 tools/ocr/bin/
+# setup.ps1 的下载临时目录（正常会自清理，这里是兜底）
+tools/ocr/.dl/
 
 # 本地审查产出的材料文件
 .review.md
