@@ -110,8 +110,21 @@ function Get-FileDiff {
         # workspace：已跟踪文件走 diff HEAD；新增文件整份都是新代码
         if ($Status -eq 'added') {
             $full = Join-Path $repoRoot $Path
-            if (Test-Path $full) { return (Get-Content $full -Raw -Encoding UTF8) }
-            return ''
+            if (-not (Test-Path $full)) { return '' }
+            # 新增文件也要给出标准 diff 形式（含 new file mode 与 + 前缀），
+            # 直接塞文件全文会让标记为 diff 的代码块里没有 diff 语义，
+            # 读材料时无法区分「新增的行」和「原本就有的行」。
+            # --no-index 在路径上会做 Windows 转义，所以这里自己拼。
+            $body = Get-Content $full -Encoding UTF8
+            $hunk = @($body | ForEach-Object { "+$_" }) -join "`n"
+            return @(
+                "diff --git a/$Path b/$Path"
+                'new file mode 100644'
+                '--- /dev/null'
+                "+++ b/$Path"
+                "@@ -0,0 +1,$($body.Count) @@"
+                $hunk
+            ) -join "`n"
         }
         return (& git diff HEAD --no-color -- $Path 2>&1) -join "`n"
     }
