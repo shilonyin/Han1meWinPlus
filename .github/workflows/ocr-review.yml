@@ -1,0 +1,132 @@
+name: OpenCodeReview PR Review
+
+# 用 alibaba/open-code-review 对 PR 做 AI 代码审查，把发现按行贴成 review 评论。
+# 审查规则取自仓库里的 .opencodereview/rule.json。
+#
+# 使用前需要在 GitHub 上配置：
+#   secret  OCR_LLM_AUTH_TOKEN   LLM 的 API Key（必填）
+#   var     OCR_LLM_URL          LLM 接口地址，不配则用 DeepSeek 官方地址
+#   var     OCR_LLM_MODEL        模型名，不配则用 deepseek-v4-pro
+#   var     OCR_LLM_USE_ANTHROPIC  'true' 走 Anthropic 协议；不配按 OpenAI 兼容处理
+#
+# 为什么用 pull_request_target 而不是 pull_request：
+#   fork 提上来的 PR 在 pull_request 事件下拿不到 secrets，审查会直接失败。
+#   OCR 只读 diff，不会执行 PR 里的代码（它把 head 的 blob 单独 fetch 出来，
+#   不落到工作区），所以在这里用 pull_request_target 是安全的。
+#
+# 规则文件的可信来源：action 内部 checkout 的是 base 分支（不是 PR 的 head），
+# 所以 .opencodereview/rule.json 读的是 win 分支上的版本，PR 无法通过改规则
+# 来放行自己的代码。代价是：某个 PR 如果本身就在改这个规则文件，该 PR 仍按
+# 旧规则审查 —— 这是偏保守的方向，可以接受。
+
+concurrency:
+  # 同一个 PR 上的审查串行化：新的审查取消还在跑的旧审查。
+  # 不匹配的评论落到 noop-<run_id> 这个唯一分组，瞬间跳过，不会误伤正在跑的审查。
+  group: >-
+    ${{
+      (
+        github.event_name == 'pull_request_target'
+        || (
+          github.event_name == 'issue_comment'
+          && github.event.issue.pull_request
+          && github.event.comment.user.type != 'Bot'
+          && (
+            github.event.comment.author_association == 'MEMBER'
+            || github.event.comment.author_association == 'OWNER'
+            || github.event.comment.author_association == 'COLLABORATOR'
+          )
+          && startsWith(github.event.comment.body, '/open-code-review')
+        )
+      )
+      && format('ocr-{0}', github.event.pull_request.number || github.event.issue.number)
+      || format('noop-{0}', github.run_id)
+    }}
+  cancel-in-progress: true
+
+on:
+  pull_request_target:
+    branches: [win]
+    # 只在 PR 开出来（以及草稿转为正式、重开）时审查一次。
+    # 想每次 push 都重新审，把 synchronize 加进来；那会明显增加 token 消耗，
+    # 建议同时给下面的 action 加上 checkpoint_range: 'true' 只审新增的提交。
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # PR 事件直接跑；评论事件只认「PR 上、非机器人、有协作权限的人」发的
+    # /open-code-review —— 避免任意路人评论就能消耗 LLM 额度。
+    if: |
+      github.event_name == 'pull_request_target'
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && github.event.comment.user.type != 'Bot'
+        && (
+          github.event.comment.author_association == 'MEMBER'
+          || github.event.comment.author_association == 'OWNER'
+          || github.event.comment.author_association == 'COLLABORATOR'
+        )
+        && startsWith(github.event.comment.body, '/open-code-review')
+      )
+    steps:
+      # 没配 LLM 密钥时友好跳过：否则每个 PR 都会挂一个红叉，看起来像代码有问题。
+      # 密钥通过 env 传入而不是插进脚本正文，避免它出现在命令行里。
+      - name: Check LLM credentials
+        id: creds
+        env:
+          OCR_TOKEN: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
+        run: |
+          if [ -z "$OCR_TOKEN" ]; then
+            echo "::warning::仓库未配置 OCR_LLM_AUTH_TOKEN，跳过代码审查。请在 Settings → Secrets and variables → Actions 里补上。"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve PR context
+        id: pr-context
+        if: steps.creds.outputs.configured == 'true' && github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // issue_comment 的 payload 里没有 PR 的 base/head，得自己查一次，
+            // 否则评论触发的重审会拿不到要审的范围。
+            const prNumber = context.issue.number;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            core.setOutput('base_ref', pullRequest.base.ref);
+            core.setOutput('head_sha', pullRequest.head.sha);
+            core.setOutput('title', pullRequest.title);
+
+      - name: Run OpenCodeReview
+        if: steps.creds.outputs.configured == 'true'
+        uses: alibaba/open-code-review@a758d9cbfb689937c7857ad64b2dd66adb58c0c2 # v1.12.11
+        with:
+          # llm.url 填 base 地址即可，OCR 会自己补 /chat/completions
+          llm_url: ${{ vars.OCR_LLM_URL || 'https://api.deepseek.com' }}
+          llm_auth_token: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
+          llm_model: ${{ vars.OCR_LLM_MODEL || 'deepseek-v4-pro' }}
+          llm_use_anthropic: ${{ vars.OCR_LLM_USE_ANTHROPIC || 'false' }}
+          # 固定 CLI 版本：action 是运行时从 npm 装 CLI 的，只 pin action 不足以
+          # 冻结审查行为，两个坐标一起锁才是可复现的。
+          ocr_version: '1.12.11'
+          # 审查意见用中文输出（默认是 English）
+          language: Chinese
+          # 评论触发的重审没有 pull_request payload，标题从上面那步取
+          background: ${{ steps.pr-context.outputs.title || github.event.pull_request.title }}
+          # 同一处发现不重复贴；已有评论不会被删，只是不再追加重叠的
+          sticky_summary: 'true'
+          incremental: 'true'
+          base_ref: ${{ steps.pr-context.outputs.base_ref }}
+          head_sha: ${{ steps.pr-context.outputs.head_sha }}
