@@ -36,7 +36,7 @@
 
 规则在仓库根的 [`.opencodereview/rule.json`](../../.opencodereview/rule.json)，已按本项目的
 实际约定写好（禁止建议 `dart format`、枚举序列化兼容性、dispose 资源泄漏清单、
-ARB 三语言同步等），提交进仓库后本地和 CI 共用同一份。
+ARB 三语言同步等），提交进仓库，团队里每个人共用同一份。
 
 改规则后可以用这条确认它对某个文件是否生效：
 
@@ -53,11 +53,24 @@ ARB 三语言同步等），提交进仓库后本地和 CI 共用同一份。
 
 改动特别大时先调小 `-MaxDiffLines`，避免材料过长。
 
-## 和 CI 的关系
+## 为什么只做本地审查
 
-[`.github/workflows/ocr-review.yml`](../../.github/workflows/ocr-review.yml) 在 PR 上做同样的事，
-但走的是真实 LLM 调用（需要配 `OCR_LLM_AUTH_TOKEN`）。两边 pin 的都是 v1.12.11，
-规则文件也共用，所以本地看到的结论和 CI 基本一致。
+曾经接过一个 GitHub Actions 工作流（PR 上自动审查并贴评论），实测跑通后移除了。
+原因是**成本**：`pull_request_target` 事件下，任何人 fork 后开 PR 都会触发审查、
+消耗仓库所有者的 LLM 额度。本地审查没有这个问题——只在你自己想看的时候跑，
+用 DSH 自己的模型，不产生额外调用。
+
+本地审查的规则文件与当时的 CI 是同一份（`.opencodereview/rule.json`），所以结论口径一致。
+
+## 审查结果的可靠性
+
+审查由 LLM 完成，**结论需要人来判断，不要盲信**。实测中遇到过误报：
+它把 `ForEach-Object` 里 `$total += $_.Length` 的累加判成「PowerShell 作用域规则
+导致写不回外层、函数恒返回 0」，而实测该函数返回正确值（`ForEach-Object` 的脚本块
+不是独立作用域）。
+
+这类语言细节的判断偏差属于模型能力边界，写规则约束收效有限。看到可疑结论时
+自己跑一遍验证，比改配置更有效。
 
 ## 目录结构
 

@@ -9,7 +9,7 @@
 
 [CmdletBinding()]
 param(
-    # 与 CI 工作流里 pin 的版本保持一致，避免本地和 CI 行为漂移
+    # 固定版本，避免不同机器拉到不同版本导致审查口径漂移
     [string]$Version = '1.12.11'
 )
 
