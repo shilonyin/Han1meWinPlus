@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// 非线性渐隐：消除线性渐变中段的**马赫带**（Mach-Band）切面。
 ///
-/// 移植自 Telegram / Nagram 的 `BlurredBackgroundWithFadeDrawable` 停靠点算法。
+/// 移植自某即时通讯客户端的停靠点算法。
 ///
 /// ## 解决什么问题
 ///
@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// 人眼会把它读成一道看得见的"硬边"。压在海报或视频画面上时尤其刺眼 ——
 /// 这正是为什么手工微调 `stops` 往往治标不治本。
 ///
-/// Telegram 的做法是**把 alpha 的收敛集中到贴近实色的一端**，用 5 阶非线性
+/// 该做法的核心是**把 alpha 的收敛集中到贴近实色的一端**，用 5 阶非线性
 /// 停靠点（255 → 232 → 176 → 96 → 0）让消散过程平滑收尾：靠实色处迅速
 /// 收敛为纯色，离开实色处极其柔和地淡出，中段不再有可辨识的边界。
 ///
@@ -39,7 +39,7 @@ abstract final class ProgressiveFade {
   /// 阶梯位置：五等分。
   static const List<double> stops = <double>[0, .25, .5, .75, 1];
 
-  /// Telegram 原生 alpha 阶梯（基准 255）。
+  /// 实测的 alpha 阶梯（基准 255）。
   ///
   /// 0xFF → 0xE8 → 0xB0 → 0x60 → 0x00，即 255 / 232 / 176 / 96 / 0。
   /// 这组值不是随手取的：它让 alpha 在靠实色端的斜率平缓、靠透明端陡峭，

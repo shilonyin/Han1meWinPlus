@@ -17,7 +17,7 @@ void main() {
       nowMs: nowMs,
     );
 
-    test('阈值常量与 BiliPai 一致：触发 7.5%、恢复 4%、要求连续 2 窗口', () {
+    test('阈值常量与参考实现一致：触发 7.5%、恢复 4%、要求连续 2 窗口', () {
       expect(runtimeVisualGuardHighJankThresholdPercent, 7.5);
       expect(runtimeVisualGuardRecoverThresholdPercent, 4.0);
       expect(runtimeVisualGuardRequiredHighJankWindows, 2);

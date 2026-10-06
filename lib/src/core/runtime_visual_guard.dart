@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
-/// 触发降级的滚动掉帧率阈值（百分比）。参考 BiliPai 的同名常量。
+/// 触发降级的滚动掉帧率阈值（百分比）。与参考实现一致。
 const double runtimeVisualGuardHighJankThresholdPercent = 7.5;
 
 /// 解除降级的恢复阈值（百分比）。
@@ -63,7 +63,7 @@ class RuntimeVisualGuardDecision {
 
 /// 判定是否应当降级 —— 纯函数，不持有任何状态。
 ///
-/// 对应 BiliPai 的 `resolveRuntimeVisualGuardDecision`，阈值与冷却都照搬，
+/// 对应上游的判定实现，阈值与冷却都照搬，
 /// 但去掉了它那个 `forceLowBudget` 入参：本仓库目前没有"外部强制低预算"的
 /// 来源（它是给 Android 的省电模式用的），留着就是空参数。
 ///
@@ -73,7 +73,7 @@ class RuntimeVisualGuardDecision {
 /// - [consecutiveHighJankWindows]：已经连续多少个窗口超过触发阈值；
 /// - [lastDowngradeAtMs] / [nowMs]：用于冷却判断的单调时钟毫秒值。
 ///
-/// 顺序与 BiliPai 一致：先看是否触发 → 再看冷却 → 再看是否维持。
+/// 顺序与上游一致：先看是否触发 → 再看冷却 → 再看是否维持。
 RuntimeVisualGuardDecision resolveRuntimeVisualGuardDecision({
   required bool enabled,
   required double rollingJankPercent,
@@ -129,7 +129,7 @@ RuntimeVisualGuardDecision resolveRuntimeVisualGuardDecision({
 /// 各信号窗口互相独立（竖滑与横滑会同帧共存，混在一个窗口里会互相污染分母），
 /// 但对外只暴露一个结论，且取最保守的那个。
 ///
-/// 与 BiliPai 的差异：它额外把 `effectiveMotionTier` 一起 fold，本仓库的降级
+/// 与上游的差异：它额外把 `effectiveMotionTier` 一起 fold，本仓库的降级
 /// 只影响折射路径、没有分档，所以只合并"降不降"。
 RuntimeVisualGuardDecision mergeRuntimeVisualGuardDecisions(
   Iterable<RuntimeVisualGuardDecision> decisions,
@@ -154,7 +154,7 @@ RuntimeVisualGuardDecision mergeRuntimeVisualGuardDecisions(
 ///
 /// ## 为什么必须"只在交互期间记"
 ///
-/// 这是 BiliPai 特意强调的取舍：界面静止时也长期挂着的高频状态（例如"当前分类"）
+/// 这是上游特意强调的取舍：界面静止时也长期挂着的高频状态（例如"当前分类"）
 /// 会把静止帧算进分母 —— 而静止帧几乎不掉，于是真实掉帧率被稀释，
 /// 守卫永远不触发。所以 [addFrame] 带 [active] 参数，非交互帧**直接不参与统计**
 /// （既不加分子也不加分母），而不是记成"没掉帧"。

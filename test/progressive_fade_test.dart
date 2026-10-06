@@ -7,7 +7,7 @@ Alignment _align(AlignmentGeometry geometry) => geometry as Alignment;
 
 void main() {
   group('ProgressiveFade 停靠点算法', () {
-    test('五阶停靠点等分，alpha 阶梯是 Telegram 原生值', () {
+    test('五阶停靠点等分，alpha 阶梯是实测的原始值', () {
       expect(ProgressiveFade.stops, <double>[0, .25, .5, .75, 1]);
       expect(ProgressiveFade.alphaFactors, <double>[
         1,

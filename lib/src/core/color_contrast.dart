@@ -6,7 +6,7 @@
 /// 底下的页面画布，而主题种子色、明暗模式、玻璃质感档位、玻璃不透明度都会
 /// 改动这个结果 —— 于是同一处文字换个主题或换档质感就可能忽然读不清。
 ///
-/// 这里移植 BiliPai（Android/Compose 端）的 `ThemeContrastPolicy.kt`，
+/// 这里移植 Android/Compose 端的对比度策略实现，
 /// 只保留**纯函数策略**：给定底色与候选文字色，算出保证 WCAG 对比度的文字色。
 /// 不碰 `BuildContext`、不碰任何 widget、不引入新依赖，所以可以直接单测，
 /// 也可以在任何拿得到颜色的地方（含非 UI 代码）复用。
@@ -28,7 +28,7 @@ const double accessibleUiMinContrast = 3.0;
 
 /// 两个颜色的 WCAG 对比度，取值 1.0（亮度相同）～ 21.0（纯黑对纯白）。
 ///
-/// 与 BiliPai 的 `calculateContrastRatio` 完全等价：只比亮度，**忽略 alpha**。
+/// 与上游实现完全等价：只比亮度，**忽略 alpha**。
 /// 想按"用户看到的颜色"比，先用 [opaqueCompositeOver] 把半透明色合成掉。
 double contrastRatio(Color foreground, Color background) {
   final a = foreground.computeLuminance();
@@ -70,7 +70,7 @@ Color opaqueCompositeOver(Color foreground, Color background) {
 
 /// 单一回退版：候选色达标就用它，否则用 [fallback]。
 ///
-/// 对应 BiliPai 的 `resolveReadableTextColor`。只有一档回退时用这个，
+/// 对应上游的对应实现。只有一档回退时用这个，
 /// 调用点不必为了一个元素包一层列表。
 Color resolveReadableTextColor({
   required Color candidate,
@@ -155,7 +155,7 @@ Color? darkenOrLightenToContrast(
 /// `onSurface`）虽然一定达标，但会让次要文字与正文同色、丢掉层次；
 /// 压明度只改"多亮"，保住色相与饱和度，是更小的一步改动。
 ///
-/// 与 BiliPai 的一处差异：它在全不达标时直接退回候选色，这里改为在
+/// 与上游的一处差异：它在全不达标时直接退回候选色，这里改为在
 /// "候选 + 回退"里挑对比度最高的。既然回退列表本来就是按"更该可读"排的，
 /// 挑最高的那个至少不会比候选更差。
 Color resolveReadableThemeTextColor({
