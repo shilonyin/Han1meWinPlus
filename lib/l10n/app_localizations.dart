@@ -966,7 +966,7 @@ abstract class AppLocalizations {
   /// No description provided for @useUpdateMirrorDescription.
   ///
   /// In en, this message translates to:
-  /// **'Try update mirrors in order when the original GitHub download fails'**
+  /// **'Prefer update mirrors (much faster than GitHub direct), falling back to direct only if every mirror fails'**
   String get useUpdateMirrorDescription;
 
   /// No description provided for @checkUpdates.

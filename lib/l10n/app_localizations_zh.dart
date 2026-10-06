@@ -490,7 +490,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get useUpdateMirror => '自动使用更新镜像';
 
   @override
-  String get useUpdateMirrorDescription => '原始 GitHub 下载失败时依次尝试更新镜像';
+  String get useUpdateMirrorDescription =>
+      '优先走更新镜像下载（比直连 GitHub 快得多），镜像都失败时才回退到直连';
 
   @override
   String get checkUpdates => '检查更新';
@@ -3122,7 +3123,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get useUpdateMirror => '自動使用更新鏡像';
 
   @override
-  String get useUpdateMirrorDescription => '原始 GitHub 下載失敗時依序嘗試更新鏡像';
+  String get useUpdateMirrorDescription =>
+      '優先走更新鏡像下載（比直連 GitHub 快得多），鏡像都失敗時才回退到直連';
 
   @override
   String get checkUpdates => '檢查更新';

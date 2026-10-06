@@ -512,7 +512,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get useUpdateMirrorDescription =>
-      'Try update mirrors in order when the original GitHub download fails';
+      'Prefer update mirrors (much faster than GitHub direct), falling back to direct only if every mirror fails';
 
   @override
   String get checkUpdates => 'Check for Updates';

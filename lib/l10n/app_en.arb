@@ -170,7 +170,7 @@
   "cloudflareVerificationDescription": "Complete verification when visiting protected pages",
   "autoCheckUpdates": "Auto-check for updates",
   "useUpdateMirror": "Automatically use update mirrors",
-  "useUpdateMirrorDescription": "Try update mirrors in order when the original GitHub download fails",
+  "useUpdateMirrorDescription": "Prefer update mirrors (much faster than GitHub direct), falling back to direct only if every mirror fails",
   "checkUpdates": "Check for Updates",
   "application": "App",
   "applicationSettings": "Application",

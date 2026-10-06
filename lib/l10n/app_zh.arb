@@ -163,7 +163,7 @@
   "cloudflareVerificationDescription": "访问受保护页面时完成验证",
   "autoCheckUpdates": "自动检查更新",
   "useUpdateMirror": "自动使用更新镜像",
-  "useUpdateMirrorDescription": "原始 GitHub 下载失败时依次尝试更新镜像",
+  "useUpdateMirrorDescription": "优先走更新镜像下载（比直连 GitHub 快得多），镜像都失败时才回退到直连",
   "checkUpdates": "检查更新",
   "application": "应用",
   "applicationSettings": "应用程序",
