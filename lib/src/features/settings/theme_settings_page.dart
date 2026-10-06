@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_notifications.dart';
+import '../../core/app_surface_tokens.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
@@ -352,7 +353,7 @@ class _GlassModeCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? scheme.primary.withValues(alpha: .14)
-                : scheme.surface.withValues(alpha: .5),
+                : AppSurfaceTokens.glassModeCardBase(scheme),
             border: Border.all(
               color: selected
                   ? scheme.primary.withValues(alpha: .5)

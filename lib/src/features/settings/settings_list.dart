@@ -149,7 +149,14 @@ class SettingsTile<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final secondary = enabled ? colorScheme.onSurfaceVariant : colorScheme.onSurface.withValues(alpha: 0.38);
+    // 次要文字/图标色。**必须走面板可读性兜底**：实测浅色玻璃面板下
+    // `onSurfaceVariant` 只有 4.2 左右，够不到正文所需的 4.5（深色下没问题，7 以上）。
+    // 兜底只推明度、保住色相，所以次要文字仍是"次要"的样子，不会变成正文色。
+    // 禁用态（38% 透明度）刻意**不走**兜底：它本来就该显得弱，强行拉到达标线
+    // 会让"不可用"看起来像"可用"。
+    final secondary = enabled
+        ? GlassPanelTextColor.resolve(context)
+        : colorScheme.onSurface.withValues(alpha: 0.38);
     // 悬停/按下不再铺底色块，改为把图标与标题染成主题色
     // （与主侧栏、设置分类栏一套规矩：底色块比图标还抢眼）。
     return SettingsHoverTracker(

@@ -19,6 +19,7 @@ import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../../domain/video_metrics.dart';
 import '../../data/local/library_repository.dart';
+import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
@@ -1039,7 +1040,11 @@ class _FeaturedVideoSurface extends ConsumerWidget {
                 errorWidget: (_, __, ___) => ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
               ),
               DecoratedBox(
-                decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
+                // 大卡片封面下的文字压暗：两阶线性在标题上方会留下一道可见的
+                // 过渡边，改用非线性停靠点后压暗区域与画面自然衔接。
+                decoration: BoxDecoration(
+                  gradient: ProgressiveFade.bottomSolid(Colors.black87),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [

@@ -15,6 +15,7 @@ import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/platform_service.dart';
 import '../../core/player_hotkey_registry.dart';
+import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../domain/models/video.dart';
@@ -692,12 +693,9 @@ class _PlayerTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black87, Colors.transparent],
-        ),
+      // 顶部栏底衬：与底部控制栏同一套非线性停靠点，避免两阶线性的中段硬边。
+      decoration: BoxDecoration(
+        gradient: ProgressiveFade.topSolid(Colors.black87),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),

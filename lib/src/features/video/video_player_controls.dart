@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
 import '../../domain/models/video.dart';
@@ -46,7 +47,11 @@ class VideoPlayerControls extends StatelessWidget {
         right: 0,
         bottom: 0,
         child: DecoratedBox(
-          decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
+          // 底衬压在视频画面上：两阶线性的 [transparent, black87] 会在中段
+          // 浮出一道看得见的硬边（马赫带），改用非线性停靠点让消散平滑收尾。
+          decoration: BoxDecoration(
+            gradient: ProgressiveFade.bottomSolid(Colors.black87),
+          ),
           child: ValueListenableBuilder<VideoPlayerValue>(
             valueListenable: controller,
             builder: (context, value, _) {
