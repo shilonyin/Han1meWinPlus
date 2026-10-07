@@ -120,6 +120,31 @@ void main() {
     );
   });
 
+  testWidgets('标题一行与两行的卡片：封面高度一致、下沿也在同一条水平线上', (tester) async {
+    await tester.pumpWidget(
+      _row([
+        _video(id: 'a', title: '短标题', artist: '甲作者'),
+        _video(id: 'b', title: '一个会折成两行的很长很长的中文标题测试用例', artist: '乙作者'),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    final covers = find.byType(Image);
+    expect(covers, findsNWidgets(2), reason: '这一行应该有且只有两张封面图');
+    final short = tester.getRect(covers.first);
+    final long = tester.getRect(covers.last);
+    expect(
+      short.height,
+      closeTo(long.height, 0.5),
+      reason: '一行标题的卡封面比两行标题的高：标题区没有固定成两行高',
+    );
+    expect(
+      short.bottom,
+      closeTo(long.bottom, 0.5),
+      reason: '两张卡的封面下沿不在同一条水平线上',
+    );
+  });
+
   testWidgets('上传时间显示在作者名右边（同一行、靠右）', (tester) async {
     await tester.pumpWidget(
       _row([

@@ -638,24 +638,22 @@ class VideoCardTile extends ConsumerWidget {
     );
   }
 
-  /// 标题按最多两行排版时的实际高度（用与 `Text` 完全相同的样式和文字缩放量出来）。
+  /// 标题区的高度：**固定两行**，与 B 站一样 —— 标题短也占两排空间。
   ///
-  /// 这里**不**固定成两行：一行标题就只留一行高度，省下来的空间落进封面（详情区在
-  /// 卡片底部按自然高度收口，见 `_horizontalContent`），标题与作者之间不会空一截。
-  /// 同一行卡片的作者行/评分行水平对齐靠的是"详情区贴底"，而不是把标题区撑成两行。
-  double _titleHeight(
-    BuildContext context,
-    String title,
-    TextStyle? style,
-    double maxWidth,
-  ) {
+  /// 为什么不能按标题实际行数留高：标题一行还是两行会改变卡片内容区的高度，于是同一行里
+  /// 封面下沿、作者行、评分行全都跟着错位（用户截图反馈"视频封面怎么也是没对齐的"）。
+  /// 标题本体仍是 `maxLines: 2` + 省略号，太长的标题第三行就被截成「…」。
+  ///
+  /// 为什么不拿标题本身去量行高：标题里带 emoji 时行高比纯文字更高，量出来会比别的卡多
+  /// 一截，封面又对不齐 —— 这里固定用代表字符「国A」按同一套样式（含文字缩放）量一行高
+  /// 再乘 2，每张卡拿到完全相同的高度。
+  double _titleBoxHeight(BuildContext context, TextStyle? style) {
     final painter = TextPainter(
-      text: TextSpan(text: title, style: style),
-      maxLines: 2,
+      text: TextSpan(text: '国A', style: style),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
-    )..layout(maxWidth: maxWidth.isFinite ? maxWidth : 1000);
-    return painter.height;
+    )..layout();
+    return painter.height * 2;
   }
 
   /// 作者名做成可点的链接：点进作者页（`/search?query=<作者>`，与详情页作者卡同一条路径）。
@@ -726,13 +724,8 @@ class VideoCardTile extends ConsumerWidget {
             fontWeight: FontWeight.w600,
             color: accentTitle,
           );
-          // 标题区高度按**实际占了几行**算（见 `_titleHeight`）：一行标题不留两行的空。
-          final titleHeight = _titleHeight(
-            context,
-            video.title,
-            titleStyle,
-            constraints.maxWidth,
-          );
+          // 标题区固定两行高（见 `_titleBoxHeight`）：封面下沿、作者行、评分行才会对齐。
+          final titleHeight = _titleBoxHeight(context, titleStyle);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
