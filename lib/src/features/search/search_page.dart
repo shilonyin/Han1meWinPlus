@@ -433,13 +433,13 @@ class _DateFilterDialogState extends State<_DateFilterDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SegmentedButton<_DateMode>(
-              segments: [
-                ButtonSegment(value: _DateMode.range, label: Text(l10n.dateRange)),
-                ButtonSegment(value: _DateMode.month, label: Text(l10n.specificYearMonth)),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (value) => setState(() => _mode = value.first),
+            // 换成 g1455 的分段控件：按住时整条选中胶囊会像水珠一样抬起来。
+            // 配色接回主题色，不然默认的 iOS 白胶囊在暗色弹窗里会显得没接上主题。
+            GlassSegmentedControl(
+              segments: [Text(l10n.dateRange), Text(l10n.specificYearMonth)],
+              selectedIndex: _mode.index,
+              onSelected: (index) => setState(() => _mode = _DateMode.values[index]),
+              thumbColor: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             if (_mode == _DateMode.range)
