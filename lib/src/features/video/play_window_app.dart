@@ -17,6 +17,7 @@ import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/cached_video_lookup.dart';
 import '../../domain/models/video.dart';
+import '../author/author_page.dart';
 import '../cache/cache_page.dart';
 import '../settings/cloudflare_page.dart';
 import '../settings/settings_controller.dart';
@@ -88,6 +89,13 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         GoRoute(path: '/downloads', builder: (context, state) => const CachePage()),
         // 简介里的作者 / 标签会 push 搜索页。
         GoRoute(path: '/search', builder: searchRouteBuilder),
+        // 简介里的作者名进作者页（与主窗口同一条路由）。
+        GoRoute(
+          path: '/author',
+          builder: (context, state) => AuthorPage(
+            artist: state.uri.queryParameters['name'] ?? '',
+          ),
+        ),
       ],
     );
   }

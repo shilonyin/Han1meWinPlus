@@ -11,7 +11,6 @@ import '../../core/app_motion.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
-import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
@@ -659,7 +658,7 @@ class VideoCardTile extends ConsumerWidget {
   /// 作者名做成可点的链接：点进作者页（`/search?query=<作者>`，与详情页作者卡同一条路径）。
   ///
   /// 为什么把条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），那时
-  /// 搜索页会退化成"没有关键词"的页，看起来就是点了作者没内容 —— 详情页作者卡踩过这个
+  /// 页面会退化成"没有作者名"的空页，看起来就是点了作者没内容 —— 详情页作者卡踩过这个
   /// 坑，这里照抄同样的写法。悬停只用文字变主题色提示（与标题一致），不铺灰罩。
   Widget _artistLink(
     BuildContext context,
@@ -673,16 +672,11 @@ class VideoCardTile extends ConsumerWidget {
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
-        onTap: () {
-          final url = Uri(
-            path: '/search',
-            queryParameters: {'query': artist},
-          ).toString();
-          context.push(
-            url,
-            extra: SearchRouteRequest(initialUrl: url, authorName: artist),
-          );
-        },
+        // 进作者自己的页面，而不是"拿作者名去搜索"：搜索结果里会混进别人的片子，
+        // 也看不出这是谁的页面（用户对比 B 站空间页提出的要求）。
+        onTap: () => context.push(
+          Uri(path: '/author', queryParameters: {'name': artist}).toString(),
+        ),
         child: Text(
           artist,
           maxLines: 1,

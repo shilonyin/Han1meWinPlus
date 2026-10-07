@@ -11,6 +11,7 @@ import '../features/account/account_web_page.dart';
 import '../features/account/login_page.dart';
 import '../features/account/manual_cookie_page.dart';
 import '../features/account/account_page.dart';
+import '../features/author/author_page.dart';
 import '../features/cache/cache_page.dart';
 import '../features/comics/comic_pages.dart';
 import '../features/explore/explore_page.dart';
@@ -97,6 +98,15 @@ class AppRouter {
                       path: 'search',
                       parentNavigatorKey: navigatorKey,
                       builder: searchRouteBuilder,
+                    ),
+                    // 作者页和搜索页同理：卡片和简介都会从顶层全屏页面（视频页）
+                    // push 它，挂在根导航器上才一定能构建出来。
+                    GoRoute(
+                      path: 'author',
+                      parentNavigatorKey: navigatorKey,
+                      builder: (context, state) => AuthorPage(
+                        artist: state.uri.queryParameters['name'] ?? '',
+                      ),
                     ),
                     GoRoute(
                       path: 'mine',

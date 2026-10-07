@@ -168,11 +168,13 @@ class _ArtistRow extends ConsumerWidget {
         child: PressScale(child: InkWell(
           borderRadius: BorderRadius.circular(18),
           // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
-          // 那时搜索页会退化成「没有关键词」的页，看起来就是点了作者没内容。
-          onTap: () {
-            final url = Uri(path: '/search', queryParameters: {'query': video.artist!}).toString();
-            context.push(url, extra: SearchRouteRequest(initialUrl: url, authorName: video.artist));
-          },
+          // 那时作者页会退化成「没有作者名」的空页，看起来就是点了作者没内容。
+          onTap: () => context.push(
+            Uri(
+              path: '/author',
+              queryParameters: {'name': video.artist!},
+            ).toString(),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(

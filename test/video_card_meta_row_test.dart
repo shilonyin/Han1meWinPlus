@@ -72,7 +72,14 @@ Widget _row(List<VideoCard> videos) => ProviderScope(
             ),
           ),
         ),
-        // 作者页等价物：把 URL 里的 query 显示出来，用来断言跳转真的带上了作者名。
+        // 作者页等价物：把 URL 里的 name 显示出来，用来断言跳转真的带上了作者名。
+        GoRoute(
+          path: '/author',
+          builder: (context, state) => Scaffold(
+            body: Text('作者页：${state.uri.queryParameters['name']}'),
+          ),
+        ),
+        // 搜索页等价物：留着证明作者名不再走「关键词搜索」那条路。
         GoRoute(
           path: '/search',
           builder: (context, state) =>
@@ -159,7 +166,7 @@ void main() {
     expect(date.top, closeTo(author.top, 6), reason: '日期与作者名不该差出一行');
   });
 
-  testWidgets('点作者名进作者页（/search?query=作者），不会点开视频', (tester) async {
+  testWidgets('点作者名进作者页（/author?name=作者），不会点开视频', (tester) async {
     await tester.pumpWidget(
       _row([_video(id: 'a', title: '短标题', artist: '甲作者', uploadTime: '2026-04-24')]),
     );
@@ -168,6 +175,10 @@ void main() {
     await tester.tap(find.text('甲作者'));
     await tester.pumpAndSettle();
 
-    expect(find.text('搜索页：甲作者'), findsOneWidget);
+    expect(
+      find.text('作者页：甲作者'),
+      findsOneWidget,
+      reason: '点作者名应该是进作者页，而不是拿作者名去搜索',
+    );
   });
 }
