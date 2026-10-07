@@ -194,11 +194,15 @@ extension AppThemeColorSeed on AppThemeColor {
 
   /// 是否把中性面换成中性灰（参考 bilibili 的「白底 + 浅灰卡片」）。
   ///
-  /// 现在恒为 `false`：白色主题的底不再走「死白 + 灰卡片」，
-  /// 而是和其他主题一样走淡染 —— 底色自动带上品牌色的极淡倾向，
-  /// 和背景画布连成一片（即"自动沉浸"）。
-  /// 真正需要纯中性面的场景（播放页、自绘标题栏）直接给 `appTheme(neutralSurfaces: true)`。
-  bool get neutralSurfaces => false;
+  /// **白色主题取中性**（其余配色仍走 8% 淡染）：用户给的参考图就是这套语言 ——
+  /// 页面底是中性浅灰 `#F2F2F7`（见 `AppPageColors`），卡片与侧栏是纯白，
+  /// 没有一个面自带主色，主色只出现在按钮、选中态和链接上。
+  /// 淡染版本下白色主题的侧栏会整片发紫（`_lightSurface` 朝 b 站粉插值 8% 的结果），
+  /// 那和参考图不是一回事。
+  ///
+  /// 另一条依据在 `_tintedSurfaces` 上方的文档里：那一段本来就写着
+  /// 「两套都不带主色倾向」，8% 淡染和它自相矛盾；这里按文档与参考图取中性。
+  bool get neutralSurfaces => this == AppThemeColor.white;
 
   /// 色板上那个圆的颜色：白色主题画白底（它的粉只体现在高亮色上）。
   Color swatchColor(String customColor) => this == AppThemeColor.white ? const Color(0xffffffff) : seedColor(customColor);
