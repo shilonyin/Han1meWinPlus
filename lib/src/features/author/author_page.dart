@@ -212,10 +212,8 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       if (artistId.isNotEmpty) '@$artistId',
       if (counts.isNotEmpty) counts,
     ].join(' · ');
-    return SizedBox(
-      height: 136,
-      child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -272,18 +270,17 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                   ),
                 ],
               ),
-            ),
     );
   }
 
   Widget _avatar(ThemeData theme, String? url) => Container(
-    width: 76,
-    height: 76,
+    width: 152,
+    height: 152,
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: theme.colorScheme.surface, width: 3),
+      borderRadius: BorderRadius.circular(36),
+      border: Border.all(color: theme.colorScheme.surface, width: 4),
       image: url == null
           ? null
           : DecorationImage(image: appNetworkImage(url), fit: BoxFit.cover),
@@ -292,7 +289,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
         ? null
         : Text(
             widget.artist.isEmpty ? '?' : widget.artist.characters.first,
-            style: theme.textTheme.headlineSmall,
+            style: theme.textTheme.displaySmall,
           ),
   );
 
