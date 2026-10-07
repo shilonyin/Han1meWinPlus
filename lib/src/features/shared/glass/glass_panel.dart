@@ -139,8 +139,10 @@ class GlassPanel extends ConsumerWidget {
   /// 反过来它**不会**抢走内容的点击：只有 `!hit` 时才接管，而且它只监听
   /// pointer、不参与手势竞技场。
   ///
-  /// g1455 另外建议只用在**无文字**的大块玻璃上：有文字时它要按
-  /// `minLabelContrast` 把玻璃压暗，波纹会跟着变淡。
+  /// g1455 另外建议只用在**无文字**的大块玻璃上：它自己的标签地板会为了
+  /// 白标签把玻璃压暗，波纹跟着变淡。我们这里已经关掉了那个地板
+  /// （见 [build] 里 `labelled: false` 的说明），所以文字不再是障碍 ——
+  /// 真正拦住波纹的只有上面那条"被可点区域铺满"。
   final GlassRipple? ripple;
 
   @override
@@ -215,8 +217,21 @@ class GlassPanel extends ConsumerWidget {
     final glass = GlassSurface(
       borderRadius: borderRadius,
       finish: finish,
-      // 有文字落在上面，允许它为了 `minLabelContrast` 压暗。
-      labelled: true,
+      // **不接 g1455 的标签对比度地板**，尽管这上面确实有文字。
+      //
+      // `labelled: true` 会让 `GlassThemeData.legibility` 按 `minLabelContrast`
+      // 给材质算一个"压暗量"，而它算的是**它自己那个标签色**够不够亮（
+      // `_dimOver` 里写死 `white`，见 `glass_theme.dart:334`）。我们从来不画它的
+      // 标签色 —— 文字颜色是调用点自己给的（暗色文字压在浅色玻璃上），
+      // 于是它为了一个不存在的白标签把玻璃压暗成中灰：浅色主题 + 超透/磨砂时
+      // 实测卡片是 `#6E6E70`，而页面底色是 `#EDE9EE`，整块 UI 糊成灰的。
+      //
+      // 还有一处连带的错：上面 `panelSurface` 是按**未压暗**的 tint 算的，
+      // 压暗之后它就跟真正画出来的颜色对不上了，`GlassPanelTextColor` 会照着
+      // 一个没画出来的底色挑文字色。关掉这层"帮忙"，两者重新一致。
+      //
+      // 可读性我们自己负责 —— 见 [GlassPanelTextColor]。
+      labelled: false,
       ripple: ripple,
       child: padding == null ? child : Padding(padding: padding!, child: child),
     );

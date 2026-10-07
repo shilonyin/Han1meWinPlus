@@ -191,6 +191,55 @@ void main() {
     });
   });
 
+  group('材质面板列表', () {
+    test('只列标准 / 超透 / 磨砂，深浅两档不进面板（跟「外观」重复）', () {
+      expect(glassMaterialChoices, <GlassMaterial>[
+        GlassMaterial.regular,
+        GlassMaterial.clear,
+        GlassMaterial.frosted,
+      ]);
+    });
+
+    test('没进面板的**恰好**是深浅两档 —— 将来加档必须两边一起想', () {
+      final hidden = GlassMaterial.values
+          .where((material) => !glassMaterialChoices.contains(material))
+          .toSet();
+      expect(hidden, <GlassMaterial>{GlassMaterial.dark, GlassMaterial.light});
+    });
+
+    test('面板列出来的每一档画出来都不一样（否则就是列了两个名字）', () {
+      for (final brightness in Brightness.values) {
+        final drawn = glassMaterialChoices
+            .map(
+              (material) => glassFinishFor(
+                material: material,
+                tint: GlassTintKind.neutral,
+                brightness: brightness,
+              ),
+            )
+            .toList();
+        expect(drawn.toSet(), hasLength(drawn.length), reason: '$brightness');
+      }
+    });
+
+    test('老配置里的深色 / 浅色仍然认，只是面板不再列它们', () {
+      for (final material in <GlassMaterial>[
+        GlassMaterial.dark,
+        GlassMaterial.light,
+      ]) {
+        expect(glassFinishFor(
+          material: material,
+          tint: GlassTintKind.neutral,
+          brightness: Brightness.light,
+        ), isNotNull);
+      }
+      expect(
+        AppSettings.fromJson(const {'glassMaterial': 'dark'}).glassMaterial,
+        GlassMaterial.dark,
+      );
+    });
+  });
+
   group('预设', () {
     test('默认设置落在「高」这一档（就是包默认那组取值）', () {
       const settings = AppSettings();

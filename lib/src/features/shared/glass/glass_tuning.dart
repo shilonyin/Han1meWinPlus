@@ -147,6 +147,21 @@ Color? glassTintColorFor(GlassTintKind kind) => switch (kind) {
   GlassTintKind.rose => const Color(0xFF962850),
 };
 
+/// 设置页「材质」那一栏**列出来**的档位，顺序即显示顺序。
+///
+/// 刻意不是 `GlassMaterial.values`：`dark`（深色）与 `light`（浅色）是指定一块
+/// **固定明暗**的材质，跟上面「外观」那一栏的功能重复 —— 用户点名要去掉，
+/// 所以面板不列它们。枚举里留着这两档只为老配置能原样迁移，`glassFinishFor`
+/// 也仍然认（老配置若真是 dark，迁移后渲染出来的还是那块料）。
+///
+/// 面板与枚举从此有一处**明确的差**，所以这个常量必须是唯一入口：
+/// 面板直接用 `GlassMaterial.values` 就会把两档又漏回来（上次正是这么发生的）。
+const List<GlassMaterial> glassMaterialChoices = <GlassMaterial>[
+  GlassMaterial.regular,
+  GlassMaterial.clear,
+  GlassMaterial.frosted,
+];
+
 /// 设置里的材质 / 染色 → g1455 的 `GlassFinish`。
 ///
 /// 材质那五档是包按真机**校准过**的常数，所以这里只做"挑一块"，从不自己拼：
