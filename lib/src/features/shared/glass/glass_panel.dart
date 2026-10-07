@@ -185,28 +185,42 @@ class GlassPanel extends ConsumerWidget {
             ? Theme.of(context).scaffoldBackgroundColor
             : scheme.surface);
     final canvas = solidColor == null ? pageCanvas : opaqueCompositeOver(solidColor!, pageCanvas);
-    // 材质在**平背景**下的等效不透明色。玻璃着色器算的是 mix(blur(背景), tint, tint.a)，
-    // 而 blur(平背景) 就是平背景本身，所以在平背景上这个平色与真玻璃**逐像素相同**。
+    // 卡片画出来的颜色 = 材质自己的**半透明** tint，直接压在页面背景上。
     //
-    // 关键：这条**不区分** glassEnabled —— 内容卡片（glassEnabled: false）画的也是它。
-    // 于是「材质 / 玻璃染色」改得到全应用的卡片，风格才统一（原来卡片一律走各页
-    // 自带的不透明纯色底，所以怎么调设置都只看到侧栏/顶栏在变）；
-    // 而因为不经过 g1455 那张共享降采样图，滚动时也不会浮出灰块。
-    final materialSurface = glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas);
-    final panelSurface = materialSurface;
+    // 这就是玻璃在**平滑背景**下的结果：着色器算 `mix(blur(背景), tint, tint.a)`，
+    // 而平滑背景下 `blur(背景) ≈ 背景` 本身，所以"把半透明 tint 叠上去"与真玻璃
+    // 逐像素一致。区别在于它**不经过** g1455 那张共享降采样图 —— 那张图一帧只录一次、
+    // 天生晚一帧，滚动时会把上一帧的标题/图标采进卡片里（那就是灰块的来源）。
+    //
+    // 早先这里把它 opaqueCompositeOver 成不透明色，卡片就成了一整块死纯色、
+    // 页面背景完全透不过来 —— 看着和玻璃没关系。
+    final panelSurface = finish.tint;
+    // 亮边与光泽不来自采样，所以这里自己补一道很淡的对角高光，
+    // 否则平背景上的平铺色读起来仍是一块纯色（演示站那些面板的光泽就是这么来的）。
+    final sheen = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color.lerp(panelSurface, Colors.white, brightness == Brightness.dark ? .10 : .32)!,
+        panelSurface,
+      ],
+      stops: const [0, .6],
+    );
+    // 判定文字可读性要用**不透明**的等效色（半透明色的亮度不含背后的画布）。
+    final textSurface = opaqueCompositeOver(panelSurface, canvas);
 
-    // 关闭档：画一块按当前材质合成的平色（见上）。要突出显示的场合
-    // （列表选中项）靠调用点给的 solidColor 覆盖，不去建一块没有内容的玻璃。
+    // 关闭档：画材质自己的半透明 tint（见上）+ 一道对角高光。它**不是**真玻璃
+    // （不采背景、不模糊），所以滚动时不会浮出灰块；但也因此需要这道高光来撑住
+    // "这是一块玻璃"的观感，否则就是一块死纯色。调用点给 [border] 时描边照旧。
     if (!glassEnabled) {
       return GlassPanelScope(
-        surfaceColor: panelSurface,
+        surfaceColor: textSurface,
         child: Container(
           margin: margin,
           padding: padding,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            // 与真玻璃在平背景上的等效色一致：改「材质 / 玻璃染色」时整屏一起变。
-            color: panelSurface,
+            gradient: sheen,
             borderRadius: borderRadius,
             border: border == null ? null : Border.fromBorderSide(border!),
           ),
@@ -234,7 +248,7 @@ class GlassPanel extends ConsumerWidget {
       // 于是它为了一个不存在的白标签把玻璃压暗成中灰：浅色主题 + 超透/磨砂时
       // 实测卡片是 `#6E6E70`，而页面底色是 `#EDE9EE`，整块 UI 糊成灰的。
       //
-      // 还有一处连带的错：上面 `panelSurface` 是按**未压暗**的 tint 算的，
+      // 还有一处连带的错：上面 `textSurface` 是按**未压暗**的 tint 算的，
       // 压暗之后它就跟真正画出来的颜色对不上了，`GlassPanelTextColor` 会照着
       // 一个没画出来的底色挑文字色。关掉这层"帮忙"，两者重新一致。
       //
@@ -253,7 +267,7 @@ class GlassPanel extends ConsumerWidget {
             child: glass,
           );
     return GlassPanelScope(
-      surfaceColor: panelSurface,
+      surfaceColor: textSurface,
       child: margin == null ? panel : Padding(padding: margin!, child: panel),
     );
   }
