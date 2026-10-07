@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
@@ -62,12 +63,20 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
             // 超长分组名（自动建组用系列名，常常就是整条标题）会把操作按钮挤掉。
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : name, maxLines: 1, overflow: TextOverflow.ellipsis),
             actions: [
-              if (_selecting) ...[
-                IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(tasks.map((task) => task.id))), icon: const Icon(Symbols.select_all_rounded)),
-                IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Symbols.play_arrow_rounded)),
-                IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Symbols.delete_rounded)),
-              ] else
-                IconButton(tooltip: l10n.groupSettings, onPressed: () => showGroupEditor(context, ref, groupId: group.id), icon: const Icon(Symbols.tune_rounded)),
+              // 选择模式下三个操作合一块玻璃；平时只有「分组设置」一个 —— 单项时
+              // g1455 会把它画成圆形（和 Apple 工具栏的规矩一致）。
+              // icon 各自包 Tooltip：label 是给屏幕阅读器的，桌面悬停要的是气泡。
+              GlassButtonGroup(
+                items: _selecting
+                    ? [
+                        GlassToolbarItem(icon: Tooltip(message: l10n.selectAll, child: const Icon(Symbols.select_all_rounded)), label: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(tasks.map((task) => task.id)))),
+                        GlassToolbarItem(icon: Tooltip(message: l10n.startAll, child: const Icon(Symbols.play_arrow_rounded)), label: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected}))),
+                        GlassToolbarItem(icon: Tooltip(message: l10n.deleteSelectedCache, child: const Icon(Symbols.delete_rounded)), label: l10n.deleteSelectedCache, onPressed: _deleteSelected),
+                      ]
+                    : [
+                        GlassToolbarItem(icon: Tooltip(message: l10n.groupSettings, child: const Icon(Symbols.tune_rounded)), label: l10n.groupSettings, onPressed: () => showGroupEditor(context, ref, groupId: group.id)),
+                      ],
+              ),
             ],
           ),
           body: tasks.isEmpty

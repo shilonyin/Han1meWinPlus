@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -126,10 +127,20 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
 
   List<Widget> _selectionActions(DownloadState state, List<DownloadTask> visible) {
     final l10n = AppLocalizations.of(context)!;
+    // 三个操作合**一块**玻璃，而不是三个独立的按钮：Apple 的工具栏就是这么做的
+    // （相邻项并进同一个胶囊），g1455 照它量出来的 GlassButtonGroup 也是 ——
+    // 三个 GlassButton 是三块玻璃、三次绘制，一个 group 只有一次。
+    //
+    // 每个 icon 自己包一层 Tooltip：GlassToolbarItem.label 是给屏幕阅读器的，
+    // 桌面用户悬停时要看到的是那个气泡，光有 Semantics 不够。
     return [
-      IconButton(tooltip: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(visible.map((task) => task.id))), icon: const Icon(Symbols.select_all_rounded)),
-      IconButton(tooltip: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected})), icon: const Icon(Symbols.play_arrow_rounded)),
-      IconButton(tooltip: l10n.deleteSelectedCache, onPressed: _deleteSelected, icon: const Icon(Symbols.delete_rounded)),
+      GlassButtonGroup(
+        items: [
+          GlassToolbarItem(icon: Tooltip(message: l10n.selectAll, child: const Icon(Symbols.select_all_rounded)), label: l10n.selectAll, onPressed: () => setState(() => _selected.addAll(visible.map((task) => task.id)))),
+          GlassToolbarItem(icon: Tooltip(message: l10n.startAll, child: const Icon(Symbols.play_arrow_rounded)), label: l10n.startAll, onPressed: () => _run(ref.read(downloadProvider.notifier).resumeTasks({..._selected}))),
+          GlassToolbarItem(icon: Tooltip(message: l10n.deleteSelectedCache, child: const Icon(Symbols.delete_rounded)), label: l10n.deleteSelectedCache, onPressed: _deleteSelected),
+        ],
+      ),
     ];
   }
 
