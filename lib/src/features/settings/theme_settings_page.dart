@@ -255,12 +255,12 @@ class _ThemeModePanel extends StatelessWidget {
                       controller.saveChanges((current) => current.copyWith(themeMode: value)),
                 ),
 
-                // 材质。演示站的 Material 是五档，这里只列三档：另外两档（超透 / 磨砂）
-                // 是"重复项"和"用户要求去掉"的，删它们的那次改动见提交记录。
-                // 枚举本身仍留着五档，好让老配置照原样迁移过来。
+                // 材质。五档照抄演示站的 Material（regular/dark/light/clear/frosted），
+                // 顺序也一样。中间有过一次只列三档的版本（超透被当成重复项删过、
+                // 磨砂也被点名删过），后来按"材质按他的来"改回完整五档。
                 _GlassSegmentedLabel(l10n.glassMaterial),
                 _GlassSegmented<GlassMaterial>(
-                  values: const [GlassMaterial.regular, GlassMaterial.dark, GlassMaterial.light],
+                  values: GlassMaterial.values,
                   selected: settings.glassMaterial,
                   labelOf: (value) => _materialLabel(l10n, value),
                   onSelected: (value) =>
