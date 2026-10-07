@@ -12,6 +12,7 @@ import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
+import 'press_scale.dart';
 import 'app_image_cache.dart';
 
 int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
@@ -257,7 +258,7 @@ class VideoCardTile extends ConsumerWidget {
                 : BorderSide.none,
           ),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
+          child: PressScale(child: InkWell(
             // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
             onTap:
                 onTap ??
@@ -268,7 +269,7 @@ class VideoCardTile extends ConsumerWidget {
             child: horizontal
                 ? _horizontalContent(theme, cacheWidth, resolved)
                 : _verticalContent(theme, cacheWidth, resolved),
-          ),
+          )),
         );
       },
     );

@@ -16,6 +16,7 @@ import '../comics/comic_pages.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/app_toast.dart';
+import '../shared/press_scale.dart';
 import 'exit_coordinator.dart';
 import '../../core/app_motion.dart';
 
@@ -398,7 +399,7 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
       onExit: (_) => setState(() => _hovering = false),
       child: SizedBox(
         height: widget.extent,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           hoverColor: Colors.transparent,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
@@ -414,7 +415,7 @@ class _CompactRailAvatarState extends State<_CompactRailAvatar> {
               ),
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -490,7 +491,7 @@ class _CompactRailItemState extends State<_CompactRailItem> {
       onExit: (_) => setState(() => _hovering = false),
       child: SizedBox(
         height: extent,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           hoverColor: Colors.transparent,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
@@ -505,7 +506,7 @@ class _CompactRailItemState extends State<_CompactRailItem> {
               ],
             ],
           ),
-        ),
+        )),
       ),
     );
   }
@@ -543,7 +544,7 @@ class _DrawerAccountCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -564,7 +565,7 @@ class _DrawerAccountCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }

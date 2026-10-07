@@ -8,6 +8,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/comments_page.dart' show CommentCard, CommentEditor, CommentSort;
+import '../shared/press_scale.dart';
 import 'comment_episode_dialog.dart';
 import 'comments_controller.dart';
 import 'video_controller.dart';
@@ -80,16 +81,16 @@ class _CommentEpisodeBar extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
-          IconButton(
+          PressScale(child: IconButton(
             tooltip: l10n.episodeList,
             onPressed: () async {
               final episode = await showCommentEpisodeDialog(context, episodes: video.playlist, selectedId: commentVideoId);
               if (episode != null) onSelected(episode.id);
             },
             icon: const Icon(Symbols.switch_video_rounded),
-          ),
+          )),
           MenuAnchor(
-            builder: (context, controller, child) => IconButton(tooltip: l10n.sort(l10n.defaultValue), onPressed: controller.open, icon: const Icon(Symbols.sort_rounded)),
+            builder: (context, controller, child) => PressScale(child: IconButton(tooltip: l10n.sort(l10n.defaultValue), onPressed: controller.open, icon: const Icon(Symbols.sort_rounded))),
             menuChildren: CommentSort.values.map((item) => MenuItemButton(onPressed: () => ref.read(videoCommentSortProvider(commentVideoId).notifier).state = item, child: Text(_sortLabel(context, item), style: item == sort ? TextStyle(color: Theme.of(context).colorScheme.primary) : null))).toList(),
           ),
         ],
@@ -121,7 +122,7 @@ class _CommentsSliver extends ConsumerWidget {
     if (settings?.commentsEnabled != true) return SliverFillRemaining(child: Center(child: Text(AppLocalizations.of(context)!.commentsDisabled)));
     return ref.watch(commentsProvider(id)).when(
       loading: () => const SliverFillRemaining(child: Center(child: M3EContainedLoadingIndicator())),
-      error: (error, stackTrace) => SliverFillRemaining(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(AppLocalizations.of(context)!.commentsLoadFailed), Text('$error', style: Theme.of(context).textTheme.bodySmall), FilledButton(onPressed: () => ref.invalidate(commentsProvider(id)), child: Text(AppLocalizations.of(context)!.retry))]))),
+      error: (error, stackTrace) => SliverFillRemaining(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(AppLocalizations.of(context)!.commentsLoadFailed), Text('$error', style: Theme.of(context).textTheme.bodySmall), PressScale(child: FilledButton(onPressed: () => ref.invalidate(commentsProvider(id)), child: Text(AppLocalizations.of(context)!.retry)))]))),
       data: (page) => page.comments.isEmpty ? SliverFillRemaining(child: Center(child: Text(AppLocalizations.of(context)!.noComments))) : _commentList(page, settings!.blockedCommentKeywords, settings.blockedCommentUsers, sort, ref),
     );
   }

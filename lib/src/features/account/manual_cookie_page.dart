@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../shared/press_scale.dart';
 import 'account_controller.dart';
 
 class ManualCookiePage extends ConsumerStatefulWidget {
@@ -39,7 +40,7 @@ class _ManualCookiePageState extends ConsumerState<ManualCookiePage> {
             decoration: InputDecoration(labelText: l10n.cookies, errorText: error),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: saving ? null : _submit, child: Text(l10n.confirm)),
+          PressScale(child: FilledButton(onPressed: saving ? null : _submit, child: Text(l10n.confirm))),
         ],
       ),
     );

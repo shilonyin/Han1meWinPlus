@@ -9,6 +9,7 @@ import '../../core/cast_receiver.dart';
 import '../../core/dlna_media_renderer.dart';
 import '../../core/video_player_shutdown.dart';
 import '../shared/motion_icon.dart';
+import '../shared/press_scale.dart';
 
 /// 投屏接收页：手机投过来的片在这里播。
 ///
@@ -159,14 +160,14 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
+          PressScale(child: IconButton(
             tooltip: l10n.castDisconnect,
             icon: const Icon(Symbols.cast_connected_rounded),
             onPressed: () {
               CastReceiver.instance.incoming.value = null;
               if (mounted) Navigator.pop(context);
             },
-          ),
+          )),
         ],
       ),
       body: Column(
@@ -219,11 +220,11 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
         children: [
           Row(
             children: [
-              IconButton(
+              PressScale(child: IconButton(
                 color: Colors.white,
                 icon: MotionStateIcon(icon: controller.value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded),
                 onPressed: () => controller.value.isPlaying ? unawaited(pause()) : unawaited(play()),
-              ),
+              )),
               Expanded(
                 child: Slider(
                   value: position.inMilliseconds.clamp(0, max.round()).toDouble(),

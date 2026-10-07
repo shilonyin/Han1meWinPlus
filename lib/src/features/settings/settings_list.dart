@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_motion.dart';
 import '../shared/glass/glass_panel.dart';
+import '../shared/press_scale.dart';
 import 'settings_glass_controls.dart';
 
 /// Settings list primitives.
@@ -161,7 +162,7 @@ class SettingsTile<T> extends StatelessWidget {
     // （与主侧栏、设置分类栏一套规矩：底色块比图标还抢眼）。
     return SettingsHoverTracker(
       enabled: enabled,
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: _tapHandler(context),
         onHighlightChanged: _SplitListRow.pressReporterOf(context),
         hoverColor: Colors.transparent,
@@ -208,7 +209,7 @@ class SettingsTile<T> extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

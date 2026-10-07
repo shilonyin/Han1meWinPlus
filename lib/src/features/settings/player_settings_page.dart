@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/settings.dart';
 import '../../core/video_decoders.dart';
+import '../shared/press_scale.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
@@ -199,8 +200,8 @@ class _CustomParametersDialogState extends State<_CustomParametersDialog> {
         decoration: InputDecoration(hintText: l10n.customParametersHint),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(context, _controller.text), child: Text(l10n.save)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _controller.text), child: Text(l10n.save))),
       ],
     );
   }

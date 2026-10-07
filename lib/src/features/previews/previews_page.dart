@@ -13,6 +13,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_toast.dart';
+import '../shared/press_scale.dart';
 import '../video/play_window.dart';
 import 'preview_grid.dart';
 
@@ -57,16 +58,16 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
       appBar: AppBar(
         title: Text(l10n.previews),
         actions: [
-          IconButton(
+          PressScale(child: IconButton(
             tooltip: l10n.getchuPreviews,
             onPressed: () => context.push('/previews/getchu/${widget.month}'),
             icon: const Icon(Symbols.calendar_month_rounded),
-          ),
-          IconButton(
+          )),
+          PressScale(child: IconButton(
             tooltip: l10n.comments,
             onPressed: () => context.push('/comments/preview/${widget.month}', extra: l10n.previews),
             icon: const Icon(Symbols.forum_rounded),
-          ),
+          )),
         ],
       ),
       body: Column(
@@ -189,15 +190,15 @@ class _MonthNavigation extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded)),
+            PressScale(child: IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded))),
             Expanded(
-              child: TextButton.icon(
+              child: PressScale(child: TextButton.icon(
                 onPressed: onSelect,
                 icon: const Icon(Symbols.calendar_month_rounded, size: 18),
                 label: Text(l10n.previewMonth(month.label)),
-              ),
+              )),
             ),
-            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded)),
+            PressScale(child: IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded))),
           ],
         ),
       ),
@@ -231,8 +232,8 @@ class _PreviewUnavailable extends StatelessWidget {
             Wrap(
               spacing: 8,
               children: [
-                FilledButton.tonalIcon(onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded), label: Text(l10n.previousMonth)),
-                OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload)),
+                PressScale(child: FilledButton.tonalIcon(onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded), label: Text(l10n.previousMonth))),
+                PressScale(child: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload))),
               ],
             ),
           ],
@@ -276,7 +277,7 @@ class _PreviewCard extends ConsumerWidget {
     return GlassPanel(
           solidColor: theme.colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(18),
-      child: InkWell(
+      child: PressScale(child: InkWell(
         // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
         onTap: () => openVideo(context, ref, item.id),
         child: Column(
@@ -334,7 +335,7 @@ class _PreviewCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }

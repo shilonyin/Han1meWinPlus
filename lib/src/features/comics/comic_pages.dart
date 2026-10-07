@@ -21,6 +21,7 @@ import '../settings/settings_controller.dart';
 import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
 import '../../core/app_motion.dart';
+import '../shared/press_scale.dart';
 
 final comicHomeCacheProvider = Provider((_) => HomeCache());
 final comicHomeProvider = AsyncNotifierProvider<ComicHomeController, ComicHome>(ComicHomeController.new);
@@ -63,9 +64,9 @@ class ComicExplorePage extends ConsumerWidget {
     final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
       appBar: AppBar(
-        leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)) : null,
+        leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
         title: const Text('Hanime1.me'),
-        actions: [IconButton(tooltip: l10n.comicBrowse, onPressed: () => context.push('/comics/browse'), icon: const Icon(Symbols.tune_rounded))],
+        actions: [PressScale(child: IconButton(tooltip: l10n.comicBrowse, onPressed: () => context.push('/comics/browse'), icon: const Icon(Symbols.tune_rounded)))],
       ),
       body: home.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
@@ -264,12 +265,12 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
             ],
           ),
           const SizedBox(height: 16),
-          Card(child: Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: FilledButton.tonalIcon(onPressed: () => _save(card), icon: const Icon(Symbols.bookmark_add_rounded), label: Text(l10n.library))), const SizedBox(width: 8), Expanded(child: FilledButton.tonalIcon(onPressed: () => _cache(comic), icon: const Icon(Symbols.download_rounded), label: Text(l10n.cache))), const SizedBox(width: 8), IconButton(tooltip: l10n.info, onPressed: () => _info(comic), icon: const Icon(Symbols.info_rounded))]))),
+          Card(child: Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: PressScale(child: FilledButton.tonalIcon(onPressed: () => _save(card), icon: const Icon(Symbols.bookmark_add_rounded), label: Text(l10n.library)))), const SizedBox(width: 8), Expanded(child: PressScale(child: FilledButton.tonalIcon(onPressed: () => _cache(comic), icon: const Icon(Symbols.download_rounded), label: Text(l10n.cache)))), const SizedBox(width: 8), PressScale(child: IconButton(tooltip: l10n.info, onPressed: () => _info(comic), icon: const Icon(Symbols.info_rounded)))]))),
           const SizedBox(height: 18),
           Text(l10n.tags, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 6, children: comic.tags.take(_expanded ? comic.tags.length : 12).map((tag) => ActionChip(label: Text(tag.name), onPressed: () => context.push('/comics/browse', extra: ComicBrowseTarget(tag.path, type: tag.type, label: tag.name)))).toList()),
-          if (comic.tags.length > 12) Align(alignment: Alignment.centerRight, child: IconButton(onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded))),
+          if (comic.tags.length > 12) Align(alignment: Alignment.centerRight, child: PressScale(child: IconButton(onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded)))),
           const SizedBox(height: 18),
           Text(l10n.chapter, style: Theme.of(context).textTheme.titleMedium),
           ListTile(leading: const Icon(Symbols.article_rounded), title: Text(l10n.chapterOne), trailing: Text(l10n.pageCount(comic.pageCount)), onTap: () => context.push('/comics/${comic.id}/read', extra: comic)),
@@ -280,7 +281,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<void> _save(ComicCard card) async {
     final l10n = AppLocalizations.of(context)!;
-    final favorite = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.addToLibrary), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.watchLater)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.favoriteVideos))]));
+    final favorite = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.addToLibrary), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.watchLater))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.favoriteVideos)))]));
     if (favorite == null) return;
     if (favorite) await ref.read(comicLibraryProvider.notifier).setFavorite(card, true);
     if (!favorite) await ref.read(comicLibraryProvider.notifier).setWatchLater(card, true);
@@ -288,7 +289,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<void> _cache(ComicDetail comic) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cache), content: Text(l10n.cacheComicConfirmation), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.confirm))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cache), content: Text(l10n.cacheComicConfirmation), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.confirm)))]));
     if (confirmed != true) return;
     final category = await _chooseCategory();
     if (category == null) return;
@@ -303,7 +304,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
   Future<String?> _chooseCategory() async {
     final existing = await ref.read(comicCacheProvider.notifier).categories();
     final l10n = AppLocalizations.of(context)!;
-    return showAppDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))]));
+    return showAppDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)))]));
   }
 
   void _info(ComicDetail comic) => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [ListTile(title: Text(comic.title), onTap: () => Clipboard.setData(ClipboardData(text: comic.title))), ListTile(title: Text(comic.description ?? ''), onTap: () => Clipboard.setData(ClipboardData(text: comic.description ?? '')))])));
@@ -388,8 +389,8 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                   ),
                 ),
               ),
-            if (_controls) Positioned(top: 0, left: 0, right: 0, child: AppBar(title: Text('${_page + 1}/${comic.pageCount}'), leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded)))),
-            if (_controls) Positioned(bottom: 0, left: 0, right: 0, child: BottomAppBar(child: Row(children: [IconButton(onPressed: long || _page == 0 ? null : () => _change(-1), icon: const Icon(Symbols.chevron_left_rounded)), const Spacer(), IconButton(onPressed: _selectPage, icon: const Icon(Symbols.format_list_numbered_rounded)), IconButton(onPressed: _settings, icon: const Icon(Symbols.tune_rounded)), const Spacer(), IconButton(onPressed: long || _page == comic.pageCount - 1 ? null : () => _change(1), icon: const Icon(Symbols.chevron_right_rounded))]))),
+            if (_controls) Positioned(top: 0, left: 0, right: 0, child: AppBar(title: Text('${_page + 1}/${comic.pageCount}'), leading: PressScale(child: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded))))),
+            if (_controls) Positioned(bottom: 0, left: 0, right: 0, child: BottomAppBar(child: Row(children: [PressScale(child: IconButton(onPressed: long || _page == 0 ? null : () => _change(-1), icon: const Icon(Symbols.chevron_left_rounded))), const Spacer(), PressScale(child: IconButton(onPressed: _selectPage, icon: const Icon(Symbols.format_list_numbered_rounded))), PressScale(child: IconButton(onPressed: _settings, icon: const Icon(Symbols.tune_rounded))), const Spacer(), PressScale(child: IconButton(onPressed: long || _page == comic.pageCount - 1 ? null : () => _change(1), icon: const Icon(Symbols.chevron_right_rounded)))]))),
           ],
         ),
       ),
@@ -536,7 +537,7 @@ class ComicLibraryPage extends ConsumerWidget {
     final library = ref.watch(comicLibraryProvider);
     if (drawerMode) {
       final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
-      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
+      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
     }
     return DefaultTabController(initialIndex: selectedTab, length: 2, child: Scaffold(appBar: AppBar(title: Text(l10n.myLibrary), bottom: TabBar(tabs: [Tab(text: l10n.watchLater), Tab(text: l10n.favoriteVideos)])), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => TabBarView(children: [_ComicGrid(comics: value.watchLater), _ComicGrid(comics: value.favorites)]))));
   }
@@ -569,7 +570,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final l10n = AppLocalizations.of(context)!;
     final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
-      appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)) : null, title: Text(l10n.cache), actions: [IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded))]),
+      appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
       body: ref.watch(comicCacheProvider).when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) => Text('$error'),
@@ -584,7 +585,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final visible = _category.isEmpty ? items : items.where((item) => item.category == _category).toList();
     final all = AppLocalizations.of(context)!.all;
     String label(String category) => category.isEmpty ? all : (category == defaultComicCategory ? l10n.defaultCategory : category);
-    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Symbols.delete_rounded)))).toList()))]);
+    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: PressScale(child: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Symbols.delete_rounded))))).toList()))]);
   }
 
   Future<void> _open(ComicCacheEntry entry) async {
@@ -615,7 +616,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
                 Row(
                   children: [
                     Expanded(child: TextField(controller: controller, decoration: InputDecoration(labelText: l10n.newCategory))),
-                    IconButton(
+                    PressScale(child: IconButton(
                       onPressed: () async {
                         await ref.read(comicCacheProvider.notifier).addCategory(controller.text);
                         controller.clear();
@@ -623,7 +624,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
                         setSheet(() {});
                       },
                       icon: const Icon(Symbols.add_rounded),
-                    ),
+                    )),
                   ],
                 ),
                 ..._categories.map(
@@ -631,14 +632,14 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
                     title: Text(category == defaultComicCategory ? l10n.defaultCategory : category),
                     trailing: category == defaultComicCategory
                         ? null
-                        : IconButton(
+                        : PressScale(child: IconButton(
                             onPressed: () async {
                               await ref.read(comicCacheProvider.notifier).deleteCategory(category);
                               await _loadCategories();
                               setSheet(() {});
                             },
                             icon: const Icon(Symbols.delete_rounded),
-                          ),
+                          )),
                   ),
                 ),
               ],
@@ -683,7 +684,7 @@ class _Heading extends StatelessWidget {
   final VoidCallback? action;
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)), if (action != null) TextButton(onPressed: action, child: Text(AppLocalizations.of(context)!.more))]));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)), if (action != null) PressScale(child: TextButton(onPressed: action, child: Text(AppLocalizations.of(context)!.more)))]));
 }
 
 class _Pager extends StatelessWidget {
@@ -693,10 +694,10 @@ class _Pager extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [IconButton(onPressed: page > 1 ? () => onChanged(page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded)), TextButton(onPressed: () => _showPages(context), child: Text('$page/$total')), IconButton(onPressed: page < total ? () => onChanged(page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded))]));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [PressScale(child: IconButton(onPressed: page > 1 ? () => onChanged(page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded))), PressScale(child: TextButton(onPressed: () => _showPages(context), child: Text('$page/$total'))), PressScale(child: IconButton(onPressed: page < total ? () => onChanged(page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded)))]));
 
   Future<void> _showPages(BuildContext context) async {
-    final selected = await showModalBottomSheet<int>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: GridView.builder(shrinkWrap: true, padding: const EdgeInsets.all(16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5), itemCount: total, itemBuilder: (_, index) => TextButton(onPressed: () => Navigator.pop(context, index + 1), child: Text('${index + 1}')))));
+    final selected = await showModalBottomSheet<int>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: GridView.builder(shrinkWrap: true, padding: const EdgeInsets.all(16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5), itemCount: total, itemBuilder: (_, index) => PressScale(child: TextButton(onPressed: () => Navigator.pop(context, index + 1), child: Text('${index + 1}'))))));
     if (selected != null) onChanged(selected);
   }
 }
@@ -715,5 +716,5 @@ class _Retry extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry))]));
+  Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry)))]));
 }

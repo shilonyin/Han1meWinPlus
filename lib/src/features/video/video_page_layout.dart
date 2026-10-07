@@ -6,6 +6,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
+import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
@@ -373,7 +374,7 @@ class _SidebarHandle extends StatelessWidget {
             color: const Color(0x73000000),
             borderRadius: BorderRadius.circular(12),
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
+            child: PressScale(child: InkWell(
               onTap: onPressed,
               child: SizedBox(
                 width: kSidebarHandleWidth,
@@ -384,7 +385,7 @@ class _SidebarHandle extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-            ),
+            )),
           ),
         ),
       ),
@@ -524,11 +525,11 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
                   SizedBox(
                     height: 40,
                     width: double.infinity,
-                    child: TextButton.icon(
+                    child: PressScale(child: TextButton.icon(
                       onPressed: () => _playerCollapse.value = 0,
                       icon: const Icon(Symbols.play_arrow_rounded),
                       label: Text(l10n.play),
-                    ),
+                    )),
                   ),
               ],
             ),

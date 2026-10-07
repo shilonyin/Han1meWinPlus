@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/download.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/press_scale.dart';
 import 'cache_format.dart';
 
 /// 缓存卡片右下角的角标（时长 / 体积这类叠在封面上的信息）。
@@ -49,7 +50,7 @@ class CacheVideoCard extends StatelessWidget {
     final cover = localCoverImage(task);
     final bytes = task.totalBytes > 0 ? task.totalBytes : task.downloadedBytes;
     final duration = task.duration;
-    return InkWell(
+    return PressScale(child: InkWell(
       // 之前这里是 `GestureDetector(onLongPress: ...)` 且**没有** onTap ——
       // 传入的播放回调被完全忽略，卡片点上去毫无反应（长按却能进多选）。
       borderRadius: BorderRadius.circular(10),
@@ -85,7 +86,7 @@ class CacheVideoCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -144,7 +145,7 @@ class CacheEpisodeCard extends StatelessWidget {
       color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Column(
@@ -200,7 +201,7 @@ class CacheEpisodeCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }
@@ -226,7 +227,7 @@ class CacheFolderCard extends StatelessWidget {
     final bytes = totalBytesOf(tasks);
     final active = tasks.where((task) => task.status == DownloadStatus.downloading).toList();
     final progress = active.isEmpty ? null : active.first.progress;
-    return InkWell(
+    return PressScale(child: InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       onLongPress: onLongPress,
@@ -286,7 +287,7 @@ class CacheFolderCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -335,7 +336,7 @@ class CacheTaskRow extends StatelessWidget {
       color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
@@ -379,7 +380,7 @@ class CacheTaskRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

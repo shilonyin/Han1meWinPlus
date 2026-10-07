@@ -13,6 +13,7 @@ import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_page_layout.dart';
@@ -224,12 +225,12 @@ class _VideoError extends ConsumerWidget {
         children: [
           Text('$error', textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(
+          PressScale(child: FilledButton(
             onPressed: () => ref.invalidate(videoDetailProvider(id)),
             child: Text(AppLocalizations.of(context)!.retry),
-          ),
+          )),
           if (error is CloudflareChallengeException)
-            TextButton(
+            PressScale(child: TextButton(
               onPressed: () async {
                 final url = (error as CloudflareChallengeException).url;
                 if (await context.push<bool>('/cloudflare', extra: url) ==
@@ -240,7 +241,7 @@ class _VideoError extends ConsumerWidget {
               child: Text(
                 AppLocalizations.of(context)!.completeCloudflareVerification,
               ),
-            ),
+            )),
         ],
       ),
     ),

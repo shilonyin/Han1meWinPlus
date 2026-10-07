@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import 'press_scale.dart';
 import 'app_image_cache.dart';
 
 import '../../domain/models/video.dart';
@@ -28,7 +29,7 @@ class CompactVideoCard extends ConsumerWidget {
           color: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
+          child: PressScale(child: InkWell(
             // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
             onTap: onTap ?? (video.id.isEmpty ? null : () => openVideo(context, ref, video.id)),
             child: Column(
@@ -48,7 +49,7 @@ class CompactVideoCard extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
+          )),
         );
       },
     );

@@ -9,6 +9,7 @@ import '../../data/local/watch_repository.dart';
 import '../../data/local/webdav_sync_service.dart';
 import '../../data/local/library_repository.dart';
 import '../../core/settings.dart';
+import '../shared/press_scale.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
@@ -96,7 +97,7 @@ class _WebDavConfigurationPageState extends ConsumerState<WebDavConfigurationPag
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavConfiguration)), body: Padding(padding: const EdgeInsets.all(16), child: Column(children: [TextField(controller: _url, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.webDavUrl)), const SizedBox(height: 12), TextField(controller: _username, decoration: InputDecoration(labelText: l10n.username)), const SizedBox(height: 12), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: l10n.password)), const Spacer(), FilledButton(onPressed: _save, child: Text(l10n.save))])));
+    return Scaffold(appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.webDavConfiguration)), body: Padding(padding: const EdgeInsets.all(16), child: Column(children: [TextField(controller: _url, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.webDavUrl)), const SizedBox(height: 12), TextField(controller: _username, decoration: InputDecoration(labelText: l10n.username)), const SizedBox(height: 12), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: l10n.password)), const Spacer(), PressScale(child: FilledButton(onPressed: _save, child: Text(l10n.save)))])));
   }
 
   Future<void> _save() async {

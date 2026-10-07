@@ -23,6 +23,7 @@ import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'video_player_controls.dart';
 import 'video_player_surface.dart';
 import '../../core/app_dialog.dart';
@@ -761,12 +762,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
                           textAlign: TextAlign.center,
                         ),
                         if (_loadError is! _NoVideoSource)
-                          IconButton(
+                          PressScale(child: IconButton(
                             color: Colors.white,
                             tooltip: AppLocalizations.of(context)!.retry,
                             onPressed: _syncSource,
                             icon: const Icon(Symbols.refresh_rounded),
-                          ),
+                          )),
                       ],
                     ),
             ),
@@ -948,14 +949,14 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
         title: Text(l10n.addKeyframe),
         content: Text(l10n.addKeyframeConfirmation(position)),
         actions: [
-          TextButton(
+          PressScale(child: TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l10n.cancel),
-          ),
-          FilledButton(
+          )),
+          PressScale(child: FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.add),
-          ),
+          )),
         ],
       ),
     );

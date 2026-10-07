@@ -14,6 +14,7 @@ import '../../data/remote/jav/jav_api.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../account/account_controller.dart';
 import '../explore/explore_controller.dart';
+import '../shared/press_scale.dart';
 import 'selection_settings_pages.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
@@ -185,7 +186,7 @@ class _ProxySettingsDialogState extends State<_ProxySettingsDialog> {
       ),
       const SizedBox(height: 4),
       _currentStatus(context, l10n),
-    ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: !_canSave ? null : () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save))]);
+    ])), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: !_canSave ? null : () => Navigator.pop(context, _ProxySettings(mode: _mode, custom: _custom.text.trim())), child: Text(l10n.save)))]);
   }
 }
 
@@ -200,7 +201,7 @@ class _DohSettingsDialogState extends State<_DohSettingsDialog> {
   late final _bootstrapIps = TextEditingController(text: widget.settings.dohBootstrapIps);
   late final _timeout = TextEditingController(text: widget.settings.dohTimeoutSeconds.toString());
   @override void dispose() { _customUrl.dispose(); _bootstrapIps.dispose(); _timeout.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(l10n.dohSettings), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.useDoh), value: _enabled, onChanged: (value) => setState(() => _enabled = value)), DropdownButtonFormField(value: _preset, decoration: InputDecoration(labelText: l10n.dohPreset), items: [..._dohPresets.entries.map((item) => DropdownMenuItem(value: item.key, child: Text(item.value))), DropdownMenuItem(value: 'custom', child: Text(l10n.custom))], onChanged: (value) => setState(() => _preset = value!)), const SizedBox(height: 12), TextField(controller: _customUrl, enabled: _preset == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.dohCustomUrl)), const SizedBox(height: 12), TextField(controller: _bootstrapIps, decoration: InputDecoration(labelText: l10n.dohBootstrapIps, helperText: l10n.dohBootstrapIpsDescription)), const SizedBox(height: 12), TextField(controller: _timeout, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: l10n.dohTimeoutSeconds, helperText: l10n.dohTimeoutSecondsDescription))])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _DohSettings(enabled: _enabled, preset: _preset, customUrl: _customUrl.text.trim(), bootstrapIps: _bootstrapIps.text.trim(), timeoutSeconds: (int.tryParse(_timeout.text) ?? 10).clamp(1, 60))), child: Text(l10n.save))]); }
+  @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(l10n.dohSettings), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.useDoh), value: _enabled, onChanged: (value) => setState(() => _enabled = value)), DropdownButtonFormField(value: _preset, decoration: InputDecoration(labelText: l10n.dohPreset), items: [..._dohPresets.entries.map((item) => DropdownMenuItem(value: item.key, child: Text(item.value))), DropdownMenuItem(value: 'custom', child: Text(l10n.custom))], onChanged: (value) => setState(() => _preset = value!)), const SizedBox(height: 12), TextField(controller: _customUrl, enabled: _preset == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.dohCustomUrl)), const SizedBox(height: 12), TextField(controller: _bootstrapIps, decoration: InputDecoration(labelText: l10n.dohBootstrapIps, helperText: l10n.dohBootstrapIpsDescription)), const SizedBox(height: 12), TextField(controller: _timeout, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: l10n.dohTimeoutSeconds, helperText: l10n.dohTimeoutSecondsDescription))])), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _DohSettings(enabled: _enabled, preset: _preset, customUrl: _customUrl.text.trim(), bootstrapIps: _bootstrapIps.text.trim(), timeoutSeconds: (int.tryParse(_timeout.text) ?? 10).clamp(1, 60))), child: Text(l10n.save)))]); }
 }
 
 class _MirrorSettings { const _MirrorSettings({required this.enabled, required this.url, required this.appendPath}); final bool enabled; final String url; final bool appendPath; }
@@ -281,11 +282,11 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
           RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: true, groupValue: _appendPath, title: Text(l10n.customMirrorPathFollowHome), subtitle: Text(l10n.customMirrorPathFollowHomeSummary), onChanged: (value) => setState(() => _appendPath = value!)),
           RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: false, groupValue: _appendPath, title: Text(l10n.customMirrorPathRoot), subtitle: Text(l10n.customMirrorPathRootSummary), onChanged: (value) => setState(() => _appendPath = value!)),
           const SizedBox(height: 8),
-          SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _testing ? null : () => _testConnection(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.network_check_rounded), label: Text(l10n.testConnection))),
+          SizedBox(width: double.infinity, child: PressScale(child: FilledButton.icon(onPressed: _testing ? null : () => _testConnection(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.network_check_rounded), label: Text(l10n.testConnection)))),
           if (_testResult != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_testResult!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))),
         ],
       ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => _save(l10n), child: Text(l10n.save))],
+      actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => _save(l10n), child: Text(l10n.save)))],
     );
   }
 }

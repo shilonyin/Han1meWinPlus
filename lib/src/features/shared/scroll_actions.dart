@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
+import 'press_scale.dart';
 
 /// 列表页右下角的悬浮操作：刷新 + 回到顶部。
 ///
@@ -112,10 +113,10 @@ class _ActionButton extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
+          child: PressScale(child: InkWell(
             onTap: onTap,
             child: SizedBox(width: 44, height: 44, child: Center(child: child)),
-          ),
+          )),
         ),
       );
 }

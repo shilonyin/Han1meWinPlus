@@ -15,6 +15,7 @@ import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
 import 'video_actions.dart';
@@ -133,11 +134,11 @@ class _TitleBlock extends StatelessWidget {
           if (hasDetails)
             Padding(
               padding: const EdgeInsets.only(left: 4),
-              child: TextButton(
+              child: PressScale(child: TextButton(
                 onPressed: onToggleDescription,
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8), minimumSize: const Size(0, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded, size: 18)]),
-              ),
+              )),
             ),
         ],
       ),
@@ -164,7 +165,7 @@ class _ArtistRow extends ConsumerWidget {
       child: GlassPanel(
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           borderRadius: BorderRadius.circular(18),
           // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
           // 那时搜索页会退化成「没有关键词」的页，看起来就是点了作者没内容。
@@ -190,7 +191,7 @@ class _ArtistRow extends ConsumerWidget {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -228,7 +229,7 @@ class _Description extends StatelessWidget {
         child: GlassPanel(
         borderRadius: BorderRadius.circular(18),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          child: InkWell(
+          child: PressScale(child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: onToggle,
             child: Padding(
@@ -242,7 +243,7 @@ class _Description extends StatelessWidget {
                 ],
               ),
             ),
-          ),
+          )),
         ),
       ),
     );
@@ -320,8 +321,8 @@ class _TagListState extends ConsumerState<_TagList> {
             context.push(url, extra: SearchRouteRequest(initialUrl: url));
           },
         ),
-      IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.add_rounded), onPressed: enabled ? () => _editTags('add') : null),
-      IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.remove_rounded), onPressed: enabled ? () => _editTags('remove') : null),
+      PressScale(child: IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.add_rounded), onPressed: enabled ? () => _editTags('add') : null)),
+      PressScale(child: IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.remove_rounded), onPressed: enabled ? () => _editTags('remove') : null)),
     ];
     if (tags.isEmpty) children.first = SizedBox(key: _firstChipKey, width: 32, height: 32, child: children.first);
     _measure();
@@ -365,7 +366,7 @@ class _TagListState extends ConsumerState<_TagList> {
                   ),
                 ),
               ),
-            if (_canExpand) IconButton(tooltip: _expanded ? l10n.collapse : l10n.expand, visualDensity: VisualDensity.compact, iconSize: 20, onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded)),
+            if (_canExpand) PressScale(child: IconButton(tooltip: _expanded ? l10n.collapse : l10n.expand, visualDensity: VisualDensity.compact, iconSize: 20, onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded))),
           ],
         ),
       ),
@@ -430,7 +431,7 @@ class _SeriesVideosState extends State<_SeriesVideos> {
     final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(l10n.seriesVideos, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))), TextButton(onPressed: () => _showAll(context), child: Text(l10n.more))])),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(l10n.seriesVideos, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))), PressScale(child: TextButton(onPressed: () => _showAll(context), child: Text(l10n.more)))])),
         MouseRegion(
           // 鼠标移进这一排（图片附近）才显示翻页箭头，移开自动淡出
           onEnter: (_) => setState(() => _hovered = true),
@@ -472,10 +473,10 @@ class _SeriesPageArrow extends StatelessWidget {
             color: const Color(0x73000000),
             borderRadius: BorderRadius.circular(10),
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
+            child: PressScale(child: InkWell(
               onTap: onPressed,
               child: SizedBox(width: 32, height: 56, child: Icon(icon, size: 22, color: Colors.white)),
-            ),
+            )),
           ),
         ),
       );
@@ -498,7 +499,7 @@ class _TranslateButton extends ConsumerWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: TextButton(
+        child: PressScale(child: TextButton(
           onPressed: state.isLoading
               ? null
               : () {
@@ -507,7 +508,7 @@ class _TranslateButton extends ConsumerWidget {
                   ref.read(videoTranslationProvider(video.id).notifier).translate(video, language, locale.toLanguageTag());
                 },
           child: Text(state.isLoading ? AppLocalizations.of(context)!.translating : AppLocalizations.of(context)!.translate),
-        ),
+        )),
       ),
     );
   }
@@ -524,7 +525,7 @@ class _RelatedVideoTile extends StatelessWidget {
     return GlassPanel(
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
-      child: InkWell(
+      child: PressScale(child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
         child: Padding(
@@ -537,7 +538,7 @@ class _RelatedVideoTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

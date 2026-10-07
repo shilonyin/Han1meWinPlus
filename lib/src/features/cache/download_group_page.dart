@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../settings/settings_card_list.dart';
+import '../shared/press_scale.dart';
 import 'cache_format.dart';
 import '../../core/app_dialog.dart';
 
@@ -105,8 +106,8 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: saving ? null : () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: saving ? null : _save, child: Text(l10n.save)),
+        PressScale(child: TextButton(onPressed: saving ? null : () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: saving ? null : _save, child: Text(l10n.save))),
       ],
     );
   }
@@ -141,8 +142,8 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
         title: Text(l10n.deleteGroup),
         content: Text(l10n.deleteGroupConfirmation),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))),
         ],
       ),
     );

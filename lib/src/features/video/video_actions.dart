@@ -17,6 +17,7 @@ import '../../domain/series_name.dart';
 import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'download_picker_sheet.dart';
 import 'video_controller.dart';
 import '../../core/app_dialog.dart';
@@ -48,7 +49,7 @@ class VideoActionRow extends ConsumerWidget {
         children: [
           for (final action in _videoActions(context, ref, video))
             Expanded(
-              child: InkWell(
+              child: PressScale(child: InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: action.onPressed,
                 child: Padding(
@@ -62,7 +63,7 @@ class VideoActionRow extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ),
+              )),
             ),
         ],
       ),
@@ -78,7 +79,7 @@ class VideoActionBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final actions = [for (final action in _videoActions(context, ref, video)) IconButton(tooltip: action.label, icon: Icon(action.icon), onPressed: action.onPressed)];
+    final actions = [for (final action in _videoActions(context, ref, video)) PressScale(child: IconButton(tooltip: action.label, icon: Icon(action.icon), onPressed: action.onPressed))];
     return vertical
         ? M3EVerticalFloatingToolbar(expanded: true, content: Column(mainAxisSize: MainAxisSize.min, children: actions))
         : M3EHorizontalFloatingToolbar(expanded: true, content: Row(mainAxisSize: MainAxisSize.min, children: actions));
@@ -285,7 +286,7 @@ class _PlaylistNameDialogState extends State<_PlaylistNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(title: Text(l10n.newPlaylist), content: TextField(controller: _title, autofocus: true, decoration: InputDecoration(labelText: l10n.name)), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _title.text.trim()), child: Text(l10n.create))]);
+    return AlertDialog(title: Text(l10n.newPlaylist), content: TextField(controller: _title, autofocus: true, decoration: InputDecoration(labelText: l10n.name)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _title.text.trim()), child: Text(l10n.create)))]);
   }
 }
 
@@ -310,6 +311,6 @@ class _PlaylistEditorDialogState extends State<_PlaylistEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(title: Text(l10n.newPlaylist), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _title, autofocus: true, decoration: InputDecoration(labelText: l10n.name)), TextField(controller: _description, decoration: InputDecoration(labelText: l10n.description))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, (_title.text.trim(), _description.text.trim())), child: Text(l10n.create))]);
+    return AlertDialog(title: Text(l10n.newPlaylist), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _title, autofocus: true, decoration: InputDecoration(labelText: l10n.name)), TextField(controller: _description, decoration: InputDecoration(labelText: l10n.description))]), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, (_title.text.trim(), _description.text.trim())), child: Text(l10n.create)))]);
   }
 }

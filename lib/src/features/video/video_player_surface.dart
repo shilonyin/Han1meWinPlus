@@ -20,6 +20,7 @@ import '../../core/settings.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'video_player_controls.dart';
 
 class VideoPlayerSurface extends ConsumerStatefulWidget {
@@ -555,7 +556,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     if (_locked)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
+                        child: PressScale(child: IconButton(
                           color: Colors.white,
                           tooltip: l10n.unlockControls,
                           onPressed: () {
@@ -563,7 +564,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                             _restartTimer();
                           },
                           icon: const Icon(Symbols.lock_rounded),
-                        ),
+                        )),
                       ),
                     // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致
                     //
@@ -598,12 +599,12 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     if (_showControls && widget.fullscreen && !_locked)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
+                        child: PressScale(child: IconButton(
                           color: Colors.white,
                           tooltip: l10n.lockControls,
                           onPressed: () => setState(() => _locked = true),
                           icon: const Icon(Symbols.lock_open_rounded),
-                        ),
+                        )),
                       ),
                     if (widget.fullscreen && widget.keyframes.isNotEmpty)
                       _KeyframeCountdown(
@@ -702,31 +703,31 @@ class _PlayerTopBar extends StatelessWidget {
         child: Row(
           children: [
             if (onBack != null)
-              IconButton(
+              PressScale(child: IconButton(
                 color: Colors.white,
                 visualDensity: VisualDensity.compact,
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 onPressed: onBack,
                 icon: const Icon(Symbols.arrow_back_rounded),
-              ),
+              )),
             if (onHome != null)
-              IconButton(
+              PressScale(child: IconButton(
                 color: Colors.white,
                 visualDensity: VisualDensity.compact,
                 tooltip: l10n.home,
                 onPressed: onHome,
                 icon: const Icon(Symbols.home_rounded),
-              ),
+              )),
             const SizedBox(width: 6),
             Expanded(child: _MarqueeTitle(title: video.title)),
             if (Platform.isAndroid)
-              IconButton(
+              PressScale(child: IconButton(
                 color: Colors.white,
                 visualDensity: VisualDensity.compact,
                 tooltip: l10n.pictureInPicture,
                 onPressed: onPictureInPicture,
                 icon: const Icon(Symbols.picture_in_picture_rounded),
-              ),
+              )),
             if (onKeyframes != null)
               Tooltip(
                 message: l10n.longPressAddKeyframe,
@@ -777,13 +778,13 @@ class PlayerNavCapsule extends StatelessWidget {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
+        PressScale(child: IconButton(
           color: Colors.white,
           visualDensity: VisualDensity.compact,
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: onBack,
           icon: const Icon(Symbols.arrow_back_rounded),
-        ),
+        )),
         if (onHome != null) ...[
           SizedBox(
             height: 18,
@@ -793,13 +794,13 @@ class PlayerNavCapsule extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.24),
             ),
           ),
-          IconButton(
+          PressScale(child: IconButton(
             color: Colors.white,
             visualDensity: VisualDensity.compact,
             tooltip: AppLocalizations.of(context)!.home,
             onPressed: onHome,
             icon: const Icon(Symbols.home_rounded),
-          ),
+          )),
         ],
       ],
     ),

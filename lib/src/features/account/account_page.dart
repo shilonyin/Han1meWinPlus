@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/account.dart';
 import '../library/library_page.dart';
+import '../shared/press_scale.dart';
 import '../shared/underline_tab_strip.dart';
 import 'account_controller.dart';
 import '../../core/app_dialog.dart';
@@ -88,11 +89,11 @@ class _SignedInProfile extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            InkWell(
+            PressScale(child: InkWell(
               borderRadius: BorderRadius.circular(40),
               onTap: () => _openProfile(context, ref, account),
               child: CircleAvatar(radius: 32, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 32)),
-            ),
+            )),
             const SizedBox(width: 18),
             Expanded(
               child: Column(
@@ -108,10 +109,10 @@ class _SignedInProfile extends ConsumerWidget {
                 ],
               ),
             ),
-            TextButton(
+            PressScale(child: TextButton(
               onPressed: () => _openProfile(context, ref, account),
               child: Row(mainAxisSize: MainAxisSize.min, children: [Text(l10n.accountProfile), const Icon(Symbols.chevron_right_rounded, size: 18)]),
-            ),
+            )),
           ],
         ),
         const SizedBox(height: 10),
@@ -152,7 +153,7 @@ class _SignedOutProfile extends StatelessWidget {
             ],
           ),
         ),
-        FilledButton(onPressed: () => context.push('/login'), child: Text(l10n.login)),
+        PressScale(child: FilledButton(onPressed: () => context.push('/login'), child: Text(l10n.login))),
       ],
     );
   }
@@ -171,7 +172,7 @@ class _AccountAction extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
+  Widget build(BuildContext context) => PressScale(child: TextButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 18),
         label: Text(label),
@@ -181,7 +182,7 @@ class _AccountAction extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-      );
+      ));
 }
 
 /// 打开站内个人资料页，回来后刷新一下账号信息（昵称/头像可能改过）。
@@ -203,7 +204,7 @@ Future<void> _showEditProfile(BuildContext context, Account account) => showAppD
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.editProfile),
         content: SizedBox(width: 360, child: SingleChildScrollView(child: _ProfileForm(account: account, onDone: () => Navigator.pop(dialogContext)))),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel))],
+        actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel)))],
       ),
     );
 
@@ -213,7 +214,7 @@ Future<void> _showChangePassword(BuildContext context) => showAppDialog<void>(
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.changePassword),
         content: SizedBox(width: 360, child: SingleChildScrollView(child: _PasswordForm(onDone: () => Navigator.pop(dialogContext)))),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel))],
+        actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel)))],
       ),
     );
 
@@ -225,8 +226,8 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
       title: Text(l10n.logout),
       content: Text(l10n.logoutConfirmation),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.logout)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.logout))),
       ],
     ),
   );
@@ -258,7 +259,7 @@ class _AccountSheet extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (item.id == active?.id) const Icon(Symbols.check_circle_rounded),
-                    IconButton(
+                    PressScale(child: IconButton(
                       icon: const Icon(Symbols.remove_circle_rounded),
                       tooltip: AppLocalizations.of(context)!.removeAccount,
                       onPressed: () async {
@@ -266,7 +267,7 @@ class _AccountSheet extends ConsumerWidget {
                         await ref.read(accountProvider.notifier).remove(item);
                         if (context.mounted) Navigator.pop(context);
                       },
-                    ),
+                    )),
                   ],
                 ),
                 onTap: item.id == active?.id
@@ -308,7 +309,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   @override
   void dispose() { _name.dispose(); _email.dispose(); super.dispose(); }
   @override
-  Widget build(BuildContext context) => Column(children: [TextField(controller: _name, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.username)), TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.email)), const SizedBox(height: 12), FilledButton(onPressed: () async { await ref.read(accountProvider.notifier).updateProfile(_name.text.trim(), _email.text.trim()); widget.onDone?.call(); }, child: Text(AppLocalizations.of(context)!.saveProfile))]);
+  Widget build(BuildContext context) => Column(children: [TextField(controller: _name, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.username)), TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.email)), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: () async { await ref.read(accountProvider.notifier).updateProfile(_name.text.trim(), _email.text.trim()); widget.onDone?.call(); }, child: Text(AppLocalizations.of(context)!.saveProfile)))]);
 }
 
 class _PasswordForm extends ConsumerStatefulWidget {
@@ -327,5 +328,5 @@ class _PasswordFormState extends ConsumerState<_PasswordForm> {
   @override
   void dispose() { _old.dispose(); _password.dispose(); _confirmation.dispose(); super.dispose(); }
   @override
-  Widget build(BuildContext context) => Column(children: [TextField(controller: _old, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.oldPassword)), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.newPassword)), TextField(controller: _confirmation, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.confirmNewPassword)), const SizedBox(height: 12), FilledButton(onPressed: () async { await ref.read(accountProvider.notifier).updatePassword(_old.text, _password.text, _confirmation.text); widget.onDone?.call(); }, child: Text(AppLocalizations.of(context)!.changePassword))]);
+  Widget build(BuildContext context) => Column(children: [TextField(controller: _old, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.oldPassword)), TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.newPassword)), TextField(controller: _confirmation, obscureText: true, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.confirmNewPassword)), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: () async { await ref.read(accountProvider.notifier).updatePassword(_old.text, _password.text, _confirmation.text); widget.onDone?.call(); }, child: Text(AppLocalizations.of(context)!.changePassword)))]);
 }

@@ -9,6 +9,7 @@ import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'cache_cards.dart';
 import 'cache_folder_page.dart';
 import 'cache_format.dart';
@@ -77,14 +78,14 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
         return Scaffold(
           appBar: AppBar(
             leading: _selecting
-                ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded))
+                ? PressScale(child: IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded)))
                 : ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false
-                    ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))
+                    ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))))
                     : null,
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : l10n.cache),
             actions: _selecting
                 ? _selectionActions(state, [...completed, ...active])
-                : [IconButton(tooltip: l10n.createGroup, onPressed: () => showGroupEditor(context, ref), icon: const Icon(Symbols.create_new_folder_rounded))],
+                : [PressScale(child: IconButton(tooltip: l10n.createGroup, onPressed: () => showGroupEditor(context, ref), icon: const Icon(Symbols.create_new_folder_rounded)))],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(48),
               child: TabBar(
@@ -165,8 +166,8 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
         title: Text(l10n.deleteSelectedCache),
         content: Text(l10n.deleteSelectedCacheConfirmation(_selected.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))),
         ],
       ),
     );
@@ -390,10 +391,10 @@ class CacheTaskActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final controller = ref.read(downloadProvider.notifier);
     return switch (task.status) {
-      DownloadStatus.downloading || DownloadStatus.queued => IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Symbols.pause_circle_rounded)),
-      DownloadStatus.paused => IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Symbols.play_circle_rounded)),
-      DownloadStatus.failed => IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Symbols.refresh_rounded)),
-      DownloadStatus.completed => IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Symbols.play_arrow_rounded)),
+      DownloadStatus.downloading || DownloadStatus.queued => PressScale(child: IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Symbols.pause_circle_rounded))),
+      DownloadStatus.paused => PressScale(child: IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Symbols.play_circle_rounded))),
+      DownloadStatus.failed => PressScale(child: IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Symbols.refresh_rounded))),
+      DownloadStatus.completed => PressScale(child: IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Symbols.play_arrow_rounded))),
     };
   }
 }
@@ -428,7 +429,7 @@ class _CacheToolbar extends StatelessWidget {
                 (label: _sortLabel(l10n, value), selected: value == sort, onTap: () => onSortChanged(value)),
             ],
           ),
-          IconButton(tooltip: l10n.groupSettings, visualDensity: VisualDensity.compact, onPressed: onManageGroups, icon: const Icon(Symbols.tune_rounded, size: 20)),
+          PressScale(child: IconButton(tooltip: l10n.groupSettings, visualDensity: VisualDensity.compact, onPressed: onManageGroups, icon: const Icon(Symbols.tune_rounded, size: 20))),
         ],
       ),
     );

@@ -15,6 +15,7 @@ import '../../data/local/download_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../library/local_media_page.dart';
 import '../shared/app_toast.dart';
+import '../shared/press_scale.dart';
 import 'backup_settings_page.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
@@ -110,8 +111,8 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
         title: Text(l10n.clearCache),
         content: Text(l10n.clearCacheDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.clear)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.clear))),
         ],
       ),
     );
@@ -129,7 +130,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
 }
 
 class _PathDialog extends StatefulWidget { const _PathDialog({required this.title, required this.initialPath}); final String title; final String initialPath; @override State<_PathDialog> createState() => _PathDialogState(); }
-class _PathDialogState extends State<_PathDialog> { late final _controller = TextEditingController(text: widget.initialPath); @override void dispose() { _controller.dispose(); super.dispose(); } Future<void> _browse() async { final selected = await FilePicker.platform.getDirectoryPath(dialogTitle: widget.title, initialDirectory: _controller.text.trim().isEmpty ? null : _controller.text.trim()); if (selected != null) setState(() => _controller.text = selected); } @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(widget.title), content: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.downloadPath, hintText: platformDownloadPathHint(l10n.defaultDownloadPath)))), const SizedBox(width: 8), IconButton(tooltip: l10n.chooseFolder, onPressed: _browse, icon: const Icon(Symbols.folder_open_rounded))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text(l10n.save))]); } }
+class _PathDialogState extends State<_PathDialog> { late final _controller = TextEditingController(text: widget.initialPath); @override void dispose() { _controller.dispose(); super.dispose(); } Future<void> _browse() async { final selected = await FilePicker.platform.getDirectoryPath(dialogTitle: widget.title, initialDirectory: _controller.text.trim().isEmpty ? null : _controller.text.trim()); if (selected != null) setState(() => _controller.text = selected); } @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(widget.title), content: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.downloadPath, hintText: platformDownloadPathHint(l10n.defaultDownloadPath)))), const SizedBox(width: 8), PressScale(child: IconButton(tooltip: l10n.chooseFolder, onPressed: _browse, icon: const Icon(Symbols.folder_open_rounded)))]), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text(l10n.save)))]); } }
 
 class _SliderTile extends SettingsSliderItem {
   _SliderTile({required IconData icon, required String title, String? subtitle, required double value, required double min, required double max, required int divisions, required String label, required ValueChanged<double> onChanged})

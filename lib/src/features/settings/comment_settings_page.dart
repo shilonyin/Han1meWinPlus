@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../shared/press_scale.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
@@ -72,7 +73,7 @@ class _CommentFilterEditorState extends State<_CommentFilterEditor> {
             children: [
               TextField(controller: _input, textInputAction: TextInputAction.done, onSubmitted: (_) => _add(), decoration: InputDecoration(labelText: widget.label)),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _add, child: Text(AppLocalizations.of(context)!.add)),
+              PressScale(child: FilledButton(onPressed: _add, child: Text(AppLocalizations.of(context)!.add))),
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: widget.values.map((value) => InputChip(label: Text(value), onDeleted: () => widget.onChanged(widget.values.where((item) => item != value).toList()))).toList()),
             ],
@@ -106,7 +107,7 @@ class _CommentKeywordsPageState extends ConsumerState<CommentKeywordsPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         TextField(controller: _input, textInputAction: TextInputAction.done, onSubmitted: (_) => _add(settings.blockedCommentKeywords), decoration: InputDecoration(labelText: l10n.keyword)),
         const SizedBox(height: 12),
-        FilledButton(onPressed: () => _add(settings.blockedCommentKeywords), child: Text(l10n.add)),
+        PressScale(child: FilledButton(onPressed: () => _add(settings.blockedCommentKeywords), child: Text(l10n.add))),
         const SizedBox(height: 16),
         Wrap(spacing: 8, runSpacing: 8, children: settings.blockedCommentKeywords.map((keyword) => InputChip(label: Text(keyword), onDeleted: () => ref.read(settingsProvider.notifier).saveChanges((current) => current.copyWith(blockedCommentKeywords: current.blockedCommentKeywords.where((item) => item != keyword).toList())))).toList()),
       ]),

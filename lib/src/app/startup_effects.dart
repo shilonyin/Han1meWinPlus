@@ -24,6 +24,7 @@ import '../data/remote/update_checker.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
 import '../core/app_dialog.dart';
+import '../features/shared/press_scale.dart';
 
 class AppStartupEffects extends ConsumerStatefulWidget {
   const AppStartupEffects({
@@ -268,11 +269,11 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
               : update.body,
         ),
         actions: [
-          TextButton(
+          PressScale(child: TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.later),
-          ),
-          FilledButton(
+          )),
+          PressScale(child: FilledButton(
             onPressed: update.downloadUrl.isEmpty
                 ? null
                 : () async {
@@ -284,7 +285,7 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
                     );
                   },
             child: Text(l10n.updateNow),
-          ),
+          )),
         ],
       ),
     );
@@ -355,10 +356,10 @@ class _StartupUpdateDownloadState extends State<_StartupUpdateDownload> {
     actions: _error == null
         ? null
         : [
-            TextButton(
+            PressScale(child: TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(AppLocalizations.of(context)!.close),
-            ),
+            )),
           ],
   );
 }

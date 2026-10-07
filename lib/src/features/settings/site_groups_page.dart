@@ -10,6 +10,7 @@ import '../../../l10n/app_localizations.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../data/local/site_group_store.dart';
 import '../../data/remote/jav/jav_site.dart';
+import '../shared/press_scale.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
@@ -84,7 +85,7 @@ class SiteGroupsPage extends ConsumerWidget {
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-          sliver: SliverToBoxAdapter(child: FilledButton.tonalIcon(onPressed: () => _addGroup(context, ref, groups), icon: const Icon(Symbols.add_rounded), label: Text(l10n.siteGroupAdd))),
+          sliver: SliverToBoxAdapter(child: PressScale(child: FilledButton.tonalIcon(onPressed: () => _addGroup(context, ref, groups), icon: const Icon(Symbols.add_rounded), label: Text(l10n.siteGroupAdd)))),
         ),
       ]),
     );
@@ -101,8 +102,8 @@ class SiteGroupsPage extends ConsumerWidget {
         title: Text(siteGroupName(group, l10n), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(tooltip: l10n.siteGroupRename, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20)),
-          IconButton(tooltip: l10n.delete, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20)),
+          PressScale(child: IconButton(tooltip: l10n.siteGroupRename, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20))),
+          PressScale(child: IconButton(tooltip: l10n.delete, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
         ]),
       ),
       if (group.hosts.isEmpty)
@@ -113,7 +114,7 @@ class SiteGroupsPage extends ConsumerWidget {
           contentPadding: const EdgeInsets.only(left: 56, right: 8),
           title: Text(siteHostLabel(host, l10n)),
           subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n)),
-          trailing: IconButton(tooltip: l10n.siteGroupMoveTo, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20)),
+          trailing: PressScale(child: IconButton(tooltip: l10n.siteGroupMoveTo, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20))),
         ),
     ]);
   }
@@ -144,7 +145,7 @@ class SiteGroupsPage extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Text(l10n.delete),
         content: Text(l10n.siteGroupDeleteHint(siteGroupName(groups[index], l10n))),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))],
+        actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)))],
       ),
     );
     if (confirmed != true) return;
@@ -182,7 +183,7 @@ class SiteGroupsPage extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Text(title),
         content: TextField(controller: controller, autofocus: true, textInputAction: TextInputAction.done, onSubmitted: (value) => Navigator.pop(context, value.trim()), decoration: InputDecoration(labelText: l10n.siteGroupName, helperText: l10n.siteGroupNameHint)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.save))],
+        actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.save)))],
       ),
     );
     controller.dispose();

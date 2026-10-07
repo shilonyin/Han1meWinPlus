@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
 import '../shared/glass/glass_panel.dart';
+import '../shared/press_scale.dart';
 import 'about_page.dart';
 import 'comment_settings_page.dart';
 import 'hotkey_settings_page.dart';
@@ -278,7 +279,7 @@ class _NavItemState extends State<_NavItem> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(10),
         // 不能出现矩形水波纹，否则悬停/点击会在分组底色上再冒一块。
@@ -323,7 +324,7 @@ class _NavItemState extends State<_NavItem> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }
@@ -348,10 +349,10 @@ class _SettingsCategoryList extends ConsumerWidget {
                 false
             ? (permanentNavigationDrawer(context)
                   ? null
-                  : IconButton(
+                  : PressScale(child: IconButton(
                       onPressed: openAppDrawer,
                       icon: const Icon(Symbols.menu_rounded),
-                    ))
+                    )))
             : null,
         title: Text(l10n.settings),
       ),

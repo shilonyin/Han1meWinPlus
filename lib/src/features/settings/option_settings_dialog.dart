@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_dialog.dart';
+import '../shared/press_scale.dart';
 
 /// 单选项分组：给「站点」这种既有 Hanime1 系、又有 AV 视频源的列表加一层分类，
 /// 每组的标题可以点击折叠。
@@ -124,8 +125,8 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(widget.cancelLabel)),
-        FilledButton(onPressed: () => Navigator.pop(context, _value), child: Text(widget.saveLabel)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(widget.cancelLabel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _value), child: Text(widget.saveLabel))),
       ],
     );
   }
@@ -134,7 +135,7 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
   /// 右侧一个箭头，点标题即折叠/展开。
   Widget _groupHeader(String title, ColorScheme scheme) {
     final collapsed = _collapsed.contains(title);
-    return InkWell(
+    return PressScale(child: InkWell(
       onTap: () => setState(() => collapsed ? _collapsed.remove(title) : _collapsed.add(title)),
       child: Padding(
         padding: const EdgeInsets.only(top: 8, bottom: 2),
@@ -143,6 +144,6 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
           Icon(collapsed ? Symbols.expand_more_rounded : Symbols.expand_less_rounded, size: 18, color: scheme.primary),
         ]),
       ),
-    );
+    ));
   }
 }

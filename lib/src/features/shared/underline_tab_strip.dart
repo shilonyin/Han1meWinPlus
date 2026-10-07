@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'press_scale.dart';
 
 /// 一排下划线式页签：悬停与选中都只染文字（主题色 + 加粗），选中额外画一小段下划线。
 ///
@@ -65,7 +66,7 @@ class _UnderlineTabState extends State<UnderlineTab> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: InkWell(
+      child: PressScale(child: InkWell(
         hoverColor: Colors.transparent,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
@@ -82,7 +83,7 @@ class _UnderlineTabState extends State<UnderlineTab> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

@@ -8,6 +8,7 @@ import '../../app/app_theme.dart';
 import '../../core/app_motion.dart';
 import '../../core/settings.dart';
 import '../../core/app_dialog.dart';
+import '../shared/press_scale.dart';
 import 'settings_glass_controls.dart';
 
 /// 调色结果：选了预设主题色，或者选了一个自定义颜色。
@@ -183,11 +184,11 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
                       ],
                     ),
                   ),
-                  IconButton(
+                  PressScale(child: IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Symbols.close_rounded, size: 20),
                     tooltip: l10n.cancel,
-                  ),
+                  )),
                 ],
               ),
               const SizedBox(height: 16),
@@ -264,11 +265,11 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
                         hintText: '#7662BA',
                         isDense: true,
                         errorText: _invalid ? l10n.colorHexInvalid : null,
-                        suffixIcon: IconButton(
+                        suffixIcon: PressScale(child: IconButton(
                           tooltip: l10n.colorPreview,
                           onPressed: _applyHex,
                           icon: const Icon(Symbols.check_rounded, size: 18),
-                        ),
+                        )),
                       ),
                     ),
                   ),
@@ -300,15 +301,15 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  PressScale(child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text(l10n.cancel),
-                  ),
+                  )),
                   const SizedBox(width: 8),
-                  FilledButton(
+                  PressScale(child: FilledButton(
                     onPressed: _submit,
                     child: Text(l10n.colorApply),
-                  ),
+                  )),
                 ],
               ),
             ],
@@ -346,7 +347,7 @@ class _PresetDot extends StatelessWidget {
     return Tooltip(
       message: label,
       waitDuration: const Duration(milliseconds: 400),
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: Container(
@@ -366,7 +367,7 @@ class _PresetDot extends StatelessWidget {
                     ? Icon(Symbols.check_rounded, size: 14, color: foreground)
                     : null),
         ),
-      ),
+      )),
     );
   }
 }

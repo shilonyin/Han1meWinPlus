@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../shared/press_scale.dart';
 import 'app_lock_controller.dart';
 
 class AppLockGate extends ConsumerStatefulWidget {
@@ -76,13 +77,13 @@ class AppLockScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(l10n.appLockDescription, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
               const SizedBox(height: 32),
-              FilledButton.icon(
+              PressScale(child: FilledButton.icon(
                 onPressed: busy ? null : () => ref.read(appLockProvider.notifier).retry(),
                 icon: busy
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Symbols.fingerprint_rounded),
                 label: Text(busy ? l10n.unlocking : l10n.unlock),
-              ),
+              )),
             ],
           ),
         ),

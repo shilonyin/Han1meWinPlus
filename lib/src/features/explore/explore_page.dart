@@ -25,6 +25,7 @@ import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
@@ -202,7 +203,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
                     child: Row(
                       children: [
-                        if (showDrawerButton) SizedBox(width: 52, child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))),
+                        if (showDrawerButton) SizedBox(width: 52, child: PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))),
                         Expanded(
                           child: Stack(
                             key: _topBarKey,
@@ -453,9 +454,9 @@ class _HomeSearchField extends StatelessWidget {
                   valueListenable: controller,
                   builder: (context, value, _) => value.text.isEmpty
                       ? const SizedBox.shrink()
-                      : IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: onClear, icon: const Icon(Symbols.close_rounded)),
+                      : PressScale(child: IconButton(visualDensity: VisualDensity.compact, iconSize: 16, onPressed: onClear, icon: const Icon(Symbols.close_rounded))),
                 ),
-                IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded)),
+                PressScale(child: IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded))),
                 const SizedBox(width: 4),
               ],
             ),
@@ -502,7 +503,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
             child: Text(widget.sections[index].title),
           ),
       ],
-      builder: (context, controller, child) => InkWell(
+      builder: (context, controller, child) => PressScale(child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () => controller.isOpen ? controller.close() : controller.open(),
         child: Padding(
@@ -516,7 +517,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }
@@ -951,7 +952,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                 child: _loading
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                     : _failed
-                        ? TextButton.icon(onPressed: () => unawaited(_retry()), icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(AppLocalizations.of(context)!.retry))
+                        ? PressScale(child: TextButton.icon(onPressed: () => unawaited(_retry()), icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(AppLocalizations.of(context)!.retry)))
                         : const SizedBox(height: 24),
               ),
             ),
@@ -1044,7 +1045,7 @@ class _FeaturedVideoSurface extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => Material(
         clipBehavior: Clip.antiAlias,
         borderRadius: BorderRadius.circular(8),
-        child: InkWell(
+        child: PressScale(child: InkWell(
           // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
           onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
           child: Stack(
@@ -1076,7 +1077,7 @@ class _FeaturedVideoSurface extends ConsumerWidget {
               ),
             ],
           ),
-        ),
+        )),
       );
 }
 
@@ -1088,6 +1089,6 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(child: Padding(
     padding: const EdgeInsets.all(24),
-    child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry)), if ('$error'.contains('Cloudflare')) TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification))]),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry))), if ('$error'.contains('Cloudflare')) PressScale(child: TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification)))]),
   ));
 }

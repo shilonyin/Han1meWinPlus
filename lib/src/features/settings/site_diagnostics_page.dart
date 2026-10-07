@@ -12,6 +12,7 @@ import '../../data/remote/network_diagnostics.dart';
 import '../../data/remote/windows_connection_factory.dart';
 import '../../data/remote/windows_http_overrides.dart';
 import '../account/account_controller.dart';
+import '../shared/press_scale.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
 
@@ -97,11 +98,11 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
         Text(l10n.siteDiagnosticsDescription, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)),
         const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: FilledButton.icon(
+        SizedBox(width: double.infinity, child: PressScale(child: FilledButton.icon(
           onPressed: _running ? null : _runAll,
           icon: _running ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.refresh_rounded),
           label: Text(l10n.diagnose),
-        )),
+        ))),
         const SizedBox(height: 16),
         for (final result in _results ?? const <DiagnosticResult>[]) _diagnosticCard(context, l10n, result),
         const SizedBox(height: 8),

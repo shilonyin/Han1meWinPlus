@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
+import '../shared/press_scale.dart';
 import 'search_controller.dart';
 
 Future<SearchQuery?> showSearchHistorySheet(BuildContext context, WidgetRef ref) => showModalBottomSheet<SearchQuery>(
@@ -50,11 +51,11 @@ class _SearchHistorySheet extends ConsumerWidget {
                         title: Text(_title(l10n, query, catalog, localeKey), maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(_summary(l10n, query, catalog, localeKey), maxLines: 2, overflow: TextOverflow.ellipsis),
                         onTap: () => Navigator.of(context).pop(query),
-                        trailing: IconButton(
+                        trailing: PressScale(child: IconButton(
                           tooltip: l10n.deleteSearchHistory,
                           icon: const Icon(Symbols.delete_rounded),
                           onPressed: () => ref.read(searchHistoryProvider.notifier).remove(query),
-                        ),
+                        )),
                       ),
                     );
                   },

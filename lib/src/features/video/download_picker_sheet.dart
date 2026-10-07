@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import '../../domain/series_name.dart';
 import '../../core/app_dialog.dart';
+import '../shared/press_scale.dart';
 
 /// 用户在下载弹窗里确认后的选择。
 class DownloadPickerResult {
@@ -337,20 +338,20 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: PressScale(child: OutlinedButton(
                           // 「我的下载」不改动选择，只告诉调用方"把用户带到缓存页"。
                           onPressed: () => Navigator.pop(context, const DownloadPickerResult.openDownloads()),
                           style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13)),
                           child: Text(l10n.myDownloads, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
+                        )),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: FilledButton(
+                        child: PressScale(child: FilledButton(
                           onPressed: _selected.isEmpty ? null : _submit,
                           style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13)),
                           child: Text(l10n.downloadCountButton(_selected.length), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
+                        )),
                       ),
                     ],
                   ),
@@ -437,7 +438,7 @@ class _DialogHeader extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: IconButton(tooltip: AppLocalizations.of(context)!.cancel, onPressed: () => Navigator.pop(context), icon: const Icon(Symbols.close_rounded)),
+                child: PressScale(child: IconButton(tooltip: AppLocalizations.of(context)!.cancel, onPressed: () => Navigator.pop(context), icon: const Icon(Symbols.close_rounded))),
               ),
             ),
           ],
@@ -463,7 +464,7 @@ class _EpisodeRow extends StatelessWidget {
       color: selected ? scheme.primary.withValues(alpha: .10) : scheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(10),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
@@ -485,7 +486,7 @@ class _EpisodeRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

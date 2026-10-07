@@ -11,6 +11,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import '../../core/app_dialog.dart';
+import '../shared/press_scale.dart';
 
 class AndroidCastButton extends ConsumerWidget {
   const AndroidCastButton({super.key, required this.sources, required this.quality});
@@ -25,12 +26,12 @@ class AndroidCastButton extends ConsumerWidget {
       valueListenable: quality,
       builder: (context, selected, _) {
         final source = sources.where((source) => source.quality == selected).firstOrNull ?? sources.first;
-        return IconButton(
+        return PressScale(child: IconButton(
           color: Colors.white,
           tooltip: AppLocalizations.of(context)!.castToDevice,
           onPressed: () => _showDevices(context, source.url),
           icon: const Icon(Symbols.cast_rounded),
-        );
+        ));
       },
     );
   }
@@ -73,7 +74,7 @@ class AndroidCastButton extends ConsumerWidget {
                         },
                       ),
               ),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel))],
+              actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel)))],
             );
           },
         ),

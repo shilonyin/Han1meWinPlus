@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/local/keyframe_repository.dart';
+import '../shared/press_scale.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
 import '../../core/app_dialog.dart';
@@ -108,8 +109,8 @@ class _KeyframeVideoTile extends ConsumerWidget {
         title: Text(l10n.deleteKeyframeTitle),
         content: Text(l10n.deleteVideoKeyframesConfirmation(video.title)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))),
         ],
       ),
     );
@@ -131,8 +132,8 @@ class _KeyframeVideoTile extends ConsumerWidget {
           decoration: InputDecoration(labelText: l10n.videoTitle),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.save)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.save))),
         ],
         ),
       );
@@ -159,8 +160,8 @@ class _KeyframeVideoTile extends ConsumerWidget {
           decoration: InputDecoration(labelText: l10n.positionMilliseconds),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(controller.text)), child: Text(l10n.save)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(controller.text)), child: Text(l10n.save))),
         ],
         ),
       );

@@ -4,6 +4,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../shared/press_scale.dart';
 import 'settings_card_list.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
@@ -85,8 +86,8 @@ class _CustomValueDialogState extends State<_CustomValueDialog> {
       title: Text(l10n.custom),
       content: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: l10n.value)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(_controller.text.trim())), child: Text(l10n.save)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(_controller.text.trim())), child: Text(l10n.save))),
       ],
     );
   }
@@ -143,7 +144,7 @@ class _StringFilterPageState extends State<_StringFilterPage> {
             children: [
               TextField(controller: _input, textInputAction: TextInputAction.done, onSubmitted: (_) => _add(), decoration: InputDecoration(labelText: widget.label)),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _add, child: Text(AppLocalizations.of(context)!.add)),
+              PressScale(child: FilledButton(onPressed: _add, child: Text(AppLocalizations.of(context)!.add))),
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: widget.values.map((value) => InputChip(label: Text(value), onDeleted: () => widget.onChanged(widget.values.where((item) => item != value).toList()))).toList()),
             ],

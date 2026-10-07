@@ -13,6 +13,7 @@ import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, Se
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
@@ -84,7 +85,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded)),
+        leading: PressScale(child: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded))),
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
@@ -214,9 +215,9 @@ class _SearchInput extends StatelessWidget {
               valueListenable: controller,
               builder: (context, value, _) => value.text.isEmpty
                   ? const SizedBox.shrink()
-                  : IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: onClear, icon: const Icon(Symbols.close_rounded)),
+                  : PressScale(child: IconButton(visualDensity: VisualDensity.compact, iconSize: 18, onPressed: onClear, icon: const Icon(Symbols.close_rounded))),
             ),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded, size: 20)),
+            PressScale(child: IconButton(visualDensity: VisualDensity.compact, onPressed: () => onSubmitted(controller.text), icon: const Icon(Symbols.search_rounded, size: 20))),
             const SizedBox(width: 4),
           ],
         ),
@@ -310,7 +311,7 @@ class _SortChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return InkWell(
+    return PressScale(child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -318,7 +319,7 @@ class _SortChip extends StatelessWidget {
         decoration: BoxDecoration(color: selected ? scheme.primary : scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
         child: Text(label, maxLines: 1, style: TextStyle(fontSize: 12.5, color: selected ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
       ),
-    );
+    ));
   }
 }
 
@@ -376,11 +377,11 @@ class _MoreFiltersMenu extends StatelessWidget {
           child: Text(l10n.searchAuthors),
         ),
       ],
-      builder: (context, controller, child) => TextButton.icon(
+      builder: (context, controller, child) => PressScale(child: TextButton.icon(
         onPressed: controller.open,
         icon: const Icon(Symbols.tune_rounded, size: 18),
         label: Text(l10n.searchMoreFilters),
-      ),
+      )),
     );
   }
 }
@@ -461,8 +462,8 @@ class _DateFilterDialogState extends State<_DateFilterDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(context, _mode == _DateMode.range ? _range : [_year, _month].where((value) => value.isNotEmpty).join(' ')), child: Text(l10n.apply)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _mode == _DateMode.range ? _range : [_year, _month].where((value) => value.isNotEmpty).join(' ')), child: Text(l10n.apply))),
       ],
     );
   }
@@ -563,8 +564,8 @@ class _TagFilterDialogState extends State<_TagFilterDialog> with SingleTickerPro
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(context, _TagSelection(_selected.toList()..sort(), _broad)), child: Text(l10n.apply)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _TagSelection(_selected.toList()..sort(), _broad)), child: Text(l10n.apply))),
       ],
     );
   }
@@ -620,9 +621,9 @@ class _PaginationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(onPressed: value.page > 1 ? () => onChanged(value.page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded)),
+          PressScale(child: IconButton(onPressed: value.page > 1 ? () => onChanged(value.page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded))),
           Text('${value.page} / ${value.totalPages}', style: Theme.of(context).textTheme.labelLarge),
-          IconButton(onPressed: value.page < value.totalPages ? () => onChanged(value.page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded)),
+          PressScale(child: IconButton(onPressed: value.page < value.totalPages ? () => onChanged(value.page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded))),
         ],
       ),
     );
@@ -647,8 +648,8 @@ class _ErrorView extends StatelessWidget {
               const SizedBox(height: 12),
               Text('$error', textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry)),
-              if ('$error'.contains('Cloudflare')) TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification)),
+              PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry))),
+              if ('$error'.contains('Cloudflare')) PressScale(child: TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification))),
             ],
           ),
         ),

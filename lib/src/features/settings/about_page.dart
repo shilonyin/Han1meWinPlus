@@ -13,6 +13,7 @@ import '../../data/remote/update_checker.dart';
 import '../../data/local/update_installer.dart';
 import '../shared/glass/glass_panel.dart';
 import '../shared/app_toast.dart';
+import '../shared/press_scale.dart';
 import 'settings_pane_scope.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
@@ -115,8 +116,8 @@ class AboutPage extends ConsumerWidget {
           child: SingleChildScrollView(child: Text(notes.isEmpty ? l10n.changelogUnavailable : notes)),
         ),
         actions: [
-          TextButton(onPressed: () => launchUrl(Uri.parse(release.htmlUrl), mode: LaunchMode.externalApplication), child: Text(l10n.githubRepository)),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext), child: Text(MaterialLocalizations.of(dialogContext).closeButtonLabel)),
+          PressScale(child: TextButton(onPressed: () => launchUrl(Uri.parse(release.htmlUrl), mode: LaunchMode.externalApplication), child: Text(l10n.githubRepository))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext), child: Text(MaterialLocalizations.of(dialogContext).closeButtonLabel))),
         ],
       ),
     );
@@ -128,8 +129,8 @@ class AboutPage extends ConsumerWidget {
           title: Text(l10n.acknowledgements),
           content: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 460), child: Text(l10n.acknowledgementsBody)),
           actions: [
-            TextButton(onPressed: () => launchUrl(Uri.parse(upstreamRepoUrl), mode: LaunchMode.externalApplication), child: Text(l10n.upstreamProject)),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext), child: Text(MaterialLocalizations.of(dialogContext).closeButtonLabel)),
+            PressScale(child: TextButton(onPressed: () => launchUrl(Uri.parse(upstreamRepoUrl), mode: LaunchMode.externalApplication), child: Text(l10n.upstreamProject))),
+            PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext), child: Text(MaterialLocalizations.of(dialogContext).closeButtonLabel))),
           ],
         ),
       );
@@ -160,11 +161,11 @@ class AboutPage extends ConsumerWidget {
               : update.body,
         ),
         actions: [
-          TextButton(
+          PressScale(child: TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.later),
-          ),
-          FilledButton(
+          )),
+          PressScale(child: FilledButton(
             onPressed: update.downloadUrl.isEmpty
                 ? null
                 : () async {
@@ -176,7 +177,7 @@ class AboutPage extends ConsumerWidget {
                     );
                   },
             child: Text(l10n.updateNow),
-          ),
+          )),
         ],
       ),
     );
@@ -207,9 +208,9 @@ class _AboutHeader extends StatelessWidget {
         const SizedBox(height: 18),
         Row(
           children: [
-            FilledButton.icon(onPressed: onCheckUpdate, icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(l10n.checkUpdates)),
+            PressScale(child: FilledButton.icon(onPressed: onCheckUpdate, icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(l10n.checkUpdates))),
             const SizedBox(width: 8),
-            TextButton(onPressed: onChangelog, child: Text(l10n.changelog)),
+            PressScale(child: TextButton(onPressed: onChangelog, child: Text(l10n.changelog))),
           ],
         ),
       ],
@@ -310,7 +311,7 @@ class _AboutItem extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final hovered = SettingsHoverScope.of(context);
-          return InkWell(
+          return PressScale(child: InkWell(
             onTap: onTap,
             hoverColor: Colors.transparent,
             highlightColor: Colors.transparent,
@@ -344,7 +345,7 @@ class _AboutItem extends StatelessWidget {
                 ],
               ),
             ),
-          );
+          ));
         },
       ),
     );

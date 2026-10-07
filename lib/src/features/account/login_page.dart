@@ -9,6 +9,7 @@ import '../../data/han1me_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../data/remote/webview_environment.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'account_controller.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -84,10 +85,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: MaterialBanner(
                 content: Text('$_error'),
                 actions: [
-                  TextButton(
+                  PressScale(child: TextButton(
                     onPressed: () => setState(() => _error = null),
                     child: Text(AppLocalizations.of(context)!.close),
-                  ),
+                  )),
                 ],
               ),
             ),

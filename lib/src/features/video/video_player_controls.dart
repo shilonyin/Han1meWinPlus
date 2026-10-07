@@ -13,6 +13,7 @@ import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
+import '../shared/press_scale.dart';
 import 'android_cast_button.dart';
 import '../../core/app_dialog.dart';
 import '../shared/motion_icon.dart';
@@ -81,8 +82,8 @@ class VideoPlayerControls extends StatelessWidget {
                     // 改到它们内部的 IconButton。
                     final tight = constraints.maxWidth < 420;
                     final row = Row(children: [
-                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: MotionStateIcon(icon: value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded)),
-                      if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded)),
+                      PressScale(child: IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: MotionStateIcon(icon: value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded))),
+                      if (onNext != null) PressScale(child: IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded))),
                       // 快进按钮：从顶部条移到左下角控制行
                       VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),
                       VideoPlayerVolumeButton(controller: controller, onInteraction: onInteraction),
@@ -120,8 +121,8 @@ class VideoPlayerControls extends StatelessWidget {
                                 AndroidCastButton(sources: video.sources, quality: quality),
                               ] else
                                 VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
-                              IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded)),
-                              if (onFloat != null) IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded)),
+                              PressScale(child: IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded))),
+                              if (onFloat != null) PressScale(child: IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded))),
                             ]),
                           ),
                         ),
@@ -258,14 +259,14 @@ class VideoPlayerVolumeButton extends StatelessWidget {
               ),
             ),
           ],
-          builder: (context, menu, child) => IconButton(
+          builder: (context, menu, child) => PressScale(child: IconButton(
             color: Colors.white,
             visualDensity: VisualDensity.compact,
             tooltip: AppLocalizations.of(context)!.volume,
             // 用 position 直接指定弹层位置：面板顶边 = 按钮顶边 - (面板高度 + 进度条高度 + 间距)，也就是让它停在进度条上方
             onPressed: () => menu.isOpen ? menu.close() : menu.open(position: const Offset((40 - _volumePanelWidth) / 2, -(_volumePanelHeight + _progressBarHeight + _volumePanelGap))),
             icon: Icon(value.volume <= 0 ? Symbols.volume_off_rounded : (value.volume < .5 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded)),
-          ),
+          )),
         ),
       );
 }
@@ -279,7 +280,7 @@ class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButto
     final seconds = ref.watch(settingsProvider).valueOrNull?.skipSeconds ?? 80;
     return GestureDetector(
       onLongPress: () => _configure(context, ref, seconds),
-      child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.seconds(seconds), visualDensity: VisualDensity.compact, onPressed: () { final value = controller.value; final target = (value.position.inSeconds + seconds).clamp(0, value.duration.inSeconds); controller.seekTo(Duration(seconds: target)); onInteraction(); }, icon: const Icon(Symbols.forward_10_rounded)),
+      child: PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.seconds(seconds), visualDensity: VisualDensity.compact, onPressed: () { final value = controller.value; final target = (value.position.inSeconds + seconds).clamp(0, value.duration.inSeconds); controller.seekTo(Duration(seconds: target)); onInteraction(); }, icon: const Icon(Symbols.forward_10_rounded))),
     );
   }
 
@@ -313,8 +314,8 @@ class _SkipSecondsDialogState extends State<_SkipSecondsDialog> {
       title: Text(l10n.seconds(int.tryParse(widget.initialValue) ?? 0)),
       content: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.number),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(_controller.text.trim())), child: Text(l10n.save)),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
+        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(_controller.text.trim())), child: Text(l10n.save))),
       ],
     );
   }
@@ -325,7 +326,7 @@ class _AspectMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final aspect = ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ?? VideoAspectRatio.auto;
     return MenuAnchor(
-      builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.videoAspectRatio, onPressed: controller.open, icon: const Icon(Symbols.aspect_ratio_rounded)),
+      builder: (context, controller, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.videoAspectRatio, onPressed: controller.open, icon: const Icon(Symbols.aspect_ratio_rounded))),
       menuChildren: VideoAspectRatio.values.map((item) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: item)), leadingIcon: item == aspect ? const Icon(Symbols.check_rounded, size: 18) : null, child: Text(_aspectLabel(AppLocalizations.of(context)!, item)))).toList(),
     );
   }
@@ -338,7 +339,7 @@ class _EpisodeMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, controller, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.episodeList, onPressed: controller.open, icon: const Icon(Symbols.view_list_rounded)),
+        builder: (context, controller, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.episodeList, onPressed: controller.open, icon: const Icon(Symbols.view_list_rounded))),
         menuChildren: video.playlist.map((episode) => MenuItemButton(onPressed: episode.id == video.id ? null : () => onSelected(episode), leadingIcon: episode.id == video.id ? const Icon(Symbols.play_arrow_rounded) : null, child: SizedBox(width: 280, child: Text(episode.title, maxLines: 1, overflow: TextOverflow.ellipsis)))).toList(),
       );
 }
@@ -353,7 +354,7 @@ class VideoPlayerPortraitMoreMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MenuAnchor(
-        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded)),
+        builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded))),
         menuChildren: [
           SubmenuButton(menuChildren: VideoAspectRatio.values.map((aspect) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: aspect)), child: Text(_aspectLabel(AppLocalizations.of(context)!, aspect)))).toList(), child: Text(AppLocalizations.of(context)!.videoAspectRatio)),
           SubmenuButton(menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) => MenuItemButton(onPressed: () => controller.setPlaybackSpeed(speed), child: Text('${speed}x'))).toList(), child: Text(AppLocalizations.of(context)!.playbackSpeed)),
@@ -376,7 +377,7 @@ class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded)),
+        builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded))),
         menuChildren: [
           if (sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(), leadingIcon: const Icon(Symbols.open_in_new_rounded), child: Text(AppLocalizations.of(context)!.externalPlayback)),
         ],
@@ -402,12 +403,12 @@ class _Anime4KMenu extends ConsumerWidget {
     final mode = ref.watch(settingsProvider).valueOrNull?.superResolutionMode ?? SuperResolutionMode.off;
     final l10n = AppLocalizations.of(context)!;
     return MenuAnchor(
-      builder: (context, menu, child) => IconButton(
+      builder: (context, menu, child) => PressScale(child: IconButton(
         color: Colors.white,
         tooltip: l10n.superResolution,
         onPressed: menu.open,
         icon: Icon(mode == SuperResolutionMode.off ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded),
-      ),
+      )),
       menuChildren: SuperResolutionMode.values.map((option) {
         final selected = option == mode;
         return MenuItemButton(
@@ -439,7 +440,7 @@ class _QualityMenu extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<String?>(
         valueListenable: quality,
         builder: (context, current, _) => MenuAnchor(
-          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.quality, onPressed: menu.open, icon: const Icon(Symbols.high_quality_rounded)),
+          builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.quality, onPressed: menu.open, icon: const Icon(Symbols.high_quality_rounded))),
           menuChildren: sources.map((source) {
             final selected = source.quality == current;
             return MenuItemButton(
@@ -460,7 +461,7 @@ class _SpeedMenu extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
         valueListenable: controller,
         builder: (context, value, _) => MenuAnchor(
-          builder: (context, menu, child) => IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.playbackSpeed, onPressed: menu.open, icon: const Icon(Symbols.speed_rounded)),
+          builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.playbackSpeed, onPressed: menu.open, icon: const Icon(Symbols.speed_rounded))),
           menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) {
             final selected = value.playbackSpeed == speed;
             return MenuItemButton(
@@ -486,7 +487,7 @@ class VideoKeyframeDrawer extends ConsumerWidget {
       const Divider(height: 1),
       Expanded(child: keyframes.isEmpty ? Center(child: Text(AppLocalizations.of(context)!.noKeyframes)) : ListView.separated(itemCount: keyframes.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (context, index) {
         final position = keyframes[index];
-        return ListTile(title: Text(_formatKeyframe(position)), subtitle: Text('$position ms'), onTap: () { controller.value?.seekTo(Duration(milliseconds: position)); Navigator.of(context).pop(); }, trailing: IconButton(icon: const Icon(Symbols.delete_rounded), onPressed: () => ref.read(keyframesProvider(video.id).notifier).remove(position)));
+        return ListTile(title: Text(_formatKeyframe(position)), subtitle: Text('$position ms'), onTap: () { controller.value?.seekTo(Duration(milliseconds: position)); Navigator.of(context).pop(); }, trailing: PressScale(child: IconButton(icon: const Icon(Symbols.delete_rounded), onPressed: () => ref.read(keyframesProvider(video.id).notifier).remove(position))));
       })),
     ])));
   }

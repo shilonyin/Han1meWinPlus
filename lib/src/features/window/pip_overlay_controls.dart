@@ -5,6 +5,7 @@ import '../../core/play_window_title_target.dart';
 import '../../core/playback_hotkey_target.dart';
 import '../../../l10n/app_localizations.dart';
 import '../shared/motion_icon.dart';
+import '../shared/press_scale.dart';
 
 /// 画中画小窗中央那组大圆按钮：上一集 / 播放暂停 / 下一集。
 ///
@@ -95,7 +96,7 @@ class PipCircleButton extends StatelessWidget {
         color: Colors.black.withValues(alpha: enabled ? 0.28 : 0.16),
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           onTap: onPressed,
           child: SizedBox(
             width: PipOverlayControls.diameter,
@@ -106,7 +107,7 @@ class PipCircleButton extends StatelessWidget {
               color: enabled ? Colors.white : Colors.white38,
             ),
           ),
-        ),
+        )),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/getchu_preview.dart';
+import '../shared/press_scale.dart';
 import 'getchu_preview_controller.dart';
 import 'preview_grid.dart';
 
@@ -115,9 +116,9 @@ class _MonthNavigation extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded)),
-            Expanded(child: TextButton.icon(onPressed: onSelect, icon: const Icon(Symbols.calendar_month_rounded, size: 18), label: Text(l10n.getchuPreviewMonth(month.value)))),
-            IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded)),
+            PressScale(child: IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded))),
+            Expanded(child: PressScale(child: TextButton.icon(onPressed: onSelect, icon: const Icon(Symbols.calendar_month_rounded, size: 18), label: Text(l10n.getchuPreviewMonth(month.value))))),
+            PressScale(child: IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded))),
           ],
         ),
       ),
@@ -148,7 +149,7 @@ class _PreviewCard extends StatelessWidget {
     return GlassPanel(
           solidColor: theme.colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(18),
-      child: InkWell(
+      child: PressScale(child: InkWell(
         onTap: () => context.push('/previews/getchu/detail/${item.id}'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +213,7 @@ class _PreviewCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }
@@ -236,7 +237,7 @@ class _Unavailable extends StatelessWidget {
             const SizedBox(height: 16),
             Text(error == null ? l10n.noGetchuPreviews : l10n.getchuPreviewUnavailable, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload)),
+            PressScale(child: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload))),
           ],
         ),
       ),

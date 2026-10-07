@@ -16,6 +16,7 @@ import '../../data/han1me_repository.dart';
 import '../../domain/models/library.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
+import '../shared/press_scale.dart';
 import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
 import '../account/account_controller.dart';
@@ -42,7 +43,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded))] : null),
+        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
         body: LibraryTabView(index: widget.initialTab),
       );
     }
@@ -51,9 +52,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
+          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null,
           title: Text(l10n.myLibrary),
-          actions: [IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded))],
+          actions: [PressScale(child: IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))],
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n)),
         ),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
@@ -84,7 +85,7 @@ class _LibraryTabViewState extends ConsumerState<LibraryTabView> {
     if (account?.id != null) {
       return ref.watch(remoteLibraryProvider).when(
             loading: () => const Center(child: M3EContainedLoadingIndicator()),
-            error: (error, stackTrace) => Center(child: FilledButton(onPressed: () => ref.invalidate(remoteLibraryProvider), child: Text(l10n.reload))),
+            error: (error, stackTrace) => Center(child: PressScale(child: FilledButton(onPressed: () => ref.invalidate(remoteLibraryProvider), child: Text(l10n.reload)))),
             data: (library) => _remoteTabContent(context, library, widget.index, account?.csrfToken),
           );
     }
@@ -118,7 +119,7 @@ class _RemoteLibrary extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)), title: Text(_tabTitle(l10n, initialTab))),
+        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
         body: LibraryTabView(index: initialTab),
       );
     }
@@ -126,7 +127,7 @@ class _RemoteLibrary extends ConsumerWidget {
       length: 5,
       initialIndex: initialTab,
       child: Scaffold(
-        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
+        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
       ),
     );
@@ -231,7 +232,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
   void _exitSelection() => setState(() { _selectionMode = false; _selected.clear(); });
 
   Future<void> _deleteSelected() async {
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete)))]));
     if (confirmed != true) return;
     await ref.read(watchProvider.notifier).deleteHistories(_selected);
     if (mounted) setState(() { _selectionMode = false; _selected.clear(); });
@@ -352,7 +353,7 @@ class _ArtistStripCard extends StatelessWidget {
         // 一屏几十格同时取样，滚动时捕获一滞后就会在格子里浮出上一帧的 UI。
         // 选中态本来就靠 `solidColor` + 描边区分，用纯色底更清楚。
         borderRadius: BorderRadius.circular(18),
-        child: InkWell(
+        child: PressScale(child: InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           onLongPress: onLongPress,
@@ -372,7 +373,7 @@ class _ArtistStripCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -476,7 +477,7 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
     return AlertDialog(
       title: Text(l10n.newPlaylist),
       content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _title, autofocus: true, decoration: InputDecoration(labelText: l10n.name)), TextField(controller: _description, decoration: InputDecoration(labelText: l10n.description))]),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, (_title.text.trim(), _description.text.trim())), child: Text(l10n.create))],
+      actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, (_title.text.trim(), _description.text.trim())), child: Text(l10n.create)))],
     );
   }
 }
@@ -536,7 +537,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
   Future<void> _deleteSelected() async {
     final token = widget.token;
     if (token == null) return;
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete)))]));
     if (confirmed != true) return;
     final settings = await ref.read(settingsProvider.future);
     for (final id in _selected) {
@@ -558,7 +559,7 @@ class _PlaylistCard extends ConsumerStatefulWidget {
 class _PlaylistCardState extends ConsumerState<_PlaylistCard> {
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.deletePlaylist), content: Text(l10n.deletePlaylistConfirmation(widget.playlist.title)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.deletePlaylist), content: Text(l10n.deletePlaylistConfirmation(widget.playlist.title)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)))]));
     final account = ref.read(accountProvider).valueOrNull;
     if (confirmed != true || account?.csrfToken == null) return;
     final settings = await ref.read(settingsProvider.future);
@@ -580,7 +581,7 @@ class _PlaylistGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
+        child: PressScale(child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -588,7 +589,7 @@ class _PlaylistGridCard extends StatelessWidget {
             Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 2), child: Text(playlist.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 8), child: Text(AppLocalizations.of(context)!.videoCount(playlist.count), style: Theme.of(context).textTheme.bodySmall)),
           ]),
-        ),
+        )),
       );
 }
 
@@ -653,9 +654,9 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
               Text(l10n.playlistStats(playlist.playlist.count, playlist.viewCount ?? 0), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
               if (playlist.description?.isNotEmpty == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text(playlist.description!)),
               const SizedBox(height: 16),
-              Row(children: [Expanded(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => openVideo(context, ref, playlist.videos.first.videoCode), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playAll))), const SizedBox(width: 8), IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Symbols.edit_rounded)), const SizedBox(width: 8), IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Symbols.share_rounded))]),
+              Row(children: [Expanded(child: PressScale(child: FilledButton.icon(onPressed: playlist.videos.isEmpty ? null : () => openVideo(context, ref, playlist.videos.first.videoCode), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playAll)))), const SizedBox(width: 8), PressScale(child: IconButton.filledTonal(onPressed: account?.csrfToken == null ? null : () => _edit(playlist), icon: const Icon(Symbols.edit_rounded))), const SizedBox(width: 8), PressScale(child: IconButton.filledTonal(onPressed: () => Share.share('https://hanimeone.me/playlist?list=${playlist.playlist.id}', subject: playlist.playlist.title), icon: const Icon(Symbols.share_rounded)))]),
               const SizedBox(height: 20),
-              Row(children: [for (final value in ['latest', 'popular', 'oldest']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_sortLabel(l10n, value)), selected: _sort == value, onSelected: _editing ? null : (_) => _changeSort(value))), const Spacer(), TextButton.icon(onPressed: _editing ? _removeSelected : () => setState(() => _editing = true), icon: Icon(_editing ? Symbols.delete_rounded : Symbols.edit_rounded), label: Text(_editing ? l10n.delete : l10n.edit))]),
+              Row(children: [for (final value in ['latest', 'popular', 'oldest']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_sortLabel(l10n, value)), selected: _sort == value, onSelected: _editing ? null : (_) => _changeSort(value))), const Spacer(), PressScale(child: TextButton.icon(onPressed: _editing ? _removeSelected : () => setState(() => _editing = true), icon: Icon(_editing ? Symbols.delete_rounded : Symbols.edit_rounded), label: Text(_editing ? l10n.delete : l10n.edit)))]),
               const SizedBox(height: 4),
               if (playlist.videos.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(l10n.playlistEmpty))) else _PlaylistVideoGrid(videos: playlist.videos, editing: _editing, selected: _selectedItems, onToggle: _toggleItem),
             ],
@@ -697,7 +698,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
       setState(() => _editing = false);
       return;
     }
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selectedItems.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selectedItems.length)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete)))]));
     final account = ref.read(accountProvider).valueOrNull;
     if (confirmed != true || account?.csrfToken == null) return;
     final settings = await ref.read(settingsProvider.future);
@@ -761,7 +762,7 @@ class _PlaylistEditDialogState extends State<_PlaylistEditDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(title: Text(l10n.edit), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _title, decoration: InputDecoration(labelText: l10n.name)), TextField(controller: _description, minLines: 3, maxLines: 5, decoration: InputDecoration(labelText: l10n.description)), CheckboxListTile(contentPadding: EdgeInsets.zero, value: _delete, onChanged: (value) => setState(() => _delete = value ?? false), title: Text(l10n.deletePlaylist))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), FilledButton(onPressed: _title.text.trim().isEmpty ? null : () => Navigator.pop(context, (_title.text.trim(), _description.text.trim(), _delete)), child: Text(l10n.confirm))]);
+    return AlertDialog(title: Text(l10n.edit), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _title, decoration: InputDecoration(labelText: l10n.name)), TextField(controller: _description, minLines: 3, maxLines: 5, decoration: InputDecoration(labelText: l10n.description)), CheckboxListTile(contentPadding: EdgeInsets.zero, value: _delete, onChanged: (value) => setState(() => _delete = value ?? false), title: Text(l10n.deletePlaylist))]), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: _title.text.trim().isEmpty ? null : () => Navigator.pop(context, (_title.text.trim(), _description.text.trim(), _delete)), child: Text(l10n.confirm)))]);
   }
 }
 
@@ -829,7 +830,7 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
 
   Future<void> _deleteSelected() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.delete), content: Text(l10n.selectedItems(_selected.length)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete))]));
+    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.delete), content: Text(l10n.selectedItems(_selected.length)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)))]));
     if (confirmed != true || !mounted) return;
     await widget.remover(ref, _selected);
     if (mounted) setState(() { _selectionMode = false; _selected.clear(); });

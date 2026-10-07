@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
+import '../shared/press_scale.dart';
 import 'cache_cards.dart';
 import 'cache_format.dart';
 import 'download_group_page.dart';
@@ -58,7 +59,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
         final name = localizedGroupName(group, l10n);
         return Scaffold(
           appBar: AppBar(
-            leading: _selecting ? IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded)) : null,
+            leading: _selecting ? PressScale(child: IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded))) : null,
             // 标题栏放不下长系列名时交给省略号：原来直接把整个名字塞进 title，
             // 超长分组名（自动建组用系列名，常常就是整条标题）会把操作按钮挤掉。
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -188,8 +189,8 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
         title: Text(l10n.deleteCache),
         content: Text(l10n.deleteCacheConfirmation(task.title)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.delete)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.delete))),
         ],
       ),
     );
@@ -205,8 +206,8 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
         title: Text(l10n.deleteSelectedCache),
         content: Text(l10n.deleteSelectedCacheConfirmation(_selected.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.delete)),
+          PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel))),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.delete))),
         ],
       ),
     );
@@ -261,16 +262,16 @@ class _FolderHeader extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   // 「播放全部」是集合级的主操作，用实心按钮突出（b 站同款）。
-                  FilledButton.icon(
+                  PressScale(child: FilledButton.icon(
                     onPressed: completed == 0 ? null : onPlayAll,
                     icon: const Icon(Symbols.play_arrow_rounded, size: 20),
                     label: Text(l10n.playAll),
-                  ),
-                  OutlinedButton.icon(
+                  )),
+                  PressScale(child: OutlinedButton.icon(
                     onPressed: tasks.isEmpty ? null : onToggleAll,
                     icon: Icon(Symbols.check_circle_rounded, fill: selecting && allSelected ? 1 : 0, size: 18),
                     label: Text(l10n.selectAll),
-                  ),
+                  )),
                 ],
               ),
             ],

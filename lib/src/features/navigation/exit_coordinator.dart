@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_dialog.dart';
+import '../shared/press_scale.dart';
 
 class AppExitCoordinator {
   var _dialogOpen = false;
@@ -31,8 +32,8 @@ class AppExitCoordinator {
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.confirmExitTitle),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.confirm)),
+            PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel))),
+            PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.confirm))),
           ],
         ),
       );

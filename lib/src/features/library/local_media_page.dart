@@ -9,6 +9,7 @@ import '../../data/local/local_media_repository.dart';
 import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../settings/settings_controller.dart';
 import '../settings/settings_sub_page.dart';
+import '../shared/press_scale.dart';
 import '../video/video_page.dart';
 
 /// 本地媒体库：扫描用户指定的目录，把里面的视频列出来直接播放。
@@ -66,8 +67,8 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(spacing: 8, children: [
-              FilledButton.icon(onPressed: _scanning ? null : _pickDirectory, icon: const Icon(Symbols.folder_open_rounded), label: Text(l10n.localMediaPickDirectory)),
-              OutlinedButton.icon(onPressed: _scanning || directory.isEmpty ? null : () => _rescan(directory), icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.localMediaRescan)),
+              PressScale(child: FilledButton.icon(onPressed: _scanning ? null : _pickDirectory, icon: const Icon(Symbols.folder_open_rounded), label: Text(l10n.localMediaPickDirectory))),
+              PressScale(child: OutlinedButton.icon(onPressed: _scanning || directory.isEmpty ? null : () => _rescan(directory), icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.localMediaRescan))),
             ]),
           ),
           if (_scanning) const Padding(padding: EdgeInsets.all(24), child: Center(child: M3EContainedLoadingIndicator())),

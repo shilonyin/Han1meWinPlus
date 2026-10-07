@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
+import '../shared/press_scale.dart';
 import 'check_in_controller.dart';
 import '../../core/app_dialog.dart';
 
@@ -90,17 +91,17 @@ class _TodayCard extends ConsumerWidget {
               ),
             ),
             if (count > 0)
-              TextButton.icon(
+              PressScale(child: TextButton.icon(
                 onPressed: () => ref.read(checkInProvider.notifier).clearDate(today),
                 icon: const Icon(Symbols.delete_rounded, size: 18),
                 label: Text(l10n.clear),
-              ),
+              )),
             const SizedBox(width: 8),
-            FilledButton.icon(
+            PressScale(child: FilledButton.icon(
               onPressed: isMaxed ? null : () => _addCheckIn(context, ref, today),
               icon: const Icon(Symbols.add_rounded, size: 18),
               label: Text(l10n.checkInNow),
-            ),
+            )),
           ],
         ),
       ),
@@ -144,7 +145,7 @@ class _MonthCalendar extends ConsumerWidget {
           final day = DateTime(month.year, month.month, index - leading + 1);
           final count = state.countFor(checkInDateKey(day));
           final isToday = checkInDateKey(day) == todayKey;
-          return InkWell(
+          return PressScale(child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => _openDay(context, ref, day),
             child: Container(
@@ -161,7 +162,7 @@ class _MonthCalendar extends ConsumerWidget {
                 ],
               ),
             ),
-          );
+          ));
         },
       );
     }
@@ -176,8 +177,8 @@ class _MonthCalendar extends ConsumerWidget {
             Row(
               children: [
                 Expanded(child: Text('${month.year} / ${month.month}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_left_rounded)),
-                IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_right_rounded)),
+                PressScale(child: IconButton(onPressed: () => ref.read(checkInProvider.notifier).previousMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_left_rounded))),
+                PressScale(child: IconButton(onPressed: () => ref.read(checkInProvider.notifier).nextMonth(), visualDensity: VisualDensity.compact, iconSize: 20, icon: const Icon(Symbols.chevron_right_rounded))),
               ],
             ),
             Row(children: [for (var i = 0; i < 7; i++) Expanded(child: Center(child: Text(material.narrowWeekdays[(firstDayOfWeek + i) % 7], style: Theme.of(context).textTheme.labelSmall)))]),
@@ -289,10 +290,10 @@ Future<void> _openDay(BuildContext context, WidgetRef ref, DateTime date) async 
         ],
       ),
       actions: [
-        if (count > 0) TextButton(onPressed: () => Navigator.pop(context, 'clear'), child: Text(l10n.clear)),
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+        if (count > 0) PressScale(child: TextButton(onPressed: () => Navigator.pop(context, 'clear'), child: Text(l10n.clear))),
+        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
         if (count < maxCheckInsPerDay)
-          FilledButton(onPressed: () => Navigator.pop(context, 'add'), child: Text(l10n.checkInNow)),
+          PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, 'add'), child: Text(l10n.checkInNow))),
       ],
     ),
   );

@@ -9,6 +9,7 @@ import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/video.dart';
 import '../explore/explore_controller.dart';
 import '../explore/explore_page.dart';
+import '../shared/press_scale.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
 
@@ -82,7 +83,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                     leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded)),
                     title: Text(label(selected[index])),
                     subtitle: Text('${index + 1}'),
-                    trailing: IconButton(tooltip: l10n.delete, onPressed: () => save([...selected]..removeAt(index)), icon: const Icon(Symbols.remove_circle_rounded, size: 20)),
+                    trailing: PressScale(child: IconButton(tooltip: l10n.delete, onPressed: () => save([...selected]..removeAt(index)), icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
                   ),
                 ),
               ),

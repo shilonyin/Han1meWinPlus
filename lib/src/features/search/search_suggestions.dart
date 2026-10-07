@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
+import '../shared/press_scale.dart';
 import 'search_controller.dart';
 
 /// 搜索框下方展开的建议面板（样式参考主流视频站点）：搜索历史 + 热门标签。
@@ -58,11 +59,11 @@ class _SearchSuggestionsState extends ConsumerState<SearchSuggestions> {
                 Text(l10n.searchHistory, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 if (history.isNotEmpty)
-                  TextButton(
+                  PressScale(child: TextButton(
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
                     onPressed: () => ref.read(searchHistoryProvider.notifier).clear(),
                     child: Text(l10n.clearSearchHistory),
-                  ),
+                  )),
               ],
             ),
             const SizedBox(height: 6),
@@ -169,7 +170,7 @@ class _PopularTagTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
+    return PressScale(child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
@@ -185,7 +186,7 @@ class _PopularTagTile extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -198,7 +199,7 @@ class _SuggestionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
+    return PressScale(child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -207,7 +208,7 @@ class _SuggestionChip extends StatelessWidget {
         decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
         child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5)),
       ),
-    );
+    ));
   }
 }
 
@@ -220,7 +221,7 @@ class _MoreChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
+    return PressScale(child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
@@ -233,6 +234,6 @@ class _MoreChip extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
