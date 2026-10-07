@@ -222,9 +222,12 @@ class _GlassQualityPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // 四档直接决定用哪种渲染（见 `GlassMaterial.quality`）：
-        // 关闭＝纯色卡片、磨砂＝纯模糊、超透＝低模糊+更透、液体玻璃＝边缘折射。
+        // 三档直接决定用哪种渲染：
+        // 关闭＝纯色卡片、磨砂＝纯模糊且浓度由下面的滑条定、液体玻璃＝边缘折射。
         // 档位本身就是开关，不再另设一个「毛玻璃材质」开关 —— 那样开关关着时切档位毫无反应。
+        //
+        // 原来的第四档「超透」已删除：它和磨砂**共用同一个 tint**、只差模糊强度，
+        // 而页面底色压平之后模糊看不出区别，实测两档画面逐像素完全相同。
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -250,15 +253,6 @@ class _GlassQualityPanel extends StatelessWidget {
             SizedBox(
               width: _glassModeCardWidth,
               child: _GlassModeCard(
-                icon: Symbols.water_drop_rounded,
-                title: l10n.glassClear,
-                selected: quality == GlassQuality.clear,
-                onTap: () => setQuality(GlassQuality.clear),
-              ),
-            ),
-            SizedBox(
-              width: _glassModeCardWidth,
-              child: _GlassModeCard(
                 icon: Symbols.lens_blur_rounded,
                 title: l10n.glassLiquid,
                 selected: quality == GlassQuality.liquid,
@@ -267,8 +261,8 @@ class _GlassQualityPanel extends StatelessWidget {
             ),
           ],
         ),
-        // 滑条**只在磨砂档**出现：它调的是磨砂的不透明度，
-        // 「超透」「液体玻璃」的透明度是固定的（照 morrow —— 那两档调它没有意义）。
+        // 滑条**只在磨砂档**出现：它调的就是磨砂那块玻璃的浓度（直接喂给材质的
+        // `tint` alpha），「液体玻璃」的浓度是材质自己校准过的，调它没有意义。
         if (quality == GlassQuality.frosted) ...[
           const SizedBox(height: 2),
           Row(
@@ -312,17 +306,27 @@ class _GlassQualityPanel extends StatelessWidget {
             ],
           ),
         ],
-        // 下面三行是照 g1455 演示站那个控制面板搬过来的三个维度。
+        // 下面四行是照 g1455 演示站那个控制面板搬过来的维度。
         //
-        // 它的面板一共七栏，另外四栏**故意不搬**：
+        // 它的面板一共七栏，另外三栏**故意不搬**：
         // - Appearance（Dark/Light/System）就是本页已有的「主题模式」；
         // - Material（Regular/Dark/Light/Clear/Frosted）就是上面的「玻璃质感」——
-        //   我们的四档与它的五个 preset 覆盖同一片区间（见 `glass_panel.dart`
+        //   我们的三档与它的五个 preset 覆盖同一片区间（见 `glass_tuning.dart`
         //   里那张对照表），再来一套只会让两边打架；
-        // - Tint（Neutral/Indigo/Rose）与 Preset（Ultra/High/Medium/Low）在包里
-        //   **根本没有对应 API**（子代理把 lib 全读了一遍：没有任何 palette/hue，
-        //   也没有 quality/profile），那是那个演示页给自己的面板上色、自己定档位
-        //   组合拼出来的，搬过来只能搬个名字。
+        // - Preset（Ultra/High/Medium/Low）是它把六维存成四组值的快捷方式，包里
+        //   **没有这个 API**（唯一像档位的 `GlassFinish.materializing` 是出现动画的
+        //   曲线）。我们已经把这六维逐项做成了设置，再存四组预设只是省几次点击。
+        _GlassOptionRow<GlassTintKind>(
+          label: l10n.glassTint,
+          hint: l10n.glassTintHint,
+          selected: settings.glassTint,
+          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassTint: value)),
+          options: [
+            (value: GlassTintKind.neutral, icon: Symbols.tonality_rounded, title: l10n.glassTintNeutral),
+            (value: GlassTintKind.indigo, icon: Symbols.palette_rounded, title: l10n.glassTintIndigo),
+            (value: GlassTintKind.rose, icon: Symbols.palette_rounded, title: l10n.glassTintRose),
+          ],
+        ),
         _GlassOptionRow<GlassRippleKind>(
           label: l10n.glassRipple,
           hint: l10n.glassRippleHint,

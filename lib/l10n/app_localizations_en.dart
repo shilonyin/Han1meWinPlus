@@ -1946,10 +1946,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassFrosted => 'Frosted';
 
   @override
-  String get glassClear => 'Clear';
+  String get glassLiquid => 'Liquid glass';
 
   @override
-  String get glassLiquid => 'Liquid glass';
+  String get glassTint => 'Glass tint';
+
+  @override
+  String get glassTintHint =>
+      'Tints the glass itself, not the colour scheme above; Neutral keeps the material\'s own tint';
+
+  @override
+  String get glassTintNeutral => 'Neutral';
+
+  @override
+  String get glassTintIndigo => 'Indigo';
+
+  @override
+  String get glassTintRose => 'Rose';
 
   @override
   String get glassFrostOpacity => 'Frost opacity';

@@ -6,6 +6,7 @@ import '../../../core/app_surface_tokens.dart';
 import '../../../core/color_contrast.dart';
 import '../../../core/settings.dart';
 import '../../settings/settings_controller.dart';
+import 'glass_tuning.dart';
 
 /// 把"这块面板实际呈现的不透明底色"告知子树。
 ///
@@ -153,29 +154,40 @@ class GlassPanel extends ConsumerWidget {
     // 两处不可能分叉（原先关闭档那个表达式在"判定可读性"和"实际绘制"
     // 各写了一遍，改一处忘一处就会让两者不一致）。
     final brightness = Theme.of(context).brightness;
-    final dark = brightness == Brightness.dark;
-    final glassTint = tint ?? AppSurfaceTokens.glassTint(scheme);
     // 关闭档的卡片底色。判定可读性与实际绘制都取它 —— 以前同一个表达式写在
     // 两个地方，改一处忘一处就会让"判定用的底色"和"画出来的底色"从此不同。
     final closedSurface = solidColor ??
         AppSurfaceTokens.closedSurface(scheme, brightness);
 
-    // 面板实际呈现的不透明底色：关闭档是"实色底（或半透明 surface）"，
-    // 玻璃档是"tint 按该档浓度合成"。
+    // 这一档玻璃究竟长什么样：**只在这里定一次**。
     //
-    // 磨砂档的浓度直接取 `glassSurfaceOpacity` 滑条值 —— 与
-    // `AppSurfaceTokens.densityFor` 同源，两边不会漂移。
+    // 换成 g1455 渲染之后，"面板呈现什么颜色"由材质自己的 `tint` 决定（着色器按
+    // `mix(背景, tint, tint.a)` 叠），不再由我们算一个浓度出来。所以等效底色也改成
+    // 直接读 `finish.tint` —— 原来那张平行的 `densityFor` 表会漂移（它把「液体玻璃」
+    // 记成 .55，而材质真实的 alpha 是 .693/.718），现在它已经不在了。
+    final panelTint = tint;
+    final material = glassFinishFor(
+      quality: quality,
+      brightness: brightness,
+      scheme: scheme,
+      opacity: opacity,
+      tint: settings?.glassTint ?? GlassTintKind.neutral,
+    );
+    // 面板自己指定底色时**只换 RGB**：调用处给的是"什么颜色"，不是"多浓"，
+    // 浓度属于档位（磨砂由滑条定、液体玻璃由材质定）。
+    final finish = panelTint == null
+        ? material
+        : material.copyWith(tint: panelTint.withValues(alpha: material.tint.a));
+
+    // 面板实际呈现的不透明底色：关闭档是"实色底（或半透明 surface）"，
+    // 玻璃档是"材质 tint 按它自己的 alpha 合成"。
     final canvas = pageBackground ??
         (Theme.of(context).scaffoldBackgroundColor.a > 0
             ? Theme.of(context).scaffoldBackgroundColor
             : scheme.surface);
     final panelSurface = quality == GlassQuality.off
         ? opaqueCompositeOver(closedSurface, canvas)
-        : glassSurfaceColor(
-            tint: glassTint,
-            opacity: AppSurfaceTokens.densityFor(quality, opacity),
-            background: canvas,
-          );
+        : glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas);
 
     // 降级层级：与材质档正交。`full` 时材质档原样生效；降级只**绕过背景捕获**，
     // 只剩「关闭档」需要在这里特殊处理：g1455 的两个维度里**没有"关闭"**
@@ -208,7 +220,7 @@ class GlassPanel extends ConsumerWidget {
     // 画边框，而不是丢掉 —— 选中态的主色描边靠它表达。
     final glass = GlassSurface(
       borderRadius: borderRadius,
-      finish: _finishFor(quality, dark),
+      finish: finish,
       // 有文字落在上面，允许它为了 `minLabelContrast` 压暗。
       labelled: true,
       ripple: ripple,
@@ -228,25 +240,4 @@ class GlassPanel extends ConsumerWidget {
       child: margin == null ? panel : Padding(padding: margin!, child: panel),
     );
   }
-
-  /// 把本仓库的质感档位映射到 g1455 的材质预设。
-  ///
-  /// 两边的档位**不是一一对应**的（我们四档里有「关闭」，它没有；它的
-  /// `regular` 还分深浅两支），所以这个映射要显式写出来，而不是靠改枚举顺序：
-  ///
-  /// | 本仓库 | g1455 | 依据 |
-  /// |---|---|---|
-  /// | `frosted` | `GlassFinish.frosted` | 两边同名同义：糊得最狠 |
-  /// | `clear` | `GlassFinish.clear` | 两边同名同义：几乎不糊、最透 |
-  /// | `liquid` | `regular(appearance:)` | 我们要的"完整玻璃"就是 Apple 的 `.regular`：它会按明暗自己挑深浅，且带折射 |
-  /// | `off` | 不走到这里 | 关闭档在 build 前半段已走纯色分支 |
-  static GlassFinish _finishFor(GlassQuality quality, bool dark) => switch (quality) {
-    GlassQuality.frosted => GlassFinish.frosted,
-    GlassQuality.clear => GlassFinish.clear,
-    GlassQuality.liquid => GlassFinish.regular(
-      appearance: dark ? Brightness.dark : Brightness.light,
-    ),
-    // 关闭档不会走到这里（build 里已提前返回纯色分支），给个中性值仅为穷尽。
-    GlassQuality.off => GlassFinish.frosted,
-  };
 }

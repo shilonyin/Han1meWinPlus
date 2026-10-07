@@ -8,8 +8,10 @@
 /// 波纹与对比度则是 host 上的"这一屏的默认值"，每块玻璃仍可自己覆盖。
 library;
 
+import 'package:flutter/material.dart';
 import 'package:g1455/g1455.dart';
 
+import '../../../core/app_surface_tokens.dart';
 import '../../../core/settings.dart';
 
 /// 把设置里的波纹档位翻成 g1455 的参数；关闭档给 null（= 不起波纹）。
@@ -67,3 +69,61 @@ bool? glassHighContrastFor(GlassContrast contrast, {required bool systemHighCont
       GlassContrast.auto => systemHighContrast,
       GlassContrast.increased => true,
     };
+
+/// 设置里的玻璃染色 → 玻璃 tint 要用的**颜色**；`neutral` 返回 null。
+///
+/// null 的意思是「别动材质自己的 tint」：g1455 那两个 `.regular` 的 tint 是按真机材质
+/// 校准过的（`regularDark` 是 `rgba(29,29,32,0.693)`，`glass_finish.dart:368`），拿我们的
+/// 表面色去替掉它只会让玻璃偏离作者量过的工作点。只有选了带色的两档才换掉 RGB。
+///
+/// 靛蓝/玫瑰的色值是**我们的取舍**：演示站 Tint 那三档拿不到（站点是 Flutter web，
+/// HTML 只是静态大纲、GitHub 又限流）。所以取 Material 两个基准色，向表面色靠一半 ——
+/// 既看得出偏色，又不至于艳到盖过内容。
+Color? glassTintColorFor(GlassTintKind kind, ColorScheme scheme) => switch (kind) {
+  GlassTintKind.neutral => null,
+  GlassTintKind.indigo =>
+    Color.lerp(scheme.surfaceContainerLow, const Color(0xff3f51b5), .5),
+  GlassTintKind.rose =>
+    Color.lerp(scheme.surfaceContainerLow, const Color(0xffc2185b), .5),
+};
+
+/// 设置里的质感 / 染色 → g1455 的 `GlassFinish`。
+///
+/// | 本仓库 | g1455 | 依据 |
+/// |---|---|---|
+/// | `frosted` | `GlassFinish.frosted`，tint 换成本仓库的表面色、alpha 取滑条 | 两边同名同义（糊得最狠）；但包给的 tint 是近白 `rgba(249,249,249,.22)`，压在我们这个近黑页面上会变成一块浅灰面板。本仓库的磨砂一直是「表面色 + 可调浓度」，滑条调的就是那个浓度 |
+/// | `liquid` | `GlassFinish.regular(appearance:)` | 我们要的「完整玻璃」就是 Apple 的 `.regular`：按明暗自己挑深浅，且带折射 |
+/// | `off` | 不走到这里 | 关闭档在 `GlassPanel` 里已提前返回纯色分支，这里给中性值仅为穷尽 switch |
+///
+/// **为什么磨砂的 tint 必须在这里从滑条推**：g1455 的 tint 是玻璃唯一决定「呈现什么
+/// 颜色」的入口（着色器按 `mix(背景, tint, tint.a)` 叠上去，`glass_finish.dart:566-573`）。
+/// 换成 g1455 渲染之后，`glassSurfaceOpacity` 一度只喂给「文字可读性推算」，滑条就不再
+/// 影响观感 —— 实测磨砂档在 20% 与 100% 下**画面逐像素完全相同**。现在它回到真正画
+/// 玻璃的那条路上。
+GlassFinish glassFinishFor({
+  required GlassQuality quality,
+  required Brightness brightness,
+  required ColorScheme scheme,
+  required double opacity,
+  required GlassTintKind tint,
+}) {
+  final chosen = glassTintColorFor(tint, scheme);
+  switch (quality) {
+    case GlassQuality.frosted:
+      return GlassFinish.frosted.copyWith(
+        tint: (chosen ?? AppSurfaceTokens.glassTint(scheme)).withValues(
+          alpha: opacity.clamp(0.0, 1.0),
+        ),
+      );
+    case GlassQuality.liquid:
+      final regular = GlassFinish.regular(
+        appearance: brightness == Brightness.dark ? Brightness.dark : Brightness.light,
+      );
+      // 只换 RGB、保留材质自己的 alpha —— 那个 alpha 是它校准过的浓度。
+      return chosen == null
+          ? regular
+          : regular.copyWith(tint: chosen.withValues(alpha: regular.tint.a));
+    case GlassQuality.off:
+      return GlassFinish.frosted;
+  }
+}

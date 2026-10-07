@@ -52,16 +52,34 @@ enum MpvGpuApi { auto, vulkan, d3d11 }
 /// 序列化按枚举名保存，新值只能往后追加。
 enum WindowBackdrop { none, mica, acrylic }
 
-/// 玻璃质感（卡片与弹层的磨砂面板）。四档 = **三种渲染 + 一种关闭**：
+/// 玻璃质感（卡片与弹层的磨砂面板）。三档 = **两种渲染 + 一种关闭**：
 /// - `off`     关闭：卡片走纯色底
-/// - `frosted` 磨砂：纯模糊，不折射
-/// - `clear`   超透：很低的模糊 + 更高的透明度，能看清底下的画布
-/// - `liquid`  液体玻璃：边缘折射 + 光照跟随（着色器）
+/// - `frosted` 磨砂：纯模糊不折射，浓度由「磨砂不透明度」滑条决定
+/// - `liquid`  液体玻璃：边缘折射 + 光照跟随（着色器），浓度是材质自己定的
+///
+/// 原来的 `clear`（超透）已删除：g1455 的 `clear` 与 `frosted` **共用同一个 tint**
+/// （都是 `rgba(249,249,249,0.22)`），唯一差别是模糊 σ 8 对 0 —— 而页面底色变平之后
+/// 模糊看不出任何区别，实测两档的画面**逐像素完全相同**，所以它是重复的一档。
+/// 老配置里存着 `clear` 的会落到 `frosted`。
 ///
 /// 档位**直接决定是否启用**（不再有单独的开关）—— 原来拆成「开关 + 档位」两个控件，
 /// 开关关着时档位形同虚设，切了看不出任何变化。
 /// 序列化按枚举名保存，新值只能往后追加。
-enum GlassQuality { off, frosted, clear, liquid }
+enum GlassQuality { off, frosted, liquid }
+
+/// 玻璃本身的染色（g1455 的 `GlassFinish.tint`）。
+///
+/// **和「配色方案」是两件事**：配色方案给的是 primary 这类强调色，管按钮、选中态、
+/// 背景画布的光晕；这一项管的是玻璃**那块料自己**偏什么色。原来所有玻璃都吃包默认的
+/// 中性 tint，所以玻璃永远是灰的。
+///
+/// `neutral` 时**不动**材质自己的 tint —— g1455 那两个 `.regular` 的 tint 是按真机
+/// 材质校准过的（`regularDark` 是 `rgba(29,29,32,0.693)`），我们没理由拿自己的表面色
+/// 去替掉它。只有选了带色的两档才换掉 RGB、保留材质自己的 alpha。
+///
+/// 具体色值是我们的取舍：演示站的 Tint 那三档拿不到（站点是 Flutter web，HTML 只是
+/// 静态大纲）。序列化按枚举名保存，新值只能往后追加。
+enum GlassTintKind { neutral, indigo, rose }
 
 /// 触摸玻璃时表面起的波纹（g1455 的 `GlassRipple`）。
 ///
@@ -190,6 +208,7 @@ class AppSettings {
     this.glassSurfaceEnabled = false,
     this.glassSurfaceOpacity = .5,
     this.glassQuality = GlassQuality.frosted,
+    this.glassTint = GlassTintKind.neutral,
     this.glassRipple = GlassRippleKind.off,
     this.glassTier = GlassTierMode.auto,
     this.glassContrast = GlassContrast.auto,
@@ -329,8 +348,11 @@ class AppSettings {
   /// 毛玻璃面板的不透明度（0.2–1.0）。越低越透，越能看出底下的画布渐变。
   final double glassSurfaceOpacity;
 
-  /// 磨砂面板的质感档位（磨砂 / 超透 / 液体玻璃）。
+  /// 磨砂面板的质感档位（磨砂 / 液体玻璃）。
   final GlassQuality glassQuality;
+
+  /// 玻璃本身的染色（中性 / 靛蓝 / 玫瑰）。与「配色方案」不是一回事，见枚举文档。
+  final GlassTintKind glassTint;
 
   /// 触摸玻璃时表面起的波纹（关闭 / 水 / 果冻 / 蜂蜜）。
   final GlassRippleKind glassRipple;
@@ -492,6 +514,7 @@ class AppSettings {
     'glassSurfaceEnabled': glassSurfaceEnabled,
     'glassSurfaceOpacity': glassSurfaceOpacity,
     'glassQuality': glassQuality.name,
+    'glassTint': glassTint.name,
     'glassRipple': glassRipple.name,
     'glassTier': glassTier.name,
     'glassContrast': glassContrast.name,
@@ -639,10 +662,12 @@ class AppSettings {
     glassSurfaceOpacity: (json['glassSurfaceOpacity'] as num?)?.toDouble().clamp(.2, 1) ?? .5,
     // 老配置是「开关 + 档位」两个字段：开关关着 → off，开着 → 保留原档位（液体玻璃）。
     // 两个字段都没有（全新配置）→ 用新的默认档位「磨砂」。
+    // 已删除的 `clear`（超透）也走这条：它本来就与磨砂逐像素相同，落到磨砂是对的。
     glassQuality: _enumByName(GlassQuality.values, json['glassQuality'] as String?) ??
         (json.containsKey('glassSurfaceEnabled')
             ? ((json['glassSurfaceEnabled'] as bool? ?? false) ? GlassQuality.liquid : GlassQuality.off)
             : GlassQuality.frosted),
+    glassTint: _enumByName(GlassTintKind.values, json['glassTint'] as String?) ?? GlassTintKind.neutral,
     glassRipple: _enumByName(GlassRippleKind.values, json['glassRipple'] as String?) ?? GlassRippleKind.off,
     glassTier: _enumByName(GlassTierMode.values, json['glassTier'] as String?) ?? GlassTierMode.auto,
     glassContrast: _enumByName(GlassContrast.values, json['glassContrast'] as String?) ?? GlassContrast.auto,
@@ -830,6 +855,7 @@ class AppSettings {
     bool? glassSurfaceEnabled,
     double? glassSurfaceOpacity,
     GlassQuality? glassQuality,
+    GlassTintKind? glassTint,
     GlassRippleKind? glassRipple,
     GlassTierMode? glassTier,
     GlassContrast? glassContrast,
@@ -936,6 +962,7 @@ class AppSettings {
     glassSurfaceEnabled: glassSurfaceEnabled ?? this.glassSurfaceEnabled,
     glassSurfaceOpacity: glassSurfaceOpacity ?? this.glassSurfaceOpacity,
     glassQuality: glassQuality ?? this.glassQuality,
+    glassTint: glassTint ?? this.glassTint,
     glassRipple: glassRipple ?? this.glassRipple,
     glassTier: glassTier ?? this.glassTier,
     glassContrast: glassContrast ?? this.glassContrast,

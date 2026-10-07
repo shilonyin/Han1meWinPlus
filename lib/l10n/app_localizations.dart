@@ -3542,17 +3542,41 @@ abstract class AppLocalizations {
   /// **'Frosted'**
   String get glassFrosted;
 
-  /// No description provided for @glassClear.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear'**
-  String get glassClear;
-
   /// No description provided for @glassLiquid.
   ///
   /// In en, this message translates to:
   /// **'Liquid glass'**
   String get glassLiquid;
+
+  /// No description provided for @glassTint.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass tint'**
+  String get glassTint;
+
+  /// No description provided for @glassTintHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tints the glass itself, not the colour scheme above; Neutral keeps the material\'s own tint'**
+  String get glassTintHint;
+
+  /// No description provided for @glassTintNeutral.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral'**
+  String get glassTintNeutral;
+
+  /// No description provided for @glassTintIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get glassTintIndigo;
+
+  /// No description provided for @glassTintRose.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose'**
+  String get glassTintRose;
 
   /// No description provided for @glassFrostOpacity.
   ///

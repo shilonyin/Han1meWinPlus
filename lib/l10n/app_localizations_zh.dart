@@ -1886,10 +1886,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glassFrosted => '磨砂';
 
   @override
-  String get glassClear => '超透';
+  String get glassLiquid => '液体玻璃';
 
   @override
-  String get glassLiquid => '液体玻璃';
+  String get glassTint => '玻璃染色';
+
+  @override
+  String get glassTintHint => '只改玻璃这块料自己的颜色，和上面的「配色方案」是两回事；中性＝用材质原本的色调';
+
+  @override
+  String get glassTintNeutral => '中性';
+
+  @override
+  String get glassTintIndigo => '靛蓝';
+
+  @override
+  String get glassTintRose => '玫瑰';
 
   @override
   String get glassFrostOpacity => '磨砂不透明度';
@@ -4560,10 +4572,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get glassFrosted => '磨砂';
 
   @override
-  String get glassClear => '超透';
+  String get glassLiquid => '液體玻璃';
 
   @override
-  String get glassLiquid => '液體玻璃';
+  String get glassTint => '玻璃染色';
+
+  @override
+  String get glassTintHint => '只改玻璃這塊料自己的顏色，和上面的「配色方案」是兩回事；中性＝用材質原本的色調';
+
+  @override
+  String get glassTintNeutral => '中性';
+
+  @override
+  String get glassTintIndigo => '靛藍';
+
+  @override
+  String get glassTintRose => '玫瑰';
 
   @override
   String get glassFrostOpacity => '磨砂不透明度';
