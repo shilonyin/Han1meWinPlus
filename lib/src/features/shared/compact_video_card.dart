@@ -76,6 +76,19 @@ class CompactVideoCard extends ConsumerWidget {
             ),
             if (video.duration != null)
               Positioned(right: 6, bottom: 6, child: _OverlayText(text: video.duration!)),
+            // 同 `video_card.dart`：贴边的封面补 1px 内描边，浅色 black/10、深色 white/10。
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
+                          .withValues(alpha: .10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       );

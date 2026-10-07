@@ -15,6 +15,7 @@ import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import 'android_cast_button.dart';
 import '../../core/app_dialog.dart';
+import '../shared/motion_icon.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
 const double _progressBarHeight = 48;
@@ -80,7 +81,7 @@ class VideoPlayerControls extends StatelessWidget {
                     // 改到它们内部的 IconButton。
                     final tight = constraints.maxWidth < 420;
                     final row = Row(children: [
-                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: Icon(value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded)),
+                      IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: MotionStateIcon(icon: value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded)),
                       if (onNext != null) IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded)),
                       // 快进按钮：从顶部条移到左下角控制行
                       VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),

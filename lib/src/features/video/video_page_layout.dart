@@ -10,6 +10,7 @@ import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
 import 'video_player_panel.dart';
+import '../../core/app_motion.dart';
 
 // 播放页的内容布局：主窗口的播放页和「独立播放窗口」共用这一份，
 // 所以任何播放页的视觉调整只改这里，两边自动同步。
@@ -291,7 +292,7 @@ class _TabletVideoLayout extends StatelessWidget {
                     // 侧栏：整高，与播放器顶部对齐。收起时宽度动画到 0（而不是直接消失），
                     // 这样收起 / 展开是一个平滑的过渡而不是硬切。
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
+                      duration: AppMotion.standard,
                       curve: Curves.easeOutCubic,
                       width: sidebarCollapsed ? 0 : sidebarWidth,
                       height: constraints.maxHeight,

@@ -368,6 +368,21 @@ class VideoCardTile extends ConsumerWidget {
                 dense: dense,
               ),
             ),
+          // 封面贴边时给 1px 内描边：深色封面直接压在卡片底色上会糊在一起，
+          // 分不出「图到哪结束、卡片从哪开始」。浅色 black/10、深色 white/10，
+          // 依据见 `docs/ui-polish.md`（better-ui 的缩略图描边条目）。
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
+                        .withValues(alpha: .10),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     ),

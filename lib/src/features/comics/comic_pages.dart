@@ -20,6 +20,7 @@ import '../../core/app_shell.dart';
 import '../settings/settings_controller.dart';
 import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
+import '../../core/app_motion.dart';
 
 final comicHomeCacheProvider = Provider((_) => HomeCache());
 final comicHomeProvider = AsyncNotifierProvider<ComicHomeController, ComicHome>(ComicHomeController.new);
@@ -429,7 +430,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
       _forward = delta > 0;
       _page = next;
     });
-    _pageController.animateToPage(next, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
+    _pageController.animateToPage(next, duration: AppMotion.emphasis, curve: Curves.easeOutCubic);
     _save();
     _prefetch();
   }

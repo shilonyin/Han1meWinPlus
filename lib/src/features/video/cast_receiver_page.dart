@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/cast_receiver.dart';
 import '../../core/dlna_media_renderer.dart';
 import '../../core/video_player_shutdown.dart';
+import '../shared/motion_icon.dart';
 
 /// 投屏接收页：手机投过来的片在这里播。
 ///
@@ -220,7 +221,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
             children: [
               IconButton(
                 color: Colors.white,
-                icon: Icon(controller.value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded),
+                icon: MotionStateIcon(icon: controller.value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded),
                 onPressed: () => controller.value.isPlaying ? unawaited(pause()) : unawaited(play()),
               ),
               Expanded(

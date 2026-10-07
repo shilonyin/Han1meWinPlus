@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/play_window_title_target.dart';
 import '../../core/playback_hotkey_target.dart';
 import '../../../l10n/app_localizations.dart';
+import '../shared/motion_icon.dart';
 
 /// 画中画小窗中央那组大圆按钮：上一集 / 播放暂停 / 下一集。
 ///
@@ -99,8 +100,8 @@ class PipCircleButton extends StatelessWidget {
           child: SizedBox(
             width: PipOverlayControls.diameter,
             height: PipOverlayControls.diameter,
-            child: Icon(
-              icon,
+            child: MotionStateIcon(
+              icon: icon,
               size: 30,
               color: enabled ? Colors.white : Colors.white38,
             ),
