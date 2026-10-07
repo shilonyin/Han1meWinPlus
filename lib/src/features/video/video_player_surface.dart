@@ -999,7 +999,7 @@ class _AdjustmentHud extends StatelessWidget {
         '${adjustment.value}x',
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
       ),
     ),
@@ -1038,7 +1038,7 @@ class _AdjustmentHud extends StatelessWidget {
                 '${delta >= 0 ? '+' : '-'}${_formatDuration(Duration(milliseconds: delta.abs()))}',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),

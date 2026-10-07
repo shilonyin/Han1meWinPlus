@@ -93,7 +93,7 @@ class _ProductSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(detail.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Text(detail.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                 if (metadata.isNotEmpty) ...[const SizedBox(height: 12), Text(metadata.join('\n'))],
                 const SizedBox(height: 18),
                 Wrap(

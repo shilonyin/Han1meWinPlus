@@ -146,20 +146,25 @@ class _MonthCalendar extends ConsumerWidget {
           final day = DateTime(month.year, month.month, index - leading + 1);
           final count = state.countFor(checkInDateKey(day));
           final isToday = checkInDateKey(day) == todayKey;
+          // 有打卡记录才用 `primaryContainer`，且必须是**不透明**的底色：
+          // 半透明时下面透出的页面色会把容器混成另一个颜色，`onPrimaryContainer`
+          // 就名不副实（深浅主题下都可能糊掉）。次数只影响“深浅”，靠与 surface 插值实现。
+          final filled = count > 0;
+          final fill = Color.lerp(scheme.surfaceContainerHighest, scheme.primaryContainer, (0.3 + 0.18 * count).clamp(0.3, 0.95))!;
           return PressScale(child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => _openDay(context, ref, day),
             child: Container(
               decoration: BoxDecoration(
-                color: count == 0 ? scheme.surfaceContainerHighest.withValues(alpha: 0.4) : scheme.primaryContainer.withValues(alpha: (0.3 + 0.18 * count).clamp(0.3, 0.95)),
+                color: filled ? fill : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: isToday ? Border.all(color: scheme.primary, width: 1.5) : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('${day.day}', style: TextStyle(fontSize: small ? 11 : 13, height: 1.1, fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
-                  if (count > 0) Text('x$count', style: TextStyle(fontSize: small ? 9 : 11, height: 1.1, color: scheme.onPrimaryContainer)),
+                  Text('${day.day}', style: Theme.of(context).textTheme.labelSmall!.copyWith(fontSize: small ? 11 : 13, height: 1.1, fontWeight: isToday ? FontWeight.w700 : FontWeight.w400, color: filled ? scheme.onPrimaryContainer : scheme.onSurface)),
+                  if (count > 0) Text('x$count', style: Theme.of(context).textTheme.labelSmall!.copyWith(fontSize: small ? 9 : 11, height: 1.1, color: filled ? scheme.onPrimaryContainer : scheme.onSurfaceVariant)),
                 ],
               ),
             ),

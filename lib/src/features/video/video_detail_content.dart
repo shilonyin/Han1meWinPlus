@@ -310,7 +310,7 @@ class _TagListState extends ConsumerState<_TagList> {
         ActionChip(
           key: index == 0 ? _firstChipKey : null,
           label: Text('${catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name}${tags[index].count == null ? '' : ' (${tags[index].count})'}', maxLines: 1, overflow: TextOverflow.ellipsis),
-          labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 12),
+          labelStyle: Theme.of(context).textTheme.labelMedium,
           visualDensity: VisualDensity.compact,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           labelPadding: EdgeInsets.zero,

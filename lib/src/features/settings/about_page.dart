@@ -239,7 +239,7 @@ class _VersionBadge extends StatelessWidget {
           children: [
             Icon(Symbols.sell_rounded, size: 14, color: colorScheme.primary),
             const SizedBox(width: 6),
-            Text('v$version', style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700, letterSpacing: .4)),
+            Text('v$version', style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700)),
           ],
         ),
       ),
