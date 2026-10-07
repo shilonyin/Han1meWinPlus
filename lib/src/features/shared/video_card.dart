@@ -4,12 +4,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_motion.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
+import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
@@ -322,9 +324,7 @@ class VideoCardTile extends ConsumerWidget {
   /// 需要补全时用详情页的数据填掉缺的字段。
   /// 命中本地缓存时是同步的，所以刷新后卡片会直接显示补全后的内容。
   VideoCard _resolved(WidgetRef ref) {
-    if (!autoFetchMeta || video.id.isEmpty || hasVideoCardMeta(video)) {
-      return video;
-    }
+    if (!autoFetchMeta || video.id.isEmpty) return video;
     // AV 源的列表页自己就带标题/封面/时长/播放量/作者，不需要补 —— 而且**不能**补：
     // 一屏十几张卡片各抓一次详情页会把站点打到 Cloudflare 限流（实测 jable 直接
     // 返回 Error 1015），限流期间站点给的是「Page not Found」错误页，那张页面的
@@ -335,8 +335,13 @@ class VideoCardTile extends ConsumerWidget {
         null) {
       return video;
     }
+    // 缓存优先，而且**要在 `hasVideoCardMeta` 之前**：上传日期只有详情页才有
+    // （列表页解析只给作者与评分），原来"信息够了就直接返回"的写法让日期永远补不上。
+    // 本地缓存里已有 1200+ 条带日期的记录，同步命中即可，不发请求。
     final cached = ref.watch(videoMetaCacheProvider).read(video.id);
     if (cached != null) return _mergeMeta(cached);
+    // 卡片已经有日期就不再抓详情；没有则补一次（并发由 `_metaGate` 限到 6，结果落盘）。
+    if (video.uploadTime != null) return video;
     final fetched = ref.watch(videoCardMetaProvider(video.id)).valueOrNull;
     return fetched == null ? video : _mergeMeta(fetched);
   }
@@ -490,22 +495,20 @@ class VideoCardTile extends ConsumerWidget {
         ],
       );
     }
+    // 封面吃掉剩余高度，详情区**不参与 flex 分配**：详情区按自然高度收在卡片底部，
+    // 同一行里各卡片的作者行/评分行才会落在同一条水平线上（用户要求"取个平均值
+    // 固定水平"）；一行标题省下的空间落进封面，而不是夹在标题与作者之间。
+    // 原来这里是 AspectRatio(16/9) + Flexible：Flexible 默认 flex 1 会和封面平分
+    // 高度，详情区在它那一半里顶部对齐 —— 标题一行还是两行，直接把作者行推到不同高度。
+    // 站点有些分类只给封面和标题（例如里番的后续分页），这时封面同样撑满剩余高度，
+    // 否则卡片下方会空出一段没有内容的区域。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 小卡片（侧栏系列影片）或固定高度的搜索网格：封面吃掉剩余高度，图片尽量大。
-        // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
-        // 否则卡片下方会空出一段没有内容的区域。
-        if (dense || fillCover || !hasVideoCardMeta(video))
-          Expanded(child: _cover(theme, cacheWidth, video, hover))
-        else
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _cover(theme, cacheWidth, video, hover),
-          ),
+        Expanded(child: _cover(theme, cacheWidth, video, hover)),
         SizedBox(height: dense ? 4 : 8),
-        // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
-        Flexible(child: ClipRect(child: _details(theme, video, marked, hovered))),
+        // 网格给的是固定卡高，详情区超出时裁剪而不是溢出报错
+        ClipRect(child: _details(theme, video, marked, hovered)),
       ],
     );
   }
@@ -636,6 +639,10 @@ class VideoCardTile extends ConsumerWidget {
   }
 
   /// 标题按最多两行排版时的实际高度（用与 `Text` 完全相同的样式和文字缩放量出来）。
+  ///
+  /// 这里**不**固定成两行：一行标题就只留一行高度，省下来的空间落进封面（详情区在
+  /// 卡片底部按自然高度收口，见 `_horizontalContent`），标题与作者之间不会空一截。
+  /// 同一行卡片的作者行/评分行水平对齐靠的是"详情区贴底"，而不是把标题区撑成两行。
   double _titleHeight(
     BuildContext context,
     String title,
@@ -650,6 +657,46 @@ class VideoCardTile extends ConsumerWidget {
     )..layout(maxWidth: maxWidth.isFinite ? maxWidth : 1000);
     return painter.height;
   }
+
+  /// 作者名做成可点的链接：点进作者页（`/search?query=<作者>`，与详情页作者卡同一条路径）。
+  ///
+  /// 为什么把条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），那时
+  /// 搜索页会退化成"没有关键词"的页，看起来就是点了作者没内容 —— 详情页作者卡踩过这个
+  /// 坑，这里照抄同样的写法。悬停只用文字变主题色提示（与标题一致），不铺灰罩。
+  Widget _artistLink(
+    BuildContext context,
+    ThemeData theme,
+    String artist,
+    Color ink,
+  ) => _HoverZone(
+    builder: (context, hovered) => PressScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        hoverColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        onTap: () {
+          final url = Uri(
+            path: '/search',
+            queryParameters: {'query': artist},
+          ).toString();
+          context.push(
+            url,
+            extra: SearchRouteRequest(initialUrl: url, authorName: artist),
+          );
+        },
+        child: Text(
+          artist,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: dense ? 10 : null,
+            color: hovered ? theme.colorScheme.primary : ink,
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _details(
     ThemeData theme,
@@ -679,9 +726,7 @@ class VideoCardTile extends ConsumerWidget {
             fontWeight: FontWeight.w600,
             color: accentTitle,
           );
-          // 标题区高度按**实际占了几行**算：原来写死 40（两行高度），标题只有一行时
-          // 标题与作者之间就空着 20 逻辑像素 —— 用户反馈"用户和标题间隔太宽了"。
-          // 网格行高仍然是固定值，省下来的空间落在卡片底部，不会再夹在两者之间。
+          // 标题区高度按**实际占了几行**算（见 `_titleHeight`）：一行标题不留两行的空。
           final titleHeight = _titleHeight(
             context,
             video.title,
@@ -715,62 +760,64 @@ class VideoCardTile extends ConsumerWidget {
                     style: titleStyle,
                   ),
                 ),
-          if (hasMeta) ...[
-            const SizedBox(height: 6),
-            // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
-            Text(
-              video.artist ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: dense ? 10 : null,
-                color: metaInk,
+            if (hasMeta) ...[
+              const SizedBox(height: 4),
+              // 作者名 + 上传时间同一行：作者可点（进作者页），日期靠右（用户要求
+              // "作者名右边加个视频上传时间，这样看着更平衡"）。这一行给**固定高度**：
+              // 作者缺失时行高会塌成 0，评分行就会比其他卡片高一截。
+              SizedBox(
+                height: dense ? 16 : 18,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: video.artist == null || video.artist!.isEmpty
+                          ? const SizedBox.shrink()
+                          : _artistLink(context, theme, video.artist!, metaInk),
+                    ),
+                    if (video.uploadTime != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Text(
+                          video.uploadTime!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: dense ? 10 : null,
+                            color: metaInk,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              height: dense ? 14 : 16,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: video.rating == null
-                        ? const SizedBox.shrink()
-                        : Row(
-                            children: [
-                              Icon(
-                                Symbols.thumb_up_rounded,
-                                size: dense ? 11 : 14,
+              const SizedBox(height: 4),
+              SizedBox(
+                height: dense ? 14 : 16,
+                child: video.rating == null
+                    ? const SizedBox.shrink()
+                    : Row(
+                        children: [
+                          Icon(
+                            Symbols.thumb_up_rounded,
+                            size: dense ? 11 : 14,
+                            color: metaInk,
+                          ),
+                          SizedBox(width: dense ? 3 : 4),
+                          Flexible(
+                            child: Text(
+                              video.rating!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: dense ? 10 : null,
                                 color: metaInk,
                               ),
-                              SizedBox(width: dense ? 3 : 4),
-                              Flexible(
-                                child: Text(
-                                  video.rating!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    fontSize: dense ? 10 : null,
-                                    color: metaInk,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                  ),
-                  if (video.uploadTime != null)
-                    Text(
-                      video.uploadTime!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: dense ? 10 : null,
-                        color: metaInk,
+                        ],
                       ),
-                    ),
-                ],
               ),
-            ),
-          ],
+            ],
             ],
           );
         },
