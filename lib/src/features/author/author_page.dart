@@ -38,10 +38,12 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   /// 头像边长。
   static const _avatarSize = 120.0;
 
-  /// 资料行左右外边距：一个头像宽（用户要求「往两边移一个头像的距离」）。两边用
-  /// 同一个常量，保证对称。
-  /// 资料行两侧的留白：一个头像宽再收回半个头像（用户按截图微调）。
-  static const _headerInset = _avatarSize * 0.5;
+  /// 页签条自己的左右内边距；资料行的外边距跟它共用同一个值，两处才会在同一条竖线上。
+  static const _tabStripInset = 10.0;
+
+  /// 资料行两侧的留白：与下方「主页/影片」页签条自己的左右内边距对齐
+  /// （用户要求「再缩窄一些, 对齐下方主页」，两边因此与页签同一条竖线）。
+  static const _headerInset = _tabStripInset;
 
   /// 订阅状态的本地乐观值：点下去立刻变，请求失败再翻回来。
   bool? _override;
@@ -169,7 +171,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               labels: [l10n.home, l10n.videoSection],
               index: _tab,
               onSelected: (index) => setState(() => _tab = index),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: _tabStripInset),
             ),
           ),
           const Divider(height: 1),
