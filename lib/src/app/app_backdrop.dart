@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'app_page_colors.dart';
 
-/// 全应用背景画布：柔和的**多色渐变**，参照 morrow（明隙）。
+/// 全应用背景画布：一层近乎平的页面底色，外加三道**很淡**的径向光晕。
 ///
-/// 原来整套界面走的是「纯色 Scaffold + 同色调卡片」，背景和卡片只差几个百分点亮度，
-/// 卡片之间又只用一条 7.5% 的淡线分隔，结果整屏是一片没有色彩倾向的灰白——
-/// 这正是和 morrow 差距最大的地方：它的背景本身就是一层带紫、粉、绿、橙的柔和渐变，
-/// 卡片半透明地浮在上面，层次由「背景有内容」撑起来，而不是靠画线。
+/// 底色取 g1455 演示站的两个主题（见 [AppPageColors]）—— 页面要读起来就是站点
+/// 那种干净的中性底，玻璃的层次由内容和玻璃自己撑，不靠背景造。
 ///
-/// 这里不照搬它的原生背景层（morrow 的紫调底走 Windows 原生合成）。
-/// 纯 Flutter 实现：一层对角主渐变 + 若干柔和径向光晕，颜色全部从
-/// [ColorScheme.primary] 派生，所以换主题色时整片背景跟着走。
+/// 光晕只留一点点。这里早先参照 morrow 做的是「多色渐变」：深色底压着紫黑、
+/// 三个光晕开到 0.32~0.46，整屏肉眼可见地偏色。站点是平的，所以现在压到
+/// 0.06~0.08 —— 只保证玻璃折射时抽得出一丝颜色，页面本身仍读作纯底色。
+///
+/// 纯 Flutter 实现，不依赖任何资源；颜色从 [ColorScheme.primary] 派生，
+/// 所以换主题色时整片背景跟着走。
 class AppBackdrop extends StatelessWidget {
   const AppBackdrop({
     super.key,
@@ -90,8 +91,10 @@ class _BackdropPainter extends CustomPainter {
     );
     // 渐变的另两端只在底色上偏一点点：演示站的页面本身是近乎平的，
     // 竖直方向的明度变化全靠滚动内容撑，底色自己不造层次。
-    final mid = dark ? _mix(page, glow, .08) : _mix(page, glow, .07);
-    final far = dark ? _mix(page, glow, .11) : _mix(page, glow, .14);
+    // 数值由 test/app_backdrop_test.dart 的「画布的光晕压得够淡」兜着：
+    // 那里会真画一遍再采样，量出页面离纯底色最多偏多少。
+    final mid = dark ? _mix(page, glow, .04) : _mix(page, glow, .03);
+    final far = dark ? _mix(page, glow, .05) : _mix(page, glow, .05);
     final base = page;
 
     canvas.drawRect(
@@ -105,15 +108,17 @@ class _BackdropPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    // 三个柔和光晕：暖橙、冷绿、粉紫。位置与 morrow 的画布参考图一致。
+    // 三个柔和光晕：暖橙、冷绿、粉紫。位置沿用 morrow 的画布参考图。
     //
-    // 深色下的不透明度**抬得比浅色更高**：底压到近黑之后，光晕成了玻璃唯一
-    // 能折射出颜色的来源 —— 没有它，整屏玻璃抽出来都是同一块灰。
+    // 不透明度压到 0.06~0.08（早先是 0.32~0.46）：演示站的页面是**平的**，光晕开大了
+    // 整屏就偏成暖粉/紫，底色取得再准也白搭 —— 实测早先那组数值下，暗色页面最偏的
+    // 角落会从 `#070A12` 抬到 `#3F3D50`，完全是另一块颜色。留这一点是为了玻璃折射时
+    // 抽得出一丝颜色，完全去掉的话整屏玻璃抽出来都是同一块灰。
     final halos = <(Alignment, Color, double, double)>[
       // (位置, 参考色, 半径相对短边, 不透明度)
-      (const Alignment(-.85, .95), const Color(0xffeddcd0), .95, dark ? .42 : .40),
-      (const Alignment(.95, -.75), const Color(0xffd9e5db), .85, dark ? .34 : .32),
-      (const Alignment(.75, .9), const Color(0xffe8d5ee), .90, dark ? .46 : .36),
+      (const Alignment(-.85, .95), const Color(0xffeddcd0), .95, dark ? .07 : .07),
+      (const Alignment(.95, -.75), const Color(0xffd9e5db), .85, dark ? .06 : .06),
+      (const Alignment(.75, .9), const Color(0xffe8d5ee), .90, dark ? .08 : .07),
     ];
     final shortest = size.shortestSide;
     for (final (alignment, reference, radiusScale, alpha) in halos) {
