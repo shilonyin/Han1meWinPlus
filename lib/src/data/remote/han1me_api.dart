@@ -24,6 +24,34 @@ class SearchResult {
   final int totalPages;
 }
 
+/// 用户上传页上顺带拿到的作者资料。
+///
+/// 订阅数只有两个地方给：本人编辑页（[Account]）和这个公开的用户上传页。
+/// 影片详情页里没有订阅数，所以「看别人的订阅者有多少」只能从这里来。
+class AuthorProfile {
+  const AuthorProfile({
+    required this.name,
+    required this.artistId,
+    required this.avatarUrl,
+    this.subscriberCount,
+    this.videoCount,
+  });
+
+  final String name;
+  final String artistId;
+  final String avatarUrl;
+  final int? subscriberCount;
+  final int? videoCount;
+}
+
+/// `/user/<id>/uploaded` 一页的结果：影片列表 + 作者资料。
+class UserUploadPage {
+  const UserUploadPage({required this.result, this.profile});
+
+  final SearchResult result;
+  final AuthorProfile? profile;
+}
+
 class Han1meApi {
   Han1meApi(this._http);
 
@@ -122,14 +150,86 @@ class Han1meApi {
               uploadTime: artistQuery,
             );
           }).where((artist) => artist.title.isNotEmpty && artist.coverUrl.isNotEmpty).toList(growable: false);
-    final pagination = document.querySelectorAll('ul.pagination li.page-item > a.page-link');
-    var currentPage = page;
-    var totalPages = page;
-    final pageNumbers = pagination.map((node) => int.tryParse(node.text.trim()) ?? 0).where((value) => value > 0).toList();
-    if (pageNumbers.isNotEmpty) totalPages = pageNumbers.reduce((a, b) => a > b ? a : b);
-    final activeNode = document.querySelector('ul.pagination li.page-item.active > span.page-link');
-    if (activeNode != null) currentPage = int.tryParse(activeNode.text.trim()) ?? page;
+    final (currentPage, totalPages) = _pagination(document, page);
     return SearchResult(items: items, page: currentPage, totalPages: totalPages);
+  }
+
+  /// 用户的上传页：`/user/<id>/uploaded`（站点真实的「作者页」）。
+  ///
+  /// [search] 是关键字模糊匹配 —— 拿作者名去搜，会把「作者名只出现在标题里」
+  /// 的别人的片子一起带回来，还得在客户端再筛一遍；这个页面才是「这个用户
+  /// 上传过的全部影片」，而且有自己的分页。
+  Future<UserUploadPage> userUploads({
+    required String baseUrl,
+    required String artistId,
+    required String sort,
+    required int page,
+  }) async {
+    final uri = Uri.parse('$baseUrl/user/$artistId/uploaded').replace(
+      queryParameters: {'page': '$page', if (sort.isNotEmpty) 'sort': sort},
+    );
+    final document = await _document(uri.toString());
+    // 用户上传页的卡片不在 `.content-padding*` 里（那一层只有搜索页有），它是
+    // `#home-rows-wrapper` 下的一批 `.video-item-container > .horizontal-card`，
+    // 所以这里直接按 `div.horizontal-card` 取 —— 这一页本来就只列这位作者的片子。
+    final items = document
+        .querySelectorAll('div.horizontal-card')
+        .map(_card)
+        .where((video) => video.id.isNotEmpty)
+        .toList(growable: false);
+    final (currentPage, totalPages) = _pagination(document, page);
+    return UserUploadPage(
+      result: SearchResult(items: items, page: currentPage, totalPages: totalPages),
+      profile: _authorProfile(baseUrl, document),
+    );
+  }
+
+  /// 用户上传页顶部的资料栏：头像、名字、`@id`、订阅数/影片数。
+  AuthorProfile? _authorProfile(String baseUrl, dom.Document document) {
+    final name = document.querySelector('h1.profile-display-name')?.text.trim() ?? '';
+    final idText = document.querySelector('.profile-sub-stats-id')?.text ?? '';
+    final stats = document.querySelector('.profile-sub-stats-new-line')?.text ?? '';
+    final artistId = RegExp(r'\d+').firstMatch(idText)?.group(0) ?? document.querySelector('input[name="subscribe-artist-id"]')?.attributes['value'] ?? '';
+    if (name.isEmpty && artistId.isEmpty) return null;
+    return AuthorProfile(
+      name: name,
+      artistId: artistId,
+      avatarUrl: _absolute(baseUrl, document.querySelector('.profile-avatar-wrapper img')?.attributes['src']),
+      subscriberCount: _statNumber(stats, const ['位訂閱者', '位订阅者', 'subscribers', 'subscriber']),
+      videoCount: _statNumber(stats, const ['部影片', 'videos', 'video']),
+    );
+  }
+
+  /// 从「49,943 位訂閱者 • 42 部影片」这类文案里取数字。
+  ///
+  /// 站点用千分位逗号，直接 `\d+` 会把 49,943 读成 49 —— 个人页那边原来就是
+  /// 这么读的，订阅数一上万就显示错。单位按语言都试一遍，取不到就返回 null。
+  int? _statNumber(String text, List<String> units) {
+    for (final unit in units) {
+      final match = RegExp('([\\d,]+)\\s*$unit').firstMatch(text);
+      final value = match == null ? null : int.tryParse(match.group(1)!.replaceAll(',', ''));
+      if (value != null) return value;
+    }
+    return null;
+  }
+
+  List<int> _statNumbers(String text) => RegExp(r'[\d,]+')
+      .allMatches(text)
+      .map((match) => int.tryParse(match.group(0)!.replaceAll(',', '')) ?? 0)
+      .toList(growable: false);
+
+  /// 从 `ul.pagination` 解析「当前页 / 总页数」。搜索页与用户上传页用的是
+  /// 同一个分页组件，所以两处共用这一份解析。
+  (int, int) _pagination(dom.Document document, int fallbackPage) {
+    final numbers = document
+        .querySelectorAll('ul.pagination li.page-item > a.page-link')
+        .map((node) => int.tryParse(node.text.trim()) ?? 0)
+        .where((value) => value > 0)
+        .toList(growable: false);
+    final totalPages = numbers.isEmpty ? fallbackPage : numbers.reduce((a, b) => a > b ? a : b);
+    final active = document.querySelector('ul.pagination li.page-item.active > span.page-link');
+    final currentPage = active == null ? fallbackPage : (int.tryParse(active.text.trim()) ?? fallbackPage);
+    return (currentPage, totalPages);
   }
 
   Future<PreviewFeed> previews(String baseUrl, String month) async {
@@ -268,7 +368,7 @@ class Han1meApi {
     // 原来在 home 上取 `.profile-sub-stats-new-line`，恒为空 → 副标题永远显示
     // 「0 位订阅者 · 0 部影片」。
     final stats = document.querySelector('.profile-sub-stats-new-line')?.text ?? '';
-    final numbers = RegExp(r'\d+').allMatches(stats).map((match) => int.parse(match.group(0)!)).toList();
+    final numbers = _statNumbers(stats);
     final avatar = document.querySelector('img#playlist-avatar') ?? home.querySelector('#user-modal-dp-wrapper img, .profile-avatar-wrapper img');
     return Account(
       cookie: _cookie ?? '',

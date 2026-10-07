@@ -75,8 +75,21 @@ class Han1meRepository {
     );
   }
 
-  Future<PreviewFeed> previews(String baseUrl, String month) => _merge('previews:$baseUrl:$month', () => _api.previews(baseUrl, month));
-  void setCookie(String cookie) => _api.setCookie(cookie);
+  /// 作者页的数据源：站点的用户上传页（`/user/<id>/uploaded`）。
+  ///
+  /// 与 [search] 的区别：搜索是按关键字模糊匹配，会把作者名只出现在标题里的
+  /// 别人的片子一起带回来；这个页面才是「这个用户上传过的全部影片」。
+  Future<UserUploadPage> userUploads({
+    required String baseUrl,
+    required String artistId,
+    required String sort,
+    required int page,
+  }) => _merge(
+    'user-uploads:$baseUrl:$artistId:$sort:$page',
+    () => _api.userUploads(baseUrl: baseUrl, artistId: artistId, sort: sort, page: page),
+  );
+
+  Future<PreviewFeed> previews(String baseUrl, String month) => _merge('previews:$baseUrl:$month', () => _api.previews(baseUrl, month));  void setCookie(String cookie) => _api.setCookie(cookie);
   void replaceCookie(String cookie) {
     _requests.clear();
     _api.replaceCookie(cookie);

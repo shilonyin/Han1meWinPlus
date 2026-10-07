@@ -43,7 +43,8 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   /// 当前页签：0 = 主页，1 = 影片。
   int _tab = 0;
 
-  /// 「影片」页签的排序（站点排序键，见 `assets/search_options/sort_option.json`）。
+  /// 「影片」页签的排序：用户上传页自己的三档键 latest/popular/oldest
+  /// （见 `author_controller.dart` 的常量）。
   String _sort = authorSortLatest;
 
   /// 页内筛选框：只在已经取回来的影片里过滤，不再打站点（站点搜索是关键字搜索，
@@ -69,18 +70,19 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     );
   }
 
-  /// 已登录时要有 artistId / token / userId 才能调站点的订阅接口；缺一个就只能
-  /// 禁用按钮 —— 点了没反应比按钮灰着更让人困惑。
-  bool _canSubscribe(VideoDetail profile) {
+  /// 已登录时要有 artistId / token / userId 才能调站点的订阅接口；缺一个就禁用
+  /// 按钮。未登录时订阅只记在本地库，但本地库要的是一条影片详情，所以那时仍需
+  /// [profile]；artistId 可以来自用户上传页（[pageProfile]）。
+  bool _canSubscribe(VideoDetail? profile, String artistId) {
     final account = ref.read(accountProvider).valueOrNull;
-    if (account == null) return true;
-    return profile.artistId != null &&
-        (profile.csrfToken ?? account.csrfToken) != null &&
-        (profile.subscriptionUserId ?? profile.currentUserId ?? account.id) !=
+    if (account == null) return profile != null;
+    return artistId.isNotEmpty &&
+        (profile?.csrfToken ?? account.csrfToken) != null &&
+        (profile?.subscriptionUserId ?? profile?.currentUserId ?? account.id) !=
             null;
   }
 
-  Future<void> _toggleSubscription(VideoDetail profile) async {
+  Future<void> _toggleSubscription(VideoDetail? profile, String artistId) async {
     final account = ref.read(accountProvider).valueOrNull;
     final enabled = !(_override ?? _persisted());
     setState(() => _override = enabled);
@@ -89,7 +91,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
         // 未登录：只记在本地库里，和详情页作者卡一致。
         await ref
             .read(libraryProvider.notifier)
-            .setSubscription(profile, enabled);
+            .setSubscription(profile!, enabled);
         return;
       }
       final settings = await ref.read(settingsProvider.future);
@@ -97,9 +99,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
           .read(han1meRepositoryProvider)
           .setSubscription(
             settings.resolvedBaseUrl,
-            profile.csrfToken ?? account.csrfToken!,
-            profile.subscriptionUserId ?? profile.currentUserId ?? account.id!,
-            profile.artistId!,
+            profile?.csrfToken ?? account.csrfToken!,
+            profile?.subscriptionUserId ?? profile?.currentUserId ?? account.id!,
+            artistId,
             enabled,
           );
       ref.invalidate(remoteLibraryProvider);
@@ -108,12 +110,28 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     }
   }
 
-  /// 「分享」：站点没有作者页地址，能分享的就是「拿作者名去搜」这个地址。
-  Future<void> _share(String name) async {
+  /// 取第一个非空字符串：头像/名字/用户 id 都有多个来源，按优先级挑。
+  String? _firstNonEmpty(List<String?> values) {
+    for (final value in values) {
+      final trimmed = value?.trim() ?? '';
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return null;
+  }
+
+  /// 「分享」：站点真实的关系页地址是 `/user/<id>/uploaded`。
+  ///
+  /// 解析出用户 id 之后分享这个地址（和 B 站一样的作者页地址）；没有 id 时
+  /// 只能退回「拿作者名去搜」的地址。
+  Future<void> _share(String name, String artistId) async {
     final settings = await ref.read(settingsProvider.future);
-    final url = Uri.parse(
-      settings.resolvedBaseUrl,
-    ).replace(path: '/search', queryParameters: {'query': name}).toString();
+    final url = artistId.isEmpty
+        ? Uri.parse(
+            settings.resolvedBaseUrl,
+          ).replace(path: '/search', queryParameters: {'query': name}).toString()
+        : Uri.parse(
+            settings.resolvedBaseUrl,
+          ).replace(path: '/user/$artistId/uploaded').toString();
     await Clipboard.setData(ClipboardData(text: url));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(url)));
@@ -165,22 +183,34 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     bool subscribed,
   ) {
     final scheme = theme.colorScheme;
-    final avatar = (card?.coverUrl.isNotEmpty ?? false)
-        ? card!.coverUrl
-        : profile?.artistAvatarUrl;
-    final hasAvatar = avatar != null && avatar.isNotEmpty;
-    final name = (card?.title.trim().isNotEmpty ?? false)
-        ? card!.title.trim()
-        : widget.artist;
-    final artistId = profile?.artistId;
+    // 用户上传页给的资料最权威（头像、名字、订阅数、影片数都在那一页上）；
+    // 它是唯一公开别人订阅数的地方，拿不到才退回搜索页作者卡与影片详情。
+    final pageProfile = data?.profile;
+    final avatar = _firstNonEmpty([
+      pageProfile?.avatarUrl,
+      card?.coverUrl,
+      profile?.artistAvatarUrl,
+    ]);
+    final hasAvatar = avatar != null;
+    final name =
+        _firstNonEmpty([pageProfile?.name, card?.title, widget.artist]) ??
+        widget.artist;
+    final artistId = _firstNonEmpty([pageProfile?.artistId, profile?.artistId]) ?? '';
     final cardCount = (card?.artist ?? '').trim();
     final videoCount = data == null ? '' : l10n.videoCount(data.items.length);
-    // 站点只在搜索页的作者卡上给出作者级别的数字，这里与自己的影片数并排显示，
-    // 重复时不重复写（作者卡给的常常就是影片数）。
+    final subscribers = pageProfile?.subscriberCount;
+    // B 站那一行「@id · N 位订阅者 · M 部影片」：站点把订阅数写在这条资料里。
+    final counts = subscribers != null
+        ? l10n.subscriberVideoCount(
+            subscribers,
+            pageProfile?.videoCount ?? data!.items.length,
+          )
+        : (cardCount.isNotEmpty && cardCount != videoCount
+              ? cardCount
+              : videoCount);
     final stats = [
-      if (artistId != null && artistId.isNotEmpty) '@$artistId',
-      if (cardCount.isNotEmpty && cardCount != videoCount) cardCount,
-      if (videoCount.isNotEmpty) videoCount,
+      if (artistId.isNotEmpty) '@$artistId',
+      if (counts.isNotEmpty) counts,
     ].join(' · ');
     return SizedBox(
       height: 156,
@@ -245,8 +275,8 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                         children: [
                           PressScale(
                             child: FilledButton.tonal(
-                              onPressed: profile != null && _canSubscribe(profile)
-                                  ? () => _toggleSubscription(profile)
+                              onPressed: _canSubscribe(profile, artistId)
+                                  ? () => _toggleSubscription(profile, artistId)
                                   : null,
                               child: Text(
                                 subscribed ? l10n.subscribed : l10n.subscribe,
@@ -256,7 +286,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                           const SizedBox(width: 10),
                           PressScale(
                             child: OutlinedButton.icon(
-                              onPressed: () => _share(name),
+                              onPressed: () => _share(name, artistId),
                               icon: const Icon(Symbols.share_rounded, size: 16),
                               label: Text(l10n.share),
                             ),
@@ -300,7 +330,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       authorVideosProvider((artist: widget.artist, sort: authorSortLatest)),
     );
     final hot = ref.watch(
-      authorVideosProvider((artist: widget.artist, sort: authorSortHot)),
+      authorVideosProvider((artist: widget.artist, sort: authorSortPopular)),
     );
     final latestItems = latest.valueOrNull?.items ?? const <VideoCard>[];
     final hotItems = hot.valueOrNull?.items ?? const <VideoCard>[];
@@ -400,7 +430,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
             children: [
               _sortChip(l10n.latest, authorSortLatest),
               const SizedBox(width: 8),
-              _sortChip(l10n.popular, authorSortHot),
+              _sortChip(l10n.popular, authorSortPopular),
+              const SizedBox(width: 8),
+              _sortChip(l10n.oldest, authorSortOldest),
             ],
           ),
         ),
