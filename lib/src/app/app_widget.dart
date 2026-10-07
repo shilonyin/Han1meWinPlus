@@ -16,6 +16,7 @@ import '../features/settings/settings_controller.dart';
 import '../features/shared/glass/glass_tuning.dart';
 import '../features/window/app_title_bar.dart';
 import 'app_backdrop.dart';
+import 'app_page_colors.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
 import 'startup_effects.dart';
@@ -112,10 +113,11 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
             mode: settings.glassTier,
             reduceTransparency: _reduceTransparency,
           ),
-          // 玻璃背后的平均底色：深浅主题差别很大，按当前亮度给。
-          backdrop: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF131118)
-              : const Color(0xFFF9F8FC),
+          // 玻璃背后的平均底色：直接取页面底色（`AppPageColors`，即 g1455 演示站的
+          // 两个主题底色）。它同时决定「不透明档拿什么填色」和「玻璃上的文字挑黑还是白」，
+          // 所以必须和 `AppBackdrop` 真正画出来的那一层同源 —— 两处各写一个值，
+          // 就会出现「按 A 色挑文字、实际画在 B 色上」这类判定与实际不符的问题。
+          backdrop: AppPageColors.of(Theme.of(context).brightness),
           child: BackdropGroup(
             child: M3EThemeBridge(
               child: AppBackdrop(

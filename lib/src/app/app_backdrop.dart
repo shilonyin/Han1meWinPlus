@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_page_colors.dart';
+
 /// 全应用背景画布：柔和的**多色渐变**，参照 morrow（明隙）。
 ///
 /// 原来整套界面走的是「纯色 Scaffold + 同色调卡片」，背景和卡片只差几个百分点亮度，
@@ -73,22 +75,24 @@ class _BackdropPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (opacity <= 0) return;
     final rect = Offset.zero & size;
-    // 亮色：带紫的白；深色：压到近黑（g1455 的演示底是 #101014）。
+    // 底色照 g1455 演示站的两个主题来（见 AppPageColors）：亮色 `#F2F2F7`、
+    // 暗色 `#070A12`，两个都是中性色。原来的深色底是 morrow 的紫黑
+    // （`#0d0c10` → `#1a1726`），整屏会偏紫——那正是和演示站的差别所在。
     //
-    // **为什么深色要压这么暗**：玻璃的 tint 是 `rgba(29,29,32,0.693)`
+    // **为什么深色底仍然压得这么暗**：玻璃的 tint 是 `rgba(29,29,32,0.693)`
     // （明度约 11%）。背景只要比它亮，玻璃就浮不起来 —— 看上去只是"一块略暗的
-    // 圆角矩形"，折射和亮边全都消失。原来那套 morrow 配方（蓝紫 → 紫灰，
-    // 最亮到 #2a2440）在浅色区域正确，在深色下恰好踩中这一点。
+    // 圆角矩形"，折射和亮边全都消失。
     //
     // 代价：底越暗，**不透明的普通卡片**越难靠底色深浅拉开层次，得靠描边与
     // 阴影。这是有意的取舍 —— 玻璃是这套界面的主角。
-    final base = dark ? const Color(0xff0d0c10) : const Color(0xfff9f8fc);
-    final mid = dark
-        ? _mix(const Color(0xff14121c), glow, .10)
-        : _mix(base, glow, .13);
-    final far = dark
-        ? _mix(const Color(0xff1a1726), glow, .13)
-        : _mix(base, glow, .26);
+    final page = AppPageColors.of(
+      dark ? Brightness.dark : Brightness.light,
+    );
+    // 渐变的另两端只在底色上偏一点点：演示站的页面本身是近乎平的，
+    // 竖直方向的明度变化全靠滚动内容撑，底色自己不造层次。
+    final mid = dark ? _mix(page, glow, .08) : _mix(page, glow, .07);
+    final far = dark ? _mix(page, glow, .11) : _mix(page, glow, .14);
+    final base = page;
 
     canvas.drawRect(
       rect,

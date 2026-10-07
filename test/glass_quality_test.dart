@@ -174,21 +174,51 @@ void main() {
       final surface = GlassPanelScope.surfaceColorOf(ctx);
       expect(surface, isNotNull, reason: '设置条目应当位于 GlassPanel 子树内');
 
-      // 自证式断言：同一个底色上，**未兜底**的 onSurfaceVariant 确实不达标。
-      // 有这一条，下面的"达标"才说明兜底真的起了作用，而不是本来就好。
       final scheme = Theme.of(ctx).colorScheme;
+
+      // 这里原来还有一条「**未兜底**的 onSurfaceVariant 必须低于 4.5」的自证断言：
+      // 那时中性面偏紫，次要文字在浅色玻璃上只有 3.7 左右，兜底是必需品。
+      // 底色换成 g1455 演示站的中性面（`AppPageColors`）之后它自己就有 5.46，
+      // 那条前置不再成立 —— 这是配色变好，不是兜底失效，所以删掉；
+      // 兜底仍然会出手这件事改由下面那条合成用例证明。
       expect(
-        contrastRatio(scheme.onSurfaceVariant, surface!),
-        lessThan(4.5),
-        reason: '若这里本就达标，本测试就测不出兜底是否生效（换主题色再跑）',
-      );
-      expect(
-        contrastRatio(painted, surface),
+        contrastRatio(painted, surface!),
         greaterThanOrEqualTo(4.5),
         reason: '兜底没生效 —— 说明 SettingsTile 没落在 GlassPanel 子树内，接入是死代码',
       );
       // 层次仍在：兜底不该把次要文字变成正文色。
       expect(painted, isNot(scheme.onSurface));
+    });
+
+    test('底色压得候选色刚好不达标时，兜底必须把它推到 AA（证明兜底不是死代码）', () {
+      // 造一组"差一点"的输入：浅色主题的次要文字是深灰（亮度约 .12），
+      // 面板底色拿到中性灰（亮度约 .63）时对比度约 4.07 —— 不够 AA，但够得着，
+      // 正是 `darkenOrLightenToContrast` 该出手的区间。
+      //
+      // 走纯函数而不是控件树：面板的等效底色是「tint 按浓度合成到页面上」，
+      // 想用 `GlassPanel.tint` 把它精确压到某个亮度既别扭又不稳。
+      final scheme = appTheme(
+        null,
+        AppThemeColor.purple.seedColor('62539F'),
+      ).colorScheme;
+      final candidate = scheme.onSurfaceVariant;
+      const surface = Color(0xffcfcfd6);
+
+      final before = contrastRatio(candidate, surface);
+      expect(before, lessThan(4.5));
+      // 也不能差到"只能换语义色"的地步（那个阈值是 4.5 * .85 = 3.825），
+      // 否则测的是回退分支而不是本改动依赖的明度微调分支。
+      expect(before, greaterThan(4.5 * .85));
+
+      final resolved = resolveTextColorOnSurface(
+        candidate: candidate,
+        surface: surface,
+        fallbacks: <Color>[scheme.onSurface, scheme.inverseSurface, scheme.scrim],
+      );
+
+      expect(contrastRatio(resolved, surface), greaterThanOrEqualTo(4.5));
+      // 首选手段是"只推明度、保住色相"，所以不该跳到正文色上去。
+      expect(resolved, isNot(scheme.onSurface));
     });
   });
 }

@@ -217,43 +217,74 @@ extension AppThemeColorSeed on AppThemeColor {
 /// 插值比例与 morrow `Palette.themeTint` 的默认值一致（.08）。
 const _tintAmount = .08;
 
+/// 中性面色阶：**照 g1455 演示站的两个主题来**（页面底色见 `AppPageColors`）。
+///
+/// 取值的依据是官方产物而不是手感：
+/// - 亮色是「白卡片 + 中性浅灰容器」，页面底色 `#F2F2F7`（Apple 的
+///   light `systemGroupedBackground`），卡片比页面亮一档 —— 白底灰面；
+/// - 暗色是「蓝黑容器阶」，页面底色 `#070A12`，卡片抬到 `#141a26` 才浮得起来；
+/// - 两套**都不带主色倾向**。演示站的彩度来自内容（封面图、彩色卡片）和
+///   强调色，不来自中性面 —— 中性面一染色，玻璃抽出来的每一块都跟着偏色。
+///
+/// [_tintedSurfaces] 与 [_neutralSurfaces] 共用这一套：前者朝 `primary`
+/// 插值 [_tintAmount]，后者原样用，两者只差这一点。
+const Color _lightSurface = Color(0xffffffff);
+const Color _lightContainerLowest = Color(0xffffffff);
+const Color _lightContainerLow = Color(0xfff7f7fa);
+const Color _lightContainer = Color(0xffededf2);
+const Color _lightContainerHigh = Color(0xffe7e7ed);
+const Color _lightContainerHighest = Color(0xffe1e1e8);
+const Color _lightInk = Color(0xff1b1b1f);
+const Color _lightInkVariant = Color(0xff5f5f6b);
+const Color _lightOutline = Color(0xffc3c3cc);
+
+const Color _darkSurface = Color(0xff141a26);
+const Color _darkContainerLowest = Color(0xff0a0e15);
+const Color _darkContainerLow = Color(0xff0f141d);
+const Color _darkContainer = Color(0xff161c28);
+const Color _darkContainerHigh = Color(0xff1c2330);
+const Color _darkContainerHighest = Color(0xff232a38);
+const Color _darkInk = Color(0xffe4e7f0);
+const Color _darkInkVariant = Color(0xffa6acbb);
+const Color _darkOutline = Color(0xff4e5464);
+
 ColorScheme _tintedSurfaces(ColorScheme scheme, Brightness brightness) {
   Color tint(Color base) => Color.lerp(base, scheme.primary, _tintAmount)!;
 
   if (brightness == Brightness.light) {
-    final ink = tint(const Color(0xff302d43));
+    final ink = tint(_lightInk);
     return scheme.copyWith(
-      // 中性面：从最亮的卡片白到最沉的容器灰，整条链都带一丝主色。
-      surface: tint(Colors.white),
-      surfaceContainerLowest: tint(const Color(0xfff9f8fc)),
-      surfaceContainerLow: tint(const Color(0xfff4f3f9)),
-      surfaceContainer: tint(const Color(0xffefeef6)),
-      surfaceContainerHigh: tint(const Color(0xffeae9f2)),
-      surfaceContainerHighest: tint(const Color(0xffe5e4ef)),
+      // 中性面：从最亮的白卡片到最沉的容器灰。
+      surface: tint(_lightSurface),
+      surfaceContainerLowest: tint(_lightContainerLowest),
+      surfaceContainerLow: tint(_lightContainerLow),
+      surfaceContainer: tint(_lightContainer),
+      surfaceContainerHigh: tint(_lightContainerHigh),
+      surfaceContainerHighest: tint(_lightContainerHighest),
       onSurface: ink,
-      onSurfaceVariant: tint(const Color(0xff777184)),
+      onSurfaceVariant: tint(_lightInkVariant),
       // 描边整体降一档，真正的分区交给明度差。
-      outline: tint(const Color(0xffb0aebe)),
+      outline: tint(_lightOutline),
       outlineVariant: ink.withValues(alpha: .075),
       // 次要容器跟中性面同调，避免 M3 默认的灰蓝容器跳出来。
-      secondaryContainer: tint(const Color(0xffefeef6)),
+      secondaryContainer: tint(_lightContainer),
       onSecondaryContainer: ink,
       surfaceTint: Colors.transparent,
     );
   }
-  final ink = tint(const Color(0xfff0edf8));
+  final ink = tint(_darkInk);
   return scheme.copyWith(
-    surface: tint(const Color(0xff292634)),
-    surfaceContainerLowest: tint(const Color(0xff181720)),
-    surfaceContainerLow: tint(const Color(0xff1f1d28)),
-    surfaceContainer: tint(const Color(0xff24222e)),
-    surfaceContainerHigh: tint(const Color(0xff2a2735)),
-    surfaceContainerHighest: tint(const Color(0xff302d3c)),
+    surface: tint(_darkSurface),
+    surfaceContainerLowest: tint(_darkContainerLowest),
+    surfaceContainerLow: tint(_darkContainerLow),
+    surfaceContainer: tint(_darkContainer),
+    surfaceContainerHigh: tint(_darkContainerHigh),
+    surfaceContainerHighest: tint(_darkContainerHighest),
     onSurface: ink,
-    onSurfaceVariant: tint(const Color(0xffb4aec5)),
-    outline: tint(const Color(0xff5a5766)),
+    onSurfaceVariant: tint(_darkInkVariant),
+    outline: tint(_darkOutline),
     outlineVariant: ink.withValues(alpha: .13),
-    secondaryContainer: tint(const Color(0xff2a2735)),
+    secondaryContainer: tint(_darkContainerHigh),
     onSecondaryContainer: ink,
     surfaceTint: Colors.transparent,
   );
@@ -263,32 +294,34 @@ ColorScheme _tintedSurfaces(ColorScheme scheme, Brightness brightness) {
 ///
 /// fidelity 变体虽然让主色忠于种子，但会把 surface 系列一并染上种子的淡粉；
 /// 这里把中性角色换成固定灰阶，只留 primary / secondary 等强调色是品牌色。
+///
+/// 与 [_tintedSurfaces] 的唯一区别就是**不朝主色插值**，色阶本身同一套。
 ColorScheme _neutralSurfaces(ColorScheme scheme, Brightness brightness) => brightness == Brightness.light
     ? scheme.copyWith(
-        surface: const Color(0xffffffff),
-        surfaceContainerLowest: const Color(0xffffffff),
-        surfaceContainerLow: const Color(0xfff6f7f8),
-        surfaceContainer: const Color(0xfff1f2f3),
-        surfaceContainerHigh: const Color(0xffecedee),
-        surfaceContainerHighest: const Color(0xffe7e8ea),
-        onSurface: const Color(0xff18191c),
-        onSurfaceVariant: const Color(0xff61666d),
-        outline: const Color(0xffc9ccd0),
-        outlineVariant: const Color(0xffe3e5e7),
-        secondaryContainer: const Color(0xfff1f2f3),
-        onSecondaryContainer: const Color(0xff18191c),
+        surface: _lightSurface,
+        surfaceContainerLowest: _lightContainerLowest,
+        surfaceContainerLow: _lightContainerLow,
+        surfaceContainer: _lightContainer,
+        surfaceContainerHigh: _lightContainerHigh,
+        surfaceContainerHighest: _lightContainerHighest,
+        onSurface: _lightInk,
+        onSurfaceVariant: _lightInkVariant,
+        outline: _lightOutline,
+        outlineVariant: _lightInk.withValues(alpha: .075),
+        secondaryContainer: _lightContainer,
+        onSecondaryContainer: _lightInk,
       )
     : scheme.copyWith(
-        surface: const Color(0xff17181a),
-        surfaceContainerLowest: const Color(0xff101113),
-        surfaceContainerLow: const Color(0xff1e1f21),
-        surfaceContainer: const Color(0xff242527),
-        surfaceContainerHigh: const Color(0xff2a2b2e),
-        surfaceContainerHighest: const Color(0xff303134),
-        onSurface: const Color(0xffe5e7eb),
-        onSurfaceVariant: const Color(0xffa2a6ad),
-        outline: const Color(0xff5a5d63),
-        outlineVariant: const Color(0xff3a3c40),
-        secondaryContainer: const Color(0xff2a2b2e),
-        onSecondaryContainer: const Color(0xffe5e7eb),
+        surface: _darkSurface,
+        surfaceContainerLowest: _darkContainerLowest,
+        surfaceContainerLow: _darkContainerLow,
+        surfaceContainer: _darkContainer,
+        surfaceContainerHigh: _darkContainerHigh,
+        surfaceContainerHighest: _darkContainerHighest,
+        onSurface: _darkInk,
+        onSurfaceVariant: _darkInkVariant,
+        outline: _darkOutline,
+        outlineVariant: _darkInk.withValues(alpha: .13),
+        secondaryContainer: _darkContainerHigh,
+        onSecondaryContainer: _darkInk,
       );

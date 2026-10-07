@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:han1me_win_plus/src/app/app_page_colors.dart';
 import 'package:han1me_win_plus/src/app/app_theme.dart';
 import 'package:han1me_win_plus/src/core/settings.dart';
 
@@ -13,8 +14,8 @@ void main() {
       final theme = appTheme(null, const Color(0xff7662ba));
       final scheme = theme.colorScheme;
 
-      // 正文色本应是 #302d43，插值后带上紫，不再等于原色。
-      expect(scheme.onSurface, isNot(const Color(0xff302d43)));
+      // 正文色本是中性 #1b1b1f，插值后带上主色，不再等于原色。
+      expect(scheme.onSurface, isNot(const Color(0xff1b1b1f)));
       // 但必须仍是深色（可读性不能被染色破坏）。
       expect(scheme.onSurface.computeLuminance(), lessThan(0.1));
       // 卡片面比背景亮一档：层级靠明度差区分。
@@ -65,7 +66,7 @@ void main() {
       ).colorScheme;
 
       expect(scheme.surface, const Color(0xffffffff));
-      expect(scheme.surfaceContainerLow, const Color(0xfff6f7f8));
+      expect(scheme.surfaceContainerLow, const Color(0xfff7f7fa));
     });
 
     test('白色主题的底不再死白，自动带品牌色倾向（自动沉浸）', () {
@@ -128,12 +129,59 @@ void main() {
         brightness: Brightness.dark,
       ).colorScheme;
 
-      // morrow 的深色是「底色 #181720 / 卡片 #292634」，两者都明显亮于纯黑。
+      // 页面底色是 #070A12（见 AppPageColors），卡片抬到 #141a26 才浮得起来，
+      // 两者都明显亮于纯黑。
       expect(scheme.surfaceContainerLowest, isNot(Colors.black));
       expect(scheme.surface.computeLuminance(), greaterThan(0.01));
       expect(
         scheme.surface.computeLuminance(),
         greaterThan(scheme.surfaceContainerLowest.computeLuminance()),
+      );
+    });
+  });
+
+  group('照 g1455 演示站的两个主题', () {
+    test('页面底色取自官方产物：暗色 #070A12、亮色 #F2F2F7', () {
+      // 暗色来自演示站 manifest.json 的 background_color / theme_color，
+      // 亮色来自官方文档 legibility.md 里 LightPanel.page。
+      expect(AppPageColors.dark, const Color(0xff070a12));
+      expect(AppPageColors.light, const Color(0xfff2f2f7));
+      expect(AppPageColors.of(Brightness.dark), AppPageColors.dark);
+      expect(AppPageColors.of(Brightness.light), AppPageColors.light);
+    });
+
+    test('两个底色都是中性色，不带主色倾向', () {
+      // 玻璃的 tint 本身是中性灰，底色一有彩度，抽出来的每一块都会偏色。
+      // 判据用「最大通道与最小通道之差」：低彩度才会小。
+      int spread(Color c) {
+        final v = <double>[c.r, c.g, c.b]..sort();
+        return ((v.last - v.first) * 255).round();
+      }
+
+      expect(spread(AppPageColors.dark), lessThan(12));
+      expect(spread(AppPageColors.light), lessThan(12));
+    });
+
+    test('暗色中性面是蓝黑而不是原来的紫灰', () {
+      final scheme = appTheme(
+        null,
+        const Color(0xff7662ba),
+        brightness: Brightness.dark,
+      ).colorScheme;
+
+      // 旧配方是 #292634（红>蓝的紫灰）；新配方基色 #141a26 是蓝>红。
+      expect(scheme.surface.b, greaterThan(scheme.surface.r));
+    });
+
+    test('亮色卡片比页面底色亮，暗色卡片也比页面底色亮', () {
+      // 页面底色由 AppBackdrop 画，卡片由 surface 给 —— 卡片必须抬起来才分得出层级。
+      expect(
+        const Color(0xffffffff).computeLuminance(),
+        greaterThan(AppPageColors.light.computeLuminance()),
+      );
+      expect(
+        const Color(0xff141a26).computeLuminance(),
+        greaterThan(AppPageColors.dark.computeLuminance()),
       );
     });
   });
