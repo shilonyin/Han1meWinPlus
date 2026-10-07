@@ -3572,6 +3572,90 @@ abstract class AppLocalizations {
   /// **'100% · Solid'**
   String get glassOpacitySolid;
 
+  /// No description provided for @glassRipple.
+  ///
+  /// In en, this message translates to:
+  /// **'Ripple'**
+  String get glassRipple;
+
+  /// No description provided for @glassRippleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only visible on glass not fully covered by a tappable area (such as the check-in stat cards); not drawn on the Translucent rung or below'**
+  String get glassRippleHint;
+
+  /// No description provided for @glassRippleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get glassRippleOff;
+
+  /// No description provided for @glassRippleWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Water'**
+  String get glassRippleWater;
+
+  /// No description provided for @glassRippleJelly.
+  ///
+  /// In en, this message translates to:
+  /// **'Jelly'**
+  String get glassRippleJelly;
+
+  /// No description provided for @glassRippleHoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Honey'**
+  String get glassRippleHoney;
+
+  /// No description provided for @glassTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Rendering'**
+  String get glassTier;
+
+  /// No description provided for @glassTierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to the whole screen: Translucent and below stop reading the backdrop, which also disables refraction, blur and ripple (and saves the full-screen capture)'**
+  String get glassTierHint;
+
+  /// No description provided for @glassTierAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get glassTierAuto;
+
+  /// No description provided for @glassTierFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass'**
+  String get glassTierFull;
+
+  /// No description provided for @glassTierCheap.
+  ///
+  /// In en, this message translates to:
+  /// **'Translucent'**
+  String get glassTierCheap;
+
+  /// No description provided for @glassTierOpaque.
+  ///
+  /// In en, this message translates to:
+  /// **'Opaque'**
+  String get glassTierOpaque;
+
+  /// No description provided for @glassContrast.
+  ///
+  /// In en, this message translates to:
+  /// **'Contrast'**
+  String get glassContrast;
+
+  /// No description provided for @glassContrastIncreased.
+  ///
+  /// In en, this message translates to:
+  /// **'Increased'**
+  String get glassContrastIncreased;
+
   /// No description provided for @globalHotkeys.
   ///
   /// In en, this message translates to:

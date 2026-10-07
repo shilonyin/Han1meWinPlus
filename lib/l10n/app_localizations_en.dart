@@ -1961,6 +1961,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassOpacitySolid => '100% · Solid';
 
   @override
+  String get glassRipple => 'Ripple';
+
+  @override
+  String get glassRippleHint =>
+      'Only visible on glass not fully covered by a tappable area (such as the check-in stat cards); not drawn on the Translucent rung or below';
+
+  @override
+  String get glassRippleOff => 'Off';
+
+  @override
+  String get glassRippleWater => 'Water';
+
+  @override
+  String get glassRippleJelly => 'Jelly';
+
+  @override
+  String get glassRippleHoney => 'Honey';
+
+  @override
+  String get glassTier => 'Rendering';
+
+  @override
+  String get glassTierHint =>
+      'Applies to the whole screen: Translucent and below stop reading the backdrop, which also disables refraction, blur and ripple (and saves the full-screen capture)';
+
+  @override
+  String get glassTierAuto => 'Auto';
+
+  @override
+  String get glassTierFull => 'Glass';
+
+  @override
+  String get glassTierCheap => 'Translucent';
+
+  @override
+  String get glassTierOpaque => 'Opaque';
+
+  @override
+  String get glassContrast => 'Contrast';
+
+  @override
+  String get glassContrastIncreased => 'Increased';
+
+  @override
   String get globalHotkeys => 'Global hotkeys';
 
   @override

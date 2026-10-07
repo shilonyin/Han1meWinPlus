@@ -60,4 +60,32 @@ class PlatformService {
       return false;
     }
   }
+
+  /// 系统「高对比度」开着吗（Windows）。设置里对比度选「跟随系统」时用它。
+  ///
+  /// **为什么不能交给 g1455**：`GlassHost.highContrast` 传 null 表示"去读
+  /// `MediaQuery.highContrastOf`"，而引擎只在 iOS 与 Android 34+ 上设置那个值 ——
+  /// **Windows 上它恒为 false**（包的文档也点名了平台不给的情况，举的是 macOS）。
+  /// 所以"跟随系统"这一档在 Windows 上必须由应用自己读，否则它永远跟不出来、
+  /// 看起来就像一个坏掉的开关。
+  ///
+  /// Windows 把它放在 `HKCU\Control Panel\Accessibility\HighContrast` 的 `Flags`
+  /// 里，是个**十进制字符串**（不是 DWORD），最低位就是「高对比度已打开」。
+  /// 读不到一律当"没开"：宁可少一道描边，也别无故把界面切到高对比观感。
+  static Future<bool> windowsHighContrastEnabled() async {
+    if (!Platform.isWindows) return false;
+    try {
+      final ProcessResult result = await Process.run('reg', [
+        'query',
+        r'HKCU\Control Panel\Accessibility\HighContrast',
+        '/v',
+        'Flags',
+      ]);
+      if (result.exitCode != 0) return false;
+      final RegExpMatch? match = RegExp(r'Flags\s+REG_SZ\s+(\d+)').firstMatch(result.stdout.toString());
+      return match != null && (int.parse(match.group(1)!) & 0x1) == 0x1;
+    } catch (_) {
+      return false;
+    }
+  }
 }

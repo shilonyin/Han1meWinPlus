@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -221,11 +220,14 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassPanel(
-          borderRadius: BorderRadius.circular(18),
-          solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          // 纯展示的一张卡：没有 `InkWell`，所以玻璃能收到 pointer，按住哪里都起波纹。
-          // （反过来如果这里铺了一整块可点区域，波纹永远不触发 —— 见 GlassPanel.ripple。）
-          ripple: const GlassRipple(),
+        borderRadius: BorderRadius.circular(18),
+        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+        // 纯展示的一张卡：没有 `InkWell`，所以玻璃能收到 pointer，按住哪里都起波纹。
+        // （反过来如果这里铺了一整块可点区域，波纹永远不触发 —— 见 GlassPanel.ripple。）
+        //
+        // 这里**故意不写 `ripple:`**：按 g1455 的规则，surface 自己声明的波纹会盖过
+        // host 上的全局设置，写死一个就等于让设置页那个「波纹」档位对这张卡失效。
+        // 留空时它跟随 host，也就是跟随设置；关闭档下自然就没有波纹。
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(

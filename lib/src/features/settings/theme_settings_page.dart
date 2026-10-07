@@ -312,6 +312,50 @@ class _GlassQualityPanel extends StatelessWidget {
             ],
           ),
         ],
+        // 下面三行是照 g1455 演示站那个控制面板搬过来的三个维度。
+        //
+        // 它的面板一共七栏，另外四栏**故意不搬**：
+        // - Appearance（Dark/Light/System）就是本页已有的「主题模式」；
+        // - Material（Regular/Dark/Light/Clear/Frosted）就是上面的「玻璃质感」——
+        //   我们的四档与它的五个 preset 覆盖同一片区间（见 `glass_panel.dart`
+        //   里那张对照表），再来一套只会让两边打架；
+        // - Tint（Neutral/Indigo/Rose）与 Preset（Ultra/High/Medium/Low）在包里
+        //   **根本没有对应 API**（子代理把 lib 全读了一遍：没有任何 palette/hue，
+        //   也没有 quality/profile），那是那个演示页给自己的面板上色、自己定档位
+        //   组合拼出来的，搬过来只能搬个名字。
+        _GlassOptionRow<GlassRippleKind>(
+          label: l10n.glassRipple,
+          hint: l10n.glassRippleHint,
+          selected: settings.glassRipple,
+          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassRipple: value)),
+          options: [
+            (value: GlassRippleKind.off, icon: Symbols.block_rounded, title: l10n.glassRippleOff),
+            (value: GlassRippleKind.water, icon: Symbols.water_rounded, title: l10n.glassRippleWater),
+            (value: GlassRippleKind.jelly, icon: Symbols.bubble_chart_rounded, title: l10n.glassRippleJelly),
+            (value: GlassRippleKind.honey, icon: Symbols.hive_rounded, title: l10n.glassRippleHoney),
+          ],
+        ),
+        _GlassOptionRow<GlassTierMode>(
+          label: l10n.glassTier,
+          hint: l10n.glassTierHint,
+          selected: settings.glassTier,
+          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassTier: value)),
+          options: [
+            (value: GlassTierMode.auto, icon: Symbols.auto_awesome_rounded, title: l10n.glassTierAuto),
+            (value: GlassTierMode.full, icon: Symbols.lens_blur_rounded, title: l10n.glassTierFull),
+            (value: GlassTierMode.cheap, icon: Symbols.opacity_rounded, title: l10n.glassTierCheap),
+            (value: GlassTierMode.opaque, icon: Symbols.rectangle_rounded, title: l10n.glassTierOpaque),
+          ],
+        ),
+        _GlassOptionRow<GlassContrast>(
+          label: l10n.glassContrast,
+          selected: settings.glassContrast,
+          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassContrast: value)),
+          options: [
+            (value: GlassContrast.auto, icon: Symbols.brightness_auto_rounded, title: l10n.followSystem),
+            (value: GlassContrast.increased, icon: Symbols.contrast_rounded, title: l10n.glassContrastIncreased),
+          ],
+        ),
       ],
     );
   }
@@ -386,6 +430,70 @@ class _GlassModeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 一排「小标题 + 若干质感卡片」，波纹 / 渲染 / 对比度三行共用。
+///
+/// 复用上面「玻璃质感」那一排的零件：一栏里几个等权选项，选中的那个描主色边。
+/// `hint` 是可选的灰色小字，专门用来讲"选了之后会怎样"的副作用 ——
+/// 比如层级降到「半透」，波纹与折射就一起没了，不说用户会以为那个设置坏了。
+class _GlassOptionRow<T> extends StatelessWidget {
+  const _GlassOptionRow({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+    required this.options,
+    this.hint,
+  });
+
+  final String label;
+  final String? hint;
+  final T selected;
+  final ValueChanged<T> onSelected;
+  final List<({T value, IconData icon, String title})> options;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in options)
+              SizedBox(
+                width: _glassModeCardWidth,
+                child: _GlassModeCard(
+                  icon: option.icon,
+                  title: option.title,
+                  selected: option.value == selected,
+                  onTap: () => onSelected(option.value),
+                ),
+              ),
+          ],
+        ),
+        if (hint != null) ...[
+          const SizedBox(height: 5),
+          Text(
+            hint!,
+            style: TextStyle(fontSize: 9, height: 1.35, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ],
     );
   }
 }

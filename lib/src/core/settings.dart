@@ -63,6 +63,38 @@ enum WindowBackdrop { none, mica, acrylic }
 /// 序列化按枚举名保存，新值只能往后追加。
 enum GlassQuality { off, frosted, clear, liquid }
 
+/// 触摸玻璃时表面起的波纹（g1455 的 `GlassRipple`）。
+///
+/// g1455 的原话是「viscosity 是多数应用唯一需要的旋钮：**0 是水**，会一圈圈荡开；
+/// **1 是蜂蜜**，只有一坨慢慢鼓起来」。所以四档只改 viscosity，其余参数
+/// （amplitude / speed / width / press / pressRadius / light）保持包的默认值 ——
+/// 那是作者"按眼睛定的、没有参照可量"的一组数，我们没有更好的依据去动它。
+/// `jelly` 取包自己的默认 0.6，也正是 g1455 演示页的默认档。
+///
+/// **默认关闭**：g1455 把它标成 opt-in（iOS 对触摸的回应是光与缩放，从不形变材质），
+/// 打开后所有没被可点区域铺满的玻璃都会开始形变，这个变化不该在用户没要求时发生。
+/// 序列化按枚举名保存，新值只能往后追加。
+enum GlassRippleKind { off, water, jelly, honey }
+
+/// 玻璃的渲染层级（g1455 的 `GlassTier`）。
+///
+/// 这个维度是**整屏级**的，不是每块玻璃一个：三个档位分别决定"要不要读背景"，
+/// 而捕获全屏的那一次是共享的，所以档位只能整屏选。
+/// - `auto`     自动：交给 g1455 的 `GlassTierPolicy` 判（含系统"减少透明度"）
+/// - `full`     完整：读背景 —— 折射、模糊、亮边都在（也是波纹能画出来的唯一档）
+/// - `cheap`    半透：同样的形状与亮边，但**完全不读背景**，省掉那次全屏捕获
+/// - `opaque`   不透明：纯填充，背后什么都不透
+///
+/// 序列化按枚举名保存，新值只能往后追加。
+enum GlassTierMode { auto, full, cheap, opaque }
+
+/// 玻璃边缘的对比度（g1455 的 `highContrast`）。
+///
+/// 打开后每块玻璃的描边改成**不透明**的高对比细线，半透明本身不变 ——
+/// 这正是 Apple 自己的"提高对比度"开关对它家玻璃做的事：看得清边界，但材质不消失。
+/// 给看不清边界的人用，和"把透明度关掉"（`GlassTierMode.opaque`）是两件事。
+enum GlassContrast { auto, increased }
+
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
@@ -158,6 +190,9 @@ class AppSettings {
     this.glassSurfaceEnabled = false,
     this.glassSurfaceOpacity = .5,
     this.glassQuality = GlassQuality.frosted,
+    this.glassRipple = GlassRippleKind.off,
+    this.glassTier = GlassTierMode.auto,
+    this.glassContrast = GlassContrast.auto,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
     this.localMediaDirectory = '',
@@ -296,6 +331,15 @@ class AppSettings {
 
   /// 磨砂面板的质感档位（磨砂 / 超透 / 液体玻璃）。
   final GlassQuality glassQuality;
+
+  /// 触摸玻璃时表面起的波纹（关闭 / 水 / 果冻 / 蜂蜜）。
+  final GlassRippleKind glassRipple;
+
+  /// 玻璃的渲染层级（自动 / 完整 / 半透 / 不透明）。整屏级，见枚举文档。
+  final GlassTierMode glassTier;
+
+  /// 玻璃边缘的对比度（跟随系统 / 增强）。
+  final GlassContrast glassContrast;
 
   /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
   final bool notificationsEnabled;
@@ -448,6 +492,9 @@ class AppSettings {
     'glassSurfaceEnabled': glassSurfaceEnabled,
     'glassSurfaceOpacity': glassSurfaceOpacity,
     'glassQuality': glassQuality.name,
+    'glassRipple': glassRipple.name,
+    'glassTier': glassTier.name,
+    'glassContrast': glassContrast.name,
     'notificationsEnabled': notificationsEnabled,
     'gpuApi': gpuApi.name,
     'localMediaDirectory': localMediaDirectory,
@@ -596,6 +643,9 @@ class AppSettings {
         (json.containsKey('glassSurfaceEnabled')
             ? ((json['glassSurfaceEnabled'] as bool? ?? false) ? GlassQuality.liquid : GlassQuality.off)
             : GlassQuality.frosted),
+    glassRipple: _enumByName(GlassRippleKind.values, json['glassRipple'] as String?) ?? GlassRippleKind.off,
+    glassTier: _enumByName(GlassTierMode.values, json['glassTier'] as String?) ?? GlassTierMode.auto,
+    glassContrast: _enumByName(GlassContrast.values, json['glassContrast'] as String?) ?? GlassContrast.auto,
     notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
     gpuApi:
         _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ??
@@ -780,6 +830,9 @@ class AppSettings {
     bool? glassSurfaceEnabled,
     double? glassSurfaceOpacity,
     GlassQuality? glassQuality,
+    GlassRippleKind? glassRipple,
+    GlassTierMode? glassTier,
+    GlassContrast? glassContrast,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
     String? localMediaDirectory,
@@ -883,6 +936,9 @@ class AppSettings {
     glassSurfaceEnabled: glassSurfaceEnabled ?? this.glassSurfaceEnabled,
     glassSurfaceOpacity: glassSurfaceOpacity ?? this.glassSurfaceOpacity,
     glassQuality: glassQuality ?? this.glassQuality,
+    glassRipple: glassRipple ?? this.glassRipple,
+    glassTier: glassTier ?? this.glassTier,
+    glassContrast: glassContrast ?? this.glassContrast,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     gpuApi: gpuApi ?? this.gpuApi,
     localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,

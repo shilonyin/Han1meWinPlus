@@ -13,6 +13,7 @@ import '../core/settings.dart';
 import '../features/auth/app_lock_gate.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
+import '../features/shared/glass/glass_tuning.dart';
 import '../features/window/app_title_bar.dart';
 import 'app_backdrop.dart';
 import 'app_router.dart';
@@ -37,12 +38,17 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
   /// 读到了再降档，避免启动瞬间闪一次实心。
   bool _reduceTransparency = false;
 
+  /// 系统是否开着「高对比度」。和上面同理，默认 false —— 先按最常见的情形建起来，
+  /// 读到了再改，免得启动瞬间闪一次重描边。
+  bool _systemHighContrast = false;
+
   @override
   void initState() {
     super.initState();
     _exitCoordinator = AppExitCoordinator();
     _appRouter = AppRouter(_exitCoordinator);
     unawaited(_loadTransparencyPreference());
+    unawaited(_loadHighContrastPreference());
   }
 
   /// 只在启动读一次：这个开关和窗口材质、系统标题栏一样属于系统层设置，
@@ -50,6 +56,14 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
   Future<void> _loadTransparencyPreference() async {
     if (!await PlatformService.windowsTransparencyDisabled() || !mounted) return;
     setState(() => _reduceTransparency = true);
+  }
+
+  /// 同理只读一次。**必须由我们读**：g1455 的 `highContrast` 传 null 表示去读
+  /// `MediaQuery.highContrastOf`，而引擎只在 iOS 与 Android 34+ 上设置它，
+  /// Windows 上恒为 false —— 交给它，「跟随系统」这一档就永远跟不出来。
+  Future<void> _loadHighContrastPreference() async {
+    if (!await PlatformService.windowsHighContrastEnabled() || !mounted) return;
+    setState(() => _systemHighContrast = true);
   }
 
   @override
@@ -79,10 +93,25 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
           // 内容是可滚动列表与封面图 → 声明为富背景，标签按最坏情况挑色。
           richBackdrop: true,
           minLabelContrast: kTextContrastAA,
-          // 系统关掉了「透明效果」就整屏落到 opaque 那一档：g1455 的 policy 会为此
-          // 返回 GlassTier.opaque 并带上 reduceTransparency 这个理由 —— 它整档都不读
-          // 背景，所以这时连那一次全屏捕获也省掉了。
-          tier: GlassTierPolicy(reduceTransparency: _reduceTransparency).choose(),
+          // 触摸玻璃时表面起的波纹（设置里四档，关闭档给 null）。声明在 host 上是因为
+          // g1455 把它定义成"这一屏的默认值"：所有没被可点区域铺满的玻璃都会形变，
+          // 而铺满的那些（设置项整行都是 InkWell）本来就不会触发 —— hit 恒为 true。
+          ripple: glassRippleFor(settings.glassRipple),
+          // 边缘对比度。**必须由我们传值**：null 会让 g1455 去读
+          // `MediaQuery.highContrastOf`，而引擎只在 iOS 与 Android 34+ 上设置它，
+          // Windows 上恒为 false —— 「跟随系统」就永远跟不出来。读注册表的活见
+          // `_loadHighContrastPreference`。
+          highContrast: glassHighContrastFor(
+            settings.glassContrast,
+            systemHighContrast: _systemHighContrast,
+          ),
+          // 层级由设置里的档位决定；系统关掉了「透明效果」时那一档优先 —— g1455 的
+          // policy 会为此返回 GlassTier.opaque 并带上 reduceTransparency 这个理由，
+          // 它整档都不读背景，所以这时连那一次全屏捕获也省掉了。
+          tier: glassTierChoice(
+            mode: settings.glassTier,
+            reduceTransparency: _reduceTransparency,
+          ),
           // 玻璃背后的平均底色：深浅主题差别很大，按当前亮度给。
           backdrop: Theme.of(context).brightness == Brightness.dark
               ? const Color(0xFF131118)

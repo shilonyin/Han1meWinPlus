@@ -1901,6 +1901,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glassOpacitySolid => '100% · 纯粹';
 
   @override
+  String get glassRipple => '波纹';
+
+  @override
+  String get glassRippleHint => '只在没被可点区域铺满的玻璃上看得见（如打卡统计卡）；层级选「半透」及以下时不画';
+
+  @override
+  String get glassRippleOff => '关闭';
+
+  @override
+  String get glassRippleWater => '水';
+
+  @override
+  String get glassRippleJelly => '果冻';
+
+  @override
+  String get glassRippleHoney => '蜂蜜';
+
+  @override
+  String get glassTier => '渲染';
+
+  @override
+  String get glassTierHint => '整屏生效：「半透」及以下不再读背景，折射、模糊与波纹一并停用（省掉每次全屏捕获）';
+
+  @override
+  String get glassTierAuto => '自动';
+
+  @override
+  String get glassTierFull => '玻璃';
+
+  @override
+  String get glassTierCheap => '半透';
+
+  @override
+  String get glassTierOpaque => '不透明';
+
+  @override
+  String get glassContrast => '对比度';
+
+  @override
+  String get glassContrastIncreased => '增强';
+
+  @override
   String get globalHotkeys => '全局热键';
 
   @override
@@ -4531,6 +4573,48 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get glassOpacitySolid => '100% · 純粹';
+
+  @override
+  String get glassRipple => '波紋';
+
+  @override
+  String get glassRippleHint => '只在沒被可點區域鋪滿的玻璃上看得到（如打卡統計卡）；層級選「半透」及以下時不畫';
+
+  @override
+  String get glassRippleOff => '關閉';
+
+  @override
+  String get glassRippleWater => '水';
+
+  @override
+  String get glassRippleJelly => '果凍';
+
+  @override
+  String get glassRippleHoney => '蜂蜜';
+
+  @override
+  String get glassTier => '渲染';
+
+  @override
+  String get glassTierHint => '整屏生效：「半透」及以下不再讀背景，折射、模糊與波紋一併停用（省掉每次全屏捕獲）';
+
+  @override
+  String get glassTierAuto => '自動';
+
+  @override
+  String get glassTierFull => '玻璃';
+
+  @override
+  String get glassTierCheap => '半透';
+
+  @override
+  String get glassTierOpaque => '不透明';
+
+  @override
+  String get glassContrast => '對比度';
+
+  @override
+  String get glassContrastIncreased => '增強';
 
   @override
   String get globalHotkeys => '全域快捷鍵';
