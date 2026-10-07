@@ -36,3 +36,7 @@ tools/ocr/.dl/
 
 # 本地审查产出的材料文件
 .review.md
+
+# 截图 / 连拍工具的临时产物（.dsh_shots 里的脚本没传 -Out 时会落在仓库根）
+/*.bmp
+
