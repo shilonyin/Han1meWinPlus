@@ -77,6 +77,7 @@ class _ProductSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final metadata = [detail.brand, detail.releaseDate, detail.price].whereType<String>().toList();
     return GlassPanel(
+      glassEnabled: false,
       solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
 
       borderRadius: BorderRadius.circular(18),

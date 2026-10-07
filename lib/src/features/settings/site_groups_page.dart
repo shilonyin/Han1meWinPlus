@@ -78,7 +78,7 @@ class SiteGroupsPage extends ConsumerWidget {
             itemBuilder: (context, index) => Padding(
               key: ValueKey(groups[index].id),
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: GlassPanel(borderRadius: BorderRadius.circular(18), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
+              child: GlassPanel(glassEnabled: false, borderRadius: BorderRadius.circular(18), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
             ),
           ),
         ),

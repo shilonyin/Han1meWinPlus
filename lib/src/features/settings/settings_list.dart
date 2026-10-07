@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_motion.dart';
 import '../shared/glass/glass_panel.dart';
@@ -352,6 +351,7 @@ class _SplitListRow extends StatelessWidget {
     // 底色交给共用的 GlassPanel，质感和左栏、其他卡片保持一致；
     // 这里同样不加投影：卡片上下紧挨着，投影会连成一条灰带。
     return GlassPanel(
+      glassEnabled: false,
       borderRadius: BorderRadius.circular(_cardRadius),
       child: Material(
         type: MaterialType.transparency,

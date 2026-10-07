@@ -161,6 +161,7 @@ class _ArtistRow extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: GlassPanel(
+        glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
         child: InkWell(
@@ -225,6 +226,7 @@ class _Description extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         alignment: Alignment.topCenter,
         child: GlassPanel(
+          glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
           child: InkWell(
@@ -521,6 +523,7 @@ class _RelatedVideoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassPanel(
+      glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
       child: InkWell(

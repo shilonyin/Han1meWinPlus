@@ -76,11 +76,16 @@ abstract final class GlassPanelTextColor {
   }
 }
 
-/// 按「玻璃质感」设置渲染的面板：关闭档走纯色底，其余档走对应的玻璃材质。
+/// 面板：默认按「材质」设置穿玻璃，`glassEnabled: false` 时走纯色底。
 ///
-/// 抽出来是为了让质感**全局统一** —— 设置页左栏的分组卡片、右栏的条目卡片、
-/// 以及其他地方的卡片都用它，改档位时整个界面一起变，
-/// 而不是只有用了 `LiquidGlassSurface` 的那一处变。
+/// 抽出来是为了让**底色全局统一** —— 各页的卡片都用它，改材质时整个界面一起变。
+///
+/// **内容卡片几乎都传 `glassEnabled: false`，这不是巧合。** g1455 的规则 5 是
+/// "玻璃只用于导航与控件层，不是每一张卡片"：它一屏只录**一张**共享的降采样图，
+/// 这张图天生比内容晚一帧，而磨砂 / 超透的 tint alpha 只有 .22（背景占 78%），
+/// 上一帧的 UI 会硬边地浮在卡片里。列表里的卡片越多、越宽，越容易看见。
+/// 所以玻璃留给侧栏、顶栏、开关滑条这些导航与控件；本组件在内容卡片上只当
+/// "统一配色的纯色面板"用，真有单张大面板需要玻璃再显式打开。
 class GlassPanel extends ConsumerWidget {
   const GlassPanel({
     super.key,
@@ -111,8 +116,9 @@ class GlassPanel extends ConsumerWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
 
-  /// 为 `false` 时即使开着玻璃也走纯色底。
-  /// 用于列表里的选中项这类**需要突出显示**的场合（玻璃会把选中态的色块冲淡）。
+  /// 为 `false` 时走纯色底；**内容卡片都该传 `false`**（类文档里写了原因：
+  /// g1455 规则 5 + 一张共享降采样图天生滞后一帧）。默认 `true` 只是给
+  /// "单张大面板确实想要玻璃"这种少数场合留的口子。
   /// 设置里的"材质"没有关闭档 —— 玻璃画不画由调用点自己说。
   final bool glassEnabled;
 

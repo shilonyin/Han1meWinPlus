@@ -207,6 +207,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final fastest = addresses.map((address) => measured[address]?.ok == true ? measured[address]!.milliseconds : ranked[address]).whereType<int>().fold<int?>(null, (best, value) => best == null || value < best ? value : best);
 
     return GlassPanel(
+      glassEnabled: false,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
           borderRadius: BorderRadius.circular(18),
@@ -243,6 +244,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return GlassPanel(
+      glassEnabled: false,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
           borderRadius: BorderRadius.circular(18),

@@ -167,6 +167,7 @@ class _MonthCalendar extends ConsumerWidget {
     }
 
     return GlassPanel(
+      glassEnabled: false,
           borderRadius: BorderRadius.circular(18),
           solidColor: scheme.surfaceContainerLow,
       child: Padding(
@@ -220,6 +221,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassPanel(
+    glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
         // 纯展示的一张卡：没有 `InkWell`，所以玻璃能收到 pointer，按住哪里都起波纹。
