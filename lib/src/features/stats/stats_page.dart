@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/local/watch_repository.dart';
+import '../shared/glass/glass_scroll_edge_bar.dart';
 
 class StatsPage extends ConsumerStatefulWidget {
   const StatsPage({super.key});
@@ -28,10 +29,14 @@ class _StatsPageState extends ConsumerState<StatsPage> {
       ..sort((a, b) => b.value.compareTo(a.value));
     final total = grouped.values.fold(0, (value, next) => value + next);
 
+    final bar = AppBar(title: Text(l10n.statistics));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statistics)),
+      // 顶栏挂 g1455 的 scroll edge：内容滚到它下面时被模糊淡出。
+      // 三处配套改动见 glass_scroll_edge_bar.dart 的说明。
+      extendBodyBehindAppBar: true,
+      appBar: glassScrollEdgeAppBar(bar),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, barExtent(bar) + 16, 16, 16),
         children: [
           SizedBox(
             height: 280,

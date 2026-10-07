@@ -6,6 +6,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/local/local_media_repository.dart';
+import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../settings/settings_controller.dart';
 import '../settings/settings_sub_page.dart';
 import '../video/video_page.dart';
@@ -50,10 +51,13 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final directory = settings?.localMediaDirectory ?? '';
     final entries = ref.watch(localMediaProvider).valueOrNull ?? const [];
+    final bar = AppBar(leading: settingsSubPageBack(context), title: Text(l10n.localMedia));
     return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.localMedia)),
+      // 顶栏挂 g1455 的 scroll edge：列表滚到它下面时被模糊淡出。
+      extendBodyBehindAppBar: true,
+      appBar: glassScrollEdgeAppBar(bar),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.fromLTRB(0, barExtent(bar) + 8, 0, 8),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

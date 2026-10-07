@@ -18,6 +18,7 @@ import '../../data/local/home_cache.dart';
 import '../../domain/models/comic.dart';
 import '../../core/app_shell.dart';
 import '../settings/settings_controller.dart';
+import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
 
 final comicHomeCacheProvider = Provider((_) => HomeCache());
@@ -244,11 +245,14 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
     final comic = widget.comic;
     final l10n = AppLocalizations.of(context)!;
     final card = ComicCard(id: comic.id, title: comic.title, coverUrl: comic.coverUrl);
+    final bar = AppBar(title: Text(l10n.comicDetails));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.comicDetails)),
+      // 顶栏挂 g1455 的 scroll edge：详情滚到它下面时被模糊淡出。
+      extendBodyBehindAppBar: true,
+      appBar: glassScrollEdgeAppBar(bar),
       floatingActionButton: FloatingActionButton.extended(onPressed: () => context.push('/comics/${comic.id}/read', extra: comic), icon: const Icon(Symbols.menu_book_rounded), label: Text(l10n.read)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, barExtent(bar) + 16, 16, 16),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
