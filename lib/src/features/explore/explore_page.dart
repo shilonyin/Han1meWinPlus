@@ -25,12 +25,12 @@ import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_image_cache.dart';
-import '../shared/glass/glass_tuning.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import '../video/play_window.dart';
 import 'explore_controller.dart';
+import '../../core/app_motion.dart';
 
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
@@ -193,15 +193,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。玻璃材质（磨砂的模糊、
               // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
               // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
-              child: GlassSurface(
-                finish: glassFinishFor(
-                  material: ref.watch(settingsProvider).valueOrNull?.glassMaterial ?? GlassMaterial.regular,
-                  tint: ref.watch(settingsProvider).valueOrNull?.glassTint ?? GlassTintKind.neutral,
-                  brightness: Theme.of(context).brightness,
-                ),
-                borderRadius: BorderRadius.zero,
-                // 文字色由我们给，别让包按它那个我们从不画的白标签把材质压暗。
-                labelled: false,
+              child: Material(
+                // 顶栏回到不透明的主色面（玻璃已停用，决策见 `docs/ui-polish.md`）。
+                color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
@@ -249,14 +243,14 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     ),
                     // 搜索框 + 右侧图标：平时贴右边，聚焦后搜索框滑到中间并变宽。
                     AnimatedAlign(
-                      duration: const Duration(milliseconds: 220),
+                      duration: AppMotion.standard,
                       curve: Curves.easeOutCubic,
                       alignment: _searchFocused ? Alignment.center : Alignment.centerRight,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TweenAnimationBuilder<double>(
-                            duration: const Duration(milliseconds: 220),
+                            duration: AppMotion.standard,
                             curve: Curves.easeOutCubic,
                             tween: Tween<double>(begin: idleSearchWidth, end: _searchFocused ? 520 : idleSearchWidth),
                             builder: (context, width, child) => SizedBox(key: _searchFieldKey, width: width, height: 56, child: child),
@@ -324,24 +318,20 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       child: IgnorePointer(
         ignoring: !_searchPanelOpen,
         child: AnimatedSlide(
-          duration: const Duration(milliseconds: 200),
+          duration: AppMotion.standard,
           curve: Curves.easeOutCubic,
           offset: _searchPanelOpen ? Offset.zero : const Offset(0, -0.03),
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 170),
             opacity: _searchPanelOpen ? 1 : 0,
             child: DecoratedBox(
-              // 阴影留在玻璃外面（玻璃自己会裁圆角），所以阴影给这层、玻璃只画材质。
+              // 建议面板回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
               decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
               ),
-              // 建议面板（含搜索历史）。不传 finish，直接吃 GlassHost 上那一份，
-              // 于是「材质 / 玻璃染色」一改它就跟着变；它挂在搜索框下方、不随内容滚动。
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(14),
-                labelled: false,
-                child: SearchSuggestions(
+              child: SearchSuggestions(
                   width: width,
                   maxHeight: (MediaQuery.sizeOf(context).height - 100).clamp(240.0, 640.0),
                   onSelected: (query) {
@@ -350,7 +340,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     context.push(url, extra: SearchRouteRequest(initialUrl: url));
                   },
                 ),
-              ),
             ),
           ),
         ),

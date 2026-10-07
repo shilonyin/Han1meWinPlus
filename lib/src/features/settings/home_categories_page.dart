@@ -75,7 +75,6 @@ class HomeCategoriesPage extends ConsumerWidget {
                 key: ValueKey(selected[index]),
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: GlassPanel(
-                  glassEnabled: false,
    borderRadius: BorderRadius.circular(18),
    solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                   child: ListTile(
@@ -103,7 +102,6 @@ class HomeCategoriesPage extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: GlassPanel(
-                          glassEnabled: false,
    borderRadius: BorderRadius.circular(18),
    solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                           child: ListTile(

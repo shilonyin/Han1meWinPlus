@@ -19,6 +19,7 @@ import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
 import 'video_actions.dart';
 import 'video_controller.dart';
+import '../../core/app_motion.dart';
 
 class VideoDescriptionView extends ConsumerStatefulWidget {
   const VideoDescriptionView({super.key, required this.video});
@@ -161,7 +162,6 @@ class _ArtistRow extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: GlassPanel(
-        glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
         child: InkWell(
@@ -223,10 +223,9 @@ class _Description extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: AnimatedSize(
-        duration: const Duration(milliseconds: 200),
+        duration: AppMotion.standard,
         alignment: Alignment.topCenter,
         child: GlassPanel(
-          glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
           child: InkWell(
@@ -423,7 +422,7 @@ class _SeriesVideosState extends State<_SeriesVideos> {
     if (!_controller.hasClients) return;
     final position = _controller.position;
     final target = (position.pixels + direction * position.viewportDimension).clamp(0.0, position.maxScrollExtent);
-    _controller.animateTo(target, duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
+    _controller.animateTo(target, duration: AppMotion.emphasis, curve: Curves.easeOut);
   }
 
   @override
@@ -523,7 +522,6 @@ class _RelatedVideoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassPanel(
-      glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         solidColor: theme.colorScheme.surfaceContainerLow,
       child: InkWell(

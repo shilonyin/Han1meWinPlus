@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:g1455/g1455.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_motion.dart';
 
 /// 列表页右下角的悬浮操作：刷新 + 回到顶部。
 ///
@@ -54,7 +54,7 @@ class _ScrollActionsState extends State<ScrollActions> {
 
   void _toTop() {
     if (!widget.controller.hasClients) return;
-    widget.controller.animateTo(0, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+    widget.controller.animateTo(0, duration: AppMotion.dialog, curve: Curves.easeOutCubic);
   }
 
   @override
@@ -107,19 +107,14 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
-        // 玻璃按钮。刻意不传 finish：这样它直接吃 GlassHost 上那一份，
-        // 于是「材质 / 玻璃染色」一改，这个按钮跟着变（原来是一块 70% 黑的不透明板）。
-        // 它是悬浮在列表之上的控件、不随内容滚动，所以不会吃到内容卡片那种滞后一帧的糊块。
-        child: GlassSurface(
+        // 悬浮控件回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
-          // 文字色由我们给，别让包按它那个我们从不画的白标签把材质压暗。
-          labelled: false,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              child: SizedBox(width: 44, height: 44, child: Center(child: child)),
-            ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(width: 44, height: 44, child: Center(child: child)),
           ),
         ),
       );

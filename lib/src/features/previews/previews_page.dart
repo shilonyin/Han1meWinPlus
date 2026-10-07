@@ -183,7 +183,6 @@ class _MonthNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return GlassPanel(
-      glassEnabled: false,
           borderRadius: BorderRadius.circular(18),
           solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Padding(
@@ -275,7 +274,6 @@ class _PreviewCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return GlassPanel(
-      glassEnabled: false,
           solidColor: theme.colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(

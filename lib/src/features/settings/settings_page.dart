@@ -205,7 +205,6 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                     // `padding: zero` 是必须的：`GlassPanel` 原来在设置页就零内边距
                     // （边距由各条目自己带），不置零会多出一圈。
                     child: GlassPanel(
-                      glassEnabled: false,
                       borderRadius: BorderRadius.circular(_navGroupRadius),
                       padding: EdgeInsets.zero,
                       child: Column(

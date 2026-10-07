@@ -281,7 +281,6 @@ class _AboutRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassPanel(
-    glassEnabled: false,
         borderRadius: BorderRadius.vertical(top: Radius.circular(topRadius), bottom: Radius.circular(bottomRadius)),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
         child: Material(type: MaterialType.transparency, child: child),

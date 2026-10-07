@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:g1455/g1455.dart';
 
 import '../../../core/app_surface_tokens.dart';
 import '../../../core/color_contrast.dart';
-import '../../../core/settings.dart';
-import '../../settings/settings_controller.dart';
-import 'glass_tuning.dart';
 
 /// 把"这块面板实际呈现的不透明底色"告知子树。
 ///
-/// 为什么需要它：玻璃面板是半透明的，它到底呈现什么颜色取决于底下的页面画布
-/// 与当前质感档位。子树里的文字要保证可读，就得知道自己压在多亮的底上 ——
-/// 而这个值只有 [GlassPanel] 算得出来（它才知道 tint / 档位 / 不透明度）。
+/// 为什么需要它：面板的底色不一定等于主题的 surface（调用点会传自己的
+/// [GlassPanel.solidColor]），子树里的文字要保证可读，就得知道自己压在多亮的底上 ——
+/// 而这个值只有 [GlassPanel] 算得出来。
 ///
 /// 刻意**只提供数据、不强行改颜色**：`GlassPanel` 若用 `DefaultTextStyle`
 /// 兜底，会把调用处已经显式给好的颜色（例如悬停变主题色、选中态用
@@ -38,7 +33,7 @@ class GlassPanelScope extends InheritedWidget {
       oldWidget.surfaceColor != surfaceColor;
 }
 
-/// 在玻璃面板上解析一个**保证可读**的文字/图标色。
+/// 在面板上解析一个**保证可读**的文字/图标色。
 ///
 /// 用法：把候选色交给它，它在面板等效底色上做对比度兜底：
 ///
@@ -76,51 +71,42 @@ abstract final class GlassPanelTextColor {
   }
 }
 
-/// 面板：默认按「材质」设置穿玻璃，`glassEnabled: false` 时走纯色底。
+/// 卡片面板：统一的圆角、底色与可选描边，外加一个"这块面板有多亮"的作用域。
 ///
-/// 抽出来是为了让**底色全局统一** —— 各页的卡片都用它，改材质时整个界面一起变。
+/// **这里已经不画玻璃了。** 为什么收掉：g1455 那套实时采样在我们这种
+/// "桌面窗口 + 接近纯色的页面背景"下，三种做法各有各的坏处 ——
+/// ① 真采背景（`GlassSurface`）：它一屏只录**一张**共享降采样图、且录在
+/// post-frame 回调里，天生比内容晚一帧，滚动时上一帧的标题/图标会硬边地浮进卡片
+/// （tint alpha 只有 .22 的磨砂/超透尤其明显）；② 把材质色合成成不透明色：
+/// 卡片就是一块死纯色，页面背景完全透不过来；③ 留半透明 tint + 高光：只有
+/// 衬在满屏彩色背景上才好看，而本仓库的页面背景是刻意压平的。
 ///
-/// **内容卡片几乎都传 `glassEnabled: false`，这不是巧合。** g1455 的规则 5 是
-/// "玻璃只用于导航与控件层，不是每一张卡片"：它一屏只录**一张**共享的降采样图，
-/// 这张图天生比内容晚一帧，而磨砂 / 超透的 tint alpha 只有 .22（背景占 78%），
-/// 上一帧的 UI 会硬边地浮在卡片里。列表里的卡片越多、越宽，越容易看见。
-/// 所以玻璃留给侧栏、顶栏、开关滑条这些导航与控件；本组件在内容卡片上只当
-/// "统一配色的纯色面板"用，真有单张大面板需要玻璃再显式打开。
-class GlassPanel extends ConsumerWidget {
+/// 所以卡片底色回到主题自己的面：调用点给 [solidColor] 就用它（各页原本的观感），
+/// 否则用 [AppSurfaceTokens.closedSurface]。设置里的材质/染色/渲染随之停用，
+/// 决策与验收标准记在 `docs/ui-polish.md`。
+class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
     required this.child,
     required this.borderRadius,
-    this.tint,
     this.solidColor,
     this.margin,
     this.padding,
-    this.glassEnabled = true,
     this.border,
     this.pageBackground,
-    this.ripple,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
 
-  /// 玻璃底色。省略时用 `surfaceContainerLow`。
-  final Color? tint;
-
-  /// [glassEnabled] 为 `false` 时用的纯色底。省略时用半透明的 `surface`
-  /// —— 各页原来的卡片底色不尽相同，传进来可以让"关闭"档保持各页原本的观感。
+  /// 卡片底色。省略时用 [AppSurfaceTokens.closedSurface]。
+  /// 各页原来的卡片底色不尽相同，传进来可以保持各页原本的观感。
   final Color? solidColor;
 
   /// 外边距 / 内边距。各页原来的卡片是 `Container(margin:, padding:)` 画的，
   /// 这里接住这两个，替换时布局才不会变。
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
-
-  /// 为 `false` 时走纯色底；**内容卡片都该传 `false`**（类文档里写了原因：
-  /// g1455 规则 5 + 一张共享降采样图天生滞后一帧）。默认 `true` 只是给
-  /// "单张大面板确实想要玻璃"这种少数场合留的口子。
-  /// 设置里的"材质"没有关闭档 —— 玻璃画不画由调用点自己说。
-  final bool glassEnabled;
 
   /// 额外描边（例如选中项的主色边框）。
   final BorderSide? border;
@@ -131,144 +117,32 @@ class GlassPanel extends ConsumerWidget {
   /// 所以给得不精确也只会让兜底判定偏保守，不会影响观感。
   final Color? pageBackground;
 
-  /// 触摸时表面起的波纹（g1455 的 `GlassRipple`）。`null` = 不起波纹。
-  ///
-  /// **什么时候真的能看到它** —— 这条比"要不要开"更容易搞错：
-  /// 波纹要求玻璃**自己收到 pointer**，而 `GlassSurface.hitTest` 只在
-  /// **没命中子节点**时才把自己加进命中结果。于是：
-  ///
-  /// - 玻璃下铺满整块可点区域（`InkWell` 包住整行）→ 永远命中子节点
-  ///   → **波纹永远不触发**。主应用的设置项卡片正是这种。
-  /// - 玻璃下是纯展示内容（顶部只有一两个按钮、其余是文字/图形）
-  ///   → 点在非按钮处都能触发。
-  ///
-  /// 反过来它**不会**抢走内容的点击：只有 `!hit` 时才接管，而且它只监听
-  /// pointer、不参与手势竞技场。
-  ///
-  /// g1455 另外建议只用在**无文字**的大块玻璃上：它自己的标签地板会为了
-  /// 白标签把玻璃压暗，波纹跟着变淡。我们这里已经关掉了那个地板
-  /// （见 [build] 里 `labelled: false` 的说明），所以文字不再是障碍 ——
-  /// 真正拦住波纹的只有上面那条"被可点区域铺满"。
-  final GlassRipple? ripple;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider).value;
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // 明暗**只读一次**：下面的关闭档底色与档位映射都由它推导，
-    // 两处不可能分叉（原先关闭档那个表达式在"判定可读性"和"实际绘制"
-    // 各写了一遍，改一处忘一处就会让两者不一致）。
     final brightness = Theme.of(context).brightness;
-
-    // 这一档玻璃究竟长什么样：**只在这里定一次**。
-    //
-    // 换成 g1455 渲染之后，"面板呈现什么颜色"由材质自己的 `tint` 决定（着色器按
-    // `mix(背景, tint, tint.a)` 叠），不再由我们算一个浓度出来。所以等效底色也改成
-    // 直接读 `finish.tint` —— 原来那张平行的 `densityFor` 表会漂移（它把「液体玻璃」
-    // 记成 .55，而材质真实的 alpha 是 .693/.718），现在它已经不在了。
-    final panelTint = tint;
-    final material = glassFinishFor(
-      material: settings?.glassMaterial ?? GlassMaterial.regular,
-      tint: settings?.glassTint ?? GlassTintKind.neutral,
-      brightness: brightness,
-    );
-    // 面板自己指定底色时**只换 RGB**：调用处给的是"什么颜色"，不是"多浓"，
-    // 浓度属于材质（那是包按真机校准过的 alpha）。
-    final finish = panelTint == null
-        ? material
-        : material.copyWith(tint: panelTint.withValues(alpha: material.tint.a));
-
-    // 面板下面的那层底色：调用点给的 [solidColor]（各页原本的卡片色）优先，
-    // 否则用页面画布。它先合成成**不透明**色，再让材质叠上去。
+    // 面板下面的那层底色：只用来推算可读性，不参与绘制。
     final pageCanvas = pageBackground ??
         (Theme.of(context).scaffoldBackgroundColor.a > 0
             ? Theme.of(context).scaffoldBackgroundColor
             : scheme.surface);
-    final canvas = solidColor == null ? pageCanvas : opaqueCompositeOver(solidColor!, pageCanvas);
-    // 卡片画出来的颜色 = 材质自己的**半透明** tint，直接压在页面背景上。
-    //
-    // 这就是玻璃在**平滑背景**下的结果：着色器算 `mix(blur(背景), tint, tint.a)`，
-    // 而平滑背景下 `blur(背景) ≈ 背景` 本身，所以"把半透明 tint 叠上去"与真玻璃
-    // 逐像素一致。区别在于它**不经过** g1455 那张共享降采样图 —— 那张图一帧只录一次、
-    // 天生晚一帧，滚动时会把上一帧的标题/图标采进卡片里（那就是灰块的来源）。
-    //
-    // 早先这里把它 opaqueCompositeOver 成不透明色，卡片就成了一整块死纯色、
-    // 页面背景完全透不过来 —— 看着和玻璃没关系。
-    final panelSurface = finish.tint;
-    // 亮边与光泽不来自采样，所以这里自己补一道很淡的对角高光，
-    // 否则平背景上的平铺色读起来仍是一块纯色（演示站那些面板的光泽就是这么来的）。
-    final sheen = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color.lerp(panelSurface, Colors.white, brightness == Brightness.dark ? .10 : .32)!,
-        panelSurface,
-      ],
-      stops: const [0, .6],
-    );
-    // 判定文字可读性要用**不透明**的等效色（半透明色的亮度不含背后的画布）。
-    final textSurface = opaqueCompositeOver(panelSurface, canvas);
-
-    // 关闭档：画材质自己的半透明 tint（见上）+ 一道对角高光。它**不是**真玻璃
-    // （不采背景、不模糊），所以滚动时不会浮出灰块；但也因此需要这道高光来撑住
-    // "这是一块玻璃"的观感，否则就是一块死纯色。调用点给 [border] 时描边照旧。
-    if (!glassEnabled) {
-      return GlassPanelScope(
-        surfaceColor: textSurface,
-        child: Container(
-          margin: margin,
-          padding: padding,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            gradient: sheen,
-            borderRadius: borderRadius,
-            border: border == null ? null : Border.fromBorderSide(border!),
-          ),
-          child: child,
-        ),
-      );
-    }
-    // 换成 g1455 的 `GlassSurface`：整个包共用一个 `GlassHost` 录制全屏一次，
-    // 这块面板取自己那一格 —— 真折射、真模糊、真亮边，且静止时不重新录制。
-    //
-    // 它是**原始图元**：不像 `GlassCard` 那样自带默认内边距与标签着色，
-    // 所以这里自己决定内边距（padding 在玻璃内部、margin 在外，与原来一致）。
-    //
-    // `BorderSide` 它没有对应参数（它只有自带的 rim）。用外层 `DecoratedBox`
-    // 画边框，而不是丢掉 —— 选中态的主色描边靠它表达。
-    final glass = GlassSurface(
-      borderRadius: borderRadius,
-      finish: finish,
-      // **不接 g1455 的标签对比度地板**，尽管这上面确实有文字。
-      //
-      // `labelled: true` 会让 `GlassThemeData.legibility` 按 `minLabelContrast`
-      // 给材质算一个"压暗量"，而它算的是**它自己那个标签色**够不够亮（
-      // `_dimOver` 里写死 `white`，见 `glass_theme.dart:334`）。我们从来不画它的
-      // 标签色 —— 文字颜色是调用点自己给的（暗色文字压在浅色玻璃上），
-      // 于是它为了一个不存在的白标签把玻璃压暗成中灰：浅色主题 + 超透/磨砂时
-      // 实测卡片是 `#6E6E70`，而页面底色是 `#EDE9EE`，整块 UI 糊成灰的。
-      //
-      // 还有一处连带的错：上面 `textSurface` 是按**未压暗**的 tint 算的，
-      // 压暗之后它就跟真正画出来的颜色对不上了，`GlassPanelTextColor` 会照着
-      // 一个没画出来的底色挑文字色。关掉这层"帮忙"，两者重新一致。
-      //
-      // 可读性我们自己负责 —— 见 [GlassPanelTextColor]。
-      labelled: false,
-      ripple: ripple,
-      child: padding == null ? child : Padding(padding: padding!, child: child),
-    );
-    final panel = border == null
-        ? glass
-        : DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              border: Border.fromBorderSide(border!),
-            ),
-            child: glass,
-          );
+    final panelSurface =
+        solidColor ?? AppSurfaceTokens.closedSurface(scheme, brightness);
+    // 判定文字可读性要用**不透明**的等效色。
+    final textSurface = opaqueCompositeOver(panelSurface, pageCanvas);
     return GlassPanelScope(
       surfaceColor: textSurface,
-      child: margin == null ? panel : Padding(padding: margin!, child: panel),
+      child: Container(
+        margin: margin,
+        padding: padding,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: panelSurface,
+          borderRadius: borderRadius,
+          border: border == null ? null : Border.fromBorderSide(border!),
+        ),
+        child: child,
+      ),
     );
   }
 }

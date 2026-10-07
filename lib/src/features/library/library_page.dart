@@ -351,7 +351,6 @@ class _ArtistStripCard extends StatelessWidget {
         // 这里是**列表项**（视频墙上的每一格），按 g1455 规则 5 不该穿玻璃：
         // 一屏几十格同时取样，滚动时捕获一滞后就会在格子里浮出上一帧的 UI。
         // 选中态本来就靠 `solidColor` + 描边区分，用纯色底更清楚。
-        glassEnabled: false,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
