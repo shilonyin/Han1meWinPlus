@@ -926,7 +926,10 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final cardWidth = homeWaterfallCardWidth(width, columns);
     return SliverMainAxisGroup(
       slivers: [
-        if (widget.showHeader) SliverToBoxAdapter(child: _SectionHeader(section: widget.section)),
+        if (widget.showHeader)
+          SliverToBoxAdapter(
+            child: _SectionHeader(section: widget.section, onRefresh: () => _reloadFromFirstPage()),
+          ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(_gridPadding, 0, _gridPadding, 20),
           sliver: SliverGrid(
@@ -999,16 +1002,50 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
   Widget build(BuildContext context) => widget.child;
 }
 
+/// 首页分区的标题行：半粗标题 + 右侧动作，和参考图里的区块标题行同形，
+/// 也和站内已有的两处「标题 + 查看更多」保持一致
+/// （`lib/src/features/video/video_detail_content.dart`、`lib/src/features/comics/comic_pages.dart`）。
+///
+/// 参考图那行的最左侧还有一个小图标，这里**故意不加**：分区标题来自站点，
+/// hanime1 给的是本地化过的分类名，按标题映射图标在换语言/换站点后就会错位；
+/// 唯一稳定的键是 AV 源的 `javSectionKey`（九档），只给这九档加图标不划算。
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.section});
+  const _SectionHeader({required this.section, this.onRefresh});
 
   final HomeSection section;
 
+  /// 右侧动作：把这一行退回第一页重新拉（等价于「换一批」）。
+  /// 首页只显示一个分区时不会走到这里（`_HomeFeedBody` 传 `showHeader: !single`），
+  /// 多分区时全局刷新按钮离得远，这一行得能自己刷新。
+  final VoidCallback? onRefresh;
+
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Text(section.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-      );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              section.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (onRefresh != null)
+            PressScale(
+              child: TextButton.icon(
+                onPressed: onRefresh,
+                icon: const Icon(Symbols.refresh_rounded, size: 18),
+                label: Text(l10n.refresh),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _FeaturedVideo extends StatelessWidget {

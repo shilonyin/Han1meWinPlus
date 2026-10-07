@@ -106,6 +106,13 @@ int _matchingParen(String text, List<bool> mask, int open) {
 
 int _lineOf(String text, int index) => '\n'.allMatches(text.substring(0, index)).length + 1;
 
+/// 按钮调用点所在行的前缀里，紧挨着它的就是 `PressScale(` + `child:`。
+final _pressScaleHead = RegExp(r'PressScale\(\s*child:\s*$');
+
+/// 往前 300 字符内能找到 `PressScale(` + `child:`（中间隔着 `SizedBox(` 之类也算，
+/// 那种情况下按外层同样会缩）。
+final _pressScaleBefore = RegExp(r'PressScale\(\s*child:');
+
 void main() {
   testWidgets('按下缩到 0.96，抬起回到 1', (tester) async {
     await tester.pumpWidget(
@@ -159,7 +166,9 @@ void main() {
         final i = span[0];
         final end = span[1];
         final head = text.substring(i == 0 ? 0 : text.lastIndexOf('\n', i - 1) + 1, i);
-        if (head.trimRight().endsWith('PressScale(child:')) {
+        // `PressScale(` 与 `child:` 之间允许换行与任意空白：手写的包裹经常分行写
+        // （`PressScale(\n  child: TextButton.icon(`），判定不该反过来约束排版。
+        if (_pressScaleHead.hasMatch(head)) {
           covered++;
           continue;
         }
@@ -167,7 +176,7 @@ void main() {
         // 按外层的时候里面同样会缩，且避免 0.96² 的双重缩放。
         if (spans.any((s) => s[0] < i && s[1] >= end)) continue;
         final back = text.substring(i < 300 ? 0 : i - 300, i);
-        if (back.contains('PressScale(child: ')) {
+        if (_pressScaleBefore.hasMatch(back)) {
           covered++;
           continue;
         }
