@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'settings.dart';
+
 /// 玻璃材质的**语义底色**规范层。
 ///
 /// ## 这个模块收什么、不收什么
@@ -52,4 +54,19 @@ abstract final class AppSurfaceTokens {
   /// 所以刻意比关闭档的卡片更淡。
   static Color glassModeCardBase(ColorScheme scheme) =>
       scheme.surface.withValues(alpha: .5);
+
+  /// 各档玻璃的**底色浓度**（不透明系数）。
+  ///
+  /// 从原 `GlassMaterial` 搬过来：玻璃渲染已换成 g1455，但"这块面板到底呈现
+  /// 多不透明"仍然要算 —— `GlassPanel` 靠它把面板压成一层等效底色，
+  /// 才能判断压在上面的文字读不读得清（见 `GlassPanelScope`）。
+  ///
+  /// 注意磨砂档的浓度**由滑条决定**，另外两档是固定值：三档的差异不只在模糊强度。
+  static double densityFor(GlassQuality quality, double opacity) =>
+      switch (quality) {
+        GlassQuality.off => 0.0, // 关闭档不走玻璃渲染，仅为穷尽 switch
+        GlassQuality.frosted => opacity, // 磨砂：浓度直接由滑条决定
+        GlassQuality.clear => .12, // 超透：几乎全透明，只留一道亮边
+        GlassQuality.liquid => .55, // 液体玻璃：居中，透明度固定
+      };
 }

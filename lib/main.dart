@@ -10,7 +10,6 @@ import 'src/core/app_notifications.dart';
 import 'src/core/deep_link.dart';
 import 'src/core/media_player_initializer.dart';
 import 'src/core/playback_speed_policy.dart';
-import 'src/core/runtime_visual_guard.dart';
 import 'src/core/settings.dart';
 import 'src/core/shader_service.dart';
 import 'src/core/window_chrome.dart';
@@ -67,10 +66,6 @@ Future<void> main(List<String> args) async {
   // 冷启动（磁盘读取 + 杀软扫描）可能耗数百毫秒。首屏 ExplorePage 用不到播放器，
   // 所以把播放器初始化整体挪到首帧之后再执行，缩短启动图停留时间。
   // 真正打开视频时才创建 Player()，那时 DLL 早已加载完毕，不存在竞态。
-  // 运行时视觉守卫：订阅全局帧回调，持续掉帧时把玻璃折射永久降到低成本路径。
-  // 在主窗口的启动流程里装（独立播放窗口不装）—— 玻璃面板只出现在主窗口，
-  // 播放窗口那套 chrome 不参与本预算。
-  RuntimeVisualGuard.instance.install();
   WidgetsBinding.instance.addPostFrameCallback((_) {
     debugPrint('[startup] first-frame done: ${startupWatch.elapsedMilliseconds}ms');
     MediaPlayerInitializer.bootstrap(settings);

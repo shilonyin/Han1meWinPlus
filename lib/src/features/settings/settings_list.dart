@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_motion.dart';
-import '../../core/glass_tier.dart';
 import '../shared/glass/glass_panel.dart';
 
 /// Settings list primitives.
@@ -353,11 +352,6 @@ class _SplitListRow extends StatelessWidget {
     // 这里同样不加投影：卡片上下紧挨着，投影会连成一条灰带。
     return GlassPanel(
       borderRadius: BorderRadius.circular(_cardRadius),
-      // 这一栏是「一长串卡片」：设置项有几十条，一屏同时可见十几张。
-      // 照 g1455 的用法，长列表里的卡片封顶在省捕获层级 —— 形状、底色、
-      // 圆角一概不变，只是不再为每一张各采一次背景。全玻璃留给左侧分组卡
-      // 与其它单块面板，那里才是"少数几块、值得真模糊"的地方。
-      tierCeiling: GlassTier.cheap,
       child: Material(
         type: MaterialType.transparency,
         // 圆角已固定，按下态不再影响外观；保留这个 scope 是因为条目的 InkWell
