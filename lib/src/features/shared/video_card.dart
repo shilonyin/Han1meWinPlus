@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_motion.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -22,15 +23,16 @@ int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
 /// 避免几处各写一个数字后慢慢走样。
 const videoCardRadius = 8.0;
 
-/// 封面下方详情区的预留高度：标题两行(40) + 间隙(2) + 作者(16) + 间隙(2) + 评分行(16)。
+/// 封面下方详情区的预留高度：标题两行(40) + 间隙(6) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2)。
 ///
 /// 原值是 120，比实际内容高出 40 多像素 —— 卡片底部会空出一大块，
 /// 加上投影之后看起来像"卡片下面还有一层"。这里收到贴近实际内容的高度，
 /// 卡片按真实内容收口（`_details` 自身 overflow 由外层 ClipRect 兜底）。
-const _horizontalCardMetaHeight = 84.0;
+/// 行间距从 2/2 放宽到 6/4、并加了 2px 内边距之后，这个值同步抬高，否则会裁掉评分行。
+const _horizontalCardMetaHeight = 92.0;
 
 /// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出两行空间。
-const _horizontalCardCompactMetaHeight = 78.0;
+const _horizontalCardCompactMetaHeight = 84.0;
 
 /// 该卡片是否带作者 / 评分 / 上传时间。
 bool hasVideoCardMeta(VideoCard video) =>
@@ -163,6 +165,61 @@ VideoCardMetrics videoCardMetrics({
   );
 }
 
+/// 本次会话里点开过的视频 id：卡片标题会染成主题色，一眼能看出哪几张看过了。
+///
+/// 只放内存、不落盘 —— 真正的观看记录由 `WatchRepository` 负责（/library/history 那页）。
+/// 这里要的是即时、可理解的反馈，刷新或重启就回到干净状态。
+final openedVideoIdsProvider =
+    NotifierProvider<OpenedVideoIdsNotifier, Set<String>>(
+      OpenedVideoIdsNotifier.new,
+    );
+
+class OpenedVideoIdsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => const <String>{};
+
+  void mark(String id) {
+    if (id.isEmpty || state.contains(id)) return;
+    state = <String>{...state, id};
+  }
+}
+
+/// 悬停时把封面推近一点点。
+///
+/// 缩放只作用在图片上（外层 `ClipRRect` 不动），所以角标、描边和卡片占位都留在原位，
+/// 观感是"图在框里推近"，而不是整张卡片被撑大 —— 后者会把邻居挤走。
+class _HoverZoom extends StatefulWidget {
+  const _HoverZoom({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_HoverZoom> createState() => _HoverZoomState();
+}
+
+class _HoverZoomState extends State<_HoverZoom> {
+  static const double _scale = 1.06;
+
+  bool _hovered = false;
+
+  void _setHovered(bool value) {
+    if (_hovered == value) return;
+    setState(() => _hovered = value);
+  }
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    onEnter: (_) => _setHovered(true),
+    onExit: (_) => _setHovered(false),
+    child: AnimatedScale(
+      scale: _hovered ? _scale : 1,
+      duration: motionDuration(context, AppMotion.brief),
+      curve: AppMotion.standardCurve,
+      child: widget.child,
+    ),
+  );
+}
+
 class VideoCardTile extends ConsumerWidget {
   const VideoCardTile({
     super.key,
@@ -238,6 +295,8 @@ class VideoCardTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolved = _resolved(ref);
+    // 点开过的卡片标题染主题色（会话级，见 openedVideoIdsProvider）。
+    final marked = ref.watch(openedVideoIdsProvider).contains(video.id);
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
@@ -245,47 +304,56 @@ class VideoCardTile extends ConsumerWidget {
           constraints.maxWidth,
           MediaQuery.devicePixelRatioOf(context),
         );
-        final radius = BorderRadius.circular(videoCardRadius);
-        return Material(
-          // 整张卡片一个**不透明纯色底**：封面和文字区同属这一层，不再分两截。
-          color: selected
-              ? theme.colorScheme.secondaryContainer
-              : theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: radius,
-            side: selected
-                ? BorderSide(color: theme.colorScheme.primary, width: 2)
-                : BorderSide.none,
+        // 卡片本体不再铺底色：封面是独立的一块，文字直接落在页面底上（对齐 b 站首页卡片）。
+        // 仍套一层**透明** Material —— InkWell 需要一个 Material 祖先才能画水波纹，
+        // 但没有底色，就不会再出现"封面和文字同属一块白板"的两层感。
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            type: MaterialType.transparency,
+            child: PressScale(child: InkWell(
+              borderRadius: BorderRadius.circular(videoCardRadius),
+              // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
+              // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
+              onTap:
+                  onTap ??
+                  (video.id.isEmpty
+                      ? null
+                      : () {
+                          ref.read(openedVideoIdsProvider.notifier).mark(video.id);
+                          openVideo(context, ref, video.id);
+                        }),
+              onLongPress: onLongPress,
+              child: horizontal
+                  ? _horizontalContent(theme, cacheWidth, resolved, marked)
+                  : _verticalContent(theme, cacheWidth, resolved, marked),
+            )),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: PressScale(child: InkWell(
-            // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
-            onTap:
-                onTap ??
-                (video.id.isEmpty
-                    ? null
-                    : () => openVideo(context, ref, video.id)),
-            onLongPress: onLongPress,
-            child: horizontal
-                ? _horizontalContent(theme, cacheWidth, resolved)
-                : _verticalContent(theme, cacheWidth, resolved),
-          )),
         );
       },
     );
   }
 
-  Widget _verticalContent(ThemeData theme, int cacheWidth, VideoCard video) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _cover(theme, cacheWidth, video)),
-          const SizedBox(height: 8),
-          _details(theme, video),
-        ],
-      );
+  Widget _verticalContent(
+    ThemeData theme,
+    int cacheWidth,
+    VideoCard video,
+    bool marked,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(child: _cover(theme, cacheWidth, video)),
+      const SizedBox(height: 8),
+      _details(theme, video, marked),
+    ],
+  );
 
-  Widget _horizontalContent(ThemeData theme, int cacheWidth, VideoCard video) {
+  Widget _horizontalContent(
+    ThemeData theme,
+    int cacheWidth,
+    VideoCard video,
+    bool marked,
+  ) {
     // 竖版海报结果（「新番预告」这类）：网格已按海报比例算好卡高，封面必须吃掉
     // 「除标题区以外的全部高度」。**详情区不能放在 Flexible 里** —— Flexible 默认 flex 1，
     // 会和封面的 Expanded 平分剩余高度：封面只剩一半（图被压扁、海报仍被裁），
@@ -297,7 +365,7 @@ class VideoCardTile extends ConsumerWidget {
           Expanded(child: _cover(theme, cacheWidth, video)),
           const SizedBox(height: 8),
           // 标题区是固定高度（详见 _details），不参与 flex 分配。
-          ClipRect(child: _details(theme, video)),
+          ClipRect(child: _details(theme, video, marked)),
         ],
       );
     }
@@ -316,7 +384,7 @@ class VideoCardTile extends ConsumerWidget {
           ),
         SizedBox(height: dense ? 4 : 8),
         // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
-        Flexible(child: ClipRect(child: _details(theme, video))),
+        Flexible(child: ClipRect(child: _details(theme, video, marked))),
       ],
     );
   }
@@ -325,156 +393,178 @@ class VideoCardTile extends ConsumerWidget {
     ThemeData theme,
     int cacheWidth,
     VideoCard video,
-  ) => RepaintBoundary(
-    child: ClipRRect(
-      // 只切上面两个角，和卡片顶部的圆角对齐。
-      // 底部也切圆角的话，封面下缘会从卡片底上"翘"起来一条缝隙，
-      // 看起来就像封面和文字是两块不同的底 —— 这是"两层感"的主要来源。
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(videoCardRadius),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (coverImage != null)
-            Image(image: coverImage!, fit: BoxFit.cover)
-          else
-            CachedNetworkImage(
-              imageUrl: video.coverUrl,
-              cacheManager: appImageCacheManager,
-              fit: BoxFit.cover,
-              memCacheWidth: cacheWidth,
-              fadeInDuration: Duration.zero,
-              fadeOutDuration: Duration.zero,
-              placeholder: (context, url) =>
-                  ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
-              errorWidget: (context, url, error) => ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: const Center(child: Icon(Symbols.broken_image_rounded)),
-              ),
-            ),
-          if (video.duration != null)
-            Positioned(
-              right: dense ? 3 : 6,
-              bottom: dense ? 3 : 6,
-              child: _OverlayText(text: video.duration!, dense: dense),
-            ),
-          if (video.views != null)
-            Positioned(
-              left: dense ? 3 : 6,
-              bottom: dense ? 3 : 6,
-              child: _OverlayText(
-                icon: Symbols.visibility_rounded,
-                text: video.views!,
-                dense: dense,
-              ),
-            ),
-          // 封面贴边时给 1px 内描边：深色封面直接压在卡片底色上会糊在一起，
-          // 分不出「图到哪结束、卡片从哪开始」。浅色 black/10、深色 white/10，
-          // 依据见 `docs/ui-polish.md`（better-ui 的缩略图描边条目）。
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black)
-                        .withValues(alpha: .10),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _details(ThemeData theme, VideoCard video) {
-    final hasMeta = hasVideoCardMeta(video);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (dense)
-          // 小卡片只留一行标题：短标题时不会在标题和作者名之间空一大截
-          Text(
-            video.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          )
-        else
-          SizedBox(
-            height: 40,
-            child: Text(
-              video.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        if (hasMeta) ...[
-          const SizedBox(height: 2),
-          // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
-          Text(
-            video.artist ?? '',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: dense ? 10 : null,
-              color: theme.colorScheme.outline,
-            ),
-          ),
-          const SizedBox(height: 2),
-          SizedBox(
-            height: dense ? 14 : 16,
-            child: Row(
-              children: [
-                Expanded(
-                  child: video.rating == null
-                      ? const SizedBox.shrink()
-                      : Row(
-                          children: [
-                            Icon(
-                              Symbols.thumb_up_rounded,
-                              size: dense ? 11 : 14,
-                              color: theme.colorScheme.outline,
-                            ),
-                            SizedBox(width: dense ? 3 : 4),
-                            Flexible(
-                              child: Text(
-                                video.rating!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: dense ? 10 : null,
-                                  color: theme.colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                          ],
+  ) {
+    // 选中态（详情页的"当前这一集"）改成给**封面**描一圈主题色：卡片底板已经去掉，
+    // 再给整块（封面 + 文字）描边会连页面底色一起框住，看起来像一张没铺满的空卡。
+    final highlight = selected ? theme.colorScheme.primary : null;
+    return RepaintBoundary(
+      child: ClipRRect(
+        // 封面是独立的一块，四角都切圆角 —— 卡片底板没了，也就不存在"封面下缘从底上
+        // 翘起一条缝"的问题（那正是当初"两层感"的来源，现在整张卡片本来就只有封面一层）。
+        borderRadius: BorderRadius.circular(videoCardRadius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 图片本身在悬停时推近，裁切框（这一层 ClipRRect）不动。
+            _HoverZoom(
+              child: coverImage != null
+                  ? Image(image: coverImage!, fit: BoxFit.cover)
+                  : CachedNetworkImage(
+                      imageUrl: video.coverUrl,
+                      cacheManager: appImageCacheManager,
+                      fit: BoxFit.cover,
+                      memCacheWidth: cacheWidth,
+                      fadeInDuration: Duration.zero,
+                      fadeOutDuration: Duration.zero,
+                      placeholder: (context, url) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                      errorWidget: (context, url, error) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: const Center(
+                          child: Icon(Symbols.broken_image_rounded),
                         ),
+                      ),
+                    ),
+            ),
+            if (video.duration != null)
+              Positioned(
+                right: dense ? 3 : 6,
+                bottom: dense ? 3 : 6,
+                child: _OverlayText(text: video.duration!, dense: dense),
+              ),
+            if (video.views != null)
+              Positioned(
+                left: dense ? 3 : 6,
+                bottom: dense ? 3 : 6,
+                child: _OverlayText(
+                  icon: Symbols.visibility_rounded,
+                  text: video.views!,
+                  dense: dense,
                 ),
-                if (video.uploadTime != null)
-                  Text(
-                    video.uploadTime!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: dense ? 10 : null,
-                      color: theme.colorScheme.outline,
+              ),
+            // 封面贴边时给一圈内描边：深色封面直接压在页面底上会糊在一起，
+            // 分不出「图到哪结束」。平时是 1px 极浅（浅色 black/10、深色 white/10，依据见
+            // `docs/ui-polish.md` 的缩略图描边条目），选中时换成主题色 2px。
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: highlight ??
+                          (theme.brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black)
+                              .withValues(alpha: .10),
+                      width: highlight == null ? 1 : 2,
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _details(ThemeData theme, VideoCard video, bool marked) {
+    final hasMeta = hasVideoCardMeta(video);
+    // 作者名 / 评分 / 上传时间原来是 `colorScheme.outline` —— 那是**描边**色，
+    // 压在页面底上对比度只有 1.6:1 上下（用户反馈"下面的用户和时间对比度有些弱"）。
+    // 正文级的次要文字该用 onSurfaceVariant。
+    final metaInk = theme.colorScheme.onSurfaceVariant;
+    // 左右各让 2px、底部留 2px：文字原来是紧贴卡片边的（用户反馈"太贴边"）。
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, right: 2, bottom: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (dense)
+            // 小卡片只留一行标题：短标题时不会在标题和作者名之间空一大截
+            Text(
+              video.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                // 点开过的卡片标题染主题色：一眼能看出哪几张看过了。
+                color: marked ? theme.colorScheme.primary : null,
+              ),
+            )
+          else
+            SizedBox(
+              height: 40,
+              child: Text(
+                video.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: marked ? theme.colorScheme.primary : null,
+                ),
+              ),
+            ),
+          if (hasMeta) ...[
+            const SizedBox(height: 6),
+            // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
+            Text(
+              video.artist ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: dense ? 10 : null,
+                color: metaInk,
+              ),
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: dense ? 14 : 16,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: video.rating == null
+                        ? const SizedBox.shrink()
+                        : Row(
+                            children: [
+                              Icon(
+                                Symbols.thumb_up_rounded,
+                                size: dense ? 11 : 14,
+                                color: metaInk,
+                              ),
+                              SizedBox(width: dense ? 3 : 4),
+                              Flexible(
+                                child: Text(
+                                  video.rating!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontSize: dense ? 10 : null,
+                                    color: metaInk,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                  if (video.uploadTime != null)
+                    Text(
+                      video.uploadTime!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: dense ? 10 : null,
+                        color: metaInk,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

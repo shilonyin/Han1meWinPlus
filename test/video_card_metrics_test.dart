@@ -3,9 +3,10 @@ import 'package:han1me_win_plus/src/features/shared/video_card.dart';
 
 void main() {
   group('视频卡片高度', () {
-    // 详情区的实际内容：标题两行(40) + 间隙(2) + 作者(16) + 间隙(2) + 评分行(16) ≈ 76。
+    // 详情区的实际内容：标题两行(40) + 间隙(6) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2) = 84。
+    // （间隙与内边距是这一轮为了"别太贴边"放宽的，预留高度必须跟着涨，否则会裁掉评分行。）
     // 预留高度必须贴近它，否则卡片底部会空出一块，加上投影就显得"下面还有一层"。
-    const contentHeight = 76.0;
+    const contentHeight = 84.0;
 
     test('横向卡片：详情区预留高度贴近实际内容，不留大片空白', () {
       final metrics = videoCardMetrics(
