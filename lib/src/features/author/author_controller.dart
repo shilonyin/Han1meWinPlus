@@ -8,6 +8,16 @@ import '../../domain/models/video.dart';
 import '../search/search_controller.dart';
 import '../settings/settings_controller.dart';
 
+/// 站点排序键（取值见 `assets/search_options/sort_option.json`）。
+///
+/// 站点没有「最早」这一档，所以作者页只能照搬它的「最新上市 / 观看次数」，
+/// 不能照抄 B 站的三档排序。
+const authorSortLatest = '最新上市';
+const authorSortHot = '觀看次數';
+
+/// 作者页的一次查询：同一位作者按不同排序各是一份独立的数据。
+typedef AuthorRequest = ({String artist, String sort});
+
 /// 作者页当前这一段影片。
 class AuthorVideos {
   const AuthorVideos({
@@ -45,9 +55,10 @@ class AuthorVideos {
 /// （`?query=<作者>`），所以这里只能搜完再筛：关键字命中的结果里会混进「作者名
 /// 只出现在标题或标签里」的别人的片子（详见 `verifyAuthorMatches`）。一条都不剩
 /// 时退回原始结果：宁可多给几张，也不要给用户一张空页面。
-class AuthorVideosController extends FamilyAsyncNotifier<AuthorVideos, String> {
+class AuthorVideosController
+    extends FamilyAsyncNotifier<AuthorVideos, AuthorRequest> {
   @override
-  Future<AuthorVideos> build(String artist) => _fetch(artist, 1);
+  Future<AuthorVideos> build(AuthorRequest request) => _fetch(request, 1);
 
   /// 「查看更多」：追加下一页。失败就停在已经显示的内容上，不把整页打成错误态。
   Future<void> loadMore() async {
@@ -69,19 +80,20 @@ class AuthorVideosController extends FamilyAsyncNotifier<AuthorVideos, String> {
     }
   }
 
-  Future<AuthorVideos> _fetch(String artist, int page) async {
+  Future<AuthorVideos> _fetch(AuthorRequest request, int page) async {
+    final artist = request.artist;
     // 作者名为空时不要拿着空关键字去搜：仓库层对空关键字会返回首页内容，
     // 那样作者页会显示一堆和谁都不相关的片子。
     if (artist.trim().isEmpty) return const AuthorVideos(items: []);
     final settings = await ref.watch(settingsProvider.future);
     final repository = ref.watch(han1meRepositoryProvider);
-    // 不套搜索页的分类/排序/标签：这是「这位作者的片子」，不是一次检索。
+    // 不套搜索页的分类/日期/时长/标签：这是「这位作者的片子」，不是一次检索。
     final result = await repository
         .search(
           baseUrl: settings.resolvedBaseUrl,
           query: artist,
           genre: '',
-          sort: '',
+          sort: request.sort,
           date: '',
           duration: '',
           tags: const <String>[],
@@ -118,9 +130,42 @@ class AuthorVideosController extends FamilyAsyncNotifier<AuthorVideos, String> {
 }
 
 final authorVideosProvider =
-    AsyncNotifierProvider.family<AuthorVideosController, AuthorVideos, String>(
-      AuthorVideosController.new,
-    );
+    AsyncNotifierProvider.family<
+      AuthorVideosController,
+      AuthorVideos,
+      AuthorRequest
+    >(AuthorVideosController.new);
+
+/// 站点搜索页上的「作者卡」（`type=artist` 的结果）：作者名、头像，以及卡片上
+/// 那个计数文本（站点在这一处给出作者级别的数字，详情页没有）。
+///
+/// 拿不到就返回 null：作者页会退回用影片详情里的头像、用自己的影片数。
+final authorCardProvider = FutureProvider.autoDispose.family<VideoCard?, String>(
+  (ref, artist) async {
+    if (artist.trim().isEmpty) return null;
+    final settings = await ref.watch(settingsProvider.future);
+    final result = await ref
+        .watch(han1meRepositoryProvider)
+        .search(
+          baseUrl: settings.resolvedBaseUrl,
+          query: artist,
+          genre: '',
+          sort: '',
+          date: '',
+          duration: '',
+          tags: const <String>[],
+          broad: false,
+          type: 'artist',
+          page: 1,
+        )
+        .timeout(const Duration(seconds: 20));
+    final expected = artist.trim().toLowerCase();
+    for (final card in result.items) {
+      if (card.title.trim().toLowerCase() == expected) return card;
+    }
+    return result.items.isEmpty ? null : result.items.first;
+  },
+);
 
 /// 作者资料（头像 / artistId / csrf token）：站点没有独立的作者接口，这些字段只挂在
 /// 影片详情上，所以借这位作者第一个影片的详情来拿；拿不到就只显示名字。

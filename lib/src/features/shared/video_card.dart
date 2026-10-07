@@ -824,6 +824,8 @@ class VideoCardGrid extends ConsumerWidget {
     this.controller,
     this.coverAspectRatio,
     this.bottomPadding = 24,
+    this.shrinkWrap = false,
+    this.physics,
   });
 
   final List<VideoCard> videos;
@@ -856,6 +858,17 @@ class VideoCardGrid extends ConsumerWidget {
   /// 页面上浮着右下角操作（刷新 / 回到顶部）时要传 `floatingActionsClearance`，
   /// 否则滚到底时最后一行右侧那张卡会被那两个按钮压住、点不到。
   final double bottomPadding;
+
+  /// 网格按内容撑高、不要自己吃掉剩余高度。
+  ///
+  /// 嵌在别的滚动视图里（作者页「主页」页签：一个 ListView 里塞两排网格）时必须开：
+  /// `GridView` 默认会向父级要一个确定的高度，没有就报
+  /// 「Vertical viewport was given unbounded height」。
+  final bool shrinkWrap;
+
+  /// 滚动行为。嵌在别的滚动视图里时传 [NeverScrollableScrollPhysics]，
+  /// 只留外层那一个滚动条。
+  final ScrollPhysics? physics;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -900,6 +913,8 @@ class VideoCardGrid extends ConsumerWidget {
         }
         return GridView.builder(
           controller: controller,
+          shrinkWrap: shrinkWrap,
+          physics: physics,
           padding: EdgeInsets.fromLTRB(
             12,
             12,
