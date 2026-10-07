@@ -33,6 +33,16 @@ const Duration hoverPreviewMaxDuration = Duration(seconds: 30);
 /// 所以连续失败到阈值就直接停掉，并打一条日志说明原因。
 const int hoverPreviewMaxFailures = 3;
 
+/// 鼠标移开之后，播放器再多留这么久才释放。
+///
+/// 起播放器最贵的一步是 `initialize()`（真机实测 2.6~11 秒，取决于 CDN 缓冲），
+/// 刚看过的卡片立刻再悬停一次不该重新等一遍。留 6 秒是"还在附近看"的量级；
+/// 超时就释放，免得留一路解码器在后台。
+///
+/// 可变是为了测试能把它压成 0（测试里等 6 秒没意义）。
+@visibleForTesting
+Duration hoverPreviewGrace = const Duration(seconds: 6);
+
 /// 预览播放器的最小抽象。
 ///
 /// 真实实现下面是 `video_player`（桌面端即 media_kit / libmpv）。测试进程里没有
@@ -170,7 +180,11 @@ final hoverPreviewProvider =
 class HoverPreviewController extends Notifier<HoverPreviewState> {
   Timer? _timer;
   Timer? _stopTimer;
+  Timer? _graceTimer;
   HoverPreviewPlayer? _player;
+
+  /// [_player] 正在为哪一张卡服务 —— 移开后的宽限期内再悬停同一张就直接复用。
+  String? _playerId;
   var _failures = 0;
   var _loading = false;
 
@@ -187,6 +201,15 @@ class HoverPreviewController extends Notifier<HoverPreviewState> {
   /// [hoverPreviewDelay] 之后 —— 扫过去不算。
   void hover(String id) {
     if (id.isEmpty || state.disabled) return;
+    // 宽限期内回到同一张：播放器还热着，直接把画面接回来，不用重新抓详情 / 起解码。
+    if (_player != null && _playerId == id) {
+      _graceTimer?.cancel();
+      _graceTimer = null;
+      _timer?.cancel();
+      _timer = null;
+      state = state.copyWith(hoveredId: id, playingId: id);
+      return;
+    }
     if (state.hoveredId == id || state.playingId == id) return;
     _timer?.cancel();
     state = state.copyWith(hoveredId: id);
@@ -203,15 +226,26 @@ class HoverPreviewController extends Notifier<HoverPreviewState> {
       _timer = null;
       state = state.copyWith(clearHovered: true);
     }
-    if (state.playingId == id) unawaited(_stop());
+    if (state.playingId == id) {
+      // 画面立刻收掉，但播放器先留 [_graceTimer] 那么久：马上又悬停回来不用重新缓冲。
+      state = state.copyWith(clearPlaying: true);
+      _stopTimer?.cancel();
+      _stopTimer = null;
+      _graceTimer?.cancel();
+      _graceTimer = Timer(hoverPreviewGrace, () => unawaited(_releasePlayer()));
+    }
   }
 
   Future<void> _start(String id) async {
-    if (state.disabled || _player != null || _loading) return;
+    if (state.disabled || _loading) return;
     if (state.hoveredId != id) return;
-    if (!_previewAllowed()) return;
+    if (!_previewAllowed()) {
+      return;
+    }
     _loading = true;
     try {
+      // 上一张的播放器可能还在宽限期里：单飞，先让它让位再给这一张抓。
+      if (_player != null) await _releasePlayer();
       final detail = await ref.read(videoDetailProvider(id).future);
       if (state.hoveredId != id || _player != null) return;
       if (detail.sources.isEmpty) throw StateError('详情页没有给可播地址');
@@ -223,6 +257,7 @@ class HoverPreviewController extends Notifier<HoverPreviewState> {
         return;
       }
       _player = player;
+      _playerId = id;
       _failures = 0;
       state = state.copyWith(playingId: id);
       _stopTimer = Timer(hoverPreviewMaxDuration, () => unawaited(_stop()));
@@ -243,9 +278,19 @@ class HoverPreviewController extends Notifier<HoverPreviewState> {
   Future<void> _stop() async {
     _stopTimer?.cancel();
     _stopTimer = null;
+    _graceTimer?.cancel();
+    _graceTimer = null;
+    if (state.playingId != null) state = state.copyWith(clearPlaying: true);
+    await _releasePlayer();
+  }
+
+  /// 释放播放器（含宽限期里已经收掉画面的那一只）。可重复调用。
+  Future<void> _releasePlayer() async {
+    _graceTimer?.cancel();
+    _graceTimer = null;
     final player = _player;
     _player = null;
-    if (state.playingId != null) state = state.copyWith(clearPlaying: true);
+    _playerId = null;
     await player?.dispose();
   }
 
@@ -253,11 +298,11 @@ class HoverPreviewController extends Notifier<HoverPreviewState> {
   Future<void> _release() async {
     _timer?.cancel();
     _stopTimer?.cancel();
+    _graceTimer?.cancel();
     _timer = null;
     _stopTimer = null;
-    final player = _player;
-    _player = null;
-    await player?.dispose();
+    _graceTimer = null;
+    await _releasePlayer();
   }
 
   void _registerFailure(String id, Object error) {

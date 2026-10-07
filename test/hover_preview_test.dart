@@ -154,18 +154,39 @@ void main() {
     expect(h.state.playingId, 'v1');
   });
 
-  test('鼠标移开：播放器被释放，playingId 清空', () async {
+  test('鼠标移开：画面立刻收掉，播放器过了宽限期才释放', () async {
+    // 测试里不等 6 秒：把宽限期压成 0 再验释放。
+    hoverPreviewGrace = Duration.zero;
+    addTearDown(() => hoverPreviewGrace = const Duration(seconds: 6));
+
     final h = _Harness();
     h.controller.hover('v1');
     await Future<void>.delayed(_pastDelay);
     expect(h.state.playingId, 'v1');
 
     h.controller.unhover('v1');
-    await Future<void>.delayed(Duration.zero);
+    expect(h.state.playingId, isNull); // 画面立刻收，不等释放
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
-    expect(h.state.playingId, isNull);
     expect(h.state.hoveredId, isNull);
     expect(h.players.single.disposed, isTrue);
+  });
+
+  test('宽限期内回到同一张：直接复用播放器，不再抓详情、不再起第二个', () async {
+    final h = _Harness();
+    h.controller.hover('v1');
+    await Future<void>.delayed(_pastDelay);
+    expect(h.players, hasLength(1));
+
+    // 移开（播放器进宽限期）再马上回来 —— 这是"在几张卡之间来回扫"的常见路径。
+    h.controller.unhover('v1');
+    expect(h.state.playingId, isNull);
+    h.controller.hover('v1');
+
+    expect(h.state.playingId, 'v1'); // 画面立刻接回来，不用重新缓冲
+    expect(h.players, hasLength(1)); // 没有起第二个播放器
+    expect(h.repository.fetchCount, 1); // 也没有重新抓详情
+    expect(h.players.single.disposed, isFalse);
   });
 
   test('抓取还在路上时移到另一张：只起后一张的播放器', () async {

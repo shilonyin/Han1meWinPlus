@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/src/core/settings.dart';
+import 'package:han1me_win_plus/src/data/han1me_repository.dart';
 import 'package:han1me_win_plus/src/domain/models/video.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
+import 'package:han1me_win_plus/src/features/shared/hover_preview.dart';
 import 'package:han1me_win_plus/src/features/shared/video_card.dart';
 import 'package:han1me_win_plus/src/features/shared/scroll_actions.dart';
 import 'package:han1me_win_plus/src/features/video/play_window.dart';
@@ -38,6 +40,38 @@ VideoCard _badgeVideo(String id) => VideoCard(
   views: '1.2萬次',
 );
 
+/// 假仓库：卡片悬停会触发悬停预览去抓详情，测试里不能真发网络请求
+/// （测试环境下 HttpClient 一律返回 400，会以未捕获异常的形式把测试打红）。
+class _FakeRepository implements Han1meRepository {
+  @override
+  Future<VideoDetail> video(String baseUrl, String id) async => VideoDetail(
+    id: id,
+    title: '测试视频',
+    sources: const [
+      VideoSource(quality: '720p', url: 'https://example.invalid/v.mp4'),
+    ],
+    tags: const [],
+    playlist: const [],
+    related: const [],
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} 不该被调用');
+}
+
+/// 假播放器：悬停预览在测试里不该碰真解码器（没有播放器插件）。
+class _FakePreviewPlayer implements HoverPreviewPlayer {
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Widget buildSurface() => const SizedBox.shrink();
+}
+
 /// 固定返回一份设置的 SettingsController 替身（不读盘、不碰网络）。
 class _StubSettings extends SettingsController {
   _StubSettings(this._value);
@@ -50,6 +84,7 @@ class _StubSettings extends SettingsController {
 Widget _tile(VideoCard video) => ProviderScope(
   overrides: [
     settingsProvider.overrideWith(() => _StubSettings(AppSettings())),
+    han1meRepositoryProvider.overrideWithValue(_FakeRepository()),
   ],
   child: MaterialApp(
     theme: ThemeData(colorSchemeSeed: Colors.indigo),
@@ -78,6 +113,14 @@ Iterable<double> _scales(WidgetTester tester) => tester
     .map((widget) => widget.scale);
 
 void main() {
+  final realFactory = hoverPreviewPlayerFactory;
+  setUp(() {
+    // 悬停预览的播放器工厂是可变全局（见 hover_preview.dart 的说明），
+    // 这里换成假实现，免得测试进程去起真解码器。
+    hoverPreviewPlayerFactory = (source, headers) => _FakePreviewPlayer();
+  });
+  tearDown(() => hoverPreviewPlayerFactory = realFactory);
+
   test('点开过的 id 记进 openedVideoIdsProvider，重复点不重复记', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);

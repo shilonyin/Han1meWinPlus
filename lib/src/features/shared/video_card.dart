@@ -264,12 +264,22 @@ class _CoverBadgeFade extends StatelessWidget {
 
 /// 封面上的悬停预览：要额外铺的一层画面 + 鼠标进出的回调。
 ///
-/// 两者必须成对传：只给画面不给回调，那个画面永远不会出现。
+/// 画面和回调必须成对传：只给画面不给回调，那个画面永远不会出现。
 class _CoverHover {
-  const _CoverHover({this.surface, this.onHoverChanged});
+  const _CoverHover({
+    this.surface,
+    this.onHoverChanged,
+    this.preparing = false,
+  });
 
   final Widget? surface;
   final ValueChanged<bool>? onHoverChanged;
+
+  /// 已在为这张卡抓详情 / 起播放器，但画面还没出来。
+  ///
+  /// 这一步在真机上实测要 3～11 秒（详情页 ~2.6s + `initialize()` 缓冲 2.6~11s），
+  /// 不给提示的话用户会以为"悬停播放这个功能没了"，所以封面中央放一个小转圈。
+  final bool preparing;
 }
 
 class VideoCardTile extends ConsumerWidget {
@@ -354,6 +364,8 @@ class VideoCardTile extends ConsumerWidget {
       surface: preview.playingId == video.id
           ? notifier.player?.buildSurface()
           : null,
+      // 鼠标停在这张上、但画面还没出来 —— 卡片据此在封面里显示"正在准备"。
+      preparing: preview.hoveredId == video.id && preview.playingId != video.id,
       onHoverChanged: (hovered) {
         if (hovered) {
           notifier.hover(video.id);
@@ -386,27 +398,53 @@ class VideoCardTile extends ConsumerWidget {
         // 卡片本体不再铺底色：封面是独立的一块，文字直接落在页面底上（对齐 b 站首页卡片）。
         // 仍套一层**透明** Material —— InkWell 需要一个 Material 祖先才能画水波纹，
         // 但没有底色，就不会再出现"封面和文字同属一块白板"的两层感。
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Material(
-            type: MaterialType.transparency,
-            child: PressScale(child: InkWell(
-              borderRadius: BorderRadius.circular(videoCardRadius),
-              // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
-              // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
-              onTap:
-                  onTap ??
-                  (video.id.isEmpty
-                      ? null
-                      : () {
-                          ref.read(openedVideoIdsProvider.notifier).mark(video.id);
-                          openVideo(context, ref, video.id);
-                        }),
-              onLongPress: onLongPress,
-              child: horizontal
-                  ? _horizontalContent(theme, cacheWidth, resolved, marked, coverHover)
-                  : _verticalContent(theme, cacheWidth, resolved, marked, coverHover),
-            )),
+        return _HoverZone(
+          // 整张卡片一个悬停状态，用来给标题换强调色（b 站与 BiliDesk 的卡片都是
+          // 悬停即标题变色）。封面推近 / 角标淡出 / 悬停预览另有一个**更小**的悬停区
+          // （`_cover` 里那个 `_HoverZone`）：只有鼠标真的压到封面上才开始抓详情，
+          // 停在标题或空白处不该发请求。
+          builder: (context, hovered) => MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Material(
+              type: MaterialType.transparency,
+              child: PressScale(child: InkWell(
+                borderRadius: BorderRadius.circular(videoCardRadius),
+                // InkWell 的悬停/按下灰罩在"无底卡片"上只能从文字区透出来，看起来
+                // 就是「选中时下面变暗」（用户反馈的原话）。这里全部关掉：悬停反馈
+                // 交给标题变色 + 封面推近，按下反馈交给 PressScale 的缩放。
+                hoverColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                splashColor: Colors.transparent,
+                // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
+                // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
+                onTap:
+                    onTap ??
+                    (video.id.isEmpty
+                        ? null
+                        : () {
+                            ref.read(openedVideoIdsProvider.notifier).mark(video.id);
+                            openVideo(context, ref, video.id);
+                          }),
+                onLongPress: onLongPress,
+                child: horizontal
+                    ? _horizontalContent(
+                        theme,
+                        cacheWidth,
+                        resolved,
+                        marked,
+                        coverHover,
+                        hovered,
+                      )
+                    : _verticalContent(
+                        theme,
+                        cacheWidth,
+                        resolved,
+                        marked,
+                        coverHover,
+                        hovered,
+                      ),
+              )),
+            ),
           ),
         );
       },
@@ -419,12 +457,13 @@ class VideoCardTile extends ConsumerWidget {
     VideoCard video,
     bool marked,
     _CoverHover hover,
+    bool hovered,
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(child: _cover(theme, cacheWidth, video, hover)),
       const SizedBox(height: 8),
-      _details(theme, video, marked),
+      _details(theme, video, marked, hovered),
     ],
   );
 
@@ -434,6 +473,7 @@ class VideoCardTile extends ConsumerWidget {
     VideoCard video,
     bool marked,
     _CoverHover hover,
+    bool hovered,
   ) {
     // 竖版海报结果（「新番预告」这类）：网格已按海报比例算好卡高，封面必须吃掉
     // 「除标题区以外的全部高度」。**详情区不能放在 Flexible 里** —— Flexible 默认 flex 1，
@@ -446,7 +486,7 @@ class VideoCardTile extends ConsumerWidget {
           Expanded(child: _cover(theme, cacheWidth, video, hover)),
           const SizedBox(height: 8),
           // 标题区是固定高度（详见 _details），不参与 flex 分配。
-          ClipRect(child: _details(theme, video, marked)),
+          ClipRect(child: _details(theme, video, marked, hovered)),
         ],
       );
     }
@@ -465,7 +505,7 @@ class VideoCardTile extends ConsumerWidget {
           ),
         SizedBox(height: dense ? 4 : 8),
         // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
-        Flexible(child: ClipRect(child: _details(theme, video, marked))),
+        Flexible(child: ClipRect(child: _details(theme, video, marked, hovered))),
       ],
     );
   }
@@ -523,6 +563,30 @@ class VideoCardTile extends ConsumerWidget {
                   ],
                 ),
               ),
+              // 正在为这张卡抓详情 / 起播放器 —— 真机实测这一步要 3～11 秒
+              // （详情页约 2.6s，`initialize()` 缓冲 2.6~11s），不给提示的话用户会
+              // 以为"悬停播放这个功能没了"（用户反馈原话）。用一小块深色底保证在
+              // 任何封面上都看得见，且不整块压暗封面。
+              if (hover.preparing)
+                Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: SizedBox(
+                        width: dense ? 12 : 16,
+                        height: dense ? 12 : 16,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (video.duration != null)
                 Positioned(
                   right: dense ? 3 : 6,
@@ -571,45 +635,86 @@ class VideoCardTile extends ConsumerWidget {
     );
   }
 
-  Widget _details(ThemeData theme, VideoCard video, bool marked) {
+  /// 标题按最多两行排版时的实际高度（用与 `Text` 完全相同的样式和文字缩放量出来）。
+  double _titleHeight(
+    BuildContext context,
+    String title,
+    TextStyle? style,
+    double maxWidth,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: title, style: style),
+      maxLines: 2,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: maxWidth.isFinite ? maxWidth : 1000);
+    return painter.height;
+  }
+
+  Widget _details(
+    ThemeData theme,
+    VideoCard video,
+    bool marked,
+    bool hovered,
+  ) {
     final hasMeta = hasVideoCardMeta(video);
     // 作者名 / 评分 / 上传时间原来是 `colorScheme.outline` —— 那是**描边**色，
     // 压在页面底上对比度只有 1.6:1 上下（用户反馈"下面的用户和时间对比度有些弱"）。
     // 正文级的次要文字该用 onSurfaceVariant。
     final metaInk = theme.colorScheme.onSurfaceVariant;
+    // 标题在三种情况下染主题色：看过（会话级标记）、详情页里正在看的那一张、
+    // 以及鼠标停在这张卡片上 —— b 站与 BiliDesk 的卡片都是「悬停即标题变强调色」。
+    // 卡片本身不再铺底色、也不再用 InkWell 的灰色高亮提示悬停：那层灰只能从没有
+    // 背景的文字区透出来，看起来就是"选中时下面变暗"（用户反馈的原话），
+    // 现在改成颜色变化 + 封面推近。
+    final accentTitle = marked || selected || hovered
+        ? theme.colorScheme.primary
+        : null;
     // 左右各让 2px、底部留 2px：文字原来是紧贴卡片边的（用户反馈"太贴边"）。
     return Padding(
       padding: const EdgeInsets.only(left: 2, right: 2, bottom: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (dense)
-            // 小卡片只留一行标题：短标题时不会在标题和作者名之间空一大截
-            Text(
-              video.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                // 点开过的卡片标题染主题色：一眼能看出哪几张看过了。
-                color: marked ? theme.colorScheme.primary : null,
-              ),
-            )
-          else
-            SizedBox(
-              height: 40,
-              child: Text(
-                video.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: marked ? theme.colorScheme.primary : null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: accentTitle,
+          );
+          // 标题区高度按**实际占了几行**算：原来写死 40（两行高度），标题只有一行时
+          // 标题与作者之间就空着 20 逻辑像素 —— 用户反馈"用户和标题间隔太宽了"。
+          // 网格行高仍然是固定值，省下来的空间落在卡片底部，不会再夹在两者之间。
+          final titleHeight = _titleHeight(
+            context,
+            video.title,
+            titleStyle,
+            constraints.maxWidth,
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (dense)
+                // 小卡片只留一行标题：短标题时不会在标题和作者名之间空一大截
+                Text(
+                  video.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    // 点开过的卡片标题染主题色：一眼能看出哪几张看过了。
+                    color: accentTitle,
+                  ),
+                )
+              else
+                SizedBox(
+                  height: titleHeight,
+                  child: Text(
+                    video.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
                 ),
-              ),
-            ),
           if (hasMeta) ...[
             const SizedBox(height: 6),
             // 作者名缺失时也占一行，避免同一行卡片里的元素上下错位
@@ -666,7 +771,9 @@ class VideoCardTile extends ConsumerWidget {
               ),
             ),
           ],
-        ],
+            ],
+          );
+        },
       ),
     );
   }
