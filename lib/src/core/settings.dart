@@ -73,7 +73,7 @@ enum GlassMaterial { regular, dark, light, clear, frosted }
 /// 一组命名的设置，演示站叫 Preset。
 ///
 /// **不落盘**：它不是独立状态，而是「当前这几项凑起来正好等于哪一档」，所以每次都由
-/// 实际设置反推（见 `glass_tuning.dart` 的 `glassPresetFor`）。手改了任意一项就变成
+/// 实际设置反推。手改了任意一项就变成
 /// 自定义，改回去预设又回来 —— 演示站就是这么做的。
 ///
 /// 序列化按枚举名保存，新值只能往后追加。
@@ -116,8 +116,7 @@ enum GlassRippleKind { off, water, jelly, honey }
 ///
 /// 演示站还有一档 `auto`（交给包自己判），我们没有搬：它判出来的结果和 `glass` 一样
 /// （`GlassTierChoice.byDefault` 就是 `GlassTier.full`），多一档只是多一次解释。
-/// 系统「减少透明度」仍然**优先于**这里的任何一档 —— 那是可访问性地板，不是偏好，
-/// 见 `glass_tuning.dart` 的 `glassTierChoice`。
+/// 系统「减少透明度」仍然**优先于**这里的任何一档 —— 那是可访问性地板，不是偏好。
 ///
 /// 序列化按枚举名保存，新值只能往后追加。
 enum GlassRendering { glass, translucent, opaque }

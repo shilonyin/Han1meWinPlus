@@ -44,7 +44,7 @@ abstract final class AppSurfaceTokens {
   /// 第二份真相**：它把「液体玻璃」记成 .55，而材质真实的 tint alpha 是
   /// .693（深）/ .718（浅），于是"判定用的底色"和真的画出来的玻璃并不一致。
   ///
-  /// 现在浓度只有一个来源 —— 材质自己的 `finish.tint`：档位怎么定浓度写在
-  /// `glassFinishFor`（`features/shared/glass/glass_tuning.dart`）里，
-  /// 需要等效底色的地方直接读 `finish.tint`。删除这张表是那次合并的一部分。
+  /// 现在浓度只有一个来源 —— 材质自己的 tint；后来玻璃材质整层退役（改用
+  /// Material 3 自己的面），这一层连"哪种料什么浓度"都不必再判断了。
+  /// 删除这张表是那次合并的一部分。
 }
