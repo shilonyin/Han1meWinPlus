@@ -2018,6 +2018,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glassContrastIncreased => 'Increased';
 
   @override
+  String get glassPreset => 'Preset';
+
+  @override
+  String get glassPresetUltra => 'Ultra';
+
+  @override
+  String get glassPresetHigh => 'High';
+
+  @override
+  String get glassPresetMedium => 'Medium';
+
+  @override
+  String get glassPresetLow => 'Low';
+
+  @override
+  String get glassPresetCustom => 'Custom';
+
+  @override
+  String get glassPresetCustomHint => 'Your own settings';
+
+  @override
+  String get glassPresetUltraHint =>
+      'Liquid Glass with a wave under the finger';
+
+  @override
+  String get glassPresetHighHint => 'Liquid Glass as iOS draws it';
+
+  @override
+  String get glassPresetMediumHint =>
+      'Tint over the backdrop, nothing captured';
+
+  @override
+  String get glassPresetLowHint => 'An opaque fill, nothing behind it shows';
+
+  @override
+  String get glassMaterial => 'Material';
+
+  @override
+  String get glassMaterialRegular => 'Regular';
+
+  @override
+  String get glassMaterialDark => 'Dark';
+
+  @override
+  String get glassMaterialLight => 'Light';
+
+  @override
+  String get glassMaterialClear => 'Clear';
+
+  @override
+  String get glassMaterialFrosted => 'Frosted';
+
+  @override
   String get globalHotkeys => 'Global hotkeys';
 
   @override

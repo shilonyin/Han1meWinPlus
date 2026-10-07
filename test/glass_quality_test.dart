@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:g1455/g1455.dart';
 import 'package:han1me_win_plus/src/app/app_theme.dart';
 import 'package:han1me_win_plus/src/core/color_contrast.dart';
 import 'package:han1me_win_plus/src/core/settings.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_list.dart';
 import 'package:han1me_win_plus/src/features/shared/glass/glass_panel.dart';
-import 'package:han1me_win_plus/src/features/shared/glass/glass_tuning.dart';
-
 
 /// 固定返回一份设置的替身（不读盘、不碰网络）。
 class _StubSettings extends SettingsController {
@@ -20,89 +17,6 @@ class _StubSettings extends SettingsController {
 }
 
 void main() {
-  group('glassFinishFor（本仓库的档位 → g1455 材质）', () {
-    final scheme = ColorScheme.fromSeed(seedColor: const Color(0xff62539f));
-    GlassFinish finishOf(
-      GlassQuality quality, {
-      double opacity = .5,
-      Brightness brightness = Brightness.dark,
-      GlassTintKind tint = GlassTintKind.neutral,
-    }) => glassFinishFor(
-      quality: quality,
-      brightness: brightness,
-      scheme: scheme,
-      opacity: opacity,
-      tint: tint,
-    );
-
-    // 这一条盯的就是「磨砂功能失效」那个 bug：换成 g1455 渲染之后，
-    // `glassSurfaceOpacity` 一度只喂给「文字可读性推算」，玻璃自己那层的 tint
-    // alpha 是包里的固定值 .22 —— 滑条从 20% 拖到 100%，画面逐像素完全相同。
-    test('磨砂档的浓度跟着滑条走', () {
-      expect(finishOf(GlassQuality.frosted, opacity: .2).tint.a, closeTo(.2, 1e-9));
-      expect(finishOf(GlassQuality.frosted, opacity: 1).tint.a, closeTo(1, 1e-9));
-      expect(
-        finishOf(GlassQuality.frosted, opacity: .8).tint.a >
-            finishOf(GlassQuality.frosted, opacity: .3).tint.a,
-        isTrue,
-      );
-    });
-
-    test('磨砂档仍然是磨砂：它自己的模糊没被换掉', () {
-      expect(
-        finishOf(GlassQuality.frosted).blurSigmaLogical,
-        GlassFinish.frosted.blurSigmaLogical,
-      );
-    });
-
-    test('液体玻璃的浓度由材质定，不跟滑条走', () {
-      expect(
-        finishOf(GlassQuality.liquid, opacity: .2).tint.a,
-        finishOf(GlassQuality.liquid, opacity: 1).tint.a,
-      );
-    });
-
-    test('中性档不动材质原本的 tint', () {
-      for (final brightness in Brightness.values) {
-        expect(
-          finishOf(
-            GlassQuality.liquid,
-            brightness: brightness,
-          ).tint,
-          GlassFinish.regular(appearance: brightness).tint,
-        );
-      }
-    });
-
-    test('带色档只换 RGB，浓度仍然照旧', () {
-      final plain = finishOf(GlassQuality.liquid);
-      final indigo = finishOf(GlassQuality.liquid, tint: GlassTintKind.indigo);
-      final rose = finishOf(GlassQuality.liquid, tint: GlassTintKind.rose);
-      expect(indigo.tint.a, plain.tint.a);
-      expect(rose.tint.a, plain.tint.a);
-      expect(indigo.tint.toARGB32(), isNot(plain.tint.toARGB32()));
-      expect(rose.tint.toARGB32(), isNot(plain.tint.toARGB32()));
-      expect(indigo.tint.toARGB32(), isNot(rose.tint.toARGB32()));
-    });
-
-    test('中性就是"不指定颜色"', () {
-      expect(glassTintColorFor(GlassTintKind.neutral, scheme), isNull);
-      expect(glassTintColorFor(GlassTintKind.indigo, scheme), isNotNull);
-      expect(glassTintColorFor(GlassTintKind.rose, scheme), isNotNull);
-    });
-
-    test('磨砂与液体玻璃不是换个名字：浓度来源不同', () {
-      expect(
-        finishOf(GlassQuality.frosted, opacity: .5).tint.a,
-        closeTo(.5, 1e-9),
-      );
-      expect(
-        finishOf(GlassQuality.liquid).tint.a,
-        isNot(closeTo(.5, 1e-9)),
-      );
-    });
-  });
-
   group('GlassPanel 可读性接入', () {
     testWidgets('子树能拿到面板等效底色，且它是不透明的', (tester) async {
       late BuildContext ctx;
@@ -184,7 +98,7 @@ void main() {
           overrides: [
             settingsProvider.overrideWith(
               () => _StubSettings(
-                const AppSettings(glassQuality: GlassQuality.frosted),
+                const AppSettings(glassMaterial: GlassMaterial.frosted),
               ),
             ),
           ],

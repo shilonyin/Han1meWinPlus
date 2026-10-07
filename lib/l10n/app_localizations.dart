@@ -3680,6 +3680,108 @@ abstract class AppLocalizations {
   /// **'Increased'**
   String get glassContrastIncreased;
 
+  /// No description provided for @glassPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset'**
+  String get glassPreset;
+
+  /// No description provided for @glassPresetUltra.
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra'**
+  String get glassPresetUltra;
+
+  /// No description provided for @glassPresetHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get glassPresetHigh;
+
+  /// No description provided for @glassPresetMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get glassPresetMedium;
+
+  /// No description provided for @glassPresetLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get glassPresetLow;
+
+  /// No description provided for @glassPresetCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get glassPresetCustom;
+
+  /// No description provided for @glassPresetCustomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own settings'**
+  String get glassPresetCustomHint;
+
+  /// No description provided for @glassPresetUltraHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass with a wave under the finger'**
+  String get glassPresetUltraHint;
+
+  /// No description provided for @glassPresetHighHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass as iOS draws it'**
+  String get glassPresetHighHint;
+
+  /// No description provided for @glassPresetMediumHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tint over the backdrop, nothing captured'**
+  String get glassPresetMediumHint;
+
+  /// No description provided for @glassPresetLowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'An opaque fill, nothing behind it shows'**
+  String get glassPresetLowHint;
+
+  /// No description provided for @glassMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get glassMaterial;
+
+  /// No description provided for @glassMaterialRegular.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get glassMaterialRegular;
+
+  /// No description provided for @glassMaterialDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get glassMaterialDark;
+
+  /// No description provided for @glassMaterialLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get glassMaterialLight;
+
+  /// No description provided for @glassMaterialClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get glassMaterialClear;
+
+  /// No description provided for @glassMaterialFrosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted'**
+  String get glassMaterialFrosted;
+
   /// No description provided for @globalHotkeys.
   ///
   /// In en, this message translates to:

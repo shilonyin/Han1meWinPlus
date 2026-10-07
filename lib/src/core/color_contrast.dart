@@ -218,8 +218,8 @@ Color resolveTextColorOnSurface({
 
 /// 玻璃面板的**不透明**等效色。
 ///
-/// [tint] 是玻璃底色（`GlassPanel.tint`），[opacity] 是玻璃的不透明度
-/// （设置里的 `glassSurfaceOpacity`），[background] 是玻璃下方的页面底色。
+/// [tint] 是玻璃底色（`GlassPanel.tint`），[opacity] 是乘在它 alpha 上的额外浓度
+/// （玻璃材质的 tint 本身带 alpha，这里一般传 1），[background] 是玻璃下方的页面底色。
 /// 玻璃本身是半透明的，它到底呈现什么颜色取决于底下画着什么；
 /// 要判断"面板上的字读不读得清"，就得先把它压成一个不透明色。
 Color glassSurfaceColor({
@@ -238,7 +238,7 @@ Color glassSurfaceColor({
 ///
 /// 参数直接对应 `GlassPanel` 的构造方式：
 /// - [tint]：玻璃底色（`GlassPanel.tint`，缺省是 `surfaceContainerLow`）；
-/// - [opacity]：玻璃的不透明度（设置项 `glassSurfaceOpacity`）；
+/// - [opacity]：乘在玻璃底色 alpha 上的额外浓度（材质的 tint 自带 alpha，一般传 1）；
 /// - [pageBackground]：玻璃**下方**的页面底色（背景画布）；
 /// - [candidate]：原本想用的文字色；
 /// - [fallbacks]：读不清时依序尝试的颜色，一般给主题语义色

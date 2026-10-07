@@ -110,7 +110,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
           // policy 会为此返回 GlassTier.opaque 并带上 reduceTransparency 这个理由，
           // 它整档都不读背景，所以这时连那一次全屏捕获也省掉了。
           tier: glassTierChoice(
-            mode: settings.glassTier,
+            rendering: settings.glassRendering,
             reduceTransparency: _reduceTransparency,
           ),
           // 玻璃背后的平均底色：直接取页面底色（`AppPageColors`，即 g1455 演示站的

@@ -52,20 +52,32 @@ enum MpvGpuApi { auto, vulkan, d3d11 }
 /// 序列化按枚举名保存，新值只能往后追加。
 enum WindowBackdrop { none, mica, acrylic }
 
-/// 玻璃质感（卡片与弹层的磨砂面板）。三档 = **两种渲染 + 一种关闭**：
-/// - `off`     关闭：卡片走纯色底
-/// - `frosted` 磨砂：纯模糊不折射，浓度由「磨砂不透明度」滑条决定
-/// - `liquid`  液体玻璃：边缘折射 + 光照跟随（着色器），浓度是材质自己定的
+/// 玻璃用哪块料（g1455 的 `GlassFinish`）。
 ///
-/// 原来的 `clear`（超透）已删除：g1455 的 `clear` 与 `frosted` **共用同一个 tint**
-/// （都是 `rgba(249,249,249,0.22)`），唯一差别是模糊 σ 8 对 0 —— 而页面底色变平之后
-/// 模糊看不出任何区别，实测两档的画面**逐像素完全相同**，所以它是重复的一档。
-/// 老配置里存着 `clear` 的会落到 `frosted`。
+/// 这五档不是我们编的：它们是 g1455 按真机材质**校准过**的常数，名字也照抄包的。
+/// 名字必须照抄 —— 包里的损伤表按材质名索引，换个名字只会拿到拒绝而不是数字。
+/// 我们从不自己拼 finish，只在这五个里挑一个。
+/// - `regular` 常规：包按明暗挑 `.regular` 的那一支（深色下即 `regularDark`）
+/// - `dark`    深色：钉死用深色那支
+/// - `light`   浅色：钉死用浅色那支
+/// - `clear`   超透：不模糊，只有一层很淡的底 + 亮边
+/// - `frosted` 磨砂：纯模糊不折射
 ///
-/// 档位**直接决定是否启用**（不再有单独的开关）—— 原来拆成「开关 + 档位」两个控件，
-/// 开关关着时档位形同虚设，切了看不出任何变化。
+/// 换料**不碰** tint —— 染哪一色是「玻璃染色」那一栏的事。原来挂在磨砂档上的
+/// 「磨砂不透明度」滑条已经删掉：它只对磨砂档有效，而演示站那边磨砂就是磨砂，
+/// 浓度是材质自己定的。
+///
 /// 序列化按枚举名保存，新值只能往后追加。
-enum GlassQuality { off, frosted, liquid }
+enum GlassMaterial { regular, dark, light, clear, frosted }
+
+/// 一组命名的设置，演示站叫 Preset。
+///
+/// **不落盘**：它不是独立状态，而是「当前这几项凑起来正好等于哪一档」，所以每次都由
+/// 实际设置反推（见 `glass_tuning.dart` 的 `glassPresetFor`）。手改了任意一项就变成
+/// 自定义，改回去预设又回来 —— 演示站就是这么做的。
+///
+/// 序列化按枚举名保存，新值只能往后追加。
+enum GlassPresetKind { ultra, high, medium, low }
 
 /// 玻璃本身的染色（g1455 的 `GlassFinish.tint`）。
 ///
@@ -98,19 +110,23 @@ enum GlassRippleKind { off, water, jelly, honey }
 ///
 /// 这个维度是**整屏级**的，不是每块玻璃一个：三个档位分别决定"要不要读背景"，
 /// 而捕获全屏的那一次是共享的，所以档位只能整屏选。
-/// - `auto`     自动：交给 g1455 的 `GlassTierPolicy` 判（含系统"减少透明度"）
-/// - `full`     完整：读背景 —— 折射、模糊、亮边都在（也是波纹能画出来的唯一档）
-/// - `cheap`    半透：同样的形状与亮边，但**完全不读背景**，省掉那次全屏捕获
-/// - `opaque`   不透明：纯填充，背后什么都不透
+/// - `glass`       玻璃：读背景 —— 折射、模糊、亮边都在（也是波纹能画出来的唯一档）
+/// - `translucent` 半透：同样的形状与亮边，但**完全不读背景**，省掉那次全屏捕获
+/// - `opaque`      不透明：纯填充，背后什么都不透
+///
+/// 演示站还有一档 `auto`（交给包自己判），我们没有搬：它判出来的结果和 `glass` 一样
+/// （`GlassTierChoice.byDefault` 就是 `GlassTier.full`），多一档只是多一次解释。
+/// 系统「减少透明度」仍然**优先于**这里的任何一档 —— 那是可访问性地板，不是偏好，
+/// 见 `glass_tuning.dart` 的 `glassTierChoice`。
 ///
 /// 序列化按枚举名保存，新值只能往后追加。
-enum GlassTierMode { auto, full, cheap, opaque }
+enum GlassRendering { glass, translucent, opaque }
 
 /// 玻璃边缘的对比度（g1455 的 `highContrast`）。
 ///
 /// 打开后每块玻璃的描边改成**不透明**的高对比细线，半透明本身不变 ——
 /// 这正是 Apple 自己的"提高对比度"开关对它家玻璃做的事：看得清边界，但材质不消失。
-/// 给看不清边界的人用，和"把透明度关掉"（`GlassTierMode.opaque`）是两件事。
+/// 给看不清边界的人用，和"把透明度关掉"（`GlassRendering.opaque`）是两件事。
 enum GlassContrast { auto, increased }
 
 extension PlayerEngineX on PlayerEngine {
@@ -206,11 +222,10 @@ class AppSettings {
     this.hotkeyDefaultsMigrated = false,
     this.windowBackdrop = WindowBackdrop.none,
     this.glassSurfaceEnabled = false,
-    this.glassSurfaceOpacity = .5,
-    this.glassQuality = GlassQuality.frosted,
+    this.glassMaterial = GlassMaterial.regular,
     this.glassTint = GlassTintKind.neutral,
     this.glassRipple = GlassRippleKind.off,
-    this.glassTier = GlassTierMode.auto,
+    this.glassRendering = GlassRendering.glass,
     this.glassContrast = GlassContrast.auto,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
@@ -343,13 +358,13 @@ class AppSettings {
 
   /// 界面是否使用毛玻璃材质（`LiquidGlassSurface`）。默认关闭：它要采样背景，
   /// 在列表密集滚动时比纯色卡片更耗，且需要 Impeller 后端才有折射效果。
+  ///
+  /// **遗留字段**：玻璃现在已经由 [glassMaterial] 一档直接决定，渲染层不再读它；
+  /// 保留只是为了迁移那些比 `glassQuality` 还老的配置（那时只有「开 / 关」）。
   final bool glassSurfaceEnabled;
 
-  /// 毛玻璃面板的不透明度（0.2–1.0）。越低越透，越能看出底下的画布渐变。
-  final double glassSurfaceOpacity;
-
-  /// 磨砂面板的质感档位（磨砂 / 液体玻璃）。
-  final GlassQuality glassQuality;
+  /// 玻璃用哪块料（常规 / 深色 / 浅色 / 超透 / 磨砂）。
+  final GlassMaterial glassMaterial;
 
   /// 玻璃本身的染色（中性 / 靛蓝 / 玫瑰）。与「配色方案」不是一回事，见枚举文档。
   final GlassTintKind glassTint;
@@ -357,8 +372,8 @@ class AppSettings {
   /// 触摸玻璃时表面起的波纹（关闭 / 水 / 果冻 / 蜂蜜）。
   final GlassRippleKind glassRipple;
 
-  /// 玻璃的渲染层级（自动 / 完整 / 半透 / 不透明）。整屏级，见枚举文档。
-  final GlassTierMode glassTier;
+  /// 玻璃的渲染层级（玻璃 / 半透 / 不透明）。整屏级，见枚举文档。
+  final GlassRendering glassRendering;
 
   /// 玻璃边缘的对比度（跟随系统 / 增强）。
   final GlassContrast glassContrast;
@@ -512,11 +527,10 @@ class AppSettings {
     'hotkeyDefaultsMigrated': hotkeyDefaultsMigrated,
     'windowBackdrop': windowBackdrop.name,
     'glassSurfaceEnabled': glassSurfaceEnabled,
-    'glassSurfaceOpacity': glassSurfaceOpacity,
-    'glassQuality': glassQuality.name,
+    'glassMaterial': glassMaterial.name,
     'glassTint': glassTint.name,
     'glassRipple': glassRipple.name,
-    'glassTier': glassTier.name,
+    'glassRendering': glassRendering.name,
     'glassContrast': glassContrast.name,
     'notificationsEnabled': notificationsEnabled,
     'gpuApi': gpuApi.name,
@@ -659,17 +673,16 @@ class AppSettings {
         _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ??
         WindowBackdrop.none,
     glassSurfaceEnabled: json['glassSurfaceEnabled'] as bool? ?? false,
-    glassSurfaceOpacity: (json['glassSurfaceOpacity'] as num?)?.toDouble().clamp(.2, 1) ?? .5,
-    // 老配置是「开关 + 档位」两个字段：开关关着 → off，开着 → 保留原档位（液体玻璃）。
-    // 两个字段都没有（全新配置）→ 用新的默认档位「磨砂」。
-    // 已删除的 `clear`（超透）也走这条：它本来就与磨砂逐像素相同，落到磨砂是对的。
-    glassQuality: _enumByName(GlassQuality.values, json['glassQuality'] as String?) ??
-        (json.containsKey('glassSurfaceEnabled')
-            ? ((json['glassSurfaceEnabled'] as bool? ?? false) ? GlassQuality.liquid : GlassQuality.off)
-            : GlassQuality.frosted),
+    // 老配置是「开关 + 档位」两个字段，再往后档位从 clear/frosted/liquid 三档换成
+    // 直接选材质。两级回退都在这里：能读到 glassMaterial 就用它，否则按老档位名翻。
+    glassMaterial:
+        _enumByName(GlassMaterial.values, json['glassMaterial'] as String?) ??
+        _legacyMaterial(json['glassQuality'] as String?),
     glassTint: _enumByName(GlassTintKind.values, json['glassTint'] as String?) ?? GlassTintKind.neutral,
     glassRipple: _enumByName(GlassRippleKind.values, json['glassRipple'] as String?) ?? GlassRippleKind.off,
-    glassTier: _enumByName(GlassTierMode.values, json['glassTier'] as String?) ?? GlassTierMode.auto,
+    glassRendering:
+        _enumByName(GlassRendering.values, json['glassRendering'] as String?) ??
+        _legacyRendering(json['glassTier'] as String?),
     glassContrast: _enumByName(GlassContrast.values, json['glassContrast'] as String?) ?? GlassContrast.auto,
     notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
     gpuApi:
@@ -751,6 +764,33 @@ class AppSettings {
     }
     return null;
   }
+
+  /// 老配置里的「质感档位」翻成现在选的材质。
+  ///
+  /// `liquid` 那档翻到 `regular` 而不是某个更"具体"的材质：液体玻璃本来就是
+  /// 按明暗自动挑 `.regular` 的那一支，`regular` 正是同一件事。
+  /// `clear` 与 `frosted` 按名字原样留着 —— 它们在包是两块真料（模糊 σ 0 对 8），
+  /// 只是页面底色被压平之后看不出差别，所以设置页不再列出来，但老配置不该被改掉。
+  static GlassMaterial _legacyMaterial(String? qualityName) {
+    switch (qualityName) {
+      case 'clear':
+        return GlassMaterial.clear;
+      case 'frosted':
+        return GlassMaterial.frosted;
+      // `liquid` 与 `off`（以及比 `glassQuality` 更老、只有开关的配置）都落到 `regular`：
+      // 液体玻璃本来就是按明暗自动挑 `.regular` 的那一支，而老配置里的 off 是"不要玻璃"，
+      // 现在的模型没有关掉这一档，取最接近的。
+      default:
+        return GlassMaterial.regular;
+    }
+  }
+
+  /// 老配置里的「渲染层级」翻成现在的三档（`auto` 判出来就是完整档）。
+  static GlassRendering _legacyRendering(String? tierName) => switch (tierName) {
+    'cheap' => GlassRendering.translucent,
+    'opaque' => GlassRendering.opaque,
+    _ => GlassRendering.glass,
+  };
 
   static String _hexColor(String? value) {
     final normalized = value?.replaceFirst('#', '').toUpperCase() ?? '';
@@ -853,11 +893,10 @@ class AppSettings {
     bool? hotkeyDefaultsMigrated,
     WindowBackdrop? windowBackdrop,
     bool? glassSurfaceEnabled,
-    double? glassSurfaceOpacity,
-    GlassQuality? glassQuality,
+    GlassMaterial? glassMaterial,
     GlassTintKind? glassTint,
     GlassRippleKind? glassRipple,
-    GlassTierMode? glassTier,
+    GlassRendering? glassRendering,
     GlassContrast? glassContrast,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
@@ -960,11 +999,10 @@ class AppSettings {
         hotkeyDefaultsMigrated ?? this.hotkeyDefaultsMigrated,
     windowBackdrop: windowBackdrop ?? this.windowBackdrop,
     glassSurfaceEnabled: glassSurfaceEnabled ?? this.glassSurfaceEnabled,
-    glassSurfaceOpacity: glassSurfaceOpacity ?? this.glassSurfaceOpacity,
-    glassQuality: glassQuality ?? this.glassQuality,
+    glassMaterial: glassMaterial ?? this.glassMaterial,
     glassTint: glassTint ?? this.glassTint,
     glassRipple: glassRipple ?? this.glassRipple,
-    glassTier: glassTier ?? this.glassTier,
+    glassRendering: glassRendering ?? this.glassRendering,
     glassContrast: glassContrast ?? this.glassContrast,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     gpuApi: gpuApi ?? this.gpuApi,

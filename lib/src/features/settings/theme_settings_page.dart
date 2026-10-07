@@ -6,11 +6,10 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_notifications.dart';
-import '../../core/app_surface_tokens.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
-import 'settings_glass_controls.dart';
+import '../shared/glass/glass_tuning.dart';
 import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import 'color_compass_dialog.dart';
@@ -40,13 +39,8 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
         children: [
           SettingsCardList(title: l10n.appearance, children: [
             // 行形态统一：当前值放在 subtitle，尾部用 chevron_right 表示「点开可选」。
-            SettingsCardItem(
-              title: l10n.themeMode,
-              subtitle: _themeModeLabel(l10n, settings.themeMode),
-              leading: const Icon(Symbols.brightness_auto_rounded),
-              trailing: const Icon(Symbols.chevron_right_rounded),
-              onTap: () => _pickThemeMode(context, controller, settings),
-            ),
+            // 「主题模式」这一项已经并进下面那一节（演示站的面板里 Appearance 就是
+            // 它的一栏），留在这里会让同一个设置有两个入口。
             SettingsCardItem(
               title: l10n.colorScheme,
               subtitle: settings.useMonetColors ? l10n.dynamicColor : themeColorLabel(l10n, settings.themeColor),
@@ -126,9 +120,9 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
                   trailing: const Icon(Symbols.chevron_right_rounded),
                   onTap: () => _pickWindowBackdrop(context, controller, settings),
                 ),
-              // 玻璃质感：三档控制的是**应用内磨砂面板的渲染方式**（模糊 / 透明度 / 折射），
+              // 玻璃：照 g1455 演示站那个控制面板重做的一整节（含外观在内），
               // 和上面的「窗口背景材质」（Windows 系统材质）是两回事。
-              _GlassQualityPanel(
+              _ThemeModePanel(
                 settings: settings,
                 controller: controller,
                 l10n: l10n,
@@ -138,21 +132,6 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
         ],
       ),
     );
-  }
-
-  /// 三个单选项走统一的弹层（和硬件解码器 / 代理 / 超分辨率一致），
-  /// 原来是裸的 showModalBottomSheet + ListTile，看着跟别处不是一套。
-  Future<void> _pickThemeMode(BuildContext context, SettingsController controller, AppSettings settings) async {
-    final l10n = AppLocalizations.of(context)!;
-    final selected = await showOptionSettingsDialog<AppThemeMode>(
-      context: context,
-      title: l10n.themeMode,
-      current: settings.themeMode,
-      options: AppThemeMode.values,
-      label: (mode) => _themeModeLabel(l10n, mode),
-    );
-    if (selected == null || selected == settings.themeMode) return;
-    await controller.saveChanges((current) => current.copyWith(themeMode: selected));
   }
 
   /// 窗口材质三档（Windows 系统材质）：走统一的选项弹层。
@@ -190,10 +169,19 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
   }
 }
 
-/// 玻璃质感面板：三选一的材质卡片 + 磨砂面板开关 + 不透明度滑条。
-/// 设计与 morrow（明隙）的质感选择器一致。
-class _GlassQualityPanel extends StatelessWidget {
-  const _GlassQualityPanel({
+
+/// 「主题模式」一节：照 g1455 演示站那个控制面板重做。
+///
+/// 面板本体就在包里（`g1455-0.1.4/example/lib/src/settings_menu.dart` 与
+/// `style.dart`）—— 那一页是作者自己摆出来的权威档位表，连枚举名和色值都是他定的。
+/// 这里照抄它的结构：一栏一个小标题 + 一段等分的紧凑分段控件，预设下面再跟一行说明。
+///
+/// 和原来那版（图标卡片 + 只在磨砂档出现的不透明度滑条）的区别不只是好看：
+/// - **预设**是新的：一档就是一组取值，点了把那一组整体写进设置；
+/// - **材质**取代了原来的「玻璃质感」三档，选项直接对应包校准过的五块料；
+/// - 不透明度滑条删掉了 —— 它只对磨砂档有效，而材质现在是直接选的。
+class _ThemeModePanel extends StatelessWidget {
+  const _ThemeModePanel({
     required this.settings,
     required this.controller,
     required this.l10n,
@@ -207,179 +195,195 @@ class _GlassQualityPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final quality = settings.glassQuality;
-    void setQuality(GlassQuality value) =>
-        controller.saveChanges((current) => current.copyWith(glassQuality: value));
+    final preset = glassPresetFor(glassRecipeOf(settings));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.glassTexture,
-          style: textTheme.titleSmall?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 10),
-        // 三档直接决定用哪种渲染：
-        // 关闭＝纯色卡片、磨砂＝纯模糊且浓度由下面的滑条定、液体玻璃＝边缘折射。
-        // 档位本身就是开关，不再另设一个「毛玻璃材质」开关 —— 那样开关关着时切档位毫无反应。
-        //
-        // 原来的第四档「超透」已删除：它和磨砂**共用同一个 tint**、只差模糊强度，
-        // 而页面底色压平之后模糊看不出区别，实测两档画面逐像素完全相同。
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            SizedBox(
-              width: _glassModeCardWidth,
-              child: _GlassModeCard(
-                icon: Symbols.rectangle_rounded,
-                title: l10n.glassOff,
-                selected: quality == GlassQuality.off,
-                onTap: () => setQuality(GlassQuality.off),
-              ),
-            ),
-            SizedBox(
-              width: _glassModeCardWidth,
-              child: _GlassModeCard(
-                icon: Symbols.blur_on_rounded,
-                title: l10n.glassFrosted,
-                selected: quality == GlassQuality.frosted,
-                onTap: () => setQuality(GlassQuality.frosted),
-              ),
-            ),
-            SizedBox(
-              width: _glassModeCardWidth,
-              child: _GlassModeCard(
-                icon: Symbols.lens_blur_rounded,
-                title: l10n.glassLiquid,
-                selected: quality == GlassQuality.liquid,
-                onTap: () => setQuality(GlassQuality.liquid),
-              ),
-            ),
-          ],
-        ),
-        // 滑条**只在磨砂档**出现：它调的就是磨砂那块玻璃的浓度（直接喂给材质的
-        // `tint` alpha），「液体玻璃」的浓度是材质自己校准过的，调它没有意义。
-        if (quality == GlassQuality.frosted) ...[
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.glassFrostOpacity,
-                  style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
-                ),
-              ),
-              Text(
-                '${(settings.glassSurfaceOpacity * 100).round()}%',
-                style: TextStyle(fontSize: 11, color: scheme.primary),
-              ),
-            ],
-          ),
-          SettingsSlider(
-            min: .2,
-            max: 1,
-            divisions: 80,
-            value: settings.glassSurfaceOpacity,
-            onChanged: (value) => controller.saveChanges(
-              (current) => current.copyWith(glassSurfaceOpacity: value),
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.themeMode,
+            style: textTheme.titleSmall?.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.glassOpacityLight,
-                  style: TextStyle(fontSize: 9, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 6),
+          // 整节限宽：演示站那个面板就是个窄条，分段控件拉满整栏会散掉。
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 预设。`null` 那一档是"自定义"，照演示站做成**只显示不可选**。
+                _GlassSegmentedLabel(l10n.glassPreset),
+                _GlassSegmented<GlassPresetKind?>(
+                  values: const [...GlassPresetKind.values, null],
+                  selected: preset,
+                  labelOf: (value) => value == null ? l10n.glassPresetCustom : _presetLabel(l10n, value),
+                  onSelected: (value) {
+                    if (value == null) return;
+                    final recipe = glassPresetRecipes[value]!;
+                    controller.saveChanges(
+                      (current) => current.copyWith(
+                        glassMaterial: recipe.material,
+                        glassTint: recipe.tint,
+                        glassRendering: recipe.rendering,
+                        glassRipple: recipe.ripple,
+                        glassContrast: recipe.contrast,
+                      ),
+                    );
+                  },
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  l10n.glassOpacitySolid,
-                  textAlign: TextAlign.end,
-                  style: TextStyle(fontSize: 9, color: scheme.onSurfaceVariant),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    preset == null ? l10n.glassPresetCustomHint : _presetHint(l10n, preset),
+                    style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
                 ),
-              ),
-            ],
+
+                // 外观。原来它是上面「外观」卡片里的第一项，现在并到这里 ——
+                // 演示站的面板里 Appearance 就是它的一栏，两边各放一个入口只会打架。
+                _GlassSegmentedLabel(l10n.appearance),
+                _GlassSegmented<AppThemeMode>(
+                  values: AppThemeMode.values,
+                  selected: settings.themeMode,
+                  labelOf: (value) => _themeModeLabel(l10n, value),
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(themeMode: value)),
+                ),
+
+                // 材质。演示站的 Material 是五档，这里只列三档：另外两档（超透 / 磨砂）
+                // 是"重复项"和"用户要求去掉"的，删它们的那次改动见提交记录。
+                // 枚举本身仍留着五档，好让老配置照原样迁移过来。
+                _GlassSegmentedLabel(l10n.glassMaterial),
+                _GlassSegmented<GlassMaterial>(
+                  values: const [GlassMaterial.regular, GlassMaterial.dark, GlassMaterial.light],
+                  selected: settings.glassMaterial,
+                  labelOf: (value) => _materialLabel(l10n, value),
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(glassMaterial: value)),
+                ),
+
+                _GlassSegmentedLabel(l10n.glassTint),
+                _GlassSegmented<GlassTintKind>(
+                  values: GlassTintKind.values,
+                  selected: settings.glassTint,
+                  labelOf: (value) => _tintLabel(l10n, value),
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(glassTint: value)),
+                ),
+
+                _GlassSegmentedLabel(l10n.glassTier),
+                _GlassSegmented<GlassRendering>(
+                  values: GlassRendering.values,
+                  selected: settings.glassRendering,
+                  labelOf: (value) => _renderingLabel(l10n, value),
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(glassRendering: value)),
+                ),
+
+                _GlassSegmentedLabel(l10n.glassRipple),
+                _GlassSegmented<GlassRippleKind>(
+                  values: GlassRippleKind.values,
+                  selected: settings.glassRipple,
+                  labelOf: (value) => _rippleLabel(l10n, value),
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(glassRipple: value)),
+                ),
+
+                _GlassSegmentedLabel(l10n.glassContrast),
+                _GlassSegmented<GlassContrast>(
+                  values: GlassContrast.values,
+                  selected: settings.glassContrast,
+                  labelOf: (value) => value == GlassContrast.auto
+                      ? l10n.followSystem
+                      : l10n.glassContrastIncreased,
+                  onSelected: (value) =>
+                      controller.saveChanges((current) => current.copyWith(glassContrast: value)),
+                ),
+              ],
+            ),
           ),
         ],
-        // 下面四行是照 g1455 演示站那个控制面板搬过来的维度。
-        //
-        // 它的面板一共七栏，另外三栏**故意不搬**：
-        // - Appearance（Dark/Light/System）就是本页已有的「主题模式」；
-        // - Material（Regular/Dark/Light/Clear/Frosted）就是上面的「玻璃质感」——
-        //   我们的三档与它的五个 preset 覆盖同一片区间（见 `glass_tuning.dart`
-        //   里那张对照表），再来一套只会让两边打架；
-        // - Preset（Ultra/High/Medium/Low）是它把六维存成四组值的快捷方式，包里
-        //   **没有这个 API**（唯一像档位的 `GlassFinish.materializing` 是出现动画的
-        //   曲线）。我们已经把这六维逐项做成了设置，再存四组预设只是省几次点击。
-        _GlassOptionRow<GlassTintKind>(
-          label: l10n.glassTint,
-          hint: l10n.glassTintHint,
-          selected: settings.glassTint,
-          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassTint: value)),
-          options: [
-            (value: GlassTintKind.neutral, icon: Symbols.tonality_rounded, title: l10n.glassTintNeutral),
-            (value: GlassTintKind.indigo, icon: Symbols.palette_rounded, title: l10n.glassTintIndigo),
-            (value: GlassTintKind.rose, icon: Symbols.palette_rounded, title: l10n.glassTintRose),
-          ],
-        ),
-        _GlassOptionRow<GlassRippleKind>(
-          label: l10n.glassRipple,
-          hint: l10n.glassRippleHint,
-          selected: settings.glassRipple,
-          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassRipple: value)),
-          options: [
-            (value: GlassRippleKind.off, icon: Symbols.block_rounded, title: l10n.glassRippleOff),
-            (value: GlassRippleKind.water, icon: Symbols.water_rounded, title: l10n.glassRippleWater),
-            (value: GlassRippleKind.jelly, icon: Symbols.bubble_chart_rounded, title: l10n.glassRippleJelly),
-            (value: GlassRippleKind.honey, icon: Symbols.hive_rounded, title: l10n.glassRippleHoney),
-          ],
-        ),
-        _GlassOptionRow<GlassTierMode>(
-          label: l10n.glassTier,
-          hint: l10n.glassTierHint,
-          selected: settings.glassTier,
-          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassTier: value)),
-          options: [
-            (value: GlassTierMode.auto, icon: Symbols.auto_awesome_rounded, title: l10n.glassTierAuto),
-            (value: GlassTierMode.full, icon: Symbols.lens_blur_rounded, title: l10n.glassTierFull),
-            (value: GlassTierMode.cheap, icon: Symbols.opacity_rounded, title: l10n.glassTierCheap),
-            (value: GlassTierMode.opaque, icon: Symbols.rectangle_rounded, title: l10n.glassTierOpaque),
-          ],
-        ),
-        _GlassOptionRow<GlassContrast>(
-          label: l10n.glassContrast,
-          selected: settings.glassContrast,
-          onSelected: (value) => controller.saveChanges((current) => current.copyWith(glassContrast: value)),
-          options: [
-            (value: GlassContrast.auto, icon: Symbols.brightness_auto_rounded, title: l10n.followSystem),
-            (value: GlassContrast.increased, icon: Symbols.contrast_rounded, title: l10n.glassContrastIncreased),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
 
-/// 质感卡片的固定尺寸：照 morrow 的紧凑方块比例（约 112×76）。
-/// 宽度写死而不是跟着父级拉伸，否则在宽右栏里会变成又宽又扁的带子。
-const double _glassModeCardWidth = 112;
+/// 一栏的小标题。照演示站：`labelMedium`、正文色的 70%、上 8 下 6。
+class _GlassSegmentedLabel extends StatelessWidget {
+  const _GlassSegmentedLabel(this.label);
 
-/// 单个质感卡片：图标在上、名称在下；选中时主题色描边 + 淡底（照 morrow）。
-class _GlassModeCard extends StatelessWidget {
-  const _GlassModeCard({
-    required this.icon,
-    required this.title,
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// 一栏的分段控件。照演示站：高 34、圆角 10、底色是正文色的 8%、内边距 2、内部等分。
+class _GlassSegmented<T> extends StatelessWidget {
+  const _GlassSegmented({
+    required this.values,
+    required this.selected,
+    required this.labelOf,
+    required this.onSelected,
+  });
+
+  final List<T> values;
+  final T selected;
+  final String Function(T value) labelOf;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: scheme.onSurface.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          for (final value in values)
+            Expanded(
+              child: _GlassSegment(
+                label: labelOf(value),
+                selected: value == selected,
+                onTap: () => onSelected(value),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 分段控件里的一格。选中 = 主色 22% 填充 + 圆角 8 + 加粗；未选可点。
+class _GlassSegment extends StatelessWidget {
+  const _GlassSegment({
+    required this.label,
     required this.selected,
     required this.onTap,
   });
 
-  final IconData icon;
-  final String title;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -389,48 +393,26 @@ class _GlassModeCard extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+      child: GestureDetector(
+        onTap: selected ? null : onTap,
+        behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: AppMotion.brief,
           curve: AppMotion.standardCurve,
-          // 固定高度：三张卡片必须一样高，否则 Mica / Acrylic 这种长标签
-          //（会折成两行）会把那一张顶高，一排卡片就参差了。
-          height: 76,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected
-                ? scheme.primary.withValues(alpha: .14)
-                : AppSurfaceTokens.glassModeCardBase(scheme),
-            border: Border.all(
-              color: selected
-                  ? scheme.primary.withValues(alpha: .5)
-                  : scheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(10),
+            color: selected ? scheme.primary.withValues(alpha: .22) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 15,
-                color: selected ? scheme.primary : scheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            ),
           ),
         ),
       ),
@@ -438,69 +420,46 @@ class _GlassModeCard extends StatelessWidget {
   }
 }
 
-/// 一排「小标题 + 若干质感卡片」，波纹 / 渲染 / 对比度三行共用。
-///
-/// 复用上面「玻璃质感」那一排的零件：一栏里几个等权选项，选中的那个描主色边。
-/// `hint` 是可选的灰色小字，专门用来讲"选了之后会怎样"的副作用 ——
-/// 比如层级降到「半透」，波纹与折射就一起没了，不说用户会以为那个设置坏了。
-class _GlassOptionRow<T> extends StatelessWidget {
-  const _GlassOptionRow({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-    required this.options,
-    this.hint,
-  });
+String _presetLabel(AppLocalizations l10n, GlassPresetKind preset) => switch (preset) {
+  GlassPresetKind.ultra => l10n.glassPresetUltra,
+  GlassPresetKind.high => l10n.glassPresetHigh,
+  GlassPresetKind.medium => l10n.glassPresetMedium,
+  GlassPresetKind.low => l10n.glassPresetLow,
+};
 
-  final String label;
-  final String? hint;
-  final T selected;
-  final ValueChanged<T> onSelected;
-  final List<({T value, IconData icon, String title})> options;
+String _presetHint(AppLocalizations l10n, GlassPresetKind preset) => switch (preset) {
+  GlassPresetKind.ultra => l10n.glassPresetUltraHint,
+  GlassPresetKind.high => l10n.glassPresetHighHint,
+  GlassPresetKind.medium => l10n.glassPresetMediumHint,
+  GlassPresetKind.low => l10n.glassPresetLowHint,
+};
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final option in options)
-              SizedBox(
-                width: _glassModeCardWidth,
-                child: _GlassModeCard(
-                  icon: option.icon,
-                  title: option.title,
-                  selected: option.value == selected,
-                  onTap: () => onSelected(option.value),
-                ),
-              ),
-          ],
-        ),
-        if (hint != null) ...[
-          const SizedBox(height: 5),
-          Text(
-            hint!,
-            style: TextStyle(fontSize: 9, height: 1.35, color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ],
-    );
-  }
-}
+String _materialLabel(AppLocalizations l10n, GlassMaterial material) => switch (material) {
+  GlassMaterial.regular => l10n.glassMaterialRegular,
+  GlassMaterial.dark => l10n.glassMaterialDark,
+  GlassMaterial.light => l10n.glassMaterialLight,
+  GlassMaterial.clear => l10n.glassMaterialClear,
+  GlassMaterial.frosted => l10n.glassMaterialFrosted,
+};
+
+String _tintLabel(AppLocalizations l10n, GlassTintKind tint) => switch (tint) {
+  GlassTintKind.neutral => l10n.glassTintNeutral,
+  GlassTintKind.indigo => l10n.glassTintIndigo,
+  GlassTintKind.rose => l10n.glassTintRose,
+};
+
+String _renderingLabel(AppLocalizations l10n, GlassRendering rendering) => switch (rendering) {
+  GlassRendering.glass => l10n.glassTierFull,
+  GlassRendering.translucent => l10n.glassTierCheap,
+  GlassRendering.opaque => l10n.glassTierOpaque,
+};
+
+String _rippleLabel(AppLocalizations l10n, GlassRippleKind ripple) => switch (ripple) {
+  GlassRippleKind.off => l10n.glassRippleOff,
+  GlassRippleKind.water => l10n.glassRippleWater,
+  GlassRippleKind.jelly => l10n.glassRippleJelly,
+  GlassRippleKind.honey => l10n.glassRippleHoney,
+};
 
 /// 6 位十六进制色值 → Color。
 Color _hexColor(String hex) {

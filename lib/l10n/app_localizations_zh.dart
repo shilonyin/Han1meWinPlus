@@ -1955,6 +1955,57 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glassContrastIncreased => '增强';
 
   @override
+  String get glassPreset => '预设';
+
+  @override
+  String get glassPresetUltra => '极致';
+
+  @override
+  String get glassPresetHigh => '高';
+
+  @override
+  String get glassPresetMedium => '中';
+
+  @override
+  String get glassPresetLow => '低';
+
+  @override
+  String get glassPresetCustom => '自定义';
+
+  @override
+  String get glassPresetCustomHint => '你自己的设置';
+
+  @override
+  String get glassPresetUltraHint => '手指按下去有波纹的液体玻璃';
+
+  @override
+  String get glassPresetHighHint => 'iOS 画的那种液体玻璃';
+
+  @override
+  String get glassPresetMediumHint => '只把染色叠在背景上，不做捕获';
+
+  @override
+  String get glassPresetLowHint => '实心填充，背后什么都不透出来';
+
+  @override
+  String get glassMaterial => '材质';
+
+  @override
+  String get glassMaterialRegular => '标准';
+
+  @override
+  String get glassMaterialDark => '深色';
+
+  @override
+  String get glassMaterialLight => '浅色';
+
+  @override
+  String get glassMaterialClear => '超透';
+
+  @override
+  String get glassMaterialFrosted => '磨砂';
+
+  @override
   String get globalHotkeys => '全局热键';
 
   @override
@@ -4639,6 +4690,57 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get glassContrastIncreased => '增強';
+
+  @override
+  String get glassPreset => '預設';
+
+  @override
+  String get glassPresetUltra => '極致';
+
+  @override
+  String get glassPresetHigh => '高';
+
+  @override
+  String get glassPresetMedium => '中';
+
+  @override
+  String get glassPresetLow => '低';
+
+  @override
+  String get glassPresetCustom => '自訂';
+
+  @override
+  String get glassPresetCustomHint => '你自己的設定';
+
+  @override
+  String get glassPresetUltraHint => '手指按下去有波紋的液體玻璃';
+
+  @override
+  String get glassPresetHighHint => 'iOS 畫的那種液體玻璃';
+
+  @override
+  String get glassPresetMediumHint => '只把染色疊在背景上，不做捕獲';
+
+  @override
+  String get glassPresetLowHint => '實心填充，背後什麼都不透出來';
+
+  @override
+  String get glassMaterial => '材質';
+
+  @override
+  String get glassMaterialRegular => '標準';
+
+  @override
+  String get glassMaterialDark => '深色';
+
+  @override
+  String get glassMaterialLight => '淺色';
+
+  @override
+  String get glassMaterialClear => '超透';
+
+  @override
+  String get glassMaterialFrosted => '磨砂';
 
   @override
   String get globalHotkeys => '全域快捷鍵';

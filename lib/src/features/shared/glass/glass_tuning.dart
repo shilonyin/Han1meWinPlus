@@ -1,48 +1,104 @@
-/// 设置里的三个玻璃维度 → g1455 参数。
+/// 设置里的几个玻璃维度 → g1455 参数。
 ///
 /// 单独成一个文件是为了让这张对照表**能被测到**：`GlassHost` 那一处调用点在
 /// widget 树最深处，拿它做断言要起整个应用；这里都是纯函数，直接断言输入输出。
 ///
-/// 三个维度都落在同一个 `GlassHost` 上 —— g1455 把它们定义成**整屏级**的东西：
-/// 层级决定"要不要为这一屏做那次全屏捕获"，捕获是共享的，所以只能整屏选；
-/// 波纹与对比度则是 host 上的"这一屏的默认值"，每块玻璃仍可自己覆盖。
+/// 对照表本身照抄 g1455 演示站的控制面板
+/// （`g1455-0.1.4/example/lib/src/style.dart`）—— 那一页就是作者自己摆出来的
+/// 权威档位表，连枚举名和色值都是他定的，我们没有理由另编一套。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:g1455/g1455.dart';
 
-import '../../../core/app_surface_tokens.dart';
 import '../../../core/settings.dart';
+
+/// 一组玻璃设置。预设就是「给某组取值起个名字」，所以两者用同一个类型。
+typedef GlassRecipe = ({
+  GlassMaterial material,
+  GlassTintKind tint,
+  GlassRendering rendering,
+  GlassRippleKind ripple,
+  GlassContrast contrast,
+});
+
+/// 四档预设各自是什么，顺序与演示站一致（从最费到最省）。
+///
+/// `ultra` 多出来的只有波纹 —— 演示站对它的说明就是「手指底下有波纹的液体玻璃」；
+/// 另外三档的说明分别是「iOS 画出来的那种液体玻璃」「叠在背景上的 tint，什么都不捕获」
+/// 「一块不透明填充，背后什么都看不见」，正好对应 `rendering` 那三档。
+const Map<GlassPresetKind, GlassRecipe> glassPresetRecipes = {
+  GlassPresetKind.ultra: (
+    material: GlassMaterial.regular,
+    tint: GlassTintKind.neutral,
+    rendering: GlassRendering.glass,
+    ripple: GlassRippleKind.jelly,
+    contrast: GlassContrast.auto,
+  ),
+  GlassPresetKind.high: (
+    material: GlassMaterial.regular,
+    tint: GlassTintKind.neutral,
+    rendering: GlassRendering.glass,
+    ripple: GlassRippleKind.off,
+    contrast: GlassContrast.auto,
+  ),
+  GlassPresetKind.medium: (
+    material: GlassMaterial.regular,
+    tint: GlassTintKind.neutral,
+    rendering: GlassRendering.translucent,
+    ripple: GlassRippleKind.off,
+    contrast: GlassContrast.auto,
+  ),
+  GlassPresetKind.low: (
+    material: GlassMaterial.regular,
+    tint: GlassTintKind.neutral,
+    rendering: GlassRendering.opaque,
+    ripple: GlassRippleKind.off,
+    contrast: GlassContrast.auto,
+  ),
+};
+
+/// 把设置里的那几项收成一份配方，便于和预设比。**不含外观** ——
+/// 演示站算预设时也是先把外观归一掉再比的（外观不属于玻璃本身）。
+GlassRecipe glassRecipeOf(AppSettings settings) => (
+  material: settings.glassMaterial,
+  tint: settings.glassTint,
+  rendering: settings.glassRendering,
+  ripple: settings.glassRipple,
+  contrast: settings.glassContrast,
+);
+
+/// 这份配方正好等于哪一档预设；都不等就是自定义（null）。
+///
+/// 预设不落盘，每次都由实际设置反推 —— 手改了任意一项就变成自定义，
+/// 改回去预设又回来。演示站就是这么做的。
+GlassPresetKind? glassPresetFor(GlassRecipe recipe) {
+  for (final entry in glassPresetRecipes.entries) {
+    if (entry.value == recipe) return entry.key;
+  }
+  return null;
+}
 
 /// 把设置里的波纹档位翻成 g1455 的参数；关闭档给 null（= 不起波纹）。
 ///
-/// 四档**只改 viscosity**：g1455 的文档说它是"多数应用唯一需要的旋钮 ——
-/// 0 是水，会一圈圈荡开；1 是蜂蜜，只有一坨慢慢鼓起来"。其余参数
-/// （amplitude / speed / width / press / pressRadius / light）保持包的默认值，
+/// 三档**只改 viscosity**，取值直接照抄演示站：`water` 0、`jelly` .5、`honey` 1。
+/// 其余参数（amplitude / speed / width / press / pressRadius / light）保持包的默认值，
 /// 因为那是作者"按眼睛定的、没有参照可量"的一组数，我们没有更好的依据去动它。
 ///
-/// - `water` → 0.15（水，会荡开）
-/// - `jelly` → 包自己的默认 0.6（果冻，也正是 g1455 演示页默认选中的那档）
-/// - `honey` → 0.95（蜂蜜，一坨慢鼓）
-///
-/// 两个端点的数值直接取包自己的文档示例（`references/foundations/ripple.md` 里
-/// 水的例子是 0.15、蜂蜜是 0.95），不是我们编的；中间那档就用包的默认值。
+/// g1455 的文档说 viscosity 是"多数应用唯一需要的旋钮：**0 是水**，会一圈圈荡开；
+/// **1 是蜂蜜**，只有一坨慢慢鼓起来"。
 GlassRipple? glassRippleFor(GlassRippleKind kind) => switch (kind) {
   GlassRippleKind.off => null,
-  GlassRippleKind.water => const GlassRipple(viscosity: .15),
-  GlassRippleKind.jelly => const GlassRipple(),
-  GlassRippleKind.honey => const GlassRipple(viscosity: .95),
+  GlassRippleKind.water => const GlassRipple(viscosity: 0),
+  GlassRippleKind.jelly => const GlassRipple(viscosity: .5),
+  GlassRippleKind.honey => const GlassRipple(viscosity: 1),
 };
 
-/// 把设置里的层级档位翻成 `GlassTierPolicy` 的 `pinned`；`auto` 给 null。
-///
-/// null 的意思是"不钉任何档"：g1455 会按 `GlassTierChoice.byDefault` 走完整档，
-/// 系统开了「减少透明度」时它自己会落到 opaque。
-GlassTier? glassPinnedTier(GlassTierMode mode) => switch (mode) {
-  GlassTierMode.auto => null,
-  GlassTierMode.full => GlassTier.full,
-  GlassTierMode.cheap => GlassTier.cheap,
-  GlassTierMode.opaque => GlassTier.opaque,
+/// 把设置里的渲染层级翻成 `GlassTierPolicy` 的 `pinned`。
+GlassTier glassPinnedTier(GlassRendering rendering) => switch (rendering) {
+  GlassRendering.glass => GlassTier.full,
+  GlassRendering.translucent => GlassTier.cheap,
+  GlassRendering.opaque => GlassTier.opaque,
 };
 
 /// 这一屏实际该用哪一档。
@@ -52,11 +108,16 @@ GlassTier? glassPinnedTier(GlassTierMode mode) => switch (mode) {
 /// 可访问性请求。那是用户为了**能看清东西**才开的开关，不该被应用里的一个
 /// 下拉框默默推翻（Apple 自己的 Reduce Transparency 也是应用盖不掉的）。
 /// 所以设置里的档位只在系统没提这个要求时生效。
-GlassTierChoice glassTierChoice({required GlassTierMode mode, required bool reduceTransparency}) =>
-    GlassTierPolicy(
-      pinned: reduceTransparency ? null : glassPinnedTier(mode),
-      reduceTransparency: reduceTransparency,
-    ).choose();
+///
+/// 演示站的 `tierChoice` 没做这件事（它直接 `pinned: rendering.tier`），
+/// 这一处我们**故意不照抄**。
+GlassTierChoice glassTierChoice({
+  required GlassRendering rendering,
+  required bool reduceTransparency,
+}) => GlassTierPolicy(
+  pinned: reduceTransparency ? null : glassPinnedTier(rendering),
+  reduceTransparency: reduceTransparency,
+).choose();
 
 /// 设置里的对比度档位 → `GlassHost.highContrast`。
 ///
@@ -64,11 +125,13 @@ GlassTierChoice glassTierChoice({required GlassTierMode mode, required bool redu
 /// "去读 `MediaQuery.highContrastOf`"，而引擎只在 iOS 与 Android 34+ 上设置它，
 /// **Windows 上永远是 false** —— 照原样交给它，等于"跟随系统"这一档在 Windows 上
 /// 永远跟不出来。所以由调用方读注册表，读不到就当没开。
-bool? glassHighContrastFor(GlassContrast contrast, {required bool systemHighContrast}) =>
-    switch (contrast) {
-      GlassContrast.auto => systemHighContrast,
-      GlassContrast.increased => true,
-    };
+bool? glassHighContrastFor(
+  GlassContrast contrast, {
+  required bool systemHighContrast,
+}) => switch (contrast) {
+  GlassContrast.auto => systemHighContrast,
+  GlassContrast.increased => true,
+};
 
 /// 设置里的玻璃染色 → 玻璃 tint 要用的**颜色**；`neutral` 返回 null。
 ///
@@ -76,54 +139,36 @@ bool? glassHighContrastFor(GlassContrast contrast, {required bool systemHighCont
 /// 校准过的（`regularDark` 是 `rgba(29,29,32,0.693)`，`glass_finish.dart:368`），拿我们的
 /// 表面色去替掉它只会让玻璃偏离作者量过的工作点。只有选了带色的两档才换掉 RGB。
 ///
-/// 靛蓝/玫瑰的色值是**我们的取舍**：演示站 Tint 那三档拿不到（站点是 Flutter web，
-/// HTML 只是静态大纲、GitHub 又限流）。所以取 Material 两个基准色，向表面色靠一半 ——
-/// 既看得出偏色，又不至于艳到盖过内容。
-Color? glassTintColorFor(GlassTintKind kind, ColorScheme scheme) => switch (kind) {
+/// 两个色值直接取演示站的 `TintChoice`（`style.dart`）：靛蓝 `0xFF28348C`、
+/// 玫瑰 `0xFF962850`。
+Color? glassTintColorFor(GlassTintKind kind) => switch (kind) {
   GlassTintKind.neutral => null,
-  GlassTintKind.indigo =>
-    Color.lerp(scheme.surfaceContainerLow, const Color(0xff3f51b5), .5),
-  GlassTintKind.rose =>
-    Color.lerp(scheme.surfaceContainerLow, const Color(0xffc2185b), .5),
+  GlassTintKind.indigo => const Color(0xFF28348C),
+  GlassTintKind.rose => const Color(0xFF962850),
 };
 
-/// 设置里的质感 / 染色 → g1455 的 `GlassFinish`。
+/// 设置里的材质 / 染色 → g1455 的 `GlassFinish`。
 ///
-/// | 本仓库 | g1455 | 依据 |
-/// |---|---|---|
-/// | `frosted` | `GlassFinish.frosted`，tint 换成本仓库的表面色、alpha 取滑条 | 两边同名同义（糊得最狠）；但包给的 tint 是近白 `rgba(249,249,249,.22)`，压在我们这个近黑页面上会变成一块浅灰面板。本仓库的磨砂一直是「表面色 + 可调浓度」，滑条调的就是那个浓度 |
-/// | `liquid` | `GlassFinish.regular(appearance:)` | 我们要的「完整玻璃」就是 Apple 的 `.regular`：按明暗自己挑深浅，且带折射 |
-/// | `off` | 不走到这里 | 关闭档在 `GlassPanel` 里已提前返回纯色分支，这里给中性值仅为穷尽 switch |
+/// 材质那五档是包按真机**校准过**的常数，所以这里只做"挑一块"，从不自己拼：
+/// `regular` 交给 `GlassFinish.regular(appearance:)` 按明暗挑（深色下即 `regularDark`），
+/// 其余四档按名字取。换料**不碰** tint。
 ///
-/// **为什么磨砂的 tint 必须在这里从滑条推**：g1455 的 tint 是玻璃唯一决定「呈现什么
-/// 颜色」的入口（着色器按 `mix(背景, tint, tint.a)` 叠上去，`glass_finish.dart:566-573`）。
-/// 换成 g1455 渲染之后，`glassSurfaceOpacity` 一度只喂给「文字可读性推算」，滑条就不再
-/// 影响观感 —— 实测磨砂档在 20% 与 100% 下**画面逐像素完全相同**。现在它回到真正画
-/// 玻璃的那条路上。
+/// 只有选了带色的两档才覆盖 tint，而且只换 RGB、保留材质自己的 alpha ——
+/// 那个 alpha 是它校准过的浓度（`.regular` 是 .693/.718，`.frosted` 是 .22）。
 GlassFinish glassFinishFor({
-  required GlassQuality quality,
-  required Brightness brightness,
-  required ColorScheme scheme,
-  required double opacity,
+  required GlassMaterial material,
   required GlassTintKind tint,
+  required Brightness brightness,
 }) {
-  final chosen = glassTintColorFor(tint, scheme);
-  switch (quality) {
-    case GlassQuality.frosted:
-      return GlassFinish.frosted.copyWith(
-        tint: (chosen ?? AppSurfaceTokens.glassTint(scheme)).withValues(
-          alpha: opacity.clamp(0.0, 1.0),
-        ),
-      );
-    case GlassQuality.liquid:
-      final regular = GlassFinish.regular(
-        appearance: brightness == Brightness.dark ? Brightness.dark : Brightness.light,
-      );
-      // 只换 RGB、保留材质自己的 alpha —— 那个 alpha 是它校准过的浓度。
-      return chosen == null
-          ? regular
-          : regular.copyWith(tint: chosen.withValues(alpha: regular.tint.a));
-    case GlassQuality.off:
-      return GlassFinish.frosted;
-  }
+  final chosen = glassTintColorFor(tint);
+  final base = switch (material) {
+    GlassMaterial.regular => GlassFinish.regular(appearance: brightness),
+    GlassMaterial.dark => GlassFinish.regularDark,
+    GlassMaterial.light => GlassFinish.regularLight,
+    GlassMaterial.clear => GlassFinish.clear,
+    GlassMaterial.frosted => GlassFinish.frosted,
+  };
+  return chosen == null
+      ? base
+      : base.copyWith(tint: chosen.withValues(alpha: base.tint.a));
 }

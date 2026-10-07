@@ -13,8 +13,10 @@ import 'package:flutter/material.dart';
 /// 实际只是改了个名字。本仓库只有一套 Material 3 主题，没有第二套
 /// 风格需要桥接，所以不存在上游 `AppSurfaceTokens` 那种桥接理由。
 ///
-/// 目前收录的三块，共同点是**玻璃体系的既定规则**：
-/// [closedSurface]、[glassTint]、[glassModeCardBase]。
+/// 目前只收录一块：关闭玻璃档时卡片该铺什么底。
+/// 另外两块（玻璃默认底色、质感卡片底色）随「主题模式」面板重做一起删掉了 ——
+/// 前者是 `surfaceContainerLow` 的直接转发（本模块开篇就说了不收转发），
+/// 后者只服务那几张已经不在的图标卡片。
 abstract final class AppSurfaceTokens {
   /// 关闭玻璃档时，卡片浮在背景画布上的半透明底色。
   ///
@@ -34,24 +36,6 @@ abstract final class AppSurfaceTokens {
       scheme.surface.withValues(
         alpha: brightness == Brightness.dark ? .62 : .72,
       );
-
-  /// 玻璃面板的默认底色。
-  ///
-  /// 调用方没传 `GlassPanel.tint` 时用它。选 `surfaceContainerLow` 而不是 `surface`：
-  /// 玻璃内部还有一层按档位浓度叠上的 tint，底色再取最亮的 surface，
-  /// 亮色主题下会糊成一片没有层次的浅色。
-  static Color glassTint(ColorScheme scheme) => scheme.surfaceContainerLow;
-
-  /// 质感选择卡片（设置页那几张 关闭 / 磨砂 / 液体玻璃）的底色。
-  ///
-  /// 未选中时用半透明的 `surface`：它自己就是"预览材质"的卡片，
-  /// 底色比周围淡一档才不会把上面的图标与文字压住。
-  ///
-  /// 注意它和 [closedSurface] **取值不同**（.5 对 .72），这不是笔误：
-  /// 质感卡片是紧挨着的几个小方块，比大块卡片更需要透出背景，
-  /// 所以刻意比关闭档的卡片更淡。
-  static Color glassModeCardBase(ColorScheme scheme) =>
-      scheme.surface.withValues(alpha: .5);
 
   /// 各档玻璃的浓度**不在这里**。
   ///

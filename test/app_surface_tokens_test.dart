@@ -45,29 +45,4 @@ void main() {
       );
     });
   });
-
-  group('AppSurfaceTokens.glassTint（玻璃默认底色）', () {
-    test('取 surfaceContainerLow', () {
-      for (final brightness in Brightness.values) {
-        final s = scheme(brightness);
-        expect(AppSurfaceTokens.glassTint(s), s.surfaceContainerLow);
-      }
-    });
-  });
-
-  group('AppSurfaceTokens.glassModeCardBase（质感卡片底）', () {
-    test('取 50% 的 surface', () {
-      final s = scheme(Brightness.light);
-      expect(AppSurfaceTokens.glassModeCardBase(s).a, closeTo(.5, 1e-6));
-      expect(AppSurfaceTokens.glassModeCardBase(s).r, closeTo(s.surface.r, 1e-6));
-    });
-
-    test('刻意比关闭档卡片更淡（三张小方块更需要透出背景）', () {
-      final s = scheme(Brightness.light);
-      expect(
-        AppSurfaceTokens.glassModeCardBase(s).a,
-        lessThan(AppSurfaceTokens.closedSurface(s, Brightness.light).a),
-      );
-    });
-  });
 }

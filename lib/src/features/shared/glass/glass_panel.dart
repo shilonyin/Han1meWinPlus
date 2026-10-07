@@ -102,7 +102,7 @@ class GlassPanel extends ConsumerWidget {
   /// 玻璃底色。省略时用 `surfaceContainerLow`。
   final Color? tint;
 
-  /// 关闭档（`GlassQuality.off`）用的纯色底。省略时用半透明的 `surface`
+  /// [glassEnabled] 为 `false` 时用的纯色底。省略时用半透明的 `surface`
   /// —— 各页原来的卡片底色不尽相同，传进来可以让"关闭"档保持各页原本的观感。
   final Color? solidColor;
 
@@ -113,6 +113,7 @@ class GlassPanel extends ConsumerWidget {
 
   /// 为 `false` 时即使开着玻璃也走纯色底。
   /// 用于列表里的选中项这类**需要突出显示**的场合（玻璃会把选中态的色块冲淡）。
+  /// 设置里的"材质"没有关闭档 —— 玻璃画不画由调用点自己说。
   final bool glassEnabled;
 
   /// 额外描边（例如选中项的主色边框）。
@@ -145,10 +146,6 @@ class GlassPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).value;
-    final quality = glassEnabled
-        ? (settings?.glassQuality ?? GlassQuality.off)
-        : GlassQuality.off;
-    final opacity = settings?.glassSurfaceOpacity ?? .72;
     final scheme = Theme.of(context).colorScheme;
     // 明暗**只读一次**：下面的关闭档底色与档位映射都由它推导，
     // 两处不可能分叉（原先关闭档那个表达式在"判定可读性"和"实际绘制"
@@ -167,33 +164,30 @@ class GlassPanel extends ConsumerWidget {
     // 记成 .55，而材质真实的 alpha 是 .693/.718），现在它已经不在了。
     final panelTint = tint;
     final material = glassFinishFor(
-      quality: quality,
-      brightness: brightness,
-      scheme: scheme,
-      opacity: opacity,
+      material: settings?.glassMaterial ?? GlassMaterial.regular,
       tint: settings?.glassTint ?? GlassTintKind.neutral,
+      brightness: brightness,
     );
     // 面板自己指定底色时**只换 RGB**：调用处给的是"什么颜色"，不是"多浓"，
-    // 浓度属于档位（磨砂由滑条定、液体玻璃由材质定）。
+    // 浓度属于材质（那是包按真机校准过的 alpha）。
     final finish = panelTint == null
         ? material
         : material.copyWith(tint: panelTint.withValues(alpha: material.tint.a));
 
-    // 面板实际呈现的不透明底色：关闭档是"实色底（或半透明 surface）"，
-    // 玻璃档是"材质 tint 按它自己的 alpha 合成"。
+    // 面板实际呈现的不透明底色：调用点明确要求纯色时是"实色底（或半透明 surface）"，
+    // 否则是"材质 tint 按它自己的 alpha 合成"。
     final canvas = pageBackground ??
         (Theme.of(context).scaffoldBackgroundColor.a > 0
             ? Theme.of(context).scaffoldBackgroundColor
             : scheme.surface);
-    final panelSurface = quality == GlassQuality.off
-        ? opaqueCompositeOver(closedSurface, canvas)
-        : glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas);
+    final panelSurface = glassEnabled
+        ? glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas)
+        : opaqueCompositeOver(closedSurface, canvas);
 
-    // 降级层级：与材质档正交。`full` 时材质档原样生效；降级只**绕过背景捕获**，
-    // 只剩「关闭档」需要在这里特殊处理：g1455 的两个维度里**没有"关闭"**
-    // （它只有材质 finish 与层级 tier）。用户明确选了关闭，就老老实实走纯色底，
-    // 不去建一块没有内容的玻璃。
-    if (quality == GlassQuality.off) {
+    // 调用点明确要求纯色时走实色分支：g1455 两个维度里**没有"关闭"**
+    // （它只有材质 finish 与层级 tier）。需要突出显示的场合（列表选中项）
+    // 就老老实实走纯色底，不去建一块没有内容的玻璃。
+    if (!glassEnabled) {
       return GlassPanelScope(
         surfaceColor: panelSurface,
         child: Container(
