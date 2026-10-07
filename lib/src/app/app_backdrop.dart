@@ -73,14 +73,21 @@ class _BackdropPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (opacity <= 0) return;
     final rect = Offset.zero & size;
-    // 亮色：带紫的白；深色：morrow 的深色画布配方（蓝紫 → 紫灰），
-    // 关键是**不用纯黑**——纯黑会把层叠的卡片全部吃掉，看不出前后关系。
-    final base = dark ? const Color(0xff131118) : const Color(0xfff9f8fc);
+    // 亮色：带紫的白；深色：压到近黑（g1455 的演示底是 #101014）。
+    //
+    // **为什么深色要压这么暗**：玻璃的 tint 是 `rgba(29,29,32,0.693)`
+    // （明度约 11%）。背景只要比它亮，玻璃就浮不起来 —— 看上去只是"一块略暗的
+    // 圆角矩形"，折射和亮边全都消失。原来那套 morrow 配方（蓝紫 → 紫灰，
+    // 最亮到 #2a2440）在浅色区域正确，在深色下恰好踩中这一点。
+    //
+    // 代价：底越暗，**不透明的普通卡片**越难靠底色深浅拉开层次，得靠描边与
+    // 阴影。这是有意的取舍 —— 玻璃是这套界面的主角。
+    final base = dark ? const Color(0xff0d0c10) : const Color(0xfff9f8fc);
     final mid = dark
-        ? _mix(const Color(0xff1e1b2c), glow, .14)
+        ? _mix(const Color(0xff14121c), glow, .10)
         : _mix(base, glow, .13);
     final far = dark
-        ? _mix(const Color(0xff2a2440), glow, .18)
+        ? _mix(const Color(0xff1a1726), glow, .13)
         : _mix(base, glow, .26);
 
     canvas.drawRect(
@@ -94,15 +101,15 @@ class _BackdropPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    // 三个柔和光晕：暖橙、冷绿、粉紫。位置与 morrow 的画布参考图一致，
-    // 半径给得很大、透明度压得很低，只为让底色"有颜色在流动"而不抢内容。
-    // 深色下参考色要更向主色靠（否则绿/橙在暗底上会发脏），透明度也要抬起来，
-    // 否则整片背景看不出颜色。
+    // 三个柔和光晕：暖橙、冷绿、粉紫。位置与 morrow 的画布参考图一致。
+    //
+    // 深色下的不透明度**抬得比浅色更高**：底压到近黑之后，光晕成了玻璃唯一
+    // 能折射出颜色的来源 —— 没有它，整屏玻璃抽出来都是同一块灰。
     final halos = <(Alignment, Color, double, double)>[
       // (位置, 参考色, 半径相对短边, 不透明度)
-      (const Alignment(-.85, .95), const Color(0xffeddcd0), .95, dark ? .20 : .40),
-      (const Alignment(.95, -.75), const Color(0xffd9e5db), .85, dark ? .16 : .32),
-      (const Alignment(.75, .9), const Color(0xffe8d5ee), .90, dark ? .24 : .36),
+      (const Alignment(-.85, .95), const Color(0xffeddcd0), .95, dark ? .42 : .40),
+      (const Alignment(.95, -.75), const Color(0xffd9e5db), .85, dark ? .34 : .32),
+      (const Alignment(.75, .9), const Color(0xffe8d5ee), .90, dark ? .46 : .36),
     ];
     final shortest = size.shortestSide;
     for (final (alignment, reference, radiusScale, alpha) in halos) {

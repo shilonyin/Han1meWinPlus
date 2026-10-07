@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 
 import 'src/app.dart';
 import 'src/core/app_notifications.dart';
@@ -15,6 +16,7 @@ import 'src/core/shader_service.dart';
 import 'src/core/window_chrome.dart';
 import 'src/data/local/json_store.dart';
 import 'src/data/local/update_installer.dart';
+import 'src/features/glass_demo/glass_demo_app.dart';
 import 'src/features/settings/settings_controller.dart';
 import 'src/features/video/play_window.dart';
 import 'src/features/video/play_window_app.dart';
@@ -30,6 +32,14 @@ Future<void> main(List<String> args) async {
   final playWindow = PlayWindowArgs.fromArguments(args);
   if (playWindow != null) {
     await _runPlayWindow(playWindow);
+    return;
+  }
+  // 临时验证入口：`--glass-demo` 只跑 g1455 的独立验证页，主应用一行都不走。
+  // 放在这里是因为 `GlassHost.precache()` 必须在 runApp 之前 await —— 见
+  // `glass_demo_app.dart` 里的说明。验证完可以整块删掉。
+  if (args.contains('--glass-demo')) {
+    await GlassHost.precache();
+    runApp(const GlassDemoApp());
     return;
   }
   // `han1me://` scheme 唤起时系统把链接放进命令行参数（runner 已转交 Dart）。

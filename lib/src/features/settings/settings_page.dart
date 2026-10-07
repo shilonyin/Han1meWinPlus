@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_shell.dart';
-import '../shared/glass/glass_panel.dart';
 import 'about_page.dart';
 import 'comment_settings_page.dart';
 import 'hotkey_settings_page.dart';
@@ -197,10 +197,17 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                   // 选中态仍由条目自己的文字/图标变色表达，卡片只负责"这几条属于一组"。
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    // 用共用的 GlassPanel：左右两栏走同一套质感，
-                    // 改玻璃档位时整个设置页一起变，而不是只有右栏。
-                    child: GlassPanel(
+                    // 换成 g1455 的 GlassCard：它是"一块浮层玻璃面板"的正规实现
+                    // （一个 host 录制全屏一次，这块面板取自己那一格，真折射 + 模糊）。
+                    //
+                    // 只有这一处先换，其余 18 个 GlassPanel 调用点仍是自制那套 ——
+                    // 先看实际观感，满意再铺开。
+                    //
+                    // `padding: zero` 是必须的：`GlassCard` 默认内边距 16，而这里
+                    // 原来是零内边距（边距由各条目自己带），不置零会多出一圈。
+                    child: GlassCard(
                       borderRadius: BorderRadius.circular(_navGroupRadius),
+                      padding: EdgeInsets.zero,
                       child: Column(
                         children: [
                           for (

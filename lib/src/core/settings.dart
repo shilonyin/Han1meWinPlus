@@ -90,7 +90,7 @@ const defaultDownloadPath = '';
 
 class AppSettings {
   const AppSettings({
-    this.themeMode = AppThemeMode.light,
+    this.themeMode = AppThemeMode.dark,
     this.baseUrl = 'https://hanime1.com',
     this.preferredQuality = 720,
     this.resumePlayback = true,
