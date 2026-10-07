@@ -159,10 +159,6 @@ class GlassPanel extends ConsumerWidget {
     // 两处不可能分叉（原先关闭档那个表达式在"判定可读性"和"实际绘制"
     // 各写了一遍，改一处忘一处就会让两者不一致）。
     final brightness = Theme.of(context).brightness;
-    // 关闭档的卡片底色。判定可读性与实际绘制都取它 —— 以前同一个表达式写在
-    // 两个地方，改一处忘一处就会让"判定用的底色"和"画出来的底色"从此不同。
-    final closedSurface = solidColor ??
-        AppSurfaceTokens.closedSurface(scheme, brightness);
 
     // 这一档玻璃究竟长什么样：**只在这里定一次**。
     //
@@ -182,19 +178,25 @@ class GlassPanel extends ConsumerWidget {
         ? material
         : material.copyWith(tint: panelTint.withValues(alpha: material.tint.a));
 
-    // 面板实际呈现的不透明底色：调用点明确要求纯色时是"实色底（或半透明 surface）"，
-    // 否则是"材质 tint 按它自己的 alpha 合成"。
-    final canvas = pageBackground ??
+    // 面板下面的那层底色：调用点给的 [solidColor]（各页原本的卡片色）优先，
+    // 否则用页面画布。它先合成成**不透明**色，再让材质叠上去。
+    final pageCanvas = pageBackground ??
         (Theme.of(context).scaffoldBackgroundColor.a > 0
             ? Theme.of(context).scaffoldBackgroundColor
             : scheme.surface);
-    final panelSurface = glassEnabled
-        ? glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas)
-        : opaqueCompositeOver(closedSurface, canvas);
+    final canvas = solidColor == null ? pageCanvas : opaqueCompositeOver(solidColor!, pageCanvas);
+    // 材质在**平背景**下的等效不透明色。玻璃着色器算的是 mix(blur(背景), tint, tint.a)，
+    // 而 blur(平背景) 就是平背景本身，所以在平背景上这个平色与真玻璃**逐像素相同**。
+    //
+    // 关键：这条**不区分** glassEnabled —— 内容卡片（glassEnabled: false）画的也是它。
+    // 于是「材质 / 玻璃染色」改得到全应用的卡片，风格才统一（原来卡片一律走各页
+    // 自带的不透明纯色底，所以怎么调设置都只看到侧栏/顶栏在变）；
+    // 而因为不经过 g1455 那张共享降采样图，滚动时也不会浮出灰块。
+    final materialSurface = glassSurfaceColor(tint: finish.tint, opacity: 1, background: canvas);
+    final panelSurface = materialSurface;
 
-    // 调用点明确要求纯色时走实色分支：g1455 两个维度里**没有"关闭"**
-    // （它只有材质 finish 与层级 tier）。需要突出显示的场合（列表选中项）
-    // 就老老实实走纯色底，不去建一块没有内容的玻璃。
+    // 关闭档：画一块按当前材质合成的平色（见上）。要突出显示的场合
+    // （列表选中项）靠调用点给的 solidColor 覆盖，不去建一块没有内容的玻璃。
     if (!glassEnabled) {
       return GlassPanelScope(
         surfaceColor: panelSurface,
@@ -203,8 +205,8 @@ class GlassPanel extends ConsumerWidget {
           padding: padding,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            // 半透明卡片浮在背景画布上：透出一点底下的渐变，卡片才有"材质感"。
-            color: closedSurface,
+            // 与真玻璃在平背景上的等效色一致：改「材质 / 玻璃染色」时整屏一起变。
+            color: panelSurface,
             borderRadius: borderRadius,
             border: border == null ? null : Border.fromBorderSide(border!),
           ),
