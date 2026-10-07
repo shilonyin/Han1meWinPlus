@@ -40,7 +40,8 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
 
   /// 资料行左右外边距：一个头像宽（用户要求「往两边移一个头像的距离」）。两边用
   /// 同一个常量，保证对称。
-  static const _headerInset = _avatarSize;
+  /// 资料行两侧的留白：一个头像宽再收回半个头像（用户按截图微调）。
+  static const _headerInset = _avatarSize * 0.5;
 
   /// 订阅状态的本地乐观值：点下去立刻变，请求失败再翻回来。
   bool? _override;
