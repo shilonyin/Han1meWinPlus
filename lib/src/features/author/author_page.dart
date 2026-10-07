@@ -35,8 +35,12 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   /// 每个分区最多摆几张：作者可能有好几百个片子，首页只做「一眼看个大概」。
   static const _sectionLimit = 10;
 
-  /// 头像边长：资料行的左右外边距也用这个值（「往两边移一个头像的距离」）。
+  /// 头像边长。
   static const _avatarSize = 120.0;
+
+  /// 资料行左右外边距：一个头像宽（用户要求「往两边移一个头像的距离」）。两边用
+  /// 同一个常量，保证对称。
+  static const _headerInset = _avatarSize;
 
   /// 订阅状态的本地乐观值：点下去立刻变，请求失败再翻回来。
   bool? _override;
@@ -217,10 +221,15 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ? cardCount
               : videoCount);
     final stats = artistId.isEmpty ? '' : '@$artistId';
-    // 「往两边移一个头像的距离」：左右各留一个头像宽的外边距，统计与按钮由 Spacer
-    // 推到右侧；名字列限宽，窗口变窄时先压它、不溢出。
+    // 「往两边移一个头像的距离」：左右各留一个头像宽的外边距。两端固定、中间留一个
+    // Spacer，多出的宽度只落在中间 —— 左右间距因此**严格相等**（用户反馈上一版两边
+    // 不一样，就是因为它只顾了左边）。
+    // 名字列限宽，窗口变窄时先压它、不溢出。
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _avatarSize, vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _headerInset,
+        vertical: 16,
+      ),
       child: Row(
         children: [
           _avatar(theme, hasAvatar ? avatar : null),
@@ -255,6 +264,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ),
             ),
           ),
+          // 唯一一个会伸缩的间隙：两端都留一个头像宽（`_headerInset`）后，多出来的
+          // 宽度全部落在这里，所以左右两边始终严格对称。名字那一列限宽，窗口变窄时
+          // 先压它，不溢出。
           const Spacer(),
           ..._statColumns(theme, counts),
           const SizedBox(width: 32),
