@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -196,23 +197,17 @@ class _SearchInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return TextField(
-      controller: controller,
-      autofocus: autoFocus,
-      textInputAction: TextInputAction.search,
-      onSubmitted: onSubmitted,
-      style: theme.textTheme.bodyMedium,
-      decoration: InputDecoration(
-        hintText: hintText,
-        isDense: true,
-        filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: .6))),
-        suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        suffixIcon: Row(
+    // 与首页顶栏那个搜索框同一套：AppBar 携带的搜索框用 g1455 的玻璃胶囊，
+    // 不然同一个控件在两个页面会是两种材质。
+    return SizedBox(
+      height: kGlassFieldHeight,
+      child: GlassTextField(
+        controller: controller,
+        placeholder: hintText,
+        autofocus: autoFocus,
+        textInputAction: TextInputAction.search,
+        onSubmitted: onSubmitted,
+        trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             ValueListenableBuilder<TextEditingValue>(

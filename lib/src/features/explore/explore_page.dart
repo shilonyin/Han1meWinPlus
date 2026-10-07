@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
@@ -218,7 +219,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                             child: _HomeSearchField(
                               controller: _searchController,
                               focusNode: _searchFocus,
-                              focused: _searchFocused,
                               onTap: _openSearch,
                               onSubmitted: _submitSearch,
                               onClear: () {
@@ -394,12 +394,15 @@ class _HomeFeedBody extends ConsumerWidget {
 }
 
 /// 顶栏里的搜索框：点击后左侧的分类与快捷页签淡出、它自己滑到中间变宽，回车直接进搜索页。
+///
+/// 用 g1455 的 [GlassTextField]：它是"bar 携带的搜索框"那一种玻璃胶囊
+/// （g1455 的文档特意说过，卡片上的输入框该用普通输入框，只有 bar 上的才是玻璃）。
+/// 高度取 [kGlassFieldHeight]（44），外面那个 56 的槽位本来就留了余量。
 class _HomeSearchField extends StatelessWidget {
-  const _HomeSearchField({required this.controller, required this.focusNode, required this.focused, required this.onTap, required this.onSubmitted, required this.onClear});
+  const _HomeSearchField({required this.controller, required this.focusNode, required this.onTap, required this.onSubmitted, required this.onClear});
 
   final TextEditingController controller;
   final FocusNode focusNode;
-  final bool focused;
   final VoidCallback onTap;
   final ValueChanged<String> onSubmitted;
   final VoidCallback onClear;
@@ -407,31 +410,23 @@ class _HomeSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide.none);
     return Align(
       alignment: Alignment.center,
       child: SizedBox(
-        height: 36,
+        height: kGlassFieldHeight,
         width: double.infinity,
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          textInputAction: TextInputAction.search,
-          onTap: onTap,
-          onSubmitted: onSubmitted,
-          style: theme.textTheme.bodySmall,
-          decoration: InputDecoration(
-            hintText: l10n.searchHint,
-            isDense: true,
-            filled: true,
-            fillColor: focused ? theme.colorScheme.surfaceContainerHigh : theme.colorScheme.surfaceContainerHighest,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-            border: border,
-            enabledBorder: border,
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: .7))),
-            suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-            suffixIcon: Row(
+        // GlassTextField 没有 onTap：它对整条胶囊的点击只会聚焦，而这里要的是
+        // 「一点就展开搜索态」（分类页签淡出、它自己滑到中间、铺开建议面板）。
+        // Listener 不拦截子节点的事件，所以输入框自己照样能聚焦。
+        child: Listener(
+          onPointerDown: (_) => onTap(),
+          child: GlassTextField(
+            controller: controller,
+            focusNode: focusNode,
+            placeholder: l10n.searchHint,
+            textInputAction: TextInputAction.search,
+            onSubmitted: onSubmitted,
+            trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ValueListenableBuilder<TextEditingValue>(
