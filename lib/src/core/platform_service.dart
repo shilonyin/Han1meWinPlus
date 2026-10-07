@@ -31,4 +31,33 @@ class PlatformService {
   static Future<String?> selectDirectory() async => Platform.isAndroid ? _channel.invokeMethod<String>('selectDirectory') : null;
   static Future<void> exportDirectory(String sourcePath, String destination) => Platform.isAndroid ? _channel.invokeMethod<void>('exportDirectory', {'sourcePath': sourcePath, 'destination': destination}) : Future.value();
   static Future<bool> saveDocument(String name, Uint8List bytes) async => Platform.isAndroid ? await _channel.invokeMethod<bool>('saveDocument', {'name': name, 'bytes': bytes}) ?? false : false;
+
+  /// Windows 的「透明效果」开关（设置 → 个性化 → 颜色）是否被关掉了。
+  ///
+  /// **为什么应用得自己读**：g1455 有一档 rung 专门等这个信号 —— 用户既然在系统里
+  /// 关掉了透明，界面就不该继续透出背景，那是可访问性而不是省性能（它文档里也这么
+  /// 说）。而 Flutter 不带这个开关，所以只能由应用读出来传给它。
+  ///
+  /// **为什么用 reg.exe 而不是原生代码**：Windows 上它就是注册表里一个 DWORD，
+  /// 为一件事动 runner 的 C++ 不划算（那边的多窗口处理还是手写的，碰它有风险）。
+  /// 只在启动时查一次。
+  ///
+  /// 读不到（键不存在、reg 调用失败、输出解析不了）一律当「没关」：宁可多一层玻璃，
+  /// 也别因为解析失败把整个界面变成实心。
+  static Future<bool> windowsTransparencyDisabled() async {
+    if (!Platform.isWindows) return false;
+    try {
+      final ProcessResult result = await Process.run('reg', [
+        'query',
+        r'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize',
+        '/v',
+        'EnableTransparency',
+      ]);
+      if (result.exitCode != 0) return false;
+      final RegExpMatch? match = RegExp(r'EnableTransparency\s+REG_DWORD\s+0x([0-9a-fA-F]+)').firstMatch(result.stdout.toString());
+      return match != null && int.parse(match.group(1)!, radix: 16) == 0;
+    } catch (_) {
+      return false;
+    }
+  }
 }
