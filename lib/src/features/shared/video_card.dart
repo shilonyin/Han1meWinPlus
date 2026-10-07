@@ -185,25 +185,30 @@ class OpenedVideoIdsNotifier extends Notifier<Set<String>> {
   }
 }
 
-/// 悬停时把封面推近一点点。
+/// 悬停时封面推近的幅度。
 ///
-/// 缩放只作用在图片上（外层 `ClipRRect` 不动），所以角标、描边和卡片占位都留在原位，
+/// 只作用在图片上（外层 `ClipRRect` 不动），所以角标、描边和卡片占位都留在原位，
 /// 观感是"图在框里推近"，而不是整张卡片被撑大 —— 后者会把邻居挤走。
-class _HoverZoom extends StatefulWidget {
-  const _HoverZoom({required this.child, this.onHoverChanged});
+const coverHoverScale = 1.06;
 
-  final Widget child;
+/// 整块封面的悬停状态：把 [builder] 需要的那一份状态集中在这里。
+///
+/// 为什么不给"推近的图片"和"角标"各挂一个 `MouseRegion`：角标是压在封面**上面**的，
+/// 鼠标停在角标上时命中路径里没有下面那层，图片那层会以为鼠标走了 ——
+/// 推近动画就会抖一下。这里整块封面只算一次悬停，角标只是它的消费者。
+class _HoverZone extends StatefulWidget {
+  const _HoverZone({required this.builder, this.onHoverChanged});
+
+  final Widget Function(BuildContext context, bool hovered) builder;
 
   /// 鼠标进入 / 离开封面。悬停预览靠它排定与收尾。
   final ValueChanged<bool>? onHoverChanged;
 
   @override
-  State<_HoverZoom> createState() => _HoverZoomState();
+  State<_HoverZone> createState() => _HoverZoneState();
 }
 
-class _HoverZoomState extends State<_HoverZoom> {
-  static const double _scale = 1.06;
-
+class _HoverZoneState extends State<_HoverZone> {
   bool _hovered = false;
 
   void _setHovered(bool value) {
@@ -224,11 +229,35 @@ class _HoverZoomState extends State<_HoverZoom> {
   Widget build(BuildContext context) => MouseRegion(
     onEnter: (_) => _setHovered(true),
     onExit: (_) => _setHovered(false),
-    child: AnimatedScale(
-      scale: _hovered ? _scale : 1,
-      duration: motionDuration(context, AppMotion.brief),
+    child: widget.builder(context, _hovered),
+  );
+}
+
+/// 封面角标（时长 / 播放量）在悬停时淡出。
+///
+/// 悬停会同时把封面推近、并在停稳 1.5 秒后在里面放预览画面；角标压在最上面会正好
+/// 挡在那块画面上。BiliDesk 的首页卡片也是悬停即淡出，他们在源码里写的理由是
+/// 「放大的是封面，角标压在上面会挡住画面 —— 这也是 B 站网页版的行为」。
+///
+/// 淡出比淡入快一档：移开鼠标时希望角标干脆地回来，而不是慢慢浮上来。
+/// 外面套 [IgnorePointer]：角标本来就不该可点（点它等于点卡片），
+/// 顺带保证鼠标停在角标上时整块封面的悬停状态不会断。
+class _CoverBadgeFade extends StatelessWidget {
+  const _CoverBadgeFade({required this.hovered, required this.child});
+
+  final bool hovered;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: AnimatedOpacity(
+      opacity: hovered ? 0 : 1,
+      duration: motionDuration(
+        context,
+        hovered ? AppMotion.quick : AppMotion.standard,
+      ),
       curve: AppMotion.standardCurve,
-      child: widget.child,
+      child: child,
     ),
   );
 }
@@ -455,78 +484,88 @@ class VideoCardTile extends ConsumerWidget {
         // 封面是独立的一块，四角都切圆角 —— 卡片底板没了，也就不存在"封面下缘从底上
         // 翘起一条缝"的问题（那正是当初"两层感"的来源，现在整张卡片本来就只有封面一层）。
         borderRadius: BorderRadius.circular(videoCardRadius),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 图片本身在悬停时推近，裁切框（这一层 ClipRRect）不动。
-            _HoverZoom(
-              onHoverChanged: hover.onHoverChanged,
-              // 预览层排在 `_HoverZoom` **里面**：它跟着封面一起被推近，观感是
-              // 「这张封面动起来了」，而不是又叠了一块东西上去。它又在角标与内描边
-              // 之前，所以时长/播放量照旧压在画面上、不会被盖掉。
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (coverImage != null)
-                    Image(image: coverImage!, fit: BoxFit.cover)
-                  else
-                    CachedNetworkImage(
-                      imageUrl: video.coverUrl,
-                      cacheManager: appImageCacheManager,
-                      fit: BoxFit.cover,
-                      memCacheWidth: cacheWidth,
-                      fadeInDuration: Duration.zero,
-                      fadeOutDuration: Duration.zero,
-                      placeholder: (context, url) => ColoredBox(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                      errorWidget: (context, url, error) => ColoredBox(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        child: const Center(
-                          child: Icon(Symbols.broken_image_rounded),
+        child: _HoverZone(
+          onHoverChanged: hover.onHoverChanged,
+          builder: (context, hovered) => Stack(
+            fit: StackFit.expand,
+            children: [
+              // 图片本身在悬停时推近，裁切框（这一层 ClipRRect）不动。
+              AnimatedScale(
+                scale: hovered ? coverHoverScale : 1,
+                duration: motionDuration(context, AppMotion.brief),
+                curve: AppMotion.standardCurve,
+                // 预览层排在缩放**里面**：它跟着封面一起被推近，观感是
+                // 「这张封面动起来了」，而不是又叠了一块东西上去。
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (coverImage != null)
+                      Image(image: coverImage!, fit: BoxFit.cover)
+                    else
+                      CachedNetworkImage(
+                        imageUrl: video.coverUrl,
+                        cacheManager: appImageCacheManager,
+                        fit: BoxFit.cover,
+                        memCacheWidth: cacheWidth,
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholder: (context, url) => ColoredBox(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                        ),
+                        errorWidget: (context, url, error) => ColoredBox(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: const Center(
+                            child: Icon(Symbols.broken_image_rounded),
+                          ),
                         ),
                       ),
-                    ),
-                  if (hover.surface != null) hover.surface!,
-                ],
-              ),
-            ),
-            if (video.duration != null)
-              Positioned(
-                right: dense ? 3 : 6,
-                bottom: dense ? 3 : 6,
-                child: _OverlayText(text: video.duration!, dense: dense),
-              ),
-            if (video.views != null)
-              Positioned(
-                left: dense ? 3 : 6,
-                bottom: dense ? 3 : 6,
-                child: _OverlayText(
-                  icon: Symbols.visibility_rounded,
-                  text: video.views!,
-                  dense: dense,
+                    if (hover.surface != null) hover.surface!,
+                  ],
                 ),
               ),
-            // 封面贴边时给一圈内描边：深色封面直接压在页面底上会糊在一起，
-            // 分不出「图到哪结束」。平时是 1px 极浅（浅色 black/10、深色 white/10，依据见
-            // `docs/ui-polish.md` 的缩略图描边条目），选中时换成主题色 2px。
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: highlight ??
-                          (theme.brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black)
-                              .withValues(alpha: .10),
-                      width: highlight == null ? 1 : 2,
+              if (video.duration != null)
+                Positioned(
+                  right: dense ? 3 : 6,
+                  bottom: dense ? 3 : 6,
+                  child: _CoverBadgeFade(
+                    hovered: hovered,
+                    child: _OverlayText(text: video.duration!, dense: dense),
+                  ),
+                ),
+              if (video.views != null)
+                Positioned(
+                  left: dense ? 3 : 6,
+                  bottom: dense ? 3 : 6,
+                  child: _CoverBadgeFade(
+                    hovered: hovered,
+                    child: _OverlayText(
+                      icon: Symbols.visibility_rounded,
+                      text: video.views!,
+                      dense: dense,
+                    ),
+                  ),
+                ),
+              // 封面贴边时给一圈内描边：深色封面直接压在页面底上会糊在一起，
+              // 分不出「图到哪结束」。平时是 1px 极浅（浅色 black/10、深色 white/10，依据见
+              // `docs/ui-polish.md` 的缩略图描边条目），选中时换成主题色 2px。
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: highlight ??
+                            (theme.brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black)
+                                .withValues(alpha: .10),
+                        width: highlight == null ? 1 : 2,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -643,6 +682,7 @@ class VideoCardGrid extends ConsumerWidget {
     this.horizontal,
     this.controller,
     this.coverAspectRatio,
+    this.bottomPadding = 24,
   });
 
   final List<VideoCard> videos;
@@ -669,6 +709,12 @@ class VideoCardGrid extends ConsumerWidget {
   /// 封面比例（宽 / 高），给竖版海报结果用（见 [VideoCardTile.coverAspectRatio]）。
   /// 传了之后卡片高度按海报比例算，而不是按 16:9。
   final double? coverAspectRatio;
+
+  /// 网格底部内边距（不含系统安全区）。
+  ///
+  /// 页面上浮着右下角操作（刷新 / 回到顶部）时要传 `floatingActionsClearance`，
+  /// 否则滚到底时最后一行右侧那张卡会被那两个按钮压住、点不到。
+  final double bottomPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -717,7 +763,7 @@ class VideoCardGrid extends ConsumerWidget {
             12,
             12,
             12,
-            24 + MediaQuery.paddingOf(context).bottom,
+            bottomPadding + MediaQuery.paddingOf(context).bottom,
           ),
           scrollCacheExtent: const ScrollCacheExtent.pixels(1400),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

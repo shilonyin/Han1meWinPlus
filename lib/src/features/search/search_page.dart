@@ -153,6 +153,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 videos: page.items,
                                 cardsPerRow: _searchColumns,
                                 horizontal: true,
+                                // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
+                                // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
+                                bottomPadding: floatingActionsClearance,
                                 // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
                                 coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
                                 controller: _scrollController,

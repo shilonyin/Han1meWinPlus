@@ -5,6 +5,14 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import 'press_scale.dart';
 
+/// 列表底部要给右下角浮动操作（[ScrollActions]：刷新 / 回到顶部）留的净空。
+///
+/// 那组按钮是浮在内容**之上**、不占独立列的，所以每个用到它的列表都得自己把这段
+/// 高度让出来；不让的话滚到底时最后一行右侧那张卡会永远压着一个按钮，右下角点不到
+/// （BiliDesk 的首页也是为它的浮动工具列在内容末尾留了 250px，同一个道理）。
+/// 44 + 间隙 10 + 44 + 下边距 16 = 114，取 120 留一点余量。
+const double floatingActionsClearance = 120;
+
 /// 列表页右下角的悬浮操作：刷新 + 回到顶部。
 ///
 /// 需要调用方给出列表自己的 [controller]（不在滚动树里面时 `Scrollable.of` 拿不到），

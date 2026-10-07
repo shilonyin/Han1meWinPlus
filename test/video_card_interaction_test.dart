@@ -8,6 +8,7 @@ import 'package:han1me_win_plus/src/core/settings.dart';
 import 'package:han1me_win_plus/src/domain/models/video.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
 import 'package:han1me_win_plus/src/features/shared/video_card.dart';
+import 'package:han1me_win_plus/src/features/shared/scroll_actions.dart';
 import 'package:han1me_win_plus/src/features/video/play_window.dart';
 
 /// 1x1 的透明 PNG。卡片封面在测试里不需要真图，给个能解码的最小图就够了——
@@ -26,6 +27,15 @@ VideoCard _video(String id) => VideoCard(
   artist: '测试作者',
   rating: '99%',
   uploadTime: '3-5',
+);
+
+/// 带封面角标的卡片（时长 + 播放量）。角标只在字段有值时才画。
+VideoCard _badgeVideo(String id) => VideoCard(
+  id: id,
+  title: '测试视频标题',
+  coverUrl: 'https://example.invalid/cover.jpg',
+  duration: '12:34',
+  views: '1.2萬次',
 );
 
 /// 固定返回一份设置的 SettingsController 替身（不读盘、不碰网络）。
@@ -100,6 +110,72 @@ void main() {
     await mouse.moveTo(const Offset(2, 2));
     await tester.pumpAndSettle();
     expect(_scales(tester), isNot(contains(1.06)));
+  });
+
+  testWidgets('鼠标移到封面上时角标淡出，移开后回来', (tester) async {
+    await tester.pumpWidget(_tile(_badgeVideo('v9')));
+    await tester.pumpAndSettle();
+
+    // 只看卡片内部：外层框架（Tooltip / InkWell 之类）也可能有 AnimatedOpacity。
+    List<double> badgeOpacities() => tester
+        .widgetList<AnimatedOpacity>(
+          find.descendant(
+            of: find.byType(VideoCardTile),
+            matching: find.byType(AnimatedOpacity),
+          ),
+        )
+        .map((widget) => widget.opacity)
+        .toList();
+
+    // 时长 + 播放量两个角标都在，且都是不透明的。
+    expect(badgeOpacities(), [1.0, 1.0]);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+
+    final card = tester.getRect(find.byType(VideoCardTile));
+    await mouse.moveTo(Offset(card.center.dx, card.top + 40));
+    await tester.pumpAndSettle();
+    // 悬停时淡出：封面被推近、停稳 1.5 秒后还会在里面放预览画面，角标压在上面会挡住。
+    expect(badgeOpacities(), [0.0, 0.0]);
+
+    await mouse.moveTo(const Offset(2, 2));
+    await tester.pumpAndSettle();
+    expect(badgeOpacities(), [1.0, 1.0]);
+  });
+
+  testWidgets('网格底部内边距默认 24，浮着右下角操作时可以加大', (tester) async {
+    Future<void> pumpGrid(double bottomPadding) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            settingsProvider.overrideWith(() => _StubSettings(AppSettings())),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoCardGrid(
+                videos: [_video('g1'), _video('g2')],
+                cardsPerRow: 2,
+                horizontal: true,
+                bottomPadding: bottomPadding,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    EdgeInsets gridPadding() =>
+        tester.widget<GridView>(find.byType(GridView)).padding! as EdgeInsets;
+
+    await pumpGrid(24);
+    expect(gridPadding().bottom, 24);
+
+    // 搜索页那种浮着刷新 / 回到顶部的列表要传到 floatingActionsClearance。
+    await pumpGrid(floatingActionsClearance);
+    expect(gridPadding().bottom, floatingActionsClearance);
   });
 
   testWidgets('点开过的卡片标题染主题色', (tester) async {

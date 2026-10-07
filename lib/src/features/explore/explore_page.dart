@@ -636,7 +636,14 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
               if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
               for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
-              SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
+              // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
+              // （见 `floatingActionsClearance`），再叠加系统安全区。
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height:
+                      floatingActionsClearance + MediaQuery.paddingOf(context).bottom,
+                ),
+              ),
             ],
           ),
           Positioned(right: 0, bottom: 0, child: ScrollActions(controller: _controller, onRefresh: _refreshAll)),
