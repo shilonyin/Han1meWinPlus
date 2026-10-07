@@ -331,19 +331,25 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             duration: const Duration(milliseconds: 170),
             opacity: _searchPanelOpen ? 1 : 0,
             child: DecoratedBox(
+              // 阴影留在玻璃外面（玻璃自己会裁圆角），所以阴影给这层、玻璃只画材质。
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
               ),
-              child: SearchSuggestions(
-                width: width,
-                maxHeight: (MediaQuery.sizeOf(context).height - 100).clamp(240.0, 640.0),
-                onSelected: (query) {
-                  _closeSearch();
-                  final url = query.toUri().toString();
-                  context.push(url, extra: SearchRouteRequest(initialUrl: url));
-                },
+              // 建议面板（含搜索历史）。不传 finish，直接吃 GlassHost 上那一份，
+              // 于是「材质 / 玻璃染色」一改它就跟着变；它挂在搜索框下方、不随内容滚动。
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(14),
+                labelled: false,
+                child: SearchSuggestions(
+                  width: width,
+                  maxHeight: (MediaQuery.sizeOf(context).height - 100).clamp(240.0, 640.0),
+                  onSelected: (query) {
+                    _closeSearch();
+                    final url = query.toUri().toString();
+                    context.push(url, extra: SearchRouteRequest(initialUrl: url));
+                  },
+                ),
               ),
             ),
           ),

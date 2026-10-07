@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:g1455/g1455.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -11,6 +12,9 @@ Future<SearchQuery?> showSearchHistorySheet(BuildContext context, WidgetRef ref)
       context: context, barrierColor: Colors.transparent,
       showDragHandle: true,
       isScrollControlled: true,
+      // 面板自己画玻璃，所以把 Material 的底色去掉 —— 留着的话玻璃后面是一块不透明底，
+      // 「材质 / 玻璃染色」在这块面板上就永远看不出变化。
+      backgroundColor: Colors.transparent,
       builder: (context) => const _SearchHistorySheet(),
     );
 
@@ -23,7 +27,16 @@ class _SearchHistorySheet extends ConsumerWidget {
     final history = ref.watch(searchHistoryProvider);
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
-    return SafeArea(
+    // 历史面板本体是玻璃。只有上面那一条圆角要裁，所以用 ClipRRect 兜住。
+    // 它挂在页面之上、面板里的列表滚动时背后的页面并不动，所以不会吃到内容卡片那种滞后一帧的糊块。
+    const shape = BorderRadius.vertical(top: Radius.circular(20));
+    return ClipRRect(
+      borderRadius: shape,
+      child: GlassSurface(
+        borderRadius: shape,
+        // 文字色由我们给，别让包按它那个我们从不画的白标签把材质压暗。
+        labelled: false,
+        child: SafeArea(
       child: SizedBox(
         height: MediaQuery.sizeOf(context).height * .65,
         child: history.when(
@@ -53,6 +66,8 @@ class _SearchHistorySheet extends ConsumerWidget {
                     );
                   },
                 ),
+        ),
+      ),
         ),
       ),
     );

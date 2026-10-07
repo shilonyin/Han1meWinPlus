@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:g1455/g1455.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -59,13 +60,15 @@ class _ScrollActionsState extends State<ScrollActions> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // 图标色跟着主题走：玻璃在浅色主题下是浅的，再画白图标就看不见了。
+    final ink = Theme.of(context).colorScheme.onSurface;
     return Padding(
       padding: EdgeInsets.only(right: widget.inset, bottom: widget.inset),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Symbols.refresh_rounded, size: 22, color: Colors.white)),
+          _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: ink)) : Icon(Symbols.refresh_rounded, size: 22, color: ink)),
           AnimatedSize(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
@@ -79,9 +82,9 @@ class _ScrollActionsState extends State<ScrollActions> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Symbols.arrow_upward_rounded, size: 18, color: Colors.white),
+                          Icon(Symbols.arrow_upward_rounded, size: 18, color: ink),
                           const SizedBox(height: 1),
-                          Text(l10n.backToTop, style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                          Text(l10n.backToTop, style: TextStyle(fontSize: 11, color: ink, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -104,13 +107,19 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
-        child: Material(
-          color: const Color(0xB3000000),
+        // 玻璃按钮。刻意不传 finish：这样它直接吃 GlassHost 上那一份，
+        // 于是「材质 / 玻璃染色」一改，这个按钮跟着变（原来是一块 70% 黑的不透明板）。
+        // 它是悬浮在列表之上的控件、不随内容滚动，所以不会吃到内容卡片那种滞后一帧的糊块。
+        child: GlassSurface(
           borderRadius: BorderRadius.circular(12),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(width: 44, height: 44, child: Center(child: child)),
+          // 文字色由我们给，别让包按它那个我们从不画的白标签把材质压暗。
+          labelled: false,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(width: 44, height: 44, child: Center(child: child)),
+            ),
           ),
         ),
       );
