@@ -221,85 +221,96 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ? cardCount
               : videoCount);
     final stats = artistId.isEmpty ? '' : '@$artistId';
-    // 「往两边移一个头像的距离」：左右各留一个头像宽的外边距。两端固定、中间留一个
-    // Spacer，多出的宽度只落在中间 —— 左右间距因此**严格相等**（用户反馈上一版两边
-    // 不一样，就是因为它只顾了左边）。
-    // 名字列限宽，窗口变窄时先压它、不溢出。
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _headerInset,
-        vertical: 16,
-      ),
-      child: Row(
-        children: [
-          _avatar(theme, hasAvatar ? avatar : null),
-          const SizedBox(width: 20),
-          Flexible(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
+    // 资料行的左右边距**按窗口宽度算**：整块用 SizedBox 定死成「窗口宽 - 2 × 一个
+    // 头像宽」再居中，于是两侧恒为一个头像宽、严格相等（用户两次反馈的「两边不一样」：
+    // 之前靠 Spacer 撑，块宽取决于内容，右端就落不到该落的位置）。
+    // 块内分左右两组、`spaceBetween` 各贴一边；名字列限宽，窗口变窄时先压它、不溢出。
+    final width = MediaQuery.sizeOf(context).width;
+    final contentWidth = width - 2 * _headerInset;
+    return Center(
+      child: SizedBox(
+        width: contentWidth < 0 ? 0 : contentWidth,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (stats.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      stats,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                  _avatar(theme, hasAvatar ? avatar : null),
+                  const SizedBox(width: 20),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (stats.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              stats,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
-          ),
-          // 唯一一个会伸缩的间隙：两端都留一个头像宽（`_headerInset`）后，多出来的
-          // 宽度全部落在这里，所以左右两边始终严格对称。名字那一列限宽，窗口变窄时
-          // 先压它，不溢出。
-          const Spacer(),
-          ..._statColumns(theme, counts),
-          const SizedBox(width: 32),
-          // 未订阅用实心主色、已订阅用 tonal：站点那种浅灰 tonal 按钮在浅底上
-          // 对比度太低（用户反馈「看着不明显」）。分支各自包 PressScale，
-          // 因为守门测试要求按钮调用点直接跟在 PressScale(child: 后面。
-          if (subscribed)
-            PressScale(
-              child: FilledButton.tonal(
-                onPressed: _canSubscribe(profile, artistId)
-                    ? () => _toggleSubscription(profile, artistId)
-                    : null,
-                child: Text(l10n.subscribed),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ..._statColumns(theme, counts),
+                  const SizedBox(width: 32),
+                  // 未订阅用实心主色、已订阅用 tonal：站点那种浅灰 tonal 按钮在浅底上
+                  // 对比度太低（用户反馈「看着不明显」）。分支各自包 PressScale，
+                  // 因为守门测试要求按钮调用点直接跟在 PressScale(child: 后面。
+                  if (subscribed)
+                    PressScale(
+                      child: FilledButton.tonal(
+                        onPressed: _canSubscribe(profile, artistId)
+                            ? () => _toggleSubscription(profile, artistId)
+                            : null,
+                        child: Text(l10n.subscribed),
+                      ),
+                    )
+                  else
+                    PressScale(
+                      child: FilledButton(
+                        onPressed: _canSubscribe(profile, artistId)
+                            ? () => _toggleSubscription(profile, artistId)
+                            : null,
+                        child: Text(l10n.subscribe),
+                      ),
+                    ),
+                  const SizedBox(width: 10),
+                  PressScale(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _share(name, artistId),
+                      icon: const Icon(Symbols.share_rounded, size: 16),
+                      label: Text(l10n.share),
+                    ),
+                  ),
+                ],
               ),
-            )
-          else
-            PressScale(
-              child: FilledButton(
-                onPressed: _canSubscribe(profile, artistId)
-                    ? () => _toggleSubscription(profile, artistId)
-                    : null,
-                child: Text(l10n.subscribe),
-              ),
-            ),
-          const SizedBox(width: 10),
-          PressScale(
-            child: OutlinedButton.icon(
-              onPressed: () => _share(name, artistId),
-              icon: const Icon(Symbols.share_rounded, size: 16),
-              label: Text(l10n.share),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
