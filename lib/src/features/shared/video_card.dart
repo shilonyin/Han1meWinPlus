@@ -15,6 +15,7 @@ import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
 import 'press_scale.dart';
 import 'app_image_cache.dart';
+import 'hover_preview.dart';
 
 int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
     (cardWidth * devicePixelRatio).round().clamp(240, 480).toInt();
@@ -189,9 +190,12 @@ class OpenedVideoIdsNotifier extends Notifier<Set<String>> {
 /// 缩放只作用在图片上（外层 `ClipRRect` 不动），所以角标、描边和卡片占位都留在原位，
 /// 观感是"图在框里推近"，而不是整张卡片被撑大 —— 后者会把邻居挤走。
 class _HoverZoom extends StatefulWidget {
-  const _HoverZoom({required this.child});
+  const _HoverZoom({required this.child, this.onHoverChanged});
 
   final Widget child;
+
+  /// 鼠标进入 / 离开封面。悬停预览靠它排定与收尾。
+  final ValueChanged<bool>? onHoverChanged;
 
   @override
   State<_HoverZoom> createState() => _HoverZoomState();
@@ -205,6 +209,15 @@ class _HoverZoomState extends State<_HoverZoom> {
   void _setHovered(bool value) {
     if (_hovered == value) return;
     setState(() => _hovered = value);
+    widget.onHoverChanged?.call(value);
+  }
+
+  @override
+  void dispose() {
+    // 悬停中途卡片被移出树（滚走了 / 换页了）不会再有 onExit，
+    // 不补这一下就会留一个静音播放器在后台一直解码。
+    if (_hovered) widget.onHoverChanged?.call(false);
+    super.dispose();
   }
 
   @override
@@ -218,6 +231,16 @@ class _HoverZoomState extends State<_HoverZoom> {
       child: widget.child,
     ),
   );
+}
+
+/// 封面上的悬停预览：要额外铺的一层画面 + 鼠标进出的回调。
+///
+/// 两者必须成对传：只给画面不给回调，那个画面永远不会出现。
+class _CoverHover {
+  const _CoverHover({this.surface, this.onHoverChanged});
+
+  final Widget? surface;
+  final ValueChanged<bool>? onHoverChanged;
 }
 
 class VideoCardTile extends ConsumerWidget {
@@ -292,11 +315,38 @@ class VideoCardTile extends ConsumerWidget {
     tags: meta.tags.isEmpty ? video.tags : meta.tags,
   );
 
+  /// 悬停预览在卡片这一侧的全部接线。
+  _CoverHover _coverHover(WidgetRef ref, HoverPreviewState preview) {
+    // 回调捕获的是 notifier 本身（不是 WidgetRef）：卡片被移出树时
+    // `_HoverZoomState.dispose` 还会调一次，那时不该再碰 ref。
+    final notifier = ref.read(hoverPreviewProvider.notifier);
+    return _CoverHover(
+      // 只有「这一张正在播」时才铺画面：playingId 变成它的那一刻播放器已经初始化好了。
+      surface: preview.playingId == video.id
+          ? notifier.player?.buildSurface()
+          : null,
+      onHoverChanged: (hovered) {
+        if (hovered) {
+          notifier.hover(video.id);
+        } else {
+          notifier.unhover(video.id);
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolved = _resolved(ref);
     // 点开过的卡片标题染主题色（会话级，见 openedVideoIdsProvider）。
     final marked = ref.watch(openedVideoIdsProvider).contains(video.id);
+    // 悬停预览要 watch 状态才知道自己是不是"正在播的那一张"。
+    final preview = ref.watch(hoverPreviewProvider);
+    // 没有 id、或者详情页里的小卡片（dense）都不接预览：小卡片里既看不清，
+    // 又要多起一路解码。
+    final coverHover = video.id.isEmpty || dense
+        ? const _CoverHover()
+        : _coverHover(ref, preview);
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
@@ -325,8 +375,8 @@ class VideoCardTile extends ConsumerWidget {
                         }),
               onLongPress: onLongPress,
               child: horizontal
-                  ? _horizontalContent(theme, cacheWidth, resolved, marked)
-                  : _verticalContent(theme, cacheWidth, resolved, marked),
+                  ? _horizontalContent(theme, cacheWidth, resolved, marked, coverHover)
+                  : _verticalContent(theme, cacheWidth, resolved, marked, coverHover),
             )),
           ),
         );
@@ -339,10 +389,11 @@ class VideoCardTile extends ConsumerWidget {
     int cacheWidth,
     VideoCard video,
     bool marked,
+    _CoverHover hover,
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Expanded(child: _cover(theme, cacheWidth, video)),
+      Expanded(child: _cover(theme, cacheWidth, video, hover)),
       const SizedBox(height: 8),
       _details(theme, video, marked),
     ],
@@ -353,6 +404,7 @@ class VideoCardTile extends ConsumerWidget {
     int cacheWidth,
     VideoCard video,
     bool marked,
+    _CoverHover hover,
   ) {
     // 竖版海报结果（「新番预告」这类）：网格已按海报比例算好卡高，封面必须吃掉
     // 「除标题区以外的全部高度」。**详情区不能放在 Flexible 里** —— Flexible 默认 flex 1，
@@ -362,7 +414,7 @@ class VideoCardTile extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _cover(theme, cacheWidth, video)),
+          Expanded(child: _cover(theme, cacheWidth, video, hover)),
           const SizedBox(height: 8),
           // 标题区是固定高度（详见 _details），不参与 flex 分配。
           ClipRect(child: _details(theme, video, marked)),
@@ -376,11 +428,11 @@ class VideoCardTile extends ConsumerWidget {
         // 站点有些分类只给封面和标题（例如里番的后续分页），这时也让封面撑满剩余高度，
         // 否则卡片下方会空出一段没有内容的区域。
         if (dense || fillCover || !hasVideoCardMeta(video))
-          Expanded(child: _cover(theme, cacheWidth, video))
+          Expanded(child: _cover(theme, cacheWidth, video, hover))
         else
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: _cover(theme, cacheWidth, video),
+            child: _cover(theme, cacheWidth, video, hover),
           ),
         SizedBox(height: dense ? 4 : 8),
         // 细节区最多吃掉剩余高度：网格给的是固定卡高，超出时裁剪而不是溢出报错
@@ -393,6 +445,7 @@ class VideoCardTile extends ConsumerWidget {
     ThemeData theme,
     int cacheWidth,
     VideoCard video,
+    _CoverHover hover,
   ) {
     // 选中态（详情页的"当前这一集"）改成给**封面**描一圈主题色：卡片底板已经去掉，
     // 再给整块（封面 + 文字）描边会连页面底色一起框住，看起来像一张没铺满的空卡。
@@ -407,9 +460,17 @@ class VideoCardTile extends ConsumerWidget {
           children: [
             // 图片本身在悬停时推近，裁切框（这一层 ClipRRect）不动。
             _HoverZoom(
-              child: coverImage != null
-                  ? Image(image: coverImage!, fit: BoxFit.cover)
-                  : CachedNetworkImage(
+              onHoverChanged: hover.onHoverChanged,
+              // 预览层排在 `_HoverZoom` **里面**：它跟着封面一起被推近，观感是
+              // 「这张封面动起来了」，而不是又叠了一块东西上去。它又在角标与内描边
+              // 之前，所以时长/播放量照旧压在画面上、不会被盖掉。
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (coverImage != null)
+                    Image(image: coverImage!, fit: BoxFit.cover)
+                  else
+                    CachedNetworkImage(
                       imageUrl: video.coverUrl,
                       cacheManager: appImageCacheManager,
                       fit: BoxFit.cover,
@@ -426,6 +487,9 @@ class VideoCardTile extends ConsumerWidget {
                         ),
                       ),
                     ),
+                  if (hover.surface != null) hover.surface!,
+                ],
+              ),
             ),
             if (video.duration != null)
               Positioned(
