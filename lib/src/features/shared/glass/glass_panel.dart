@@ -92,6 +92,7 @@ class GlassPanel extends ConsumerWidget {
     this.glassEnabled = true,
     this.border,
     this.pageBackground,
+    this.ripple,
   });
 
   final Widget child;
@@ -121,6 +122,24 @@ class GlassPanel extends ConsumerWidget {
   /// 不传时用 `scaffoldBackgroundColor` 兜底。它不参与任何绘制，
   /// 所以给得不精确也只会让兜底判定偏保守，不会影响观感。
   final Color? pageBackground;
+
+  /// 触摸时表面起的波纹（g1455 的 `GlassRipple`）。`null` = 不起波纹。
+  ///
+  /// **什么时候真的能看到它** —— 这条比"要不要开"更容易搞错：
+  /// 波纹要求玻璃**自己收到 pointer**，而 `GlassSurface.hitTest` 只在
+  /// **没命中子节点**时才把自己加进命中结果。于是：
+  ///
+  /// - 玻璃下铺满整块可点区域（`InkWell` 包住整行）→ 永远命中子节点
+  ///   → **波纹永远不触发**。主应用的设置项卡片正是这种。
+  /// - 玻璃下是纯展示内容（顶部只有一两个按钮、其余是文字/图形）
+  ///   → 点在非按钮处都能触发。
+  ///
+  /// 反过来它**不会**抢走内容的点击：只有 `!hit` 时才接管，而且它只监听
+  /// pointer、不参与手势竞技场。
+  ///
+  /// g1455 另外建议只用在**无文字**的大块玻璃上：有文字时它要按
+  /// `minLabelContrast` 把玻璃压暗，波纹会跟着变淡。
+  final GlassRipple? ripple;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -192,6 +211,7 @@ class GlassPanel extends ConsumerWidget {
       finish: _finishFor(quality, dark),
       // 有文字落在上面，允许它为了 `minLabelContrast` 压暗。
       labelled: true,
+      ripple: ripple,
       child: padding == null ? child : Padding(padding: padding!, child: child),
     );
     final panel = border == null

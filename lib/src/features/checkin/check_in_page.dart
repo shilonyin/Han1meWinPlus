@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -222,6 +223,9 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) => GlassPanel(
           borderRadius: BorderRadius.circular(18),
           solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          // 纯展示的一张卡：没有 `InkWell`，所以玻璃能收到 pointer，按住哪里都起波纹。
+          // （反过来如果这里铺了一整块可点区域，波纹永远不触发 —— 见 GlassPanel.ripple。）
+          ripple: const GlassRipple(),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(
