@@ -34,6 +34,10 @@ import 'explore_controller.dart';
 const _gridPadding = 16.0;
 const _gridSpacing = 10.0;
 
+/// 首页顶栏的高度。顶栏本体、内容顶部的占位、以及顶栏底下那条 scroll edge
+/// 都用它，所以提成常量 —— 三处各写一个 56 迟早会改漏。
+const double _homeBarHeight = 56;
+
 /// 瀑布流卡片的目樇宽度（逻辑像素）。窗口变化时靠它反推列数，
 /// 使卡片密度保持在可读的范围内，同时把宽度用满。
 const _targetCardWidth = 260.0;
@@ -154,12 +158,41 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       body: Stack(
         key: _bodyStackKey,
         children: [
-          Column(
-            children: [
-              Material(
+          // 列表铺满整块 body：它不再被顶栏挤下去，顶部让开的地方由它自己第一个
+          // sliver 的占位给出 —— 只有这样内容才会滚到顶栏后面。它排在顶栏**之前**，
+          // 因为 Stack 里后画的在上面，顶栏必须压在它上面才不会滚没了。
+          Positioned.fill(
+            child: feed.when(
+              skipLoadingOnReload: true,
+              skipLoadingOnRefresh: true,
+              loading: () => const Center(child: M3EContainedLoadingIndicator()),
+              error: (error, _) => _ErrorView(
+                error: error,
+                onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
+                onCloudflareVerified: () async {
+                  final url = error is CloudflareChallengeException ? error.url : null;
+                  if (await context.push<bool>('/cloudflare', extra: url) == true) {
+                    await Future<void>.delayed(const Duration(milliseconds: 250));
+                    await ref.read(homeSectionsProvider.notifier).refresh();
+                  }
+                },
+              ),
+              data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
+            ),
+          ),
+          // 顶栏浮在内容之上，底下带一条 scroll edge（g1455）：内容滚到它下面时
+          // 会被模糊并淡出，也就是 iOS 26 那条「滚动边缘」。
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GlassScrollEdge(
+              side: GlassScrollEdgeSide.top,
+              extent: _homeBarHeight,
+              child: Material(
                 color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
                 child: SizedBox(
-                  height: 56,
+                  height: _homeBarHeight,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
                     child: Row(
@@ -238,27 +271,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         ),
       ),
     ),
-    Expanded(
-      child: feed.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => _ErrorView(
-          error: error,
-          onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
-          onCloudflareVerified: () async {
-            final url = error is CloudflareChallengeException ? error.url : null;
-            if (await context.push<bool>('/cloudflare', extra: url) == true) {
-              await Future<void>.delayed(const Duration(milliseconds: 250));
-              await ref.read(homeSectionsProvider.notifier).refresh();
-            }
-          },
-        ),
-        data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
-      ),
     ),
-  ],
-),
+          ),
           // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
           IgnorePointer(
             ignoring: !_searchPanelOpen,
@@ -609,6 +623,10 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
             physics: const AlwaysScrollableScrollPhysics(),
             scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
             slivers: [
+              // 顶栏的占位。放在 sliver 里而不是给滚动视图套 Padding：这样它是
+              // 内容的一部分，往上滚就跟着走，后面的内容才会真的滚到顶栏后面 ——
+              // 顶栏底下那条 scroll edge 要的就是这个。
+              const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
               if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
               for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
               SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
