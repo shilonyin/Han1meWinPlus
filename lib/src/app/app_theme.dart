@@ -129,13 +129,17 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
     sliderTheme: const SliderThemeData(year2023: false),
-    // 参考 morrow：卡片一律大圆角、零海拔——层级靠淡染底色和圆角区分，
-    // 不靠投影，避免在磨砂/透明窗口上叠出一圈灰边。
+    // 卡片的层级靠**极浅描边 + 一丝投影**（见 `GlassPanel` 的同一处决定）：
+    // 白卡片压在近白的页面底上时，光靠明度差读不出边界。
+    // 海拔仍是 0 —— 重投影会在卡片周围糊出一圈灰，尤其是半透明窗口材质上。
     cardTheme: CardThemeData(
       elevation: 0,
       color: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
       margin: EdgeInsets.zero,
     ),
     // 浮窗必须自己带投影：遮罩已经是全透明的（见 `showAppDialog`），背景不再变暗，

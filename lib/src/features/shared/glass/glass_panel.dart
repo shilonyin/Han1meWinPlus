@@ -109,6 +109,10 @@ class GlassPanel extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
 
   /// 额外描边（例如选中项的主色边框）。
+  ///
+  /// **不传时给一圈极淡的 [ColorScheme.outlineVariant]**：参考图的卡片是靠
+  /// 「1px 极浅边 + 一丝投影」和页面底分开的，而不是靠明度差硬拉。原来的
+  /// 「零海拔、零描边」在纯白卡片压在近白页面上时，边界几乎读不出来。
   final BorderSide? border;
 
   /// 面板下方页面画布的底色，仅用于**推算可读性**（见 [GlassPanelScope]）。
@@ -139,7 +143,21 @@ class GlassPanel extends StatelessWidget {
         decoration: BoxDecoration(
           color: panelSurface,
           borderRadius: borderRadius,
-          border: border == null ? null : Border.fromBorderSide(border!),
+          border: Border.fromBorderSide(
+            border ?? BorderSide(color: scheme.outlineVariant),
+          ),
+          // 一丝投影：参考图的卡片是"浮"在页面上的，不是画上去的。
+          // 亮色用 4% 黑（再重就会在纯白卡片周围糊出一圈灰），深色下底色本来就黑，
+          // 用高一点的不透明度才有同样的"离地"感。
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? .22 : .04,
+              ),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: child,
       ),

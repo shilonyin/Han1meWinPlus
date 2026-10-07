@@ -23,14 +23,6 @@ void main() {
     });
 
     testWidgets('关闭时直接透传，不额外插一层画布', (tester) async {
-      // 先取一个没有 AppBackdrop 的基线：MaterialApp 自身也会有 CustomPaint，
-      // 所以要跟基线比数量，而不是断言"一个都没有"。
-      await tester.pumpWidget(
-        MaterialApp(home: const Center(child: Text('仅内容'))),
-      );
-      await tester.pumpAndSettle();
-      final baseline = tester.widgetList(find.byType(CustomPaint)).length;
-
       await tester.pumpWidget(
         MaterialApp(
           home: AppBackdrop(enabled: false, child: const Center(child: Text('仅内容'))),
@@ -38,16 +30,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('仅内容'), findsOneWidget);
-      expect(tester.widgetList(find.byType(CustomPaint)).length, baseline);
+      // 画布本身就是一层 ColoredBox，所以按「AppBackdrop 子树里有没有它」判，
+      // 而不是数全局数量 —— MaterialApp 自己也会铺底色，数量比不出结论。
+      expect(
+        find.descendant(
+          of: find.byType(AppBackdrop),
+          matching: find.byType(ColoredBox),
+        ),
+        findsNothing,
+      );
     });
 
-    testWidgets('启用时确实多画一层画布', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(home: const Center(child: Text('内容'))),
-      );
-      await tester.pumpAndSettle();
-      final baseline = tester.widgetList(find.byType(CustomPaint)).length;
-
+    testWidgets('启用时确实多铺一层画布', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: appTheme(null, const Color(0xff7662ba)),
@@ -56,8 +50,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        tester.widgetList(find.byType(CustomPaint)).length,
-        greaterThan(baseline),
+        find.descendant(
+          of: find.byType(AppBackdrop),
+          matching: find.byType(ColoredBox),
+        ),
+        findsOneWidget,
       );
     });
 
@@ -73,11 +70,13 @@ void main() {
     });
   });
 
-  group('画布的光晕压得够淡', () {
-    /// 把画布真画出来再采样，量「页面离演示站那个平色最多偏多少」。
+  group('画布是平的', () {
+    /// 把画布真画出来再采样，量「页面离那个平色最多偏多少」。
     ///
-    /// 光晕的半径是短边的 0.85~0.95 倍，也就是说整屏每个点都落在某个光晕里，
-    /// 所以不能用「页面底色 == 常量」来断言 —— 只能约束最大偏移量。
+    /// 光晕/渐变已经全部删掉（玻璃退役后它们存在的唯一理由消失了），
+    /// 所以这里的期望值是 0 —— 留 1 是给取整的余量。这组测试现在的意义是
+    /// **卡住"又把光晕加回来"的回归**：早先 0.06~0.08 那组实测暗色 28 / 亮色 13，
+    /// 更早的 0.32~0.46 会到 90 上下。
     Future<int> maxChannelDeviation(
       WidgetTester tester,
       Brightness brightness,
@@ -129,15 +128,19 @@ void main() {
       return worst;
     }
 
-    // 实测值（0.06~0.08 这组光晕 + far 只混 5%）：暗色 28、亮色 13。
-    // 阈值留一点余量，同时卡住「又把光晕开大」的回归 —— 早先那组 0.32~0.46 会到
-    // 90 上下，中途只压到 0.12~0.18 时也还有 60 / 28。
-    testWidgets('暗色下最多偏这么多', (tester) async {
-      expect(await maxChannelDeviation(tester, Brightness.dark), lessThan(36));
+    // 实测值（纯平底色）：暗色 0、亮色 0。
+    testWidgets('暗色下就是一块平色', (tester) async {
+      expect(
+        await maxChannelDeviation(tester, Brightness.dark),
+        lessThanOrEqualTo(1),
+      );
     });
 
-    testWidgets('亮色下最多偏这么多', (tester) async {
-      expect(await maxChannelDeviation(tester, Brightness.light), lessThan(18));
+    testWidgets('亮色下就是一块平色', (tester) async {
+      expect(
+        await maxChannelDeviation(tester, Brightness.light),
+        lessThanOrEqualTo(1),
+      );
     });
   });
 
