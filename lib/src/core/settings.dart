@@ -651,7 +651,9 @@ class AppSettings {
     for (final mode in AppThemeMode.values) {
       if (mode.name == name) return mode;
     }
-    return AppThemeMode.light;
+    // 回落的必须是 [AppSettings.themeMode] 的默认值：缺字段（全新安装时 json 就是空的）
+    // 或字段非法时都走这里，如果这里回浅色，构造函数的默认值就形同虚设。
+    return AppThemeMode.dark;
   }
 
   static AppThemeColor _themeColor(String? name) =>

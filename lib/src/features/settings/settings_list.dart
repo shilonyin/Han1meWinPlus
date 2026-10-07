@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_motion.dart';
 import '../shared/glass/glass_panel.dart';
+import 'settings_glass_controls.dart';
 
 /// Settings list primitives.
 ///
@@ -192,7 +193,7 @@ class SettingsTile<T> extends StatelessWidget {
                     ],
                     if (onToggle != null) ...[
                       const SizedBox(width: 12),
-                      Switch(value: initialValue ?? false, onChanged: enabled ? onToggle : null),
+                      SettingsSwitch(value: initialValue ?? false, onChanged: enabled ? onToggle : null),
                     ],
                     if (radioValue != null) ...[
                       const SizedBox(width: 12),

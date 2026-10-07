@@ -10,6 +10,7 @@ import '../../core/app_surface_tokens.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
+import 'settings_glass_controls.dart';
 import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import 'color_compass_dialog.dart';
@@ -284,7 +285,7 @@ class _GlassQualityPanel extends StatelessWidget {
               ),
             ],
           ),
-          Slider(
+          SettingsSlider(
             min: .2,
             max: 1,
             divisions: 80,

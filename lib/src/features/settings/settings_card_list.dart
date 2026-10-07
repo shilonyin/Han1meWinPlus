@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'settings_glass_controls.dart';
 import 'settings_list.dart';
 
 class SettingsCardList extends StatelessWidget {
@@ -113,7 +114,7 @@ class SettingsSliderItem extends SettingsCardItem {
             );
           },
         ),
-        bottom: Slider(value: value, min: min, max: max, divisions: divisions, label: label, onChanged: onChanged),
+        bottom: SettingsSlider(value: value, min: min, max: max, divisions: divisions, onChanged: onChanged),
       );
 }
 

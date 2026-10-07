@@ -8,6 +8,7 @@ import '../../app/app_theme.dart';
 import '../../core/app_motion.dart';
 import '../../core/settings.dart';
 import '../../core/app_dialog.dart';
+import 'settings_glass_controls.dart';
 
 /// 调色结果：选了预设主题色，或者选了一个自定义颜色。
 sealed class ColorCompassResult {
@@ -219,7 +220,7 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
                     color: scheme.onSurfaceVariant,
                   ),
                   Expanded(
-                    child: Slider(
+                    child: SettingsSlider(
                       value: _hsv.value,
                       onChanged: (value) => _set(_hsv.withValue(value)),
                     ),
