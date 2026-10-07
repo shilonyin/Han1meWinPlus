@@ -152,7 +152,11 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       appBar: AppBar(title: Text(l10n.author)),
       body: Column(
         children: [
-          _header(theme, l10n, card, profile, data, subscribed),
+          // 资料整块居中：满宽铺开时头像贴最左、按钮贴最右，中间空出一大片
+          // （用户看过之后要求「整体往中间靠一些」）。
+          Center(
+            child: _header(theme, l10n, card, profile, data, subscribed),
+          ),
           Align(
             alignment: Alignment.centerLeft,
             child: UnderlineTabStrip(
@@ -212,13 +216,18 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ? cardCount
               : videoCount);
     final stats = artistId.isEmpty ? '' : '@$artistId';
+    // `mainAxisSize: min` + 外层 Center：整块按内容宽度居中，名字与统计之间不留
+    // 一大片空白；名字那一列用 Flexible（loose）限宽，窗口变窄时先压它、不溢出。
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _avatar(theme, hasAvatar ? avatar : null),
-          const SizedBox(width: 20),
-          Expanded(
+        _avatar(theme, hasAvatar ? avatar : null),
+        const SizedBox(width: 20),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,25 +254,26 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ],
             ),
           ),
-          const SizedBox(width: 24),
-          ..._statColumns(theme, counts),
-          const SizedBox(width: 28),
-          PressScale(
-            child: FilledButton.tonal(
-              onPressed: _canSubscribe(profile, artistId)
-                  ? () => _toggleSubscription(profile, artistId)
-                  : null,
-              child: Text(subscribed ? l10n.subscribed : l10n.subscribe),
-            ),
+        ),
+        const SizedBox(width: 48),
+        ..._statColumns(theme, counts),
+        const SizedBox(width: 32),
+        PressScale(
+          child: FilledButton.tonal(
+            onPressed: _canSubscribe(profile, artistId)
+                ? () => _toggleSubscription(profile, artistId)
+                : null,
+            child: Text(subscribed ? l10n.subscribed : l10n.subscribe),
           ),
-          const SizedBox(width: 10),
-          PressScale(
-            child: OutlinedButton.icon(
-              onPressed: () => _share(name, artistId),
-              icon: const Icon(Symbols.share_rounded, size: 16),
-              label: Text(l10n.share),
-            ),
+        ),
+        const SizedBox(width: 10),
+        PressScale(
+          child: OutlinedButton.icon(
+            onPressed: () => _share(name, artistId),
+            icon: const Icon(Symbols.share_rounded, size: 16),
+            label: Text(l10n.share),
           ),
+        ),
         ],
       ),
     );
