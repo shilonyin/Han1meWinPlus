@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:g1455/g1455.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -16,6 +17,7 @@ import '../comics/comic_pages.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/app_toast.dart';
+import '../shared/glass/glass_tuning.dart';
 import 'exit_coordinator.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -315,7 +317,13 @@ class _CompactNavigationRail extends ConsumerWidget {
     final iconItems = videoItems.where((item) => item.location != '/settings').toList();
     // 下段固定多三项：头像（我的）、主题模式、设置。
     final rows = mainItems.length + iconItems.length + 3;
-    return Container(
+    // 侧栏是导航层：按 g1455 的规则 5，玻璃本来就该用在这里，而不是每一张内容卡片上。
+    // 它不随内容滚动，所以「录完才取」那一帧滞后不会显形 —— 会显形的是滚动的内容卡片。
+    // 设置页里改「材质 / 玻璃染色 / 渲染」，第一眼该看到变化的就是这条侧栏。
+    final glassMaterial = ref.watch(settingsProvider).valueOrNull?.glassMaterial ?? GlassMaterial.regular;
+    final glassTint = ref.watch(settingsProvider).valueOrNull?.glassTint ?? GlassTintKind.neutral;
+    final finish = glassFinishFor(material: glassMaterial, tint: glassTint, brightness: Theme.of(context).brightness);
+    final rail = Container(
       width: railWidth,
       color: railColor,
       child: SafeArea(
@@ -360,6 +368,14 @@ class _CompactNavigationRail extends ConsumerWidget {
           },
         ),
       ),
+    );
+    return GlassSurface(
+      finish: finish,
+      borderRadius: BorderRadius.zero,
+      // 文字色是我们自己给的，别让包按它那个我们从不画的白标签把材质压暗
+      // （超透 / 磨砂的 alpha 只有 .22，一压就变成中灰）。
+      labelled: false,
+      child: rail,
     );
   }
 }

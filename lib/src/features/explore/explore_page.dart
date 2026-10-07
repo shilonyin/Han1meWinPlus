@@ -25,6 +25,7 @@ import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/glass/glass_tuning.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
@@ -189,8 +190,18 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             child: GlassScrollEdge(
               side: GlassScrollEdgeSide.top,
               extent: _homeBarHeight,
-              child: Material(
-                color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+              // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。玻璃材质（磨砂的模糊、
+              // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
+              // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
+              child: GlassSurface(
+                finish: glassFinishFor(
+                  material: ref.watch(settingsProvider).valueOrNull?.glassMaterial ?? GlassMaterial.regular,
+                  tint: ref.watch(settingsProvider).valueOrNull?.glassTint ?? GlassTintKind.neutral,
+                  brightness: Theme.of(context).brightness,
+                ),
+                borderRadius: BorderRadius.zero,
+                // 文字色由我们给，别让包按它那个我们从不画的白标签把材质压暗。
+                labelled: false,
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
