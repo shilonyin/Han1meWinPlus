@@ -432,18 +432,29 @@ class _LiquidGlassSurfaceState extends State<LiquidGlassSurface>
                             guardDegraded: RuntimeVisualGuard.instance.degraded.value,
                           );
                           LiquidGlassSurface.debugOnRefractionPathResolved?.call(path);
-                          return BackdropFilter(
-                            filter: _filter(
-                              constraints.biggest,
-                              material,
-                              path: path,
-                            ),
-                            child: DecoratedBox(
-                              decoration: material.decoration.copyWith(
-                                boxShadow: const [],
-                              ),
+                          final filter = _filter(
+                            constraints.biggest,
+                            material,
+                            path: path,
+                          );
+                          final glass = DecoratedBox(
+                            decoration: material.decoration.copyWith(
+                              boxShadow: const [],
                             ),
                           );
+                          // 纯模糊档（磨砂）的滤镜在**所有面板上完全相同**，可以让
+                          // 引擎只采样一次背景给一屏玻璃共用 —— 多块玻璃时这是最大的
+                          // 一笔节省。`BackdropGroup` 由上层提供（见 app_widget）。
+                          //
+                          // 走折射的档位**不共享**：着色器 uniform 里带着这一块自己的
+                          // 光照与按压值，各块滤镜不同，共享背景输入没有意义。
+                          if (material.liquid <= .001) {
+                            return BackdropFilter.grouped(
+                              filter: filter,
+                              child: glass,
+                            );
+                          }
+                          return BackdropFilter(filter: filter, child: glass);
                         },
                       ),
                     ),

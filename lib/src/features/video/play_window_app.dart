@@ -129,14 +129,16 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
-        builder: (context, child) => M3EThemeBridge(
-          child: AppWindowFrame(
-            // 播放窗口用自己那条标题栏（回到主界面 / 上下集 / 居中标题 / 置顶 /
-            // 画中画 / 窗口按钮）。主窗口那条只放 logo 与窗口按钮，在这里不够用。
-            titleBar: PlayWindowTitleBar(onHome: revealMainWindow),
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-              child: child ?? const SizedBox.shrink(),
+        builder: (context, child) => BackdropGroup(
+          child: M3EThemeBridge(
+            child: AppWindowFrame(
+              // 播放窗口用自己那条标题栏（回到主界面 / 上下集 / 居中标题 / 置顶 /
+              // 画中画 / 窗口按钮）。主窗口那条只放 logo 与窗口按钮，在这里不够用。
+              titleBar: PlayWindowTitleBar(onHome: revealMainWindow),
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           ),
         ),

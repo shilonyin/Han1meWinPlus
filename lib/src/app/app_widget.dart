@@ -50,21 +50,27 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
         debugShowCheckedModeBanner: false,
         routerConfig: _appRouter.router,
-        builder: (context, child) => M3EThemeBridge(
-          child: AppBackdrop(
-            // AMOLED 要的是纯黑省电，铺渐变就白搭了；深色下也只在非 AMOLED 时启用。
-            enabled: !(settings.amoledMode && Theme.of(context).brightness == Brightness.dark),
-            // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
-            // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
-            opacity: settings.windowBackdrop == WindowBackdrop.none ? 1 : .78,
-            child: AppWindowFrame(
-              child: AppStartupEffects(
-                navigatorKey: _appRouter.navigatorKey,
-                exitCoordinator: _exitCoordinator,
-                initialLink: widget.initialLink,
-                child: MediaQuery(
-                  data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-                  child: AppLockGate(child: child ?? const SizedBox.shrink()),
+        // 共享背景采样：多块玻璃各自一个 `BackdropFilter` 时，引擎默认每块都
+        // 重新采样一次背景。套一层 `BackdropGroup`、并让玻璃用
+        // `BackdropFilter.grouped`，引擎就只采样一次背景、各块再各画各的滤镜。
+        // 放在 navigator 之上，对话框/底部弹层里的玻璃也能找到它。
+        builder: (context, child) => BackdropGroup(
+          child: M3EThemeBridge(
+            child: AppBackdrop(
+              // AMOLED 要的是纯黑省电，铺渐变就白搭了；深色下也只在非 AMOLED 时启用。
+              enabled: !(settings.amoledMode && Theme.of(context).brightness == Brightness.dark),
+              // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
+              // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
+              opacity: settings.windowBackdrop == WindowBackdrop.none ? 1 : .78,
+              child: AppWindowFrame(
+                child: AppStartupEffects(
+                  navigatorKey: _appRouter.navigatorKey,
+                  exitCoordinator: _exitCoordinator,
+                  initialLink: widget.initialLink,
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                    child: AppLockGate(child: child ?? const SizedBox.shrink()),
+                  ),
                 ),
               ),
             ),
