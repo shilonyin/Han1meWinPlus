@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../core/app_surface_tokens.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/library_repository.dart';
 import '../../domain/models/video.dart';
@@ -212,94 +213,104 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       if (artistId.isNotEmpty) '@$artistId',
       if (counts.isNotEmpty) counts,
     ].join(' · ');
-    return SizedBox(
-      height: 156,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (hasAvatar)
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(
-                sigmaX: 30,
-                sigmaY: 30,
-                tileMode: TileMode.clamp,
-              ),
-              child: Image(image: appNetworkImage(avatar), fit: BoxFit.cover),
-            )
-          else
-            ColoredBox(color: scheme.surfaceContainerHighest),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                // 只用「透明 → 页面底色」两档，不在调用点自创 surface 不透明度
-                // （`test/surface_token_guard_test.dart` 守着这条规则）。
-                colors: [Colors.transparent, scheme.surface],
-                stops: const [.35, 1],
+    return ClipRect(
+      child: SizedBox(
+        height: 156,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasAvatar)
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(
+                  sigmaX: 44,
+                  sigmaY: 44,
+                  tileMode: TileMode.clamp,
+                ),
+                child: Image(image: appNetworkImage(avatar), fit: BoxFit.cover),
+              )
+            else
+              ColoredBox(color: scheme.surfaceContainerHighest),
+            // 模糊必须自己收在横幅里：`ImageFiltered` 不裁切，sigma 44 的高斯会把
+            // 头像边缘的颜色糊出几十像素，在横幅下面压出一条横杆（作者页实测过：
+            // 金币头像压出金条、深色头像压出黑条）。外层的 ClipRect 就是为了这一条。
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppSurfaceTokens.bannerScrim(scheme, theme.brightness),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _avatar(theme, hasAvatar ? avatar : null),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  // 只用「透明 → 页面底色」两档，不在调用点自创 surface 不透明度
+                  // （`test/surface_token_guard_test.dart` 守着这条规则）。
+                  colors: [Colors.transparent, scheme.surface],
+                  stops: const [.3, 1],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _avatar(theme, hasAvatar ? avatar : null),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        stats,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
+                        const SizedBox(height: 4),
+                        Text(
+                          stats,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          PressScale(
-                            child: FilledButton.tonal(
-                              onPressed: _canSubscribe(profile, artistId)
-                                  ? () => _toggleSubscription(profile, artistId)
-                                  : null,
-                              child: Text(
-                                subscribed ? l10n.subscribed : l10n.subscribe,
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            PressScale(
+                              child: FilledButton.tonal(
+                                onPressed: _canSubscribe(profile, artistId)
+                                    ? () => _toggleSubscription(profile, artistId)
+                                    : null,
+                                child: Text(
+                                  subscribed ? l10n.subscribed : l10n.subscribe,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          PressScale(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _share(name, artistId),
-                              icon: const Icon(Symbols.share_rounded, size: 16),
-                              label: Text(l10n.share),
+                            const SizedBox(width: 10),
+                            PressScale(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _share(name, artistId),
+                                icon: const Icon(Symbols.share_rounded, size: 16),
+                                label: Text(l10n.share),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
