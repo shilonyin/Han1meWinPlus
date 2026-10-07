@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
@@ -319,7 +320,7 @@ class _SelectableBorder extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 2),
         ),
         child: Padding(padding: const EdgeInsets.all(4), child: child),

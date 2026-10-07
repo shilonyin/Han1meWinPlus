@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
+import '../../core/app_radius.dart';
 import 'press_scale.dart';
 
 /// 列表底部要给右下角浮动操作（[ScrollActions]：刷新 / 回到顶部）留的净空。
@@ -119,7 +120,7 @@ class _ActionButton extends StatelessWidget {
         // 悬浮控件回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
         child: Material(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           clipBehavior: Clip.antiAlias,
           child: PressScale(child: InkWell(
             onTap: onTap,

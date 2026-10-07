@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
 import '../shared/press_scale.dart';
@@ -25,7 +26,7 @@ class _SearchHistorySheet extends ConsumerWidget {
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
     // 面板底色回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
-    const shape = BorderRadius.vertical(top: Radius.circular(20));
+    const shape = BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
     return ClipRRect(
       borderRadius: shape,
       child: Material(
@@ -46,7 +47,7 @@ class _SearchHistorySheet extends ConsumerWidget {
                     if (index == 0) return Text(l10n.searchHistory, style: Theme.of(context).textTheme.titleLarge);
                     final query = items[index - 1];
                     return Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                       child: ListTile(
                         title: Text(_title(l10n, query, catalog, localeKey), maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(_summary(l10n, query, catalog, localeKey), maxLines: 2, overflow: TextOverflow.ellipsis),

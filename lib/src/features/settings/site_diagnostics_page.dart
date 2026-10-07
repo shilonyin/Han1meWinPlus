@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/remote/address_ranker.dart';
@@ -114,7 +115,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: .35), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: .35), borderRadius: BorderRadius.circular(AppRadius.sm)),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(Symbols.info_rounded, size: 16, color: scheme.onPrimaryContainer),
               const SizedBox(width: 8),
@@ -210,7 +211,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     return GlassPanel(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           solidColor: scheme.surfaceContainerLow,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -246,7 +247,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     return GlassPanel(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           solidColor: scheme.surfaceContainerLow,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -262,7 +263,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: scheme.errorContainer.withValues(alpha: .45), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: scheme.errorContainer.withValues(alpha: .45), borderRadius: BorderRadius.circular(AppRadius.sm)),
             child: Text('${AppLocalizations.of(context)!.suggestionLabel}：$suggestion', style: textTheme.bodySmall?.copyWith(color: scheme.onErrorContainer, height: 1.4)),
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -76,7 +77,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                 key: ValueKey(selected[index]),
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: GlassPanel(
-   borderRadius: BorderRadius.circular(18),
+   borderRadius: BorderRadius.circular(AppRadius.lg),
    solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                   child: ListTile(
                     dense: true,
@@ -103,7 +104,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: GlassPanel(
-   borderRadius: BorderRadius.circular(18),
+   borderRadius: BorderRadius.circular(AppRadius.lg),
    solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
                           child: ListTile(
                             dense: true,

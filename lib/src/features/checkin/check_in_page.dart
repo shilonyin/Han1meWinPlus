@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
@@ -146,12 +147,12 @@ class _MonthCalendar extends ConsumerWidget {
           final count = state.countFor(checkInDateKey(day));
           final isToday = checkInDateKey(day) == todayKey;
           return PressScale(child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => _openDay(context, ref, day),
             child: Container(
               decoration: BoxDecoration(
                 color: count == 0 ? scheme.surfaceContainerHighest.withValues(alpha: 0.4) : scheme.primaryContainer.withValues(alpha: (0.3 + 0.18 * count).clamp(0.3, 0.95)),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: isToday ? Border.all(color: scheme.primary, width: 1.5) : null,
               ),
               child: Column(
@@ -168,7 +169,7 @@ class _MonthCalendar extends ConsumerWidget {
     }
 
     return GlassPanel(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           solidColor: scheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
@@ -221,7 +222,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassPanel(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
         // 纯展示的一张卡：没有 `InkWell`，所以玻璃能收到 pointer，按住哪里都起波纹。
         // （反过来如果这里铺了一整块可点区域，波纹永远不触发 —— 见 GlassPanel.ripple。）

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,7 +81,7 @@ class _ProductSummary extends StatelessWidget {
     return GlassPanel(
       solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
 
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 520;
@@ -194,10 +195,10 @@ class _SampleImages extends StatelessWidget {
             itemCount: images.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, index) => PressScale(child: InkWell(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
               onTap: () => showDialog<void>(context: context, barrierColor: Colors.black87, builder: (_) => _ImageViewer(images: images, initialIndex: index)),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
                 child: CachedNetworkImage(imageUrl: images[index], cacheManager: appImageCacheManager, httpHeaders: _getchuImageHeaders, width: 200, fit: BoxFit.cover, fadeInDuration: Duration.zero),
               ),
             )),

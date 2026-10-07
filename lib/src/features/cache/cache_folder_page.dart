@@ -4,6 +4,7 @@ import 'package:g1455/g1455.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../shared/press_scale.dart';
@@ -308,7 +309,7 @@ class _HeaderCover extends StatelessWidget {
             top: 10,
             bottom: 0,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -326,7 +327,7 @@ class _HeaderCover extends StatelessWidget {
     );
   }
 
-  Widget _sheet(Color color) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)));
+  Widget _sheet(Color color) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(AppRadius.md)));
 }
 
 /// 分段标题（「正片」）：主题色小标题，与 b 站的粉色分段名对应。

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
 import '../shared/glass/glass_panel.dart';
 import '../shared/press_scale.dart';
@@ -281,7 +282,7 @@ class _NavItemState extends State<_NavItem> {
       onExit: (_) => setState(() => _hovered = false),
       child: PressScale(child: InkWell(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         // 不能出现矩形水波纹，否则悬停/点击会在分组底色上再冒一块。
         hoverColor: Colors.transparent,
         splashColor: Colors.transparent,
@@ -300,7 +301,7 @@ class _NavItemState extends State<_NavItem> {
                           height: 18,
                           decoration: BoxDecoration(
                             color: colorScheme.primary,
-                            borderRadius: BorderRadius.circular(2),
+                            borderRadius: BorderRadius.circular(AppRadius.xs),
                           ),
                         ),
                       )

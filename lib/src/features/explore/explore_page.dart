@@ -10,6 +10,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
@@ -329,7 +330,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               // 建议面板回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
               ),
               child: SearchSuggestions(
@@ -504,7 +505,7 @@ class _CategorySelectorState extends State<_CategorySelector> {
           ),
       ],
       builder: (context, controller, child) => PressScale(child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: () => controller.isOpen ? controller.close() : controller.open(),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
@@ -1088,7 +1089,7 @@ class _FeaturedVideoSurface extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => Material(
         clipBehavior: Clip.antiAlias,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: PressScale(child: InkWell(
           // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
           onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),

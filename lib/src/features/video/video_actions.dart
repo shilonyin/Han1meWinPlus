@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/download_repository.dart';
@@ -50,7 +51,7 @@ class VideoActionRow extends ConsumerWidget {
           for (final action in _videoActions(context, ref, video))
             Expanded(
               child: PressScale(child: InkWell(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 onTap: action.onPressed,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),

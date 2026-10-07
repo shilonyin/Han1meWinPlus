@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/app_motion.dart';
+import '../../core/app_radius.dart';
 import '../../core/settings.dart';
 import '../../core/app_dialog.dart';
 import '../shared/press_scale.dart';
@@ -248,7 +249,7 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
                     height: 50,
                     decoration: BoxDecoration(
                       color: _hsv.toColor(),
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                       border: Border.all(color: scheme.outlineVariant),
                     ),
                   ),

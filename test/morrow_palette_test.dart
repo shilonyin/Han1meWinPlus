@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/src/app/app_page_colors.dart';
 import 'package:han1me_win_plus/src/app/app_theme.dart';
+import 'package:han1me_win_plus/src/core/app_radius.dart';
 import 'package:han1me_win_plus/src/core/settings.dart';
 
 void main() {
@@ -95,10 +96,8 @@ void main() {
       final theme = appTheme(null, const Color(0xff7662ba));
       expect(theme.cardTheme.elevation, 0);
       final shape = theme.cardTheme.shape! as RoundedRectangleBorder;
-      expect(
-        shape.borderRadius,
-        BorderRadius.circular(18),
-      );
+      // 圆角走 AppRadius 统一档位：卡片这一档是 lg。
+      expect(shape.borderRadius, BorderRadius.circular(AppRadius.lg));
     });
 
     test('AMOLED 保留卡片层次，不再把六层 surface 全压成黑', () {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../core/app_radius.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/library_repository.dart';
 import '../../domain/models/video.dart';
@@ -369,7 +370,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       border: Border.all(color: theme.colorScheme.surface, width: 3),
       image: url == null
           ? null
@@ -478,7 +479,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                       ),
                     ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
               ),
             ),
           ),

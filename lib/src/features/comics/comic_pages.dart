@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
@@ -259,7 +260,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, width: 118, height: 172, fit: BoxFit.cover)),
+              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, width: 118, height: 172, fit: BoxFit.cover)),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
             ],
@@ -659,7 +660,7 @@ class ComicTile extends StatelessWidget {
   final ComicCard comic;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => context.push('/comics/${comic.id}'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]));
+  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => context.push('/comics/${comic.id}'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]));
 }
 
 class _ComicGrid extends StatelessWidget {

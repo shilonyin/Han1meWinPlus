@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
+import '../core/app_radius.dart';
 import '../core/settings.dart';
 
 /// 页面跳转过渡：淡入 + 极小的上浮。
@@ -126,7 +127,7 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       contentTextStyle: TextStyle(color: scheme.onSurface),
       actionTextColor: scheme.primary,
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
     ),
     sliderTheme: const SliderThemeData(year2023: false),
     // 卡片的层级靠**极浅描边 + 一丝投影**（见 `GlassPanel` 的同一处决定）：
@@ -137,7 +138,7 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       color: scheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       margin: EdgeInsets.zero,
@@ -150,14 +151,14 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       shadowColor: _dialogShadow(scheme),
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
     ),
     popupMenuTheme: PopupMenuThemeData(
       elevation: 6,
       shadowColor: _dialogShadow(scheme),
       color: scheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
     ),
     // 底部弹层同理：它也是浮起来的，需要自己的投影。
     bottomSheetTheme: BottomSheetThemeData(

@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
 import 'video_comments.dart';
@@ -372,7 +373,7 @@ class _SidebarHandle extends StatelessWidget {
           message: collapsed ? l10n.expandSidebar : l10n.collapseSidebar,
           child: Material(
             color: const Color(0x73000000),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             clipBehavior: Clip.antiAlias,
             child: PressScale(child: InkWell(
               onTap: onPressed,

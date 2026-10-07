@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/platform_service.dart';
@@ -501,7 +502,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                                       color: Colors.black.withValues(
                                         alpha: 0.88,
                                       ),
-                                      borderRadius: BorderRadius.circular(999),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -773,7 +774,7 @@ class PlayerNavCapsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.black.withValues(alpha: 0.42),
-    borderRadius: BorderRadius.circular(999),
+    borderRadius: BorderRadius.circular(AppRadius.pill),
     clipBehavior: Clip.antiAlias,
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -1007,7 +1008,7 @@ class _AdjustmentHud extends StatelessWidget {
   Widget _pill(Widget child) => DecoratedBox(
     decoration: BoxDecoration(
       color: Colors.black.withValues(alpha: 0.88),
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
     ),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -1065,7 +1066,7 @@ class _VolumeHud extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1106,7 +1107,7 @@ class _PausedBadge extends StatelessWidget {
   Widget build(BuildContext context) => const DecoratedBox(
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.all(Radius.circular(10)),
+      borderRadius: BorderRadius.all(Radius.circular(AppRadius.sm)),
     ),
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1139,7 +1140,7 @@ class _KeyframeCountdown extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black54,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(

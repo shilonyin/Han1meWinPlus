@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../domain/models/search_query.dart';
 import '../shared/press_scale.dart';
@@ -172,7 +173,7 @@ class _PopularTagTile extends StatelessWidget {
     final theme = Theme.of(context);
     return PressScale(child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppRadius.xs),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
         child: Row(
@@ -201,11 +202,11 @@ class _SuggestionChip extends StatelessWidget {
     final theme = Theme.of(context);
     return PressScale(child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 168),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(AppRadius.sm)),
         child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5)),
       ),
     ));
@@ -223,7 +224,7 @@ class _MoreChip extends StatelessWidget {
     final theme = Theme.of(context);
     return PressScale(child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         child: Row(

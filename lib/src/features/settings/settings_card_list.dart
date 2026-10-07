@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_radius.dart';
 import 'settings_glass_controls.dart';
 import 'settings_list.dart';
 
@@ -109,7 +110,7 @@ class SettingsSliderItem extends SettingsCardItem {
             final colorScheme = Theme.of(context).colorScheme;
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(AppRadius.sm)),
               child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colorScheme.onSecondaryContainer)),
             );
           },

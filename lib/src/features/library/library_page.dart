@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -213,7 +214,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
                     fit: StackFit.expand,
                     children: [
                       DecoratedBox(
-                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
+                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(item.id) : null, onLongPress: () => _startSelection(item.id)),
                       ),
                       if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
@@ -352,9 +353,9 @@ class _ArtistStripCard extends StatelessWidget {
         // 这里是**列表项**（视频墙上的每一格），按 g1455 规则 5 不该穿玻璃：
         // 一屏几十格同时取样，滚动时捕获一滞后就会在格子里浮出上一帧的 UI。
         // 选中态本来就靠 `solidColor` + 描边区分，用纯色底更清楚。
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         child: PressScale(child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: onTap,
           onLongPress: onLongPress,
           child: Padding(
@@ -512,7 +513,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
                     fit: StackFit.expand,
                     children: [
                       DecoratedBox(
-                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
+                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
                       if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
@@ -645,7 +646,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(16), child: AspectRatio(aspectRatio: 16 / 9, child: CachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 960))),
+              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: CachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 960))),
               const SizedBox(height: 16),
               Text(playlist.playlist.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
@@ -810,7 +811,7 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
                     fit: StackFit.expand,
                     children: [
                       DecoratedBox(
-                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(12)) : const BoxDecoration(),
+                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
                       if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),

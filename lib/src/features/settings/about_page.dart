@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_dialog.dart';
 import '../../core/app_identity.dart';
 import '../../core/app_info.dart';
+import '../../core/app_radius.dart';
 import '../../data/remote/update_checker.dart';
 import '../../data/local/update_installer.dart';
 import '../shared/glass/glass_panel.dart';
@@ -230,7 +231,7 @@ class _VersionBadge extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return DecoratedBox(
-      decoration: BoxDecoration(border: Border.all(color: colorScheme.outlineVariant), borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(border: Border.all(color: colorScheme.outlineVariant), borderRadius: BorderRadius.circular(AppRadius.pill)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         child: Row(
@@ -323,7 +324,7 @@ class _AboutItem extends StatelessWidget {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(AppRadius.sm)),
                     child: Icon(icon, size: 20, color: colorScheme.onSecondaryContainer),
                   ),
                   const SizedBox(width: 14),

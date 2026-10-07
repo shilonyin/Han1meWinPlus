@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
@@ -215,7 +216,7 @@ class VideoPlayerVolumeButton extends StatelessWidget {
             backgroundColor: WidgetStatePropertyAll(Color(0x99000000)),
             surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
             elevation: WidgetStatePropertyAll(0),
-            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12)))),
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)))),
           ),
           menuChildren: [
             SizedBox(

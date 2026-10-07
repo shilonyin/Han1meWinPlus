@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../core/app_radius.dart';
 
 /// 屏幕中间的半透明圆角提示，用来代替贴底的 SnackBar。
 ///
@@ -62,7 +63,7 @@ class _AppToastState extends State<_AppToast> with SingleTickerProviderStateMixi
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.88),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 6))],
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../domain/models/video.dart';
 import '../../domain/series_name.dart';
 import '../../core/app_dialog.dart';
@@ -175,7 +176,7 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
       // 悬浮卡片：圆角 + 四周留白，不贴屏幕边缘（b 站的「离线缓存」就是这种小卡片）。
       backgroundColor: scheme.surfaceContainer,
       insetPadding: const EdgeInsets.symmetric(horizontal: 56, vertical: 48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: media.width * .44, maxHeight: available),
@@ -394,7 +395,7 @@ class _QualityDropdown extends StatelessWidget {
       // 给下拉一个浅色圆角底：只留文字 + 箭头会看不出"这里能点"，
       // 参考里也是一个淡淡的圆角容器（不是描边输入框）。
       child: DecoratedBox(
-        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(AppRadius.sm)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           // 用 isExpanded 让下拉在窄卡片里收缩（配 Flexible 使用），
@@ -404,7 +405,7 @@ class _QualityDropdown extends StatelessWidget {
               value: value,
               isDense: true,
               isExpanded: true,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               padding: const EdgeInsets.symmetric(vertical: 10),
               icon: const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Symbols.arrow_drop_down_rounded, size: 22)),
               dropdownColor: theme.colorScheme.surfaceContainerHigh,
@@ -462,13 +463,13 @@ class _EpisodeRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Material(
       color: selected ? scheme.primary.withValues(alpha: .10) : scheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       clipBehavior: Clip.antiAlias,
       child: PressScale(child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             border: Border.all(color: selected ? scheme.primary : Colors.transparent, width: 1.5),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -479,7 +480,7 @@ class _EpisodeRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: Text(l10n.downloadCurrentOnly, style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
                 ),
               ],

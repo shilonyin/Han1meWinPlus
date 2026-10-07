@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
@@ -163,10 +164,10 @@ class _ArtistRow extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: GlassPanel(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         solidColor: theme.colorScheme.surfaceContainerLow,
         child: PressScale(child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
           // 那时作者页会退化成「没有作者名」的空页，看起来就是点了作者没内容。
           onTap: () => context.push(
@@ -229,10 +230,10 @@ class _Description extends StatelessWidget {
         duration: AppMotion.standard,
         alignment: Alignment.topCenter,
         child: GlassPanel(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
           child: PressScale(child: InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             onTap: onToggle,
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -473,7 +474,7 @@ class _SeriesPageArrow extends StatelessWidget {
           message: tooltip,
           child: Material(
             color: const Color(0x73000000),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             clipBehavior: Clip.antiAlias,
             child: PressScale(child: InkWell(
               onTap: onPressed,
@@ -525,16 +526,16 @@ class _RelatedVideoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassPanel(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         solidColor: theme.colorScheme.surfaceContainerLow,
       child: PressScale(child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Symbols.broken_image_rounded))))),
+              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: SizedBox(width: 144, height: 81, child: CachedNetworkImage(imageUrl: video.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Symbols.broken_image_rounded))))),
               const SizedBox(width: 12),
               Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 6), if (video.artist != null) Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)), if (video.views != null) Text(video.views!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
             ],

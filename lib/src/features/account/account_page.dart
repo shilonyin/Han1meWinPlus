@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,7 +91,7 @@ class _SignedInProfile extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PressScale(child: InkWell(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
               onTap: () => _openProfile(context, ref, account),
               child: CircleAvatar(radius: 32, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 32)),
             )),

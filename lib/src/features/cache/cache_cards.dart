@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../domain/models/download.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/press_scale.dart';
@@ -19,7 +20,7 @@ class CacheCoverBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .55), borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .55), borderRadius: BorderRadius.circular(AppRadius.xs)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           child: Row(
@@ -53,7 +54,7 @@ class CacheVideoCard extends StatelessWidget {
     return PressScale(child: InkWell(
       // 之前这里是 `GestureDetector(onLongPress: ...)` 且**没有** onTap ——
       // 传入的播放回调被完全忽略，卡片点上去毫无反应（长按却能进多选）。
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       onTap: onTap,
       onLongPress: onLongPress,
       child: Column(
@@ -61,7 +62,7 @@ class CacheVideoCard extends StatelessWidget {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -143,7 +144,7 @@ class CacheEpisodeCard extends StatelessWidget {
     final duration = task.duration;
     return Material(
       color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       clipBehavior: Clip.antiAlias,
       child: PressScale(child: InkWell(
         onTap: onTap,
@@ -156,7 +157,7 @@ class CacheEpisodeCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: cover != null
                         ? Image(image: cover, fit: BoxFit.cover)
                         : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 28, color: theme.colorScheme.onSurfaceVariant)),
@@ -228,7 +229,7 @@ class CacheFolderCard extends StatelessWidget {
     final active = tasks.where((task) => task.status == DownloadStatus.downloading).toList();
     final progress = active.isEmpty ? null : active.first.progress;
     return PressScale(child: InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       onTap: onTap,
       onLongPress: onLongPress,
       child: Column(
@@ -246,7 +247,7 @@ class CacheFolderCard extends StatelessWidget {
                   top: 8,
                   bottom: 0,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -297,7 +298,7 @@ class _StackSheet extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)));
+  Widget build(BuildContext context) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(AppRadius.sm)));
 }
 
 /// 缓存管理页里单条任务在「正在缓存」列表用的横排卡片。
@@ -334,7 +335,7 @@ class CacheTaskRow extends StatelessWidget {
     };
     return Material(
       color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       clipBehavior: Clip.antiAlias,
       child: PressScale(child: InkWell(
         onTap: onTap,
@@ -344,7 +345,7 @@ class CacheTaskRow extends StatelessWidget {
           child: Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
                 child: SizedBox(
                   width: 96,
                   height: 54,
@@ -362,7 +363,7 @@ class CacheTaskRow extends StatelessWidget {
                     Text(task.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.paused) ...[
-                      ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: task.progress <= 0 ? null : task.progress, minHeight: 4)),
+                      ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: LinearProgressIndicator(value: task.progress <= 0 ? null : task.progress, minHeight: 4)),
                       const SizedBox(height: 6),
                     ],
                     Text(

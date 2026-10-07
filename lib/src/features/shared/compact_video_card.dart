@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_radius.dart';
 import 'press_scale.dart';
 import 'app_image_cache.dart';
 
@@ -27,7 +28,7 @@ class CompactVideoCard extends ConsumerWidget {
         final cacheWidth = videoCardCacheWidth(constraints.maxWidth, MediaQuery.devicePixelRatioOf(context));
         return Material(
           color: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
           clipBehavior: Clip.antiAlias,
           child: PressScale(child: InkWell(
             // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
@@ -56,7 +57,7 @@ class CompactVideoCard extends ConsumerWidget {
   }
 
   Widget _cover(ThemeData theme, int cacheWidth) => ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Stack(
           fit: StackFit.expand,
           children: [

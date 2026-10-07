@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, SearchResult;
 import '../../data/remote/jav/jav_site.dart';
@@ -316,10 +317,10 @@ class _SortChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return PressScale(child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(color: selected ? scheme.primary : scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: selected ? scheme.primary : scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(AppRadius.sm)),
         child: Text(label, maxLines: 1, style: TextStyle(fontSize: 12.5, color: selected ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
       ),
     ));

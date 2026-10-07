@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/player_hotkey_registry.dart';
 import 'settings_card_list.dart';
@@ -296,7 +297,7 @@ class _ComboChip extends StatelessWidget {
         color: warning
             ? colorScheme.errorContainer
             : colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: warning ? Border.all(color: colorScheme.error) : null,
       ),
       child: Text(

@@ -7,6 +7,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_dialog.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../data/local/site_group_store.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -79,7 +80,7 @@ class SiteGroupsPage extends ConsumerWidget {
             itemBuilder: (context, index) => Padding(
               key: ValueKey(groups[index].id),
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: GlassPanel(borderRadius: BorderRadius.circular(18), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
+              child: GlassPanel(borderRadius: BorderRadius.circular(AppRadius.lg), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
             ),
           ),
         ),

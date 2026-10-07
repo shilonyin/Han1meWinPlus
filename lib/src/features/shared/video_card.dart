@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_motion.dart';
+import '../../core/app_radius.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -574,7 +575,7 @@ class VideoCardTile extends ConsumerWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: .45),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
@@ -668,7 +669,7 @@ class VideoCardTile extends ConsumerWidget {
   ) => _HoverZone(
     builder: (context, hovered) => PressScale(
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
