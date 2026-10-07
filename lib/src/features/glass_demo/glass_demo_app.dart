@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:g1455/g1455.dart';
 
@@ -49,6 +50,70 @@ class _GlassDemoPageState extends State<GlassDemoPage> {
   int _tab = 0;
   double _slider = .45;
   bool _switch = true;
+
+  /// 自动演示用的锚点：要拿到控件在屏幕上的确切位置，才能把合成的指针事件
+  /// 按在它身上（而不是靠手算坐标）。
+  final GlobalKey _sliderKey = GlobalKey();
+  final GlobalKey _tabKey = GlobalKey();
+  bool _autoRunning = false;
+
+  /// 用**合成指针事件**驱动拖动。
+  ///
+  /// **为什么不是靠外部模拟鼠标**：Windows 上往窗口 PostMessage 拖动类手势不响应，
+  /// 真鼠标又会和别的程序抢光标；而在 Dart 层直接喂 `PointerDownEvent/MoveEvent`，
+  /// 走的是 Flutter 自己的命中测试与手势识别，与真手指完全同一条路径，
+  /// 也不影响用户的鼠标。
+  Future<void> _runAutoDemo() async {
+    if (_autoRunning) return;
+    setState(() => _autoRunning = true);
+    try {
+      // 滑块：从中间快速拉到右端，再拉回来 —— 加速度越大水珠拉得越长。
+      await _dragAcross(_sliderKey, from: const Offset(-160, 0), to: const Offset(240, 0), steps: 30);
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      await _dragAcross(_sliderKey, from: const Offset(240, 0), to: const Offset(-200, 0), steps: 26);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      // 标签栏：跨三个标签横拖，形变幅度最大（文档里量到的 11%–12%）。
+      await _dragAcross(_tabKey, from: const Offset(-150, 0), to: const Offset(320, 0), steps: 34);
+    } finally {
+      if (mounted) setState(() => _autoRunning = false);
+    }
+  }
+
+  /// 在 [key] 控件上按下、变速移到目标、抬起。
+  ///
+  /// 三个坑，都是踩过才写在这里的：
+  /// 1. **不能用 `endOfFrame` 驱动循环**：窗口被别的窗口挡住时引擎是按需出帧的，
+  ///    没有新帧要调度，`endOfFrame` 的 future 就永远不完成，整段演示会卡死，
+  ///    按钮也跟着永久禁用。所以按**真实时间**推进。
+  /// 2. **必须给每个事件真实的 `timeStamp`**：drop motion 是加速度驱动的形变，
+  ///    时间戳全为 0 时速度估计拿不到有效 dt，水珠根本不会变形。
+  /// 3. **起点要先跨过 touch slop**：曲线从 0 起步的话，前十几步位移不到 1 像素，
+  ///    拖动识别器一直赢不了手势竞技场，只有按下那一帧生效。
+  Future<void> _dragAcross(GlobalKey key, {required Offset from, required Offset to, int steps = 30, Curve curve = Curves.easeInQuad}) async {
+    final RenderBox? box = key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final Offset center = box.localToGlobal(box.size.center(Offset.zero));
+    final Offset start = center + from;
+    final Offset end = center + to;
+    final Offset travel = end - start;
+    const int pointer = 7; // 一个不会被真实鼠标占用的 pointer id
+    const double lead = .08; // 起步就跨过 kTouchSlop 的那一段
+    final GestureBinding binding = GestureBinding.instance;
+    final Stopwatch clock = Stopwatch()..start();
+
+    binding.handlePointerEvent(PointerDownEvent(pointer: pointer, position: start, timeStamp: clock.elapsed));
+    await Future<void>.delayed(const Duration(milliseconds: 16));
+    Offset previous = start;
+    for (var i = 1; i <= steps; i++) {
+      final double t = i / steps;
+      final Offset position = start + travel * (lead + (1 - lead) * curve.transform(t));
+      binding.handlePointerEvent(PointerMoveEvent(pointer: pointer, position: position, delta: position - previous, timeStamp: clock.elapsed));
+      previous = position;
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    binding.handlePointerEvent(PointerUpEvent(pointer: pointer, position: end, timeStamp: clock.elapsed));
+    await Future<void>.delayed(const Duration(milliseconds: 16));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +216,7 @@ class _GlassDemoPageState extends State<GlassDemoPage> {
                     const SizedBox(height: 16),
                     // 滑块：拖动时滑块变成水珠，停下时弹簧回圆。
                     GlassSlider(
+                      key: _sliderKey,
                       value: _slider,
                       onChanged: (v) => setState(() => _slider = v),
                     ),
@@ -167,6 +233,7 @@ class _GlassDemoPageState extends State<GlassDemoPage> {
                     const SizedBox(height: 12),
                     // 标签栏：跨多个标签拖动最能看出形变（3 个标签约 11%/12%）。
                     GlassTabBar(
+                      key: _tabKey,
                       items: const [
                         GlassTabItem(icon: Icons.home, label: '主页'),
                         GlassTabItem(icon: Icons.explore, label: '发现'),
@@ -175,6 +242,13 @@ class _GlassDemoPageState extends State<GlassDemoPage> {
                       ],
                       selectedIndex: _tab,
                       onSelected: (i) => setState(() => _tab = i),
+                    ),
+                    const SizedBox(height: 12),
+                    // 「自动演示」：合成指针事件跑一遍拖动，用来在没有人工操作时
+                    // 也能抓取 drop motion 的中间帧（见 _runAutoDemo 的说明）。
+                    FilledButton(
+                      onPressed: _autoRunning ? null : _runAutoDemo,
+                      child: Text(_autoRunning ? '演示中…' : '自动演示拖动'),
                     ),
                   ],
                 ),
