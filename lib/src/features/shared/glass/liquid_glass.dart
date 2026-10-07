@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/glass_budget.dart';
 import '../../../core/runtime_visual_guard.dart';
 import '../../../core/settings.dart';
+import 'glass_ledger.dart';
 
 /// Interpolated optical values; content is deliberately outside this state.
 @immutable
@@ -183,7 +184,8 @@ class LiquidGlassSurface extends StatefulWidget {
 }
 
 class _LiquidGlassSurfaceState extends State<LiquidGlassSurface>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin
+    implements GlassSurfaceProbe {
   static Future<ui.FragmentProgram>? _program;
   ui.FragmentShader? _shader;
   bool _loadingShader = false;
@@ -216,6 +218,23 @@ class _LiquidGlassSurfaceState extends State<LiquidGlassSurface>
   bool get _filterEnabled => !widget.canvas || !widget.transparentCanvas;
   bool get _needsRefraction => (widget.material?.liquid ?? 1) > .001;
 
+  /// 见 [GlassLedger]：只用来"量出来"，不参与任何渲染决策。
+  ///
+  /// 取全局矩形而不是局部：重叠判定要跨面板比较，局部坐标互不可比。
+  /// 还没布局时返回 `null`，由登记册跳过这一块。
+  @override
+  Rect? probeGlassBounds() {
+    if (!_filterEnabled) return null; // 不画 backdrop 的面板没有采样成本
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  /// 纯模糊档的滤镜在所有面板上完全相同，可以共用一次背景采样（见 build 里
+  /// 用 `BackdropFilter.grouped` 的那一支）。
+  @override
+  bool get probeSharesSampling => _filterEnabled && !_needsRefraction;
+
   @override
   void initState() {
     super.initState();
@@ -232,6 +251,8 @@ class _LiquidGlassSurfaceState extends State<LiquidGlassSurface>
         ui.ImageFilter.isShaderFilterSupported) {
       _loadShader();
     }
+    // 登记进读数册。只登记会画 backdrop 的面板 —— 透明画布没有采样成本。
+    if (_filterEnabled) GlassLedger.instance.register(this);
   }
 
   @override
@@ -318,6 +339,7 @@ class _LiquidGlassSurfaceState extends State<LiquidGlassSurface>
     // 于是"永远有人在滚动"，静止帧被算进分母、守卫再也降不了级。
     _scrollNotifier?.removeListener(_reportScrollToGuard);
     RuntimeVisualGuard.instance.setSourceActive(this, false);
+    GlassLedger.instance.unregister(this);
     _press.dispose();
     _light.dispose();
     _shader?.dispose();
