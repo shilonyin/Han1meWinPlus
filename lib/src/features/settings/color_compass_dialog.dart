@@ -194,24 +194,33 @@ class _ColorCompassDialogState extends State<_ColorCompassDialog> {
               ),
               const SizedBox(height: 16),
               // 色轮：拖动即改色相 / 饱和度。
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = math.min(212.0, constraints.maxWidth);
-                  return Center(
-                    child: GestureDetector(
-                      onPanDown: (d) => _fromWheel(d.localPosition, size),
-                      onPanUpdate: (d) => _fromWheel(d.localPosition, size),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.precise,
-                        child: SizedBox(
-                          width: size,
-                          height: size,
-                          child: CustomPaint(painter: _ColorWheelPainter(_hsv)),
+              //
+              // 它是一张**纯绘制**的色环（CustomPaint + GestureDetector），节点树里
+              // 没有任何文字，不挂 Semantics 时读屏读过去是"空白一块"。这里给它一个
+              // 标签，让它在无障碍树里是一张有名字的图（旁边那句说明已经有文字节点，
+              // 不再重复写进 label）。
+              Semantics(
+                image: true,
+                label: l10n.colorCompassTitle,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = math.min(212.0, constraints.maxWidth);
+                    return Center(
+                      child: GestureDetector(
+                        onPanDown: (d) => _fromWheel(d.localPosition, size),
+                        onPanUpdate: (d) => _fromWheel(d.localPosition, size),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.precise,
+                          child: SizedBox(
+                            width: size,
+                            height: size,
+                            child: CustomPaint(painter: _ColorWheelPainter(_hsv)),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Row(

@@ -55,6 +55,11 @@ class SettingsCardItem extends StatelessWidget {
 
   SettingsTile get tile {
     if (trailing case final Switch toggle) {
+      // 这里把传进来的 `Switch` **拆成**一个 onToggle 回调（行本身要能整行点），
+      // 真开关由 settings_list 里的 SettingsSwitch 重建。副作用是读屏只看到
+      // 「一行 + 一段文字」：既没有 switch 角色，也念不出当前是开还是关。
+      // 走 `toggled` 把状态交给 SettingsTile，由它在行外层补语义 —— 可见标题
+      // 由子节点自己报，所以只补角色与开关状态、不去动 label（给了就会念两遍）。
       return SettingsTile.switchTile(
         initialValue: toggle.value,
         onToggle: (value) {
@@ -64,6 +69,7 @@ class SettingsCardItem extends StatelessWidget {
         title: Text(title),
         description: subtitle == null ? null : Text(subtitle!),
         enabled: enabled && toggle.onChanged != null,
+        toggled: toggle.value,
       );
     }
     return SettingsTile.navigation(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -180,30 +181,57 @@ class _TitleBarButton extends StatefulWidget {
 class _TitleBarButtonState extends State<_TitleBarButton> {
   static const _closeColor = Color(0xffc42b1c);
   var _hovered = false;
+  var _focused = false;
+
+  /// 键盘激活：Enter / Space 与鼠标点击同义（Windows 上按钮的通行约定）。
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.enter &&
+        event.logicalKey != LogicalKeyboardKey.space) {
+      return KeyEventResult.ignored;
+    }
+    widget.onPressed();
+    return KeyEventResult.handled;
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final background = !_hovered
-        ? Colors.transparent
-        : widget.danger
-            ? _closeColor
-            : colorScheme.onSurface.withValues(alpha: .08);
-    final foreground = widget.danger && _hovered ? Colors.white : colorScheme.onSurfaceVariant;
+    // 焦点态必须**自己画**：本组件是裸 GestureDetector（没有 InkWell 那层焦点高亮），
+    // 而标题栏位于 MaterialApp.builder（Navigator 之外，没有 Overlay），所以既不能
+    // 用 Tooltip 也不能用 InkWell 的水波纹。这里用主题色 12% 的底色 + 主题色图标
+    // 表达"键盘现在停在这儿"，和鼠标悬停的灰底（8%）能区分开。
+    final background = _focused
+        ? colorScheme.primary.withValues(alpha: .12)
+        : !_hovered
+            ? Colors.transparent
+            : widget.danger
+                ? _closeColor
+                : colorScheme.onSurface.withValues(alpha: .08);
+    final foreground = _focused
+        ? colorScheme.primary
+        : widget.danger && _hovered
+            ? Colors.white
+            : colorScheme.onSurfaceVariant;
     return Semantics(
       button: true,
       label: widget.label,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
-          child: Container(
-            width: 46,
-            height: appTitleBarHeight,
-            color: background,
-            child: Icon(widget.icon, size: widget.iconSize, color: foreground),
+      child: Focus(
+        canRequestFocus: true,
+        onFocusChange: (value) => setState(() => _focused = value),
+        onKeyEvent: _onKey,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onPressed,
+            child: Container(
+              width: 46,
+              height: appTitleBarHeight,
+              color: background,
+              child: Icon(widget.icon, size: widget.iconSize, color: foreground),
+            ),
           ),
         ),
       ),

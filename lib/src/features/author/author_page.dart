@@ -471,6 +471,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                   ? null
                   : PressScale(
                       child: IconButton(
+                        // 只在输入框里画一个叉，没有 tooltip 时鼠标移上去什么都不提示，
+                        // 读屏也只会念"按钮"。补上无障碍文案（用的是通用「清除」）。
+                        tooltip: l10n.clear,
                         onPressed: () {
                           _filter.clear();
                           setState(() => _keyword = '');

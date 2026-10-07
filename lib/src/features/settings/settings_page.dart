@@ -351,6 +351,9 @@ class _SettingsCategoryList extends ConsumerWidget {
             ? (permanentNavigationDrawer(context)
                   ? null
                   : PressScale(child: IconButton(
+                      // 抽屉入口在窄窗（<600 逻辑像素）才出现，图标是个汉堡，光看图标
+                      // 猜不出点开是什么；补 tooltip 让鼠标有提示、读屏有名字。
+                      tooltip: l10n.navigationDrawer,
                       onPressed: openAppDrawer,
                       icon: const Icon(Symbols.menu_rounded),
                     )))

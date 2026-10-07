@@ -65,7 +65,7 @@ class ComicExplorePage extends ConsumerWidget {
     final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
       appBar: AppBar(
-        leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
+        leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
         title: const Text('Hanime1.me'),
         actions: [PressScale(child: IconButton(tooltip: l10n.comicBrowse, onPressed: () => context.push('/comics/browse'), icon: const Icon(Symbols.tune_rounded)))],
       ),
@@ -262,7 +262,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
             children: [
               ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, width: 118, height: 172, fit: BoxFit.cover)),
               const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
             ],
           ),
           const SizedBox(height: 16),
@@ -538,7 +538,7 @@ class ComicLibraryPage extends ConsumerWidget {
     final library = ref.watch(comicLibraryProvider);
     if (drawerMode) {
       final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
-      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
+      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
     }
     return DefaultTabController(initialIndex: selectedTab, length: 2, child: Scaffold(appBar: AppBar(title: Text(l10n.myLibrary), bottom: TabBar(tabs: [Tab(text: l10n.watchLater), Tab(text: l10n.favoriteVideos)])), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => TabBarView(children: [_ComicGrid(comics: value.watchLater), _ComicGrid(comics: value.favorites)]))));
   }
@@ -571,7 +571,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final l10n = AppLocalizations.of(context)!;
     final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
-      appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
+      appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
       body: ref.watch(comicCacheProvider).when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) => Text('$error'),
@@ -660,7 +660,29 @@ class ComicTile extends StatelessWidget {
   final ComicCard comic;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => context.push('/comics/${comic.id}'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]));
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // 整块卡片就是一个跳转入口，所以必须是**可聚焦的按钮**而不是裸 GestureDetector：
+    // 后者键盘 Tab 不到、Enter/Space 无反应，读屏也读不出"这是能点开的"。
+    // InkWell 自带 ActivateIntent（Enter/Space 激活）与 onTap 语义；焦点高亮单独给，
+    // 因为下面把水波纹关掉了，否则键盘用户看不出焦点停在哪儿。
+    // 外套一层透明 Material：InkWell 需要一个 Material 祖先才能画墨迹，而卡片本身
+    // 不铺底色（封面与标题直接落在页面底上），透明 Material 不会带来第二层白板。
+    return Material(
+      type: MaterialType.transparency,
+      child: PressScale(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          mouseCursor: SystemMouseCursors.click,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          focusColor: theme.colorScheme.primary.withValues(alpha: .16),
+          onTap: () => context.push('/comics/${comic.id}'),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]),
+        ),
+      ),
+    );
+  }
 }
 
 class _ComicGrid extends StatelessWidget {

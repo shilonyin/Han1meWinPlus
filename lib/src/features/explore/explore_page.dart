@@ -155,6 +155,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     // 顶栏右侧不再放图标（直播/我的都在侧栏里有入口），把空间让给搜索框。
     final idleSearchWidth = screenWidth >= 1180 ? 380.0 : (screenWidth >= 940 ? 280.0 : 172.0);
     final showDrawerButton = drawerMode && !permanentNavigationDrawer(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
       // 处在同一个坐标系里，面板能跟搜索框严格对齐。
@@ -204,7 +205,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
                     child: Row(
                       children: [
-                        if (showDrawerButton) SizedBox(width: 52, child: PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))),
+                        if (showDrawerButton) SizedBox(width: 52, child: PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))),
                         Expanded(
                           child: Stack(
                             key: _topBarKey,

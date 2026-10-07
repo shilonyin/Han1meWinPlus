@@ -26,6 +26,20 @@ import '../video/play_window.dart';
 import 'remote_library_controller.dart';
 import '../../core/app_dialog.dart';
 
+/// 选中角标：白色对勾垫在一个半透明黑圆上。
+///
+/// 对勾是直接压在封面上的，封面亮的时候纯白图标会整片消失——垫一层深色圆底，
+/// 无论封面深浅都能读出来。
+class _SelectionCheck extends StatelessWidget {
+  const _SelectionCheck();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+    child: Padding(padding: EdgeInsets.all(2), child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
+  );
+}
+
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key, this.initialTab = 0});
 
@@ -44,7 +58,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
+        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
         body: LibraryTabView(index: widget.initialTab),
       );
     }
@@ -53,9 +67,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null,
+          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null,
           title: Text(l10n.myLibrary),
-          actions: [PressScale(child: IconButton(onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))],
+          actions: [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))],
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n)),
         ),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
@@ -120,7 +134,7 @@ class _RemoteLibrary extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     if (drawerMode) {
       return Scaffold(
-        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
+        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
         body: LibraryTabView(index: initialTab),
       );
     }
@@ -128,7 +142,7 @@ class _RemoteLibrary extends ConsumerWidget {
       length: 5,
       initialIndex: initialTab,
       child: Scaffold(
-        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
+        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
         body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
       ),
     );
@@ -217,7 +231,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(item.id) : null, onLongPress: () => _startSelection(item.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: _SelectionCheck()),
                     ],
                   );
                 },
@@ -516,7 +530,7 @@ class _RemoteHistoryState extends ConsumerState<_RemoteHistory> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: _SelectionCheck()),
                     ],
                   );
                 },
@@ -648,7 +662,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
             children: [
               if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: CachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 960))),
               const SizedBox(height: 16),
-              Text(playlist.playlist.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Text(playlist.playlist.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               if (playlist.author?.isNotEmpty == true) Text(l10n.playlistCreatedBy(playlist.author!), style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 4),
@@ -814,7 +828,7 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
                         decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
-                      if (selected) const Positioned(top: 6, right: 6, child: Icon(Symbols.check_circle_rounded, color: Colors.white)),
+                      if (selected) const Positioned(top: 6, right: 6, child: _SelectionCheck()),
                     ],
                   );
                 },

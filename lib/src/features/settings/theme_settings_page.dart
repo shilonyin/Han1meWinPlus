@@ -75,8 +75,11 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
                title: l10n.textSize,
                value: settings.textScale,
                min: .8,
-               max: 1.4,
-               divisions: 6,
+               // 上限 2.0 是 WCAG 1.4.4（调整文本大小）要求的下限：文字要能放大到 200%。
+               // 原来封顶 1.4，低视力用户没有可用的放大余量。下限仍是 .8（可缩小），
+               // 档位从 6 加到 12 —— 区间翻倍还保持原来的步长（0.1），手感不变。
+               max: 2.0,
+               divisions: 12,
                label: '${(settings.textScale * 100).round()}%',
                onChanged: (value) => controller.saveChanges((current) => current.copyWith(textScale: value)),
              ),

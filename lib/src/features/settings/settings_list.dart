@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/app_motion.dart';
+import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../shared/press_scale.dart';
 import 'settings_glass_controls.dart';
@@ -15,9 +15,8 @@ const double settingsListMaxWidth = 1000;
 // 参考 morrow（明隙）：大圆角 + 更宽的卡片间距，靠"一块块浮起来的卡片"分区。
 // 每张卡片四角**统一** —— 卡片之间有 `_rowGap` 间隙，本来就是独立的块，
 // 再按分组给首尾大、中间小的圆角，只会看起来像圆角没对齐。
-const double _cardRadius = 18;
+const double _cardRadius = AppRadius.lg;
 const double _rowGap = 6;
-const Duration _pressDuration = AppMotion.emphasis;
 
 /// Scrollable list of [SettingsSection]s.
 class SettingsList extends StatelessWidget {
@@ -90,6 +89,7 @@ class SettingsTile<T> extends StatelessWidget {
   const SettingsTile({super.key, required this.title, this.leading, this.description, this.value, this.trailing, this.bottom, this.onPressed, this.enabled = true})
       : initialValue = null,
         onToggle = null,
+        toggled = null,
         radioValue = null,
         groupValue = null,
         onChanged = null;
@@ -99,12 +99,13 @@ class SettingsTile<T> extends StatelessWidget {
         bottom = null,
         initialValue = null,
         onToggle = null,
+        toggled = null,
         radioValue = null,
         groupValue = null,
         onChanged = null;
 
   /// Row taps report a null value; the switch itself reports the new one.
-  const SettingsTile.switchTile({super.key, required this.title, required this.initialValue, required this.onToggle, this.leading, this.description, this.enabled = true})
+  const SettingsTile.switchTile({super.key, required this.title, required this.initialValue, required this.onToggle, this.toggled, this.leading, this.description, this.enabled = true})
       : value = null,
         trailing = null,
         bottom = null,
@@ -119,7 +120,8 @@ class SettingsTile<T> extends StatelessWidget {
         bottom = null,
         onPressed = null,
         initialValue = null,
-        onToggle = null;
+        onToggle = null,
+        toggled = null;
 
   final Widget title;
   final Widget? leading;
@@ -133,6 +135,13 @@ class SettingsTile<T> extends StatelessWidget {
   final void Function(BuildContext context)? onPressed;
   final void Function(bool? value)? onToggle;
   final bool? initialValue;
+
+  /// 开关的当前状态，只用来补无障碍语义（`Semantics.toggled`）。
+  ///
+  /// [initialValue] 是「初始值」，语义上不该拿来当状态读；而这个组件又把传进来的
+  /// `Switch` 拆成了 [onToggle]，读屏于是只看到「一行 + 一段文字」——既没有开关角色，
+  /// 也念不出当前是开还是关。这个字段专门把状态交还给语义层，不影响任何绘制。
+  final bool? toggled;
   final T? radioValue;
   final T? groupValue;
   final ValueChanged<T?>? onChanged;
@@ -162,12 +171,24 @@ class SettingsTile<T> extends StatelessWidget {
     // （与主侧栏、设置分类栏一套规矩：底色块比图标还抢眼）。
     return SettingsHoverTracker(
       enabled: enabled,
-      child: PressScale(child: InkWell(
+      // 开关行的语义**必须**在这儿补：卡片把传进来的 `Switch` 拆成了 onToggle（见
+      // settings_card_list），真开关由 SettingsSwitch 重建，于是读屏只看到「一行 +
+      // 一段文字」——没有开关角色，也念不出当前是开还是关。`toggled` 就是为这个
+      // 传进来的状态；标题由子节点自己报，所以这里不写 label，免得念两遍。
+      child: Semantics(
+        container: true,
+        toggled: toggled,
+        enabled: enabled,
+        child: PressScale(child: InkWell(
         onTap: _tapHandler(context),
         onHighlightChanged: _SplitListRow.pressReporterOf(context),
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
+        // 悬停不铺底色是刻意的（见上），但**焦点**需要一块持续可见的标记：
+        // 三个透明色把 InkWell 自带的焦点高亮也一并关掉了，键盘 Tab 过来时
+        // 整行没有任何变化。这里用主题色压到很淡补回来。
+        focusColor: colorScheme.primary.withValues(alpha: .16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -209,7 +230,7 @@ class SettingsTile<T> extends StatelessWidget {
             ],
           ),
         ),
-      )),
+      ))),
     );
   }
 }

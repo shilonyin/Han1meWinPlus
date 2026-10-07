@@ -80,7 +80,11 @@ class _ScrollActionsState extends State<ScrollActions> {
         children: [
           _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: ink)) : Icon(Symbols.refresh_rounded, size: 22, color: ink)),
           AnimatedSize(
-            duration: const Duration(milliseconds: 180),
+            // 原为字面量 180ms。同一次「回到顶部」里，滚动动画用的是 AppMotion.dialog
+            // （300ms）而按钮展开只用 180ms，按钮会先冒出来、列表还在往上滑，看着是两段。
+            // 归到最接近的 standard（200ms）：它是 180 的最近一档（差 20ms，brief 差 30ms），
+            // 且语义上「标准过渡」正是这里要的；升到 dialog 反而比点击反馈慢半拍。
+            duration: AppMotion.standard,
             curve: Curves.easeOutCubic,
             alignment: Alignment.bottomCenter,
             child: _showTop

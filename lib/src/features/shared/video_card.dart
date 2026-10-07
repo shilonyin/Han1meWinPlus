@@ -420,6 +420,12 @@ class VideoCardTile extends ConsumerWidget {
                 hoverColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 splashColor: Colors.transparent,
+                // 焦点态**必须**单独给：上面三个都关了，InkWell 的默认焦点高亮也跟着
+                // 没了 —— 用键盘 Tab 到卡片上时整张卡毫无反应（用户看不出焦点在哪）。
+                // 悬停不能铺灰罩是刻意的（见上），但焦点是另一回事：它需要一块**持续**
+                // 可见的标记。用主题色压到很淡，既不破坏"无底卡片"的观感，又能在浅色
+                // 与深色主题下都看出来。
+                focusColor: theme.colorScheme.primary.withValues(alpha: .16),
                 // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
                 // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
                 onTap:
