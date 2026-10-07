@@ -35,6 +35,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   /// 每个分区最多摆几张：作者可能有好几百个片子，首页只做「一眼看个大概」。
   static const _sectionLimit = 10;
 
+  /// 头像边长：资料行的左右外边距也用这个值（「往两边移一个头像的距离」）。
+  static const _avatarSize = 120.0;
+
   /// 订阅状态的本地乐观值：点下去立刻变，请求失败再翻回来。
   bool? _override;
 
@@ -152,11 +155,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       appBar: AppBar(title: Text(l10n.author)),
       body: Column(
         children: [
-          // 资料整块居中：满宽铺开时头像贴最左、按钮贴最右，中间空出一大片
-          // （用户看过之后要求「整体往中间靠一些」）。
-          Center(
-            child: _header(theme, l10n, card, profile, data, subscribed),
-          ),
+          // 资料行左右各留一个头像宽的外边距（用户要求「往两边移一个头像的距离」），
+          // 内部不再靠 Center 收成一小团。
+          _header(theme, l10n, card, profile, data, subscribed),
           Align(
             alignment: Alignment.centerLeft,
             child: UnderlineTabStrip(
@@ -216,64 +217,76 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
               ? cardCount
               : videoCount);
     final stats = artistId.isEmpty ? '' : '@$artistId';
-    // `mainAxisSize: min` + 外层 Center：整块按内容宽度居中，名字与统计之间不留
-    // 一大片空白；名字那一列用 Flexible（loose）限宽，窗口变窄时先压它、不溢出。
+    // 「往两边移一个头像的距离」：左右各留一个头像宽的外边距，统计与按钮由 Spacer
+    // 推到右侧；名字列限宽，窗口变窄时先压它、不溢出。
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: _avatarSize, vertical: 16),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-        _avatar(theme, hasAvatar ? avatar : null),
-        const SizedBox(width: 20),
-        Flexible(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (stats.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+          _avatar(theme, hasAvatar ? avatar : null),
+          const SizedBox(width: 20),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    stats,
+                    name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (stats.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      stats,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 48),
-        ..._statColumns(theme, counts),
-        const SizedBox(width: 32),
-        PressScale(
-          child: FilledButton.tonal(
-            onPressed: _canSubscribe(profile, artistId)
-                ? () => _toggleSubscription(profile, artistId)
-                : null,
-            child: Text(subscribed ? l10n.subscribed : l10n.subscribe),
+          const Spacer(),
+          ..._statColumns(theme, counts),
+          const SizedBox(width: 32),
+          // 未订阅用实心主色、已订阅用 tonal：站点那种浅灰 tonal 按钮在浅底上
+          // 对比度太低（用户反馈「看着不明显」）。分支各自包 PressScale，
+          // 因为守门测试要求按钮调用点直接跟在 PressScale(child: 后面。
+          if (subscribed)
+            PressScale(
+              child: FilledButton.tonal(
+                onPressed: _canSubscribe(profile, artistId)
+                    ? () => _toggleSubscription(profile, artistId)
+                    : null,
+                child: Text(l10n.subscribed),
+              ),
+            )
+          else
+            PressScale(
+              child: FilledButton(
+                onPressed: _canSubscribe(profile, artistId)
+                    ? () => _toggleSubscription(profile, artistId)
+                    : null,
+                child: Text(l10n.subscribe),
+              ),
+            ),
+          const SizedBox(width: 10),
+          PressScale(
+            child: OutlinedButton.icon(
+              onPressed: () => _share(name, artistId),
+              icon: const Icon(Symbols.share_rounded, size: 16),
+              label: Text(l10n.share),
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        PressScale(
-          child: OutlinedButton.icon(
-            onPressed: () => _share(name, artistId),
-            icon: const Icon(Symbols.share_rounded, size: 16),
-            label: Text(l10n.share),
-          ),
-        ),
         ],
       ),
     );
@@ -325,13 +338,13 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   );
 
   Widget _avatar(ThemeData theme, String? url) => Container(
-    width: 152,
-    height: 152,
+    width: _avatarSize,
+    height: _avatarSize,
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(36),
-      border: Border.all(color: theme.colorScheme.surface, width: 4),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: theme.colorScheme.surface, width: 3),
       image: url == null
           ? null
           : DecorationImage(image: appNetworkImage(url), fit: BoxFit.cover),
@@ -340,7 +353,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
         ? null
         : Text(
             widget.artist.isEmpty ? '?' : widget.artist.characters.first,
-            style: theme.textTheme.displaySmall,
+            style: theme.textTheme.headlineMedium,
           ),
   );
 
