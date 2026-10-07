@@ -153,11 +153,14 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       body: Column(
         children: [
           _header(theme, l10n, card, profile, data, subscribed),
-          UnderlineTabStrip(
-            labels: [l10n.home, l10n.videoSection],
-            index: _tab,
-            onSelected: (index) => setState(() => _tab = index),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: UnderlineTabStrip(
+              labels: [l10n.home, l10n.videoSection],
+              index: _tab,
+              onSelected: (index) => setState(() => _tab = index),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
           ),
           const Divider(height: 1),
           Expanded(
@@ -208,70 +211,108 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
         : (cardCount.isNotEmpty && cardCount != videoCount
               ? cardCount
               : videoCount);
-    final stats = [
-      if (artistId.isNotEmpty) '@$artistId',
-      if (counts.isNotEmpty) counts,
-    ].join(' · ');
+    final stats = artistId.isEmpty ? '' : '@$artistId';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _avatar(theme, hasAvatar ? avatar : null),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          stats,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            PressScale(
-                              child: FilledButton.tonal(
-                                onPressed: _canSubscribe(profile, artistId)
-                                    ? () => _toggleSubscription(profile, artistId)
-                                    : null,
-                                child: Text(
-                                  subscribed ? l10n.subscribed : l10n.subscribe,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            PressScale(
-                              child: OutlinedButton.icon(
-                                onPressed: () => _share(name, artistId),
-                                icon: const Icon(Symbols.share_rounded, size: 16),
-                                label: Text(l10n.share),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Row(
+        children: [
+          _avatar(theme, hasAvatar ? avatar : null),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (stats.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    stats,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
-              ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          ..._statColumns(theme, counts),
+          const SizedBox(width: 28),
+          PressScale(
+            child: FilledButton.tonal(
+              onPressed: _canSubscribe(profile, artistId)
+                  ? () => _toggleSubscription(profile, artistId)
+                  : null,
+              child: Text(subscribed ? l10n.subscribed : l10n.subscribe),
+            ),
+          ),
+          const SizedBox(width: 10),
+          PressScale(
+            child: OutlinedButton.icon(
+              onPressed: () => _share(name, artistId),
+              icon: const Icon(Symbols.share_rounded, size: 16),
+              label: Text(l10n.share),
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  /// 资料行右侧的统计柱（B 站那种「大数字 + 小标签」）。
+  ///
+  /// 数字来自 [AppLocalizations.subscriberVideoCount] 那句话，按 ' · ' 拆开、每段再拆出
+  /// 开头的数字；模板里数字永远在每段开头，一旦拆不出来（换了模板、或退回搜索路径时
+  /// 只有一句「N 部影片」）就整行显示 —— 不为了排版硬拆本地化字符串。
+  List<Widget> _statColumns(ThemeData theme, String counts) {
+    if (counts.isEmpty) return const [];
+    final parsed = <(String, String)>[];
+    for (final part in counts.split(' · ')) {
+      final match = RegExp(r'^([\d,]+)\s*(.+)$').firstMatch(part.trim());
+      if (match == null) {
+        return [
+          Padding(
+            padding: const EdgeInsets.only(right: 28),
+            child: Text(counts, style: theme.textTheme.bodyMedium),
+          ),
+        ];
+      }
+      parsed.add((match.group(1)!, match.group(2)!));
+    }
+    return [
+      for (var i = 0; i < parsed.length; i++) ...[
+        if (i > 0) const SizedBox(width: 28),
+        _statColumn(theme, parsed[i].$1, parsed[i].$2),
+      ],
+    ];
+  }
+
+  Widget _statColumn(ThemeData theme, String number, String label) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        number,
+        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ],
+  );
 
   Widget _avatar(ThemeData theme, String? url) => Container(
     width: 152,
