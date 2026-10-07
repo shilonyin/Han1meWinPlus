@@ -1,11 +1,8 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../core/app_surface_tokens.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/library_repository.dart';
 import '../../domain/models/video.dart';
@@ -155,7 +152,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       appBar: AppBar(title: Text(l10n.author)),
       body: Column(
         children: [
-          _banner(theme, l10n, card, profile, data, subscribed),
+          _header(theme, l10n, card, profile, data, subscribed),
           UnderlineTabStrip(
             labels: [l10n.home, l10n.videoSection],
             index: _tab,
@@ -173,9 +170,11 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     );
   }
 
-  /// 头部横幅：作者头像放大、高斯模糊铺满，再压一层到页面底色的渐变 —— 下沿融进
-  /// 背景，名字与数字在任何一张头像上都能读清。头像本身不模糊，放在横幅之上。
-  Widget _banner(
+  /// 头部资料区：头像 + 名字 + 「@id · N 位订阅者 · M 部影片」+ 订阅/分享。
+  ///
+  /// 这里**不铺横幅**：站点只给一张方形头像，拉成宽横幅只能靠模糊，出来是一片
+  /// 没有信息的色块（用户看过之后要求去掉）。资料直接放在页面底色上，反而干净。
+  Widget _header(
     ThemeData theme,
     AppLocalizations l10n,
     VideoCard? card,
@@ -213,44 +212,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       if (artistId.isNotEmpty) '@$artistId',
       if (counts.isNotEmpty) counts,
     ].join(' · ');
-    return ClipRect(
-      child: SizedBox(
-        height: 156,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (hasAvatar)
-              ImageFiltered(
-                imageFilter: ImageFilter.blur(
-                  sigmaX: 44,
-                  sigmaY: 44,
-                  tileMode: TileMode.clamp,
-                ),
-                child: Image(image: appNetworkImage(avatar), fit: BoxFit.cover),
-              )
-            else
-              ColoredBox(color: scheme.surfaceContainerHighest),
-            // 模糊必须自己收在横幅里：`ImageFiltered` 不裁切，sigma 44 的高斯会把
-            // 头像边缘的颜色糊出几十像素，在横幅下面压出一条横杆（作者页实测过：
-            // 金币头像压出金条、深色头像压出黑条）。外层的 ClipRect 就是为了这一条。
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: AppSurfaceTokens.bannerScrim(scheme, theme.brightness),
-              ),
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  // 只用「透明 → 页面底色」两档，不在调用点自创 surface 不透明度
-                  // （`test/surface_token_guard_test.dart` 守着这条规则）。
-                  colors: [Colors.transparent, scheme.surface],
-                  stops: const [.3, 1],
-                ),
-              ),
-            ),
-            Padding(
+    return SizedBox(
+      height: 136,
+      child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -309,9 +273,6 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 

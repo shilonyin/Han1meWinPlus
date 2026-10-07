@@ -37,19 +37,6 @@ abstract final class AppSurfaceTokens {
         alpha: brightness == Brightness.dark ? .62 : .72,
       );
 
-  /// 作者页横幅压在模糊头像上的那层底色。
-  ///
-  /// 站点只给一张**方形头像**，要铺成一条宽横幅只能拉伸 + 模糊；拉伸后明暗反差极大
-  /// （金币头像整片发亮、深色头像整片发黑），不压一层的话名字和数字在亮头像上几乎
-  /// 读不出来 —— 作者页上这两种头像都真实出现过。
-  ///
-  /// 用半透明的 `surface` 而不是黑/白：深浅两档都朝页面底色靠，横幅看起来是页面的
-  /// 一部分；黑白会在浅色主题下压出一块灰。
-  static Color bannerScrim(ColorScheme scheme, Brightness brightness) =>
-      scheme.surface.withValues(
-        alpha: brightness == Brightness.dark ? .58 : .72,
-      );
-
   /// 各档玻璃的浓度**不在这里**。
   ///
   /// 原来这里有一张 `densityFor(quality, opacity)` 表，把三档各记一个浓度，
