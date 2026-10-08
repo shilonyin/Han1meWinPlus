@@ -13,30 +13,29 @@ class SettingsCardList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tiles = children.whereType<SettingsCardItem>().toList();
-    final content = children.where((child) => child is! SettingsCardItem).toList();
+    if (children.isEmpty) return const SizedBox.shrink();
+    // 全部 children 一律按卡片项渲染，**不按运行时类型分派**。
+    //
+    // 这里曾经是 `whereType<SettingsCardItem>()` 拿 `.tile`、其余走一个只加
+    // `Padding` 的分支。那个分支会把「被包了一层」的条目悄悄降级成裸行：
+    // 设置页里为了监听状态，`SettingsCardItem` 常被 `ValueListenableBuilder`
+    // 或 `Focus` 包住（投屏接收端、热键捕获态），运行时类型就不再是这个类，
+    // 于是卡片皮肤整个丢失 —— 看起来就是「这一块和别处不统一」。
+    //
+    // 而 `SettingsCardItem` 本身就是把 `.tile` 渲染出来的 StatelessWidget，
+    // 直接当 widget 传给 `SettingsSection.tiles`（它收 `List<Widget>`）即可，
+    // 顺序天然保持，包装与否都无所谓。
     return Padding(
       padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (tiles.isNotEmpty)
-            SettingsList(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              contentPadding: EdgeInsets.zero,
-              sections: [
-                SettingsSection(
-                  title: title == null ? null : Text(title!, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-                  tiles: tiles.map((item) => item.tile).toList(),
-                ),
-              ],
-            ),
-          for (final child in content)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: child,
-            ),
+      child: SettingsList(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        contentPadding: EdgeInsets.zero,
+        sections: [
+          SettingsSection(
+            title: title == null ? null : Text(title!, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            tiles: children,
+          ),
         ],
       ),
     );

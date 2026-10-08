@@ -54,7 +54,10 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
        SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Symbols.security_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
       if (CastReceiver.isSupported)
-        SettingsCardList(title: l10n.dlnaReceiver, children: [
+        // 分组标题用分类名「投屏」，条目才是「投屏接收端」—— 和本页其他分组
+        // （标题是分类、条目是具体项）一致。此前这里两者共用 dlnaReceiver，
+        // 因为该条目掉出了卡片分支、连分组标题一起没渲染，重复才没显形。
+        SettingsCardList(title: l10n.castToDevice, children: [
           ValueListenableBuilder<bool>(
             valueListenable: CastReceiver.instance.running,
             builder: (context, running, _) => SettingsCardItem(
