@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, SearchResult;
@@ -21,6 +23,7 @@ import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import '../video/play_window.dart';
 import 'search_controller.dart';
+import 'search_suggestions.dart';
 import '../../core/app_dialog.dart';
 
 const _searchColumns = 4;
@@ -43,6 +46,14 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _searchFocus = FocusNode();
+
+  /// 建议面板按搜索框的实际位置摆放，所以两边的几何都要能取到。
+  final _panelHostKey = GlobalKey();
+  final _fieldKey = GlobalKey();
+
+  /// 输入框聚焦时在它下方铺开「搜索历史 + 热门」面板（与首页顶栏同一个面板）。
+  var _panelOpen = false;
 
   @override
   void initState() {
@@ -50,6 +61,26 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final query = ref.read(searchQueryProvider(widget.request));
     _textController.text = query.text;
     if (query.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(query));
+    _searchFocus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    final open = _searchFocus.hasFocus;
+    if (!mounted || open == _panelOpen) return;
+    // 空白搜索页的输入框是 autofocus 的：焦点在首帧 build 里就拿到，
+    // 那时同步 setState 会直接抛错，所以这一帧的变更推到帧末。
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _panelOpen = _searchFocus.hasFocus);
+      });
+      return;
+    }
+    setState(() => _panelOpen = open);
+  }
+
+  void _closePanel() {
+    _searchFocus.unfocus();
+    if (_panelOpen) setState(() => _panelOpen = false);
   }
 
   @override
@@ -61,6 +92,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
+    _searchFocus.removeListener(_onFocusChange);
+    _searchFocus.dispose();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -92,104 +125,168 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         title: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: _SearchInput(
-              controller: _textController,
-              hintText: l10n.searchHint,
-              autoFocus: request.initialUrl == null && request.initialQuery == null,
-              onSubmitted: submit,
-              onClear: () {
-                _textController.clear();
-                notifier.text('');
-              },
+            child: KeyedSubtree(
+              key: _fieldKey,
+              child: _SearchInput(
+                controller: _textController,
+                focusNode: _searchFocus,
+                hintText: l10n.searchHint,
+                autoFocus: request.initialUrl == null && request.initialQuery == null,
+                onSubmitted: submit,
+                onClear: () {
+                  _textController.clear();
+                  notifier.text('');
+                },
+              ),
             ),
           ),
         ),
         actions: const [SizedBox(width: 56)],
       ),
-      body: Column(
+      body: Stack(
+        key: _panelHostKey,
         children: [
-          // AV 视频源只有关键词搜索（没有 hanime1 那套分类/排序/标签筛选），
-          // 所以整行筛选控件直接不渲染，避免点了没效果的假控件。
-          if (!javSource) ...[
-            _GenreTabs(options: options, query: query, notifier: notifier),
-            _SortRow(options: options, query: query, notifier: notifier),
-          ],
-          Expanded(
-            child: Stack(
-              children: [
-                result.when(
-                  loading: () => const Center(child: M3EContainedLoadingIndicator()),
-                  error: (error, stackTrace) => AppErrorView(
-                    error: error,
-                    onRetry: () => ref.invalidate(searchResultsProvider(request)),
-                    // 首页与播放页都能就地过 Cloudflare 校验，搜索页原来只有「重试」,
-                    // 被挑战时用户只能干等。这里补上同一条恢复路径（走应用内 WebView 拿
-                    // cf_clearance，成功回来再重跑这次搜索）。
-                    onCloudflareVerified: () async {
-                      final url = error is CloudflareChallengeException ? error.url : null;
-                      if (await context.push<bool>('/cloudflare', extra: url) == true) {
-                        await Future<void>.delayed(const Duration(milliseconds: 250));
-                        ref.invalidate(searchResultsProvider(request));
-                      }
-                    },
-                  ),
-                  data: (page) => page.items.isEmpty
-                      // AV 源没有标签/分类筛选，从历史里带过来的条件会被清掉，空结果的原因
-                      // 就变成「还没输关键词」，直接说清楚，别报成「没有找到匹配的视频」。
-                      ? _EmptyState(message: javSource && query.text.trim().isEmpty && query.genre.isEmpty ? l10n.javSourceSearchHint : l10n.noSearchResults)
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // 没输关键词时这页给的是推荐内容，加个小标题说明一下来源，
-                            // 免得被当成搜索结果的兜底。
-                            if (query.text.trim().isEmpty && query.genre.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                                child: Text(
-                                  l10n.recommendedVideos,
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            Expanded(
-                              child: VideoCardGrid(
-                                videos: page.items,
-                                cardsPerRow: _searchColumns,
-                                horizontal: true,
-                                // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
-                                // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
-                                bottomPadding: floatingActionsClearance,
-                                // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
-                                coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
-                                controller: _scrollController,
-                                itemBuilder: (context, index, video, _) => VideoCardTile(
-                                  video: video,
-                                  horizontal: true,
-                                  coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
-                                  // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
-                                  onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: ScrollActions(
-                    controller: _scrollController,
-                    onRefresh: () => ref.refresh(searchResultsProvider(request).future),
-                    onError: (error) => showAppErrorBar(context, error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
-                  ),
-                ),
+          Column(
+            children: [
+              // AV 视频源只有关键词搜索（没有 hanime1 那套分类/排序/标签筛选），
+              // 所以整行筛选控件直接不渲染，避免点了没效果的假控件。
+              if (!javSource) ...[
+                _GenreTabs(options: options, query: query, notifier: notifier),
+                _SortRow(options: options, query: query, notifier: notifier),
               ],
+              Expanded(
+                child: Stack(
+                  children: [
+                    result.when(
+                      loading: () => const Center(child: M3EContainedLoadingIndicator()),
+                      error: (error, stackTrace) => AppErrorView(
+                        error: error,
+                        onRetry: () => ref.invalidate(searchResultsProvider(request)),
+                        // 首页与播放页都能就地过 Cloudflare 校验，搜索页原来只有「重试」,
+                        // 被挑战时用户只能干等。这里补上同一条恢复路径（走应用内 WebView 拿
+                        // cf_clearance，成功回来再重跑这次搜索）。
+                        onCloudflareVerified: () async {
+                          final url = error is CloudflareChallengeException ? error.url : null;
+                          if (await context.push<bool>('/cloudflare', extra: url) == true) {
+                            await Future<void>.delayed(const Duration(milliseconds: 250));
+                            ref.invalidate(searchResultsProvider(request));
+                          }
+                        },
+                      ),
+                      data: (page) => page.items.isEmpty
+                          // AV 源没有标签/分类筛选，从历史里带过来的条件会被清掉，空结果的原因
+                          // 就变成「还没输关键词」，直接说清楚，别报成「没有找到匹配的视频」。
+                          ? _EmptyState(message: javSource && query.text.trim().isEmpty && query.genre.isEmpty ? l10n.javSourceSearchHint : l10n.noSearchResults)
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // 没输关键词时这页给的是推荐内容，加个小标题说明一下来源，
+                                // 免得被当成搜索结果的兜底。
+                                if (query.text.trim().isEmpty && query.genre.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                                    child: Text(
+                                      l10n.recommendedVideos,
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                Expanded(
+                                  child: VideoCardGrid(
+                                    videos: page.items,
+                                    cardsPerRow: _searchColumns,
+                                    horizontal: true,
+                                    // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
+                                    // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
+                                    bottomPadding: floatingActionsClearance,
+                                    // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
+                                    coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
+                                    controller: _scrollController,
+                                    itemBuilder: (context, index, video, _) => VideoCardTile(
+                                      video: video,
+                                      horizontal: true,
+                                      coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
+                                      // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+                                      onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: ScrollActions(
+                        controller: _scrollController,
+                        onRefresh: () => ref.refresh(searchResultsProvider(request).future),
+                        onError: (error) => showAppErrorBar(context, error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _PaginationBar(
+                result: result.valueOrNull,
+                onChanged: notifier.page,
+              ),
+            ],
+          ),
+          if (_buildSuggestionsPanel(context) case final panel?) panel,
+        ],
+      ),
+    );
+  }
+
+  /// 点建议条目：就地替换当前查询条件。
+  ///
+  /// 搜索页不该为每次点选再压一页路由（首页那一侧才是「跳到搜索页」）。就地替换
+  /// 会走 `ref.listen` 的记录逻辑，历史照样会更新，只是不留一摞一模一样的搜索页。
+  void _applySuggestion(SearchQuery query) {
+    _closePanel();
+    ref.read(searchQueryProvider(widget.request).notifier).replace(query);
+  }
+
+  /// 建议面板按搜索框的实际位置摆放（宽度、水平位置都与搜索框一致），
+  /// 与首页顶栏用的是同一个 `SearchSuggestions`，两处观感必须一致。
+  Widget? _buildSuggestionsPanel(BuildContext context) {
+    final fieldBox = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    final hostBox = _panelHostKey.currentContext?.findRenderObject() as RenderBox?;
+    if (fieldBox == null || hostBox == null || !fieldBox.hasSize || !hostBox.hasSize) return null;
+    // 输入框在 AppBar 里、面板挂在 body 的 Stack 里，两者是兄弟不是父子，
+    // 所以不能用 ancestor 定位，只能各自取全局坐标再相减。
+    final fieldTopLeft = fieldBox.localToGlobal(Offset.zero) - hostBox.localToGlobal(Offset.zero);
+    final width = fieldBox.size.width.clamp(240.0, 640.0);
+    final left = fieldTopLeft.dx.clamp(0.0, (hostBox.size.width - width).clamp(0.0, double.infinity));
+    // 面板顶在输入框下缘再留 6。body 的 Stack 从 AppBar 下面开始，算出来的 top
+    // 正常就在 0 附近；夹到 0 是为了不让 Stack 把面板顶边裁掉。
+    final top = (fieldTopLeft.dy + fieldBox.size.height + 6).clamp(0.0, double.infinity);
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      child: IgnorePointer(
+        ignoring: !_panelOpen,
+        child: AnimatedSlide(
+          duration: AppMotion.standard,
+          curve: Curves.easeOutCubic,
+          offset: _panelOpen ? Offset.zero : const Offset(0, -0.03),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 170),
+            opacity: _panelOpen ? 1 : 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 20, offset: Offset(0, 8))],
+              ),
+              child: SearchSuggestions(
+                width: width,
+                maxHeight: (MediaQuery.sizeOf(context).height - 220).clamp(200.0, 560.0),
+                onSelected: _applySuggestion,
+              ),
             ),
           ),
-          _PaginationBar(
-            result: result.valueOrNull,
-            onChanged: notifier.page,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -197,9 +294,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
 /// 搜索页顶部输入框：圆角填充、右侧「清除 + 搜索」，样式对齐主流视频站点。
 class _SearchInput extends StatelessWidget {
-  const _SearchInput({required this.controller, required this.hintText, required this.autoFocus, required this.onSubmitted, required this.onClear});
+  const _SearchInput({required this.controller, required this.focusNode, required this.hintText, required this.autoFocus, required this.onSubmitted, required this.onClear});
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final String hintText;
   final bool autoFocus;
   final ValueChanged<String> onSubmitted;
@@ -213,6 +311,7 @@ class _SearchInput extends StatelessWidget {
       height: kGlassFieldHeight,
       child: GlassTextField(
         controller: controller,
+        focusNode: focusNode,
         placeholder: hintText,
         autofocus: autoFocus,
         textInputAction: TextInputAction.search,
