@@ -15,6 +15,12 @@
 「一层半透明色」。结论：**玻璃只保留在 g1455 自带的控件（开关、滑条、搜索框）里**，
 导航层与内容卡片回到主题自己的 surface。
 
+后续（2026-10 死代码清理）：`lib/src/core/settings.dart` 里那 6 个玻璃枚举
+（材质 / 预设 / 染色 / 波纹 / 渲染 / 对比度）、`AppSettings` 上的对应字段与 44 个 `glass*`
+文案键全部删掉了 —— 渲染层早就不读它们，留着只会让后来人以为「改了有用」。
+`setting.json` 里的老键（`glassMaterial` / `glassQuality` / `glassTier` 等）现在只是被忽略的
+陌生字段：`fromJson` 只读它认得的键，多余键不会报错，但下次保存起就不再写回。
+
 ## 已达标
 
 - 减弱动效：`lib/src/core/app_motion.dart:73` 的 `motionEnabledOf` 已经同时看

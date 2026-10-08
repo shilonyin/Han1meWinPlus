@@ -52,82 +52,6 @@ enum MpvGpuApi { auto, vulkan, d3d11 }
 /// 序列化按枚举名保存，新值只能往后追加。
 enum WindowBackdrop { none, mica, acrylic }
 
-/// 玻璃用哪块料（g1455 的 `GlassFinish`）。
-///
-/// 这五档不是我们编的：它们是 g1455 按真机材质**校准过**的常数，名字也照抄包的。
-/// 名字必须照抄 —— 包里的损伤表按材质名索引，换个名字只会拿到拒绝而不是数字。
-/// 我们从不自己拼 finish，只在这五个里挑一个。
-/// - `regular` 常规：包按明暗挑 `.regular` 的那一支（深色下即 `regularDark`）
-/// - `dark`    深色：钉死用深色那支
-/// - `light`   浅色：钉死用浅色那支
-/// - `clear`   超透：不模糊，只有一层很淡的底 + 亮边
-/// - `frosted` 磨砂：纯模糊不折射
-///
-/// 换料**不碰** tint —— 染哪一色是「玻璃染色」那一栏的事。原来挂在磨砂档上的
-/// 「磨砂不透明度」滑条已经删掉：它只对磨砂档有效，而演示站那边磨砂就是磨砂，
-/// 浓度是材质自己定的。
-///
-/// 序列化按枚举名保存，新值只能往后追加。
-enum GlassMaterial { regular, dark, light, clear, frosted }
-
-/// 一组命名的设置，演示站叫 Preset。
-///
-/// **不落盘**：它不是独立状态，而是「当前这几项凑起来正好等于哪一档」，所以每次都由
-/// 实际设置反推。手改了任意一项就变成
-/// 自定义，改回去预设又回来 —— 演示站就是这么做的。
-///
-/// 序列化按枚举名保存，新值只能往后追加。
-enum GlassPresetKind { ultra, high, medium, low }
-
-/// 玻璃本身的染色（g1455 的 `GlassFinish.tint`）。
-///
-/// **和「配色方案」是两件事**：配色方案给的是 primary 这类强调色，管按钮、选中态、
-/// 背景画布的光晕；这一项管的是玻璃**那块料自己**偏什么色。原来所有玻璃都吃包默认的
-/// 中性 tint，所以玻璃永远是灰的。
-///
-/// `neutral` 时**不动**材质自己的 tint —— g1455 那两个 `.regular` 的 tint 是按真机
-/// 材质校准过的（`regularDark` 是 `rgba(29,29,32,0.693)`），我们没理由拿自己的表面色
-/// 去替掉它。只有选了带色的两档才换掉 RGB、保留材质自己的 alpha。
-///
-/// 具体色值是我们的取舍：演示站的 Tint 那三档拿不到（站点是 Flutter web，HTML 只是
-/// 静态大纲）。序列化按枚举名保存，新值只能往后追加。
-enum GlassTintKind { neutral, indigo, rose }
-
-/// 触摸玻璃时表面起的波纹（g1455 的 `GlassRipple`）。
-///
-/// g1455 的原话是「viscosity 是多数应用唯一需要的旋钮：**0 是水**，会一圈圈荡开；
-/// **1 是蜂蜜**，只有一坨慢慢鼓起来」。所以四档只改 viscosity，其余参数
-/// （amplitude / speed / width / press / pressRadius / light）保持包的默认值 ——
-/// 那是作者"按眼睛定的、没有参照可量"的一组数，我们没有更好的依据去动它。
-/// `jelly` 取包自己的默认 0.6，也正是 g1455 演示页的默认档。
-///
-/// **默认关闭**：g1455 把它标成 opt-in（iOS 对触摸的回应是光与缩放，从不形变材质），
-/// 打开后所有没被可点区域铺满的玻璃都会开始形变，这个变化不该在用户没要求时发生。
-/// 序列化按枚举名保存，新值只能往后追加。
-enum GlassRippleKind { off, water, jelly, honey }
-
-/// 玻璃的渲染层级（g1455 的 `GlassTier`）。
-///
-/// 这个维度是**整屏级**的，不是每块玻璃一个：三个档位分别决定"要不要读背景"，
-/// 而捕获全屏的那一次是共享的，所以档位只能整屏选。
-/// - `glass`       玻璃：读背景 —— 折射、模糊、亮边都在（也是波纹能画出来的唯一档）
-/// - `translucent` 半透：同样的形状与亮边，但**完全不读背景**，省掉那次全屏捕获
-/// - `opaque`      不透明：纯填充，背后什么都不透
-///
-/// 演示站还有一档 `auto`（交给包自己判），我们没有搬：它判出来的结果和 `glass` 一样
-/// （`GlassTierChoice.byDefault` 就是 `GlassTier.full`），多一档只是多一次解释。
-/// 系统「减少透明度」仍然**优先于**这里的任何一档 —— 那是可访问性地板，不是偏好。
-///
-/// 序列化按枚举名保存，新值只能往后追加。
-enum GlassRendering { glass, translucent, opaque }
-
-/// 玻璃边缘的对比度（g1455 的 `highContrast`）。
-///
-/// 打开后每块玻璃的描边改成**不透明**的高对比细线，半透明本身不变 ——
-/// 这正是 Apple 自己的"提高对比度"开关对它家玻璃做的事：看得清边界，但材质不消失。
-/// 给看不清边界的人用，和"把透明度关掉"（`GlassRendering.opaque`）是两件事。
-enum GlassContrast { auto, increased }
-
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
@@ -220,12 +144,6 @@ class AppSettings {
     this.hotkeyBindings = const {},
     this.hotkeyDefaultsMigrated = false,
     this.windowBackdrop = WindowBackdrop.none,
-    this.glassSurfaceEnabled = false,
-    this.glassMaterial = GlassMaterial.regular,
-    this.glassTint = GlassTintKind.neutral,
-    this.glassRipple = GlassRippleKind.off,
-    this.glassRendering = GlassRendering.glass,
-    this.glassContrast = GlassContrast.auto,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
     this.localMediaDirectory = '',
@@ -354,28 +272,6 @@ class AppSettings {
 
   /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
   final WindowBackdrop windowBackdrop;
-
-  /// 界面是否使用毛玻璃材质（`LiquidGlassSurface`）。默认关闭：它要采样背景，
-  /// 在列表密集滚动时比纯色卡片更耗，且需要 Impeller 后端才有折射效果。
-  ///
-  /// **遗留字段**：玻璃现在已经由 [glassMaterial] 一档直接决定，渲染层不再读它；
-  /// 保留只是为了迁移那些比 `glassQuality` 还老的配置（那时只有「开 / 关」）。
-  final bool glassSurfaceEnabled;
-
-  /// 玻璃用哪块料（常规 / 深色 / 浅色 / 超透 / 磨砂）。
-  final GlassMaterial glassMaterial;
-
-  /// 玻璃本身的染色（中性 / 靛蓝 / 玫瑰）。与「配色方案」不是一回事，见枚举文档。
-  final GlassTintKind glassTint;
-
-  /// 触摸玻璃时表面起的波纹（关闭 / 水 / 果冻 / 蜂蜜）。
-  final GlassRippleKind glassRipple;
-
-  /// 玻璃的渲染层级（玻璃 / 半透 / 不透明）。整屏级，见枚举文档。
-  final GlassRendering glassRendering;
-
-  /// 玻璃边缘的对比度（跟随系统 / 增强）。
-  final GlassContrast glassContrast;
 
   /// 桌面通知（下载完成 / 更新可用）。默认开，可以整体关掉。
   final bool notificationsEnabled;
@@ -525,12 +421,6 @@ class AppSettings {
     'hotkeyBindings': hotkeyBindings,
     'hotkeyDefaultsMigrated': hotkeyDefaultsMigrated,
     'windowBackdrop': windowBackdrop.name,
-    'glassSurfaceEnabled': glassSurfaceEnabled,
-    'glassMaterial': glassMaterial.name,
-    'glassTint': glassTint.name,
-    'glassRipple': glassRipple.name,
-    'glassRendering': glassRendering.name,
-    'glassContrast': glassContrast.name,
     'notificationsEnabled': notificationsEnabled,
     'gpuApi': gpuApi.name,
     'localMediaDirectory': localMediaDirectory,
@@ -671,18 +561,6 @@ class AppSettings {
     windowBackdrop:
         _enumByName(WindowBackdrop.values, json['windowBackdrop'] as String?) ??
         WindowBackdrop.none,
-    glassSurfaceEnabled: json['glassSurfaceEnabled'] as bool? ?? false,
-    // 老配置是「开关 + 档位」两个字段，再往后档位从 clear/frosted/liquid 三档换成
-    // 直接选材质。两级回退都在这里：能读到 glassMaterial 就用它，否则按老档位名翻。
-    glassMaterial:
-        _enumByName(GlassMaterial.values, json['glassMaterial'] as String?) ??
-        _legacyMaterial(json['glassQuality'] as String?),
-    glassTint: _enumByName(GlassTintKind.values, json['glassTint'] as String?) ?? GlassTintKind.neutral,
-    glassRipple: _enumByName(GlassRippleKind.values, json['glassRipple'] as String?) ?? GlassRippleKind.off,
-    glassRendering:
-        _enumByName(GlassRendering.values, json['glassRendering'] as String?) ??
-        _legacyRendering(json['glassTier'] as String?),
-    glassContrast: _enumByName(GlassContrast.values, json['glassContrast'] as String?) ?? GlassContrast.auto,
     notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
     gpuApi:
         _enumByName(MpvGpuApi.values, json['gpuApi'] as String?) ??
@@ -763,33 +641,6 @@ class AppSettings {
     }
     return null;
   }
-
-  /// 老配置里的「质感档位」翻成现在选的材质。
-  ///
-  /// `liquid` 那档翻到 `regular` 而不是某个更"具体"的材质：液体玻璃本来就是
-  /// 按明暗自动挑 `.regular` 的那一支，`regular` 正是同一件事。
-  /// `clear` 与 `frosted` 按名字原样留着 —— 它们在包是两块真料（模糊 σ 0 对 8），
-  /// 只是页面底色被压平之后看不出差别，所以设置页不再列出来，但老配置不该被改掉。
-  static GlassMaterial _legacyMaterial(String? qualityName) {
-    switch (qualityName) {
-      case 'clear':
-        return GlassMaterial.clear;
-      case 'frosted':
-        return GlassMaterial.frosted;
-      // `liquid` 与 `off`（以及比 `glassQuality` 更老、只有开关的配置）都落到 `regular`：
-      // 液体玻璃本来就是按明暗自动挑 `.regular` 的那一支，而老配置里的 off 是"不要玻璃"，
-      // 现在的模型没有关掉这一档，取最接近的。
-      default:
-        return GlassMaterial.regular;
-    }
-  }
-
-  /// 老配置里的「渲染层级」翻成现在的三档（`auto` 判出来就是完整档）。
-  static GlassRendering _legacyRendering(String? tierName) => switch (tierName) {
-    'cheap' => GlassRendering.translucent,
-    'opaque' => GlassRendering.opaque,
-    _ => GlassRendering.glass,
-  };
 
   static String _hexColor(String? value) {
     final normalized = value?.replaceFirst('#', '').toUpperCase() ?? '';
@@ -891,12 +742,6 @@ class AppSettings {
     Map<String, String>? hotkeyBindings,
     bool? hotkeyDefaultsMigrated,
     WindowBackdrop? windowBackdrop,
-    bool? glassSurfaceEnabled,
-    GlassMaterial? glassMaterial,
-    GlassTintKind? glassTint,
-    GlassRippleKind? glassRipple,
-    GlassRendering? glassRendering,
-    GlassContrast? glassContrast,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
     String? localMediaDirectory,
@@ -997,12 +842,6 @@ class AppSettings {
     hotkeyDefaultsMigrated:
         hotkeyDefaultsMigrated ?? this.hotkeyDefaultsMigrated,
     windowBackdrop: windowBackdrop ?? this.windowBackdrop,
-    glassSurfaceEnabled: glassSurfaceEnabled ?? this.glassSurfaceEnabled,
-    glassMaterial: glassMaterial ?? this.glassMaterial,
-    glassTint: glassTint ?? this.glassTint,
-    glassRipple: glassRipple ?? this.glassRipple,
-    glassRendering: glassRendering ?? this.glassRendering,
-    glassContrast: glassContrast ?? this.glassContrast,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     gpuApi: gpuApi ?? this.gpuApi,
     localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,

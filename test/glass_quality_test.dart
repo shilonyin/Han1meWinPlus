@@ -62,7 +62,7 @@ void main() {
       expect(GlassPanelTextColor.resolve(ctx), scheme.onSurfaceVariant);
     });
 
-    testWidgets('定位到真实短板：浅色磨砂面板上的次要文字被兜到达标', (tester) async {
+    testWidgets('定位到真实短板：浅色面板上的次要文字被兜到达标', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(
         ProviderScope(
@@ -92,13 +92,13 @@ void main() {
   });
 
   group('端到端：真实设置列表里的次要文字确实被兜到', () {
-    testWidgets('SettingsTile 描述文字在浅色玻璃上达标（证明接入不是死代码）', (tester) async {
+    testWidgets('SettingsTile 描述文字在设置卡片上达标（证明接入不是死代码）', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
               () => _StubSettings(
-                const AppSettings(glassMaterial: GlassMaterial.frosted),
+                const AppSettings(),
               ),
             ),
           ],

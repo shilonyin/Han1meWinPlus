@@ -4,9 +4,10 @@ import 'package:han1me_win_plus/src/core/app_motion.dart';
 
 /// 动效规范层。
 ///
-/// 这个文件原先还测 `glassSurfaceEnabled` 字段与 `LiquidGlassSurface` 的构建，
-/// 两者都已随玻璃实现换成 g1455 而退役：
-/// - `glassSurfaceEnabled` 本就是个**渲染层不读**的失效字段（档位才是开关）；
+/// 这个文件原先还测玻璃开关字段与 `LiquidGlassSurface` 的构建，
+/// 两者都已随玻璃实现换成 g1455 而退役，开关字段本身也在 2026-10 的
+/// 死代码清理里删掉了：
+/// - 那个开关本就是个**渲染层不读**的失效字段（档位才是开关）；
 /// - `LiquidGlassSurface` 已被 `GlassSurface` 取代。
 /// 留着它们只会测一些没人调用的东西，所以一并删掉。
 void main() {

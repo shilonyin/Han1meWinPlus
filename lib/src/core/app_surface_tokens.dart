@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 abstract final class AppSurfaceTokens {
   /// 关闭玻璃档时，卡片浮在背景画布上的半透明底色。
   ///
-  /// 玻璃档的卡片由 `GlassMaterial` 按档位浓度自己画底；关闭档没有那套材质，
+  /// 玻璃档的卡片由材质档位自己画底；关闭档没有那套材质，
   /// 就用一层半透明的 `surface` 顶替 —— 透出一点底下的渐变，卡片才有"材质感"，
   /// 否则整屏会退化成一片没有色调的灰白（这正是本仓库当初引入背景画布的原因）。
   ///
