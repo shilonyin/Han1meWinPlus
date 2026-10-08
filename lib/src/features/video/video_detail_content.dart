@@ -548,30 +548,33 @@ class _RelatedVideoTile extends StatelessWidget {
 
 /// 标题最多两行；放不下就从中间截断（保留首尾、用「……」连接），比只在末尾省略更容易认出标题
 class _TitleText extends StatelessWidget {
-  const _TitleText({required this.text, required this.style, required this.expanded, this.maxLines = 2});
+  const _TitleText({required this.text, required this.style, required this.expanded});
+
+  /// 标题最多显示两行。原来是个可传参数，但唯一调用点从没传过值 ——
+  /// 留着只会让后来人以为「这里能调」，收成常量后语义不变。
+  static const int _maxLines = 2;
 
   final String text;
   final TextStyle style;
   /// 展开详情时标题显示完整，不再中间省略
   final bool expanded;
-  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
     if (expanded) return Text(text, style: style);
     return LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth <= 0) return Text(text, maxLines: maxLines, overflow: TextOverflow.ellipsis, style: style);
+          if (constraints.maxWidth <= 0) return Text(text, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
           final scaler = MediaQuery.textScalerOf(context);
           final direction = Directionality.of(context);
           bool fits(String candidate) {
-            final painter = TextPainter(text: TextSpan(text: candidate, style: style), maxLines: maxLines, textDirection: direction, textScaler: scaler)..layout(maxWidth: constraints.maxWidth);
+            final painter = TextPainter(text: TextSpan(text: candidate, style: style), maxLines: _maxLines, textDirection: direction, textScaler: scaler)..layout(maxWidth: constraints.maxWidth);
             final ok = !painter.didExceedMaxLines;
             painter.dispose();
             return ok;
           }
 
-          if (fits(text)) return Text(text, maxLines: maxLines, overflow: TextOverflow.ellipsis, style: style);
+          if (fits(text)) return Text(text, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
           const marker = '……';
           final characters = text.characters.toList();
           var low = 0;
@@ -590,7 +593,7 @@ class _TitleText extends StatelessWidget {
               high = total - 1;
             }
           }
-          return Text(best, maxLines: maxLines, overflow: TextOverflow.ellipsis, style: style);
+          return Text(best, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
         },
       );
   }

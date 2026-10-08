@@ -46,6 +46,6 @@
 
 ## 尚未做（按优先级）
 
-1. `video_detail_content.dart:551` 的 `_TitleText.maxLines` 参数没人传值
-   （`unused_element_parameter`）：唯一调用点在 `video_detail_content.dart:119`，固定用默认的 2。
-   要么删掉这个参数，要么让调用点显式传 —— 现在是"写了但没人能改"的中间态。
+目前没有已知的落差条目。最后一条（`video_detail_content.dart` 的 `_TitleText.maxLines`
+参数没人传值，`unused_element_parameter`）已在 2026-10 的清理里收成类内常量 `_maxLines`：
+唯一调用点本来就固定用 2，参数是「写了但没人能改」的中间态。
