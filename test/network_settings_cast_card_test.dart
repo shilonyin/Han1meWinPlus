@@ -14,6 +14,7 @@ import 'package:han1me_win_plus/src/core/settings.dart';
 import 'package:han1me_win_plus/l10n/app_localizations.dart';
 import 'package:han1me_win_plus/src/features/settings/network_settings_page.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
+import 'package:han1me_win_plus/src/features/settings/settings_glass_controls.dart';
 import 'package:han1me_win_plus/src/features/shared/glass/glass_panel.dart';
 
 class _StubSettings extends SettingsController {
@@ -61,6 +62,15 @@ void main() {
     // 分组标题与条目标题不能是同一个词（此前两者共用 dlnaReceiver，
     // 因为条目掉出卡片分支、分组标题一起没渲染，重复才没显形）。
     expect(find.text('Cast to Device'), findsOneWidget, reason: '分组标题应当是分类名');
+
+    // 开关必须和标题落在**同一张**卡片里 —— 光有卡片还不够，
+    // 若开关被渲染到卡片外，这一行看起来依然是散的。
+    final titleCard = find.ancestor(of: castTitle, matching: find.byType(GlassPanel));
+    expect(
+      find.descendant(of: titleCard, matching: find.byType(SettingsSwitch)).evaluate(),
+      isNotEmpty,
+      reason: '这一行的开关必须和标题在同一张卡片内',
+    );
 
     // 对照：同页「常规」分组里的条目也在卡片里 —— 证明卡片确实是本页常态。
     final siteTitle = find.text('Site');
