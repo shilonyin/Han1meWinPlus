@@ -4748,24 +4748,6 @@ abstract class AppLocalizations {
   /// **'No search history'**
   String get searchHistoryEmpty;
 
-  /// No description provided for @deleteSearchHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete search history'**
-  String get deleteSearchHistory;
-
-  /// No description provided for @restoreSearchHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'Search this combination'**
-  String get restoreSearchHistory;
-
-  /// No description provided for @searchHistorySummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{query} · {filters}'**
-  String searchHistorySummary(Object query, Object filters);
-
   /// No description provided for @searchHistoryAll.
   ///
   /// In en, this message translates to:

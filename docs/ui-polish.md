@@ -29,7 +29,7 @@
 | 状态图标瞬间替换 | 切图标要有 `scale .25→1` + `opacity 0→1` + `blur 4→0`，300ms、不回弹 | 新增 `lib/src/features/shared/motion_icon.dart` 的 `MotionStateIcon`，用在播放/暂停、画中画、投屏三处 |
 | 动画时长散成字面量 | 只过渡真正变的属性，时长走语义令牌 | 7 个文件里的 200/220/240/250/260/320ms 全部收进 `AppMotion.*`（`lib/src/core/app_motion.dart`） |
 | 缩略图没有内描边 | 图片贴边时给 1px 内描边，浅色 `black/10`、深色 `white/10` | `lib/src/features/shared/video_card.dart` 与 `compact_video_card.dart` 的封面加 `Positioned.fill` 描边 |
-| 按下反馈 | `scale .96` / 150ms ease-out；`disableAnimations` 时不播 | **未做，等确认**：全应用按钮都改观感，单独一轮 |
+| 按下反馈 | `scale .96` / 150ms ease-out；`disableAnimations` 时不播 | 新增 `lib/src/features/shared/press_scale.dart` 的 `PressScale`，全应用 267 处按钮/卡片统一包一层（58 个文件）；`motionDuration` 归零时直接跳变 |
 
 ## 不适用
 
@@ -40,7 +40,6 @@
 
 ## 尚未做（按优先级）
 
-1. **按下缩放**（`scale .96`/150ms）：需要用户确认，因为它会改掉全应用每个按钮的手感。
-2. `settings_list.dart:19` 的 `_pressDuration`：目前没人引用（analyze 报 `unused_element`），
-   就是为第 1 条准备的常量 —— 做按下缩放时直接用它。
-3. `video_detail_content.dart:546` 的 `maxLines` 参数没人传值（`unused_element_parameter`）。
+1. `video_detail_content.dart:551` 的 `_TitleText.maxLines` 参数没人传值
+   （`unused_element_parameter`）：唯一调用点在 `video_detail_content.dart:119`，固定用默认的 2。
+   要么删掉这个参数，要么让调用点显式传 —— 现在是"写了但没人能改"的中间态。

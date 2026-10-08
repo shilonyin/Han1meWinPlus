@@ -2587,17 +2587,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHistoryEmpty => 'No search history';
 
   @override
-  String get deleteSearchHistory => 'Delete search history';
-
-  @override
-  String get restoreSearchHistory => 'Search this combination';
-
-  @override
-  String searchHistorySummary(Object query, Object filters) {
-    return '$query · $filters';
-  }
-
-  @override
   String get searchHistoryAll => 'All';
 
   @override

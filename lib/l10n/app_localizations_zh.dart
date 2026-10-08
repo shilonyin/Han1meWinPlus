@@ -2499,17 +2499,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchHistoryEmpty => '暂无搜索历史';
 
   @override
-  String get deleteSearchHistory => '删除搜索历史';
-
-  @override
-  String get restoreSearchHistory => '搜索此组合';
-
-  @override
-  String searchHistorySummary(Object query, Object filters) {
-    return '$query · $filters';
-  }
-
-  @override
   String get searchHistoryAll => '全部';
 
   @override
@@ -5249,17 +5238,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get searchHistoryEmpty => '暫無搜尋歷史';
-
-  @override
-  String get deleteSearchHistory => '刪除搜尋歷史';
-
-  @override
-  String get restoreSearchHistory => '搜尋此組合';
-
-  @override
-  String searchHistorySummary(Object query, Object filters) {
-    return '$query · $filters';
-  }
 
   @override
   String get searchHistoryAll => '全部';
