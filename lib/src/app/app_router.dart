@@ -357,8 +357,9 @@ String? _deepLinkRedirect(GoRouterState state) {
       .toList();
   if (segments.length >= 3 &&
       segments[0] == 'videos' &&
-      segments[1] == 'hentai')
+      segments[1] == 'hentai') {
     return '/video/${segments[2]}';
+  }
   if (uri.path.contains('search')) return '/search';
   return null;
 }

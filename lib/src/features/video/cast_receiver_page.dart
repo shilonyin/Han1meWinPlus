@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_surface_tokens.dart';
 import '../../core/cast_receiver.dart';
 import '../../core/dlna_media_renderer.dart';
 import '../../core/video_player_shutdown.dart';
@@ -226,10 +227,15 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
                 onPressed: () => controller.value.isPlaying ? unawaited(pause()) : unawaited(play()),
               )),
               Expanded(
-                child: Slider(
-                  value: position.inMilliseconds.clamp(0, max.round()).toDouble(),
-                  max: max,
-                  onChanged: (value) => unawaited(seek(Duration(milliseconds: value.round()))),
+                // 这一页自己铺深色底，滑块得连同轨道配色一起盖成白的
+                // （进度条只画已播轨，音量条两条都要看得见）。
+                child: SliderTheme(
+                  data: AppSurfaceTokens.darkTrackTheme,
+                  child: Slider(
+                    value: position.inMilliseconds.clamp(0, max.round()).toDouble(),
+                    max: max,
+                    onChanged: (value) => unawaited(seek(Duration(milliseconds: value.round()))),
+                  ),
                 ),
               ),
               Text('${_clock(position)} / ${_clock(duration)}', style: const TextStyle(color: Colors.white70)),
@@ -239,12 +245,15 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
             children: [
               const Icon(Symbols.volume_up_rounded, color: Colors.white70),
               Expanded(
-                child: Slider(
-                  value: _volume,
-                  max: 100,
-                  divisions: 20,
-                  label: '${_volume.round()}',
-                  onChanged: (value) => unawaited(setVolume(value.round())),
+                child: SliderTheme(
+                  data: AppSurfaceTokens.darkDiscreteTrackTheme(context),
+                  child: Slider(
+                    value: _volume,
+                    max: 100,
+                    divisions: 20,
+                    label: '${_volume.round()}',
+                    onChanged: (value) => unawaited(setVolume(value.round())),
+                  ),
                 ),
               ),
             ],

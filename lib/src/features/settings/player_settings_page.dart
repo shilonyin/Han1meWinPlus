@@ -208,11 +208,11 @@ class _CustomParametersDialogState extends State<_CustomParametersDialog> {
 }
 
 class _OptionTile extends SettingsCardItem {
-  _OptionTile({required IconData icon, required String title, required String value, required bool enabled, required VoidCallback? onTap, String? description, Widget? trailing})
-      : super(title: title, subtitle: description == null ? value : '$description · $value', leading: Icon(icon), trailing: trailing ?? const Icon(Symbols.chevron_right_rounded), onTap: onTap, enabled: enabled);
+  _OptionTile({required IconData icon, required super.title, required String value, required super.enabled, required super.onTap, String? description, Widget? trailing})
+      : super(subtitle: description == null ? value : '$description · $value', leading: Icon(icon), trailing: trailing ?? const Icon(Symbols.chevron_right_rounded));
 }
 
 class _ViewMenuTile extends SettingsMenuItem<VideoView> {
-  _ViewMenuTile({required IconData icon, required String title, required VideoView value, required bool enabled, required String Function(VideoView) label, required ValueChanged<VideoView> onSelected})
-      : super(title: title, subtitle: label(value), leading: Icon(icon), value: value, options: VideoView.values, label: label, onSelected: onSelected, enabled: enabled);
+  _ViewMenuTile({required IconData icon, required super.title, required super.value, required super.enabled, required super.label, required super.onSelected})
+      : super(subtitle: label(value), leading: Icon(icon), options: VideoView.values);
 }

@@ -81,7 +81,9 @@ class EchNativeClient {
     final headerPointers = calloc<Pointer<Utf8>>(headerValues.length);
     final bodyPointer = body.isEmpty ? nullptr : calloc<Uint8>(body.length);
     try {
-      for (var index = 0; index < headerValues.length; index++) headerPointers[index] = headerValues[index];
+      for (var index = 0; index < headerValues.length; index++) {
+        headerPointers[index] = headerValues[index];
+      }
       if (body.isNotEmpty) bodyPointer.asTypedList(body.length).setAll(0, body);
       final result = bindings.request(methodPointer, urlPointer, headerPointers, headerValues.length, bodyPointer, body.length, dohPointer, resolvePointer);
       if (result == nullptr) throw const FormatException('ECH returned no response');
@@ -95,7 +97,9 @@ class EchNativeClient {
       calloc.free(urlPointer);
       calloc.free(dohPointer);
       calloc.free(resolvePointer);
-      for (final value in headerValues) calloc.free(value);
+      for (final value in headerValues) {
+        calloc.free(value);
+      }
       calloc.free(headerPointers);
       if (bodyPointer != nullptr) calloc.free(bodyPointer);
     }

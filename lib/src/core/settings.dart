@@ -54,12 +54,15 @@ enum WindowBackdrop { none, mica, acrylic }
 
 extension PlayerEngineX on PlayerEngine {
   static List<PlayerEngine> get available {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       return const [PlayerEngine.libMpv];
-    if (Platform.isIOS)
+    }
+    if (Platform.isIOS) {
       return const [PlayerEngine.avPlayer, PlayerEngine.libMpv];
-    if (Platform.isAndroid)
+    }
+    if (Platform.isAndroid) {
       return const [PlayerEngine.exoPlayer, PlayerEngine.libMpv];
+    }
     return const [PlayerEngine.libMpv];
   }
 
@@ -671,8 +674,9 @@ class AppSettings {
         uri.scheme != 'https' ||
         uri.host.isEmpty ||
         uri.hasQuery ||
-        uri.hasFragment)
+        uri.hasFragment) {
       return '';
+    }
     return normalized;
   }
 

@@ -165,8 +165,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
               .clamp(-_volumeScrollStep, _volumeScrollStep);
       if (step == 0) return;
       final next = (controller.value.volume + step).clamp(0.0, 1.0);
-      if (next != controller.value.volume)
+      if (next != controller.value.volume) {
         unawaited(controller.setVolume(next));
+      }
       // 已经到顶 / 到底也要显示提示，让用户看到当前音量就是 100% 或 0%
       _showVolumeHud(next);
     });
@@ -205,8 +206,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
       return KeyEventResult.handled;
     }
     final controller = widget.controller.value;
-    if (controller == null || !controller.value.isInitialized)
+    if (controller == null || !controller.value.isInitialized) {
       return KeyEventResult.ignored;
+    }
     final keyName = PlayerHotkeyRegistry.keyName(event.physicalKey);
     if (keyName == null) return KeyEventResult.ignored;
     final hardware = HardwareKeyboard.instance;
@@ -340,8 +342,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
     if (active) {
       if (controller == null ||
           !controller.value.isInitialized ||
-          _speedBeforeLongPress != null)
+          _speedBeforeLongPress != null) {
         return;
+      }
       final settings =
           ref.read(settingsProvider).valueOrNull ?? const AppSettings();
       _speedBeforeLongPress = controller.value.playbackSpeed;
@@ -941,8 +944,9 @@ class _MarqueeTitleState extends State<_MarqueeTitle>
         textScaler: MediaQuery.textScalerOf(context),
       )..layout();
       final width = painter.width;
-      if (width <= constraints.maxWidth)
+      if (width <= constraints.maxWidth) {
         return Text(widget.title, maxLines: 1, style: style);
+      }
       final distance = width - constraints.maxWidth + 24;
       return ClipRect(
         child: AnimatedBuilder(
@@ -1132,8 +1136,9 @@ class _KeyframeCountdown extends StatelessWidget {
           final remaining = next == null
               ? null
               : next - value.position.inMilliseconds;
-          if (remaining == null || remaining > 10000)
+          if (remaining == null || remaining > 10000) {
             return const SizedBox.shrink();
+          }
           return Positioned(
             left: 16,
             top: 60,

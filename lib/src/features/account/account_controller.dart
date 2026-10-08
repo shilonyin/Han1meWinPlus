@@ -32,7 +32,7 @@ class AccountController extends AsyncNotifier<Account?> {
     if (cloudflareCookie?.isNotEmpty == true) {
       ref.read(han1meRepositoryProvider).setCloudflareCookie(cloudflareCookie!);
       if (!await http.hasCookie(baseUrl, 'cf_clearance')) {
-        await http.saveCookies(cloudflareCookie!, url: baseUrl);
+        await http.saveCookies(cloudflareCookie, url: baseUrl);
       }
     }
     final account = await store.read(baseUrl);
@@ -83,7 +83,7 @@ class AccountController extends AsyncNotifier<Account?> {
     final cloudflareCookie = await ref.read(accountStoreProvider).readCloudflareCookie(settings.resolvedBaseUrl);
     if (cloudflareCookie?.isNotEmpty == true) {
       ref.read(han1meRepositoryProvider).setCloudflareCookie(cloudflareCookie!);
-      await http.saveCookies(cloudflareCookie!, url: settings.resolvedBaseUrl);
+      await http.saveCookies(cloudflareCookie, url: settings.resolvedBaseUrl);
     }
     ref.read(han1meRepositoryProvider).setCookie(account.cookie);
     await http.saveCookies(account.cookie, url: settings.resolvedBaseUrl);
@@ -102,7 +102,7 @@ class AccountController extends AsyncNotifier<Account?> {
       final cloudflareCookie = await ref.read(accountStoreProvider).readCloudflareCookie(settings.resolvedBaseUrl);
       if (cloudflareCookie?.isNotEmpty == true) {
         ref.read(han1meRepositoryProvider).setCloudflareCookie(cloudflareCookie!);
-        await ref.read(han1meHttpClientProvider).saveCookies(cloudflareCookie!, url: settings.resolvedBaseUrl);
+        await ref.read(han1meHttpClientProvider).saveCookies(cloudflareCookie, url: settings.resolvedBaseUrl);
       }
       state = const AsyncData(null);
     }

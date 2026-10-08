@@ -22,7 +22,9 @@ class WebDavSyncService {
       if (decoded is Map) remote = WatchState.fromJson(Map<String, dynamic>.from(decoded));
     } on DioException catch (error) {
       if (error.response?.statusCode != 404) rethrow;
-    } on FormatException {}
+    } on FormatException {
+      // 远端不是合法 JSON：当成没有远端数据，继续用本地内容覆盖上去。
+    }
     final merged = _merge(local, remote);
     await _dio.put<void>(url, data: jsonEncode(merged.toJson()), options: options);
     return merged;
@@ -38,7 +40,9 @@ class WebDavSyncService {
       if (decoded is List) remote = decoded.whereType<Map>().map((item) => FollowingVideo.fromJson(Map<String, dynamic>.from(item))).toList();
     } on DioException catch (error) {
       if (error.response?.statusCode != 404) rethrow;
-    } on FormatException {}
+    } on FormatException {
+      // 远端不是合法 JSON：当成没有远端数据，继续用本地内容覆盖上去。
+    }
     final merged = <String, FollowingVideo>{for (final item in remote) item.videoCode: item};
     for (final item in local) {
       final existing = merged[item.videoCode];

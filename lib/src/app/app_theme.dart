@@ -129,7 +129,11 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
     ),
-    sliderTheme: const SliderThemeData(year2023: false),
+    // 滑块外观**故意不在这里钉版本**。这里原本写的是 `year2023: false`（要 2024 版），
+    // 该字段已被 Flutter 标成 deprecated，而两套外观的差别不只是形状 —— 2024 版的把手
+    // 是一根 4×44 的竖条，在设置页那种一行一个滑块的排版里又细又高；本仓库要的是 2023 版。
+    // 不写这行，取值链 `widget.year2023 ?? sliderTheme.year2023 ?? true` 正好落到 2023，
+    // 与播放器里各处显式写的 `RoundSliderThumbShape` 一致。
     // 卡片的层级靠**极浅描边 + 一丝投影**（见 `GlassPanel` 的同一处决定）：
     // 白卡片压在近白的页面底上时，光靠明度差读不出边界。
     // 海拔仍是 0 —— 重投影会在卡片周围糊出一圈灰，尤其是半透明窗口材质上。

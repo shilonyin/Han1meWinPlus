@@ -6,7 +6,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import 'settings_controller.dart';
 import 'settings_pane_scope.dart';
-import 'settings_pane_scope.dart';
 
 class LanguageSettingsPage extends ConsumerWidget {
   const LanguageSettingsPage({super.key});

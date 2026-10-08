@@ -176,8 +176,10 @@ class CommentCard extends ConsumerWidget {
   }
 
   Future<List<String>> _reportReasons(BuildContext context) async {
+    // 语言在 await 之前算好：读资源是异步的，回来时再拿 context 取 locale 会踩跨 async gap 的坑。
+    final Locale currentLocale = Localizations.localeOf(context);
     final json = await DefaultAssetBundle.of(context).loadString('assets/search_options/report_reason.json');
-    final locale = Localizations.localeOf(context).languageCode == 'zh' ? (Localizations.localeOf(context).scriptCode == 'Hant' || Localizations.localeOf(context).countryCode == 'TW' ? 'zh-rTW' : 'zh-rCN') : 'en';
+    final locale = currentLocale.languageCode == 'zh' ? (currentLocale.scriptCode == 'Hant' || currentLocale.countryCode == 'TW' ? 'zh-rTW' : 'zh-rCN') : 'en';
     return (jsonDecode(json) as List).whereType<Map>().map((item) => (item['lang'] as Map?)?[locale] as String? ?? item['reason_key'] as String? ?? '').where((item) => item.isNotEmpty).toList();
   }
 }

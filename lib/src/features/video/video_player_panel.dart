@@ -151,8 +151,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     final controller = _controllerNotifier.value;
     if (controller == null ||
         !controller.value.isInitialized ||
-        !controller.value.isPlaying)
+        !controller.value.isPlaying) {
       return;
+    }
     final settings = ref.read(settingsProvider).valueOrNull;
     if (settings?.autoPictureInPicture == true) {
       if (state == AppLifecycleState.inactive) {
@@ -160,8 +161,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       } else if (state == AppLifecycleState.paused) {
         unawaited(_pauseIfNotPip(controller));
       } else if (state == AppLifecycleState.resumed) {
-        if (identical(VideoPlayerShutdown.pipActive, controller))
+        if (identical(VideoPlayerShutdown.pipActive, controller)) {
           VideoPlayerShutdown.pipActive = null;
+        }
       }
       return;
     }
@@ -240,8 +242,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     final controller = _controllerNotifier.value;
     if (controller == null ||
         !controller.value.isInitialized ||
-        !controller.value.isPlaying)
+        !controller.value.isPlaying) {
       return;
+    }
     try {
       await controller.pause();
     } catch (_) {}
@@ -328,8 +331,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     // 之前是「改设置 + 重建播放器」，会让新实例的着色器链编译与渲染尺寸调整挤在同一瞬间，
     // 实测会把 mpv 的渲染上下文搞坏：画面永久转圈、声音照旧、界面看上去卡死；
     // 而且重建过程本身也必然先转一次圈。
-    if (await ConfiguredMediaKitVideoPlayer.applySuperResolutionMode(mode))
+    if (await ConfiguredMediaKitVideoPlayer.applySuperResolutionMode(mode)) {
       return;
+    }
     // 不是 libmpv 内核（例如 Android 用的是官方插件）时退回重建，保证设置仍然生效。
     final current = _controllerNotifier.value;
     final position = current?.value.isInitialized == true
@@ -337,8 +341,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         : null;
     final wasPlaying =
         current?.value.isInitialized == true && current!.value.isPlaying;
-    if (source != null)
+    if (source != null) {
       await _load(source, startAt: position, resumePlaying: wasPlaying);
+    }
   }
 
   /// 视频输出卡死的兜底：重载当前片源（最多两次）。
@@ -434,8 +439,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       );
       if (!mounted ||
           version != _loadVersion ||
-          !identical(controller, _controllerNotifier.value))
+          !identical(controller, _controllerNotifier.value)) {
         return;
+      }
       _saveProgress(controller);
     } catch (error) {
       _pendingInitialize.remove(controller);
@@ -491,8 +497,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       final settings = await ref.read(settingsProvider.future);
       if (!mounted ||
           version != _loadVersion ||
-          controller != _controllerNotifier.value)
+          controller != _controllerNotifier.value) {
         return;
+      }
       await controller.setPlaybackSpeed(settings.defaultPlaybackSpeed);
       await controller.setLooping(settings.loopPlayback);
       // 恢复上次的音量：VideoPlayerController 默认满音量（1.0），不恢复的话
@@ -504,8 +511,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         final watch = await ref.read(watchProvider.future);
         if (!mounted ||
             version != _loadVersion ||
-            controller != _controllerNotifier.value)
+            controller != _controllerNotifier.value) {
           return;
+        }
         final item = watch.continueItems
             .where((item) => item.videoCode == widget.video.id)
             .firstOrNull;
@@ -516,8 +524,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         }
       }
       _restored = true;
-      if (resumePlaying || (startAt == null && settings.autoPlayOnOpen))
+      if (resumePlaying || (startAt == null && settings.autoPlayOnOpen)) {
         await controller.play();
+      }
     } catch (_) {}
   }
 
@@ -553,13 +562,15 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     _persistVolumeIfChanged(value.volume);
     final now = DateTime.now();
     final lastWatchedAt = _lastWatchedAt;
-    if (value.isPlaying && lastWatchedAt != null)
+    if (value.isPlaying && lastWatchedAt != null) {
       _watched += now.difference(lastWatchedAt);
+    }
     _lastWatchedAt = value.isPlaying ? now : null;
     if (_wasPlaying != value.isPlaying) {
       _wasPlaying = value.isPlaying;
-      if (value.isPlaying)
+      if (value.isPlaying) {
         unawaited(VideoPlayerShutdown.pauseAllExcept(controller));
+      }
       widget.onPlayingChanged?.call(value.isPlaying);
     }
     if (value.duration > Duration.zero && value.position >= value.duration) {
@@ -576,8 +587,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         return;
       }
     }
-    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true)
+    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true) {
       return;
+    }
     if (DateTime.now().difference(_lastSaved).inSeconds < 5) return;
     _lastSaved = DateTime.now();
     ref
@@ -595,8 +607,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     final watchedMs = _watched.inMilliseconds;
     if (watchedMs < _watchThresholdMs) return;
     _watched = Duration.zero;
-    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true)
+    if (ref.read(settingsProvider).valueOrNull?.incognitoPlayback == true) {
       return;
+    }
     unawaited(
       _watchController
           .addTime(widget.video.id, widget.video.title, watchedMs)
@@ -614,7 +627,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-      if (mounted)
+      if (mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
             builder: (_) => _FullscreenPlayer(
@@ -634,6 +647,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
             ),
           ),
         );
+      }
     } finally {
       _fullscreenOpen = false;
       try {
@@ -684,8 +698,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     widget.onPlayingChanged?.call(false);
     final controller = _controllerNotifier.value;
     _controllerNotifier.value = null;
-    if (identical(VideoPlayerShutdown.pipActive, controller))
+    if (identical(VideoPlayerShutdown.pipActive, controller)) {
       VideoPlayerShutdown.pipActive = null;
+    }
     if (controller != null) {
       if (_fullscreenOpen) {
         _pendingDispose = controller;

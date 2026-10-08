@@ -234,12 +234,14 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
   }
 
   Future<AppExitResponse> _handleExitRequest() async {
-    if (widget.exitCoordinator.consumeBranchBackHandled())
+    if (widget.exitCoordinator.consumeBranchBackHandled()) {
       return AppExitResponse.cancel;
+    }
     final context = widget.navigatorKey.currentContext;
     if (context == null) return AppExitResponse.cancel;
-    if (!await widget.exitCoordinator.confirmExit(context))
+    if (!await widget.exitCoordinator.confirmExit(context)) {
       return AppExitResponse.cancel;
+    }
     if (PlatformService.isDesktop) return AppExitResponse.exit;
     await PlatformService.minimizeApp();
     return AppExitResponse.cancel;
@@ -255,7 +257,8 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       return;
     }
     final context = widget.navigatorKey.currentContext;
-    if (context == null) return;
+    // 上面查窗口焦点是异步的：回来时这个 State 可能已经销毁，此时弹窗没人看得见。
+    if (context == null || !context.mounted) return;
     final l10n = AppLocalizations.of(context)!;
     await showAppDialog<void>(
       context: context,

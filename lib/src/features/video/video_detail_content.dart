@@ -284,10 +284,12 @@ class _TagListState extends ConsumerState<_TagList> {
       final rowHeight = (chip.height < 32.0 ? 32.0 : chip.height);
       final height = rowHeight * _tagCollapsedRows + _tagRunSpacing * (_tagCollapsedRows - 1);
       final canExpand = wrap.height > height + .5;
-      if (_collapsedHeight != height || _canExpand != canExpand) setState(() {
-        _collapsedHeight = height;
-        _canExpand = canExpand;
-      });
+      if (_collapsedHeight != height || _canExpand != canExpand) {
+        setState(() {
+          _collapsedHeight = height;
+          _canExpand = canExpand;
+        });
+      }
     });
   }
 

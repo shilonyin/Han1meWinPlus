@@ -18,6 +18,33 @@ import 'package:flutter/material.dart';
 /// 前者是 `surfaceContainerLow` 的直接转发（本模块开篇就说了不收转发），
 /// 后者只服务那几张已经不在的图标卡片。
 abstract final class AppSurfaceTokens {
+  /// 滑块在**深色底**上的轨道配色。
+  ///
+  /// 播放器控制条、投屏接收页这类界面自己铺了深色底，滑块却由全局主题给出底色：
+  /// 浅色主题下 `inactiveTrackColor` 落在白底附近，压到深色控制条上几乎看不见。
+  /// 所以这几处必须显式盖一套白色轨道，不能只在全局 `sliderTheme` 里改 ——
+  /// 那样会把设置页、漫画页这些浅底界面一起拖黑。
+  ///
+  /// 进度条只画已播轨（不画 `inactiveTrackColor`），音量条两条轨都要看得见。
+  static const SliderThemeData darkTrackTheme = SliderThemeData(
+    activeTrackColor: Colors.white,
+    inactiveTrackColor: Colors.white24,
+    thumbColor: Colors.white,
+  );
+
+  /// 深色底上**带档位**的滑块：除了白轨道，还要把档位气泡自己补一套。
+  ///
+  /// 气泡的底色本来由滑块外观版本决定，而全局外观版本已经不再钉（见 `app_theme`），
+  /// 这里显式给成反色，换个全局默认也不会看不清。
+  static SliderThemeData darkDiscreteTrackTheme(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return darkTrackTheme.copyWith(
+      valueIndicatorColor: theme.colorScheme.inverseSurface,
+      valueIndicatorTextStyle:
+          theme.textTheme.labelLarge!.copyWith(color: theme.colorScheme.onInverseSurface),
+    );
+  }
+
   /// 关闭玻璃档时，卡片浮在背景画布上的半透明底色。
   ///
   /// 玻璃档的卡片由材质档位自己画底；关闭档没有那套材质，

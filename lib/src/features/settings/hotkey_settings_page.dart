@@ -35,8 +35,9 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
-    if (settings == null)
+    if (settings == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     final bindings = settings.hotkeyBindings;
@@ -148,8 +149,9 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
     PlayerHotkeyAction action,
     AppLocalizations l10n,
   ) {
-    if (event is KeyUpEvent || event is KeyRepeatEvent)
+    if (event is KeyUpEvent || event is KeyRepeatEvent) {
       return KeyEventResult.handled;
+    }
     // Esc 取消捕获。
     if (event.physicalKey == PhysicalKeyboardKey.escape) {
       setState(() {

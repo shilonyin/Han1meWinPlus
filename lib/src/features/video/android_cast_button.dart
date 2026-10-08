@@ -41,6 +41,8 @@ class AndroidCastButton extends ConsumerWidget {
     StreamSubscription? subscription;
     try {
       final session = await manager.start();
+      // start() 是异步的：回来时按钮可能已经随页面销毁，弹窗不能挂到失效的 context 上。
+      if (!context.mounted) return;
       var devices = <dynamic>[];
       await showAppDialog<void>(
         context: context,

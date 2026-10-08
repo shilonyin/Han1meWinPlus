@@ -145,6 +145,7 @@ Future<void> _pickLocalPlaylist(BuildContext context, WidgetRef ref, VideoDetail
     await controller.saveToPlaylist(video, selected);
     return;
   }
+  if (!context.mounted) return;
   final result = await showAppDialog<String>(context: context, builder: (_) => const _PlaylistNameDialog());
   if (result?.isEmpty != false) return;
   await controller.createPlaylist(video, result!);
@@ -169,6 +170,7 @@ Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail vide
   );
   if (selected == null) return;
   final settings = await ref.read(settingsProvider.future);
+  if (!context.mounted) return;
   if (selected == '__create__') {
     final result = await showAppDialog<(String, String)>(context: context, builder: (_) => const _PlaylistEditorDialog());
     if (result == null || result.$1.isEmpty) return;

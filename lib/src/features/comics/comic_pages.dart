@@ -323,6 +323,8 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<String?> _chooseCategory() async {
     final existing = await ref.read(comicCacheProvider.notifier).categories();
+    // 读分类是异步的：回来时页面可能已经被关掉，再弹对话框会挂在失效的 context 上。
+    if (!mounted) return null;
     final l10n = AppLocalizations.of(context)!;
     return showAppDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)))]));
   }
@@ -343,7 +345,6 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   var _controls = true;
   var _mode = 0;
   var _background = Colors.black;
-  var _forward = true;
   var _ready = false;
   Offset? _pointerStart;
   var _pointers = 0;
@@ -362,7 +363,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     setState(() {
       _mode = state.mode;
       _background = _backgroundFromName(state.background);
-      _page = (state.progress[widget.comic.id] ?? 0).clamp(0, widget.comic.pageCount - 1) as int;
+      _page = (state.progress[widget.comic.id] ?? 0).clamp(0, widget.comic.pageCount - 1);
       _ready = true;
     });
     _prefetch();
@@ -424,7 +425,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   }
 
   void _pointerUp(PointerUpEvent event, bool long) {
-    _pointers = (_pointers - 1).clamp(0, 10) as int;
+    _pointers = (_pointers - 1).clamp(0, 10);
     final start = _pointerStart;
     _pointerStart = null;
     if (start == null || _pointers > 0) return;
@@ -445,10 +446,9 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   }
 
   void _change(int delta) {
-    final next = (_page + delta).clamp(0, widget.comic.pageCount - 1) as int;
+    final next = (_page + delta).clamp(0, widget.comic.pageCount - 1);
     if (next == _page) return;
     setState(() {
-      _forward = delta > 0;
       _page = next;
     });
     _pageController.animateToPage(next, duration: AppMotion.emphasis, curve: Curves.easeOutCubic);
@@ -512,7 +512,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   }
 
   void _jump(int page) {
-    final next = (page - 1).clamp(0, widget.comic.pageCount - 1) as int;
+    final next = (page - 1).clamp(0, widget.comic.pageCount - 1);
     _change(next - _page);
   }
 

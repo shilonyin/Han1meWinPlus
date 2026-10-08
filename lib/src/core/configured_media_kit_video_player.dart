@@ -97,12 +97,12 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 正在改画质（重新编译着色器链）的纹理：这段时间内核上报的「缓冲」要压掉。
   final _switchingQuality = HashMap<int, bool>();
   final _switchingTimers = HashMap<int, Timer>();
-  /// 每个纹理当前用的传输方式：textureId →（主机名, 是否走代理），见 [_switchTransport]。
+  /// 每个纹理当前用的传输方式：playerId（纹理 id，与 video_player 的基类同名）→（主机名, 是否走代理），见 [_switchTransport]。
   final _transports = HashMap<int, (String, bool)>();
   /// 「迟迟开不出来就换另一条传输方式」的看门狗与已换次数。
   final _transportTimers = HashMap<int, Timer>();
   final _transportSwitches = HashMap<int, int>();
-  int _nextTextureId = 0;
+  int _nextPlayerId = 0;
 
   /// 正在切换画质（重编译着色器链），界面据此显示提示条。
   ///
@@ -187,9 +187,9 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<void> init() async {
-    final textureIds = _players.keys.toList(growable: false);
-    for (final textureId in textureIds) {
-      await dispose(textureId);
+    final playerIds = _players.keys.toList(growable: false);
+    for (final playerId in playerIds) {
+      await dispose(playerId);
     }
     _players.clear();
     _completers.clear();
@@ -231,30 +231,30 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> dispose(int textureId) async {
-    final player = _players.remove(textureId);
-    final streamController = _streamControllers.remove(textureId);
-    final subscriptions = _streamSubscriptions.remove(textureId);
-    _videoControllers.remove(textureId);
-    _outputAreas.remove(textureId);
-    _appliedSizes.remove(textureId);
-    _outputSizeTimers.remove(textureId)?.cancel();
-    _playingSince.remove(textureId);
-    _resizeHoldUntil.remove(textureId);
-    _resizeRetryTimers.remove(textureId)?.cancel();
-    _transportTimers.remove(textureId)?.cancel();
-    _transports.remove(textureId);
-    _transportSwitches.remove(textureId);
-    _resizeRetryCounts.remove(textureId);
-    _stallTimers.remove(textureId)?.cancel();
-    _stallSeconds.remove(textureId);
-    _stallRecovered.remove(textureId);
-    _readyAt.remove(textureId);
-    _switchingTimers.remove(textureId)?.cancel();
-    if (_switchingQuality.remove(textureId) != null) {
+  Future<void> dispose(int playerId) async {
+    final player = _players.remove(playerId);
+    final streamController = _streamControllers.remove(playerId);
+    final subscriptions = _streamSubscriptions.remove(playerId);
+    _videoControllers.remove(playerId);
+    _outputAreas.remove(playerId);
+    _appliedSizes.remove(playerId);
+    _outputSizeTimers.remove(playerId)?.cancel();
+    _playingSince.remove(playerId);
+    _resizeHoldUntil.remove(playerId);
+    _resizeRetryTimers.remove(playerId)?.cancel();
+    _transportTimers.remove(playerId)?.cancel();
+    _transports.remove(playerId);
+    _transportSwitches.remove(playerId);
+    _resizeRetryCounts.remove(playerId);
+    _stallTimers.remove(playerId)?.cancel();
+    _stallSeconds.remove(playerId);
+    _stallRecovered.remove(playerId);
+    _readyAt.remove(playerId);
+    _switchingTimers.remove(playerId)?.cancel();
+    if (_switchingQuality.remove(playerId) != null) {
       switchingSuperResolution.value = _switchingQuality.isNotEmpty;
     }
-    final completer = _completers.remove(textureId);
+    final completer = _completers.remove(playerId);
     if (completer != null && !completer.isCompleted) {
       completer.complete();
     }
@@ -278,7 +278,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<int?> create(DataSource dataSource) async {
     final player = Player(configuration: _playerConfiguration);
-    int? textureId;
+    int? playerId;
     try {
       final native = player.platform as NativePlayer;
       await native.waitForPlayerInitialization;
@@ -298,29 +298,29 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       final completer = Completer<void>();
       final streamController = StreamController<VideoEvent>();
       final streamSubscriptions = <StreamSubscription>[];
-      textureId = ++_nextTextureId;
+      playerId = ++_nextPlayerId;
 
-      _players[textureId] = player;
-      _completers[textureId] = completer;
-      _videoControllers[textureId] = videoController;
-      _streamControllers[textureId] = streamController;
-      _streamSubscriptions[textureId] = streamSubscriptions;
+      _players[playerId] = player;
+      _completers[playerId] = completer;
+      _videoControllers[playerId] = videoController;
+      _streamControllers[playerId] = streamController;
+      _streamSubscriptions[playerId] = streamSubscriptions;
 
       // 先建立初始化监听（它会发出 `initialized` 事件），再挂平台层自己的监听，
       // 避免两者争用同一个订阅列表的顺序。
-      _initialize(textureId);
+      _initialize(playerId);
 
       // media_kit 自己会在 videoParams 变化时把输出尺寸改回视频原始尺寸，
       // 而视频就绪（尺寸已知）本身也不会引发 Widget 重建，所以这里一并重算。
       streamSubscriptions.add(videoController.player.stream.videoParams.listen((_) {
-        final id = textureId;
+        final id = playerId;
         if (id != null) _refreshOutputSize(id);
       }));
 
       // 播放稳定计时：只有「正在播放、没在缓冲、并且已经这样持续了一会儿」
       // 才允许改渲染尺寸（原因见 [_canResizeNow]）。
       streamSubscriptions.add(videoController.player.stream.playing.listen((playing) {
-        final id = textureId;
+        final id = playerId;
         if (id == null) return;
         if (playing) {
           _playingSince[id] = DateTime.now();
@@ -330,7 +330,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         _refreshOutputSize(id);
       }));
       streamSubscriptions.add(videoController.player.stream.buffering.listen((buffering) {
-        final id = textureId;
+        final id = playerId;
         if (id == null) return;
         if (buffering) {
           _playingSince.remove(id);
@@ -345,7 +345,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       }));
 
       // 兜底看门狗：万一渲染上下文还是被搞坏了，通报界面层重载。
-      _stallTimers[textureId] = Timer.periodic(const Duration(seconds: 2), (_) => _checkStall(textureId!));
+      _stallTimers[playerId] = Timer.periodic(const Duration(seconds: 2), (_) => _checkStall(playerId!));
 
       final resource = switch (dataSource.sourceType) {
         DataSourceType.asset => dataSource.package == null
@@ -355,18 +355,18 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
       };
 
       if (dataSource.sourceType == DataSourceType.network && host.isNotEmpty) {
-        _transports[textureId] = (host, prefersProxy);
+        _transports[playerId] = (host, prefersProxy);
       }
 
       await player.open(
         Media(resource, httpHeaders: dataSource.httpHeaders),
         play: false,
       );
-      _watchTransport(textureId, player, dataSource);
-      return textureId;
+      _watchTransport(playerId, player, dataSource);
+      return playerId;
     } catch (_) {
-      if (textureId != null && identical(_players[textureId], player)) {
-        await dispose(textureId);
+      if (playerId != null && identical(_players[playerId], player)) {
+        await dispose(playerId);
       } else {
         try {
           await player.dispose().timeout(const Duration(seconds: 2));
@@ -398,42 +398,42 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 界面上就只剩一个永远转的圈（用户报的「点进去一直在加载」就是这个）。
   /// 改成看门狗：规定时间内没有等到 `initialized` 就先换路重试，
   /// 两条路都试过还是不行就明确报错，让界面能显示「播放失败 + 重试」。
-  void _watchTransport(int textureId, Player player, DataSource dataSource) {
+  void _watchTransport(int playerId, Player player, DataSource dataSource) {
     if (dataSource.sourceType != DataSourceType.network) return;
-    if (_transports[textureId] == null) return;
-    _transportTimers.remove(textureId)?.cancel();
-    _transportTimers[textureId] = Timer(_transportSwitchDelay, () => unawaited(_switchTransport(textureId, player, dataSource)));
+    if (_transports[playerId] == null) return;
+    _transportTimers.remove(playerId)?.cancel();
+    _transportTimers[playerId] = Timer(_transportSwitchDelay, () => unawaited(_switchTransport(playerId, player, dataSource)));
   }
 
   /// 首帧前最多等多久就认为这条传输方式不行。正常片源初始化只要 1~4 秒。
   static const _transportSwitchDelay = Duration(seconds: 15);
 
-  Future<void> _switchTransport(int textureId, Player player, DataSource dataSource) async {
-    if (_completers[textureId]?.isCompleted ?? true) return;
-    if (!identical(_players[textureId], player)) return;
-    final transport = _transports[textureId];
+  Future<void> _switchTransport(int playerId, Player player, DataSource dataSource) async {
+    if (_completers[playerId]?.isCompleted ?? true) return;
+    if (!identical(_players[playerId], player)) return;
+    final transport = _transports[playerId];
     if (transport == null) return;
     final (host, useProxy) = transport;
     final alternateUsesProxy = !useProxy;
     final alternateProxy = alternateUsesProxy ? _availableProxy : null;
     // 换过两条路还是开不出来，或压根没有另一条路：明确报错，
     // 让界面能显示「播放失败 + 重试」，而不是一直转圈。
-    if ((_transportSwitches[textureId] ?? 0) >= 2 || (alternateUsesProxy && alternateProxy == null)) {
-      _transportTimers.remove(textureId)?.cancel();
+    if ((_transportSwitches[playerId] ?? 0) >= 2 || (alternateUsesProxy && alternateProxy == null)) {
+      _transportTimers.remove(playerId)?.cancel();
       _hostUsesProxy.remove(host);
-      _streamControllers[textureId]?.addError(
+      _streamControllers[playerId]?.addError(
         PlatformException(code: '', message: 'stream open timed out: ${dataSource.uri}'),
       );
       return;
     }
-    _transportSwitches[textureId] = (_transportSwitches[textureId] ?? 0) + 1;
-    _transports[textureId] = (host, alternateUsesProxy);
+    _transportSwitches[playerId] = (_transportSwitches[playerId] ?? 0) + 1;
+    _transports[playerId] = (host, alternateUsesProxy);
     try {
       await (player.platform as NativePlayer).setProperty('http-proxy', alternateProxy ?? '');
-      if ((_completers[textureId]?.isCompleted ?? true) || !identical(_players[textureId], player)) return;
+      if ((_completers[playerId]?.isCompleted ?? true) || !identical(_players[playerId], player)) return;
       await player.open(Media(dataSource.uri!, httpHeaders: dataSource.httpHeaders), play: false);
     } catch (_) {}
-    _watchTransport(textureId, player, dataSource);
+    _watchTransport(playerId, player, dataSource);
   }
 
   /// 取「自定义参数」里的属性名，非 `key=value` 形式一律视为无效。
@@ -597,42 +597,42 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Stream<VideoEvent> videoEventsFor(int textureId) {
-    if (_streamControllers[textureId] == null) {
-      throw StateError('VideoPlayer for textureId $textureId is not found, Check if its disposed.');
+  Stream<VideoEvent> videoEventsFor(int playerId) {
+    if (_streamControllers[playerId] == null) {
+      throw StateError('VideoPlayer for playerId $playerId is not found, Check if its disposed.');
     }
-    return _streamControllers[textureId]!.stream;
+    return _streamControllers[playerId]!.stream;
   }
 
   @override
-  Future<void> setLooping(int textureId, bool looping) async {
+  Future<void> setLooping(int playerId, bool looping) async {
     final playlistMode = looping ? PlaylistMode.single : PlaylistMode.none;
-    return _players[textureId]?.setPlaylistMode(playlistMode);
+    return _players[playerId]?.setPlaylistMode(playlistMode);
   }
 
   @override
-  Future<void> play(int textureId) async {
-    return _players[textureId]?.play();
+  Future<void> play(int playerId) async {
+    return _players[playerId]?.play();
   }
 
   @override
-  Future<void> pause(int textureId) async {
-    return _players[textureId]?.pause();
+  Future<void> pause(int playerId) async {
+    return _players[playerId]?.pause();
   }
 
   @override
-  Future<void> setVolume(int textureId, double volume) async {
-    return _players[textureId]?.setVolume(volume * 100);
+  Future<void> setVolume(int playerId, double volume) async {
+    return _players[playerId]?.setVolume(volume * 100);
   }
 
   @override
-  Future<void> seekTo(int textureId, Duration position) async {
-    return _players[textureId]?.seek(position);
+  Future<void> seekTo(int playerId, Duration position) async {
+    return _players[playerId]?.seek(position);
   }
 
   @override
-  Future<void> setPlaybackSpeed(int textureId, double speed) async {
-    final player = _players[textureId];
+  Future<void> setPlaybackSpeed(int playerId, double speed) async {
+    final player = _players[playerId];
     if (player == null) return;
     try {
       await player.setRate(speed);
@@ -640,19 +640,19 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<Duration> getPosition(int textureId) async {
-    return _players[textureId]?.platform?.state.position ?? Duration.zero;
+  Future<Duration> getPosition(int playerId) async {
+    return _players[playerId]?.platform?.state.position ?? Duration.zero;
   }
 
   @override
-  Widget buildView(int textureId) {
-    if (_videoControllers[textureId] == null) {
-      throw StateError('VideoPlayer for textureId $textureId is not found, Check if its disposed.');
+  Widget buildView(int playerId) {
+    if (_videoControllers[playerId] == null) {
+      throw StateError('VideoPlayer for playerId $playerId is not found, Check if its disposed.');
     }
-    final controller = _videoControllers[textureId]!;
+    final controller = _videoControllers[playerId]!;
     return LayoutBuilder(builder: (context, constraints) {
       final area = VideoOutputArea.maybeOf(context);
-      updateOutputArea(textureId, area?.size ?? Size.zero, area?.enabled ?? false, area?.fill ?? false);
+      updateOutputArea(playerId, area?.size ?? Size.zero, area?.enabled ?? false, area?.fill ?? false);
       return Video(
         key: ValueKey(controller),
         controller: controller,
@@ -666,15 +666,15 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   }
 
   /// 由界面层在每次布局变化时调用：记录播放区域信息并按需调整 mpv 的输出尺寸。
-  void updateOutputArea(int textureId, Size size, bool enabled, bool fill) {
+  void updateOutputArea(int playerId, Size size, bool enabled, bool fill) {
     final area = (size, enabled, fill);
-    if (_outputAreas[textureId] == area) return;
-    _outputAreas[textureId] = area;
+    if (_outputAreas[playerId] == area) return;
+    _outputAreas[playerId] = area;
     // 拖窗口时尺寸会连续变化，稍缓一下，避免每帧重建渲染表面（会卡）。
-    _outputSizeTimers.remove(textureId)?.cancel();
-    _outputSizeTimers[textureId] = Timer(const Duration(milliseconds: 150), () {
-      _outputSizeTimers.remove(textureId);
-      _refreshOutputSize(textureId);
+    _outputSizeTimers.remove(playerId)?.cancel();
+    _outputSizeTimers[playerId] = Timer(const Duration(milliseconds: 150), () {
+      _outputSizeTimers.remove(playerId);
+      _refreshOutputSize(playerId);
     });
   }
 
@@ -682,32 +682,32 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   ///
   /// 未开启增强档（或视频尺寸还没就绪）时目标为 `null`，即恢复「跟随视频原始分辨率」——
   /// 那是默认行为，也是开销最低的路径。
-  void _refreshOutputSize(int textureId) {
-    if (_players[textureId] == null || _videoControllers[textureId] == null) return;
-    final target = _targetSizeFor(textureId);
-    if (_appliedSizes.containsKey(textureId) && _appliedSizes[textureId] == target) {
-      _resizeRetryTimers.remove(textureId)?.cancel();
-      _resizeRetryCounts.remove(textureId);
+  void _refreshOutputSize(int playerId) {
+    if (_players[playerId] == null || _videoControllers[playerId] == null) return;
+    final target = _targetSizeFor(playerId);
+    if (_appliedSizes.containsKey(playerId) && _appliedSizes[playerId] == target) {
+      _resizeRetryTimers.remove(playerId)?.cancel();
+      _resizeRetryCounts.remove(playerId);
       return;
     }
-    if (!_canResizeNow(textureId)) {
+    if (!_canResizeNow(playerId)) {
       // 现在改尺寸不安全（刚起播 / 在缓冲 / 着色器链刚换），过会儿再补。
-      _scheduleResizeRetry(textureId);
+      _scheduleResizeRetry(playerId);
       return;
     }
-    unawaited(_applyOutputSize(textureId, target));
+    unawaited(_applyOutputSize(playerId, target));
   }
 
   /// 目标输出尺寸；`null` 表示「跟随视频原始分辨率」（即不下发任何尺寸）。
-  (int, int)? _targetSizeFor(int textureId) {
-    final controller = _videoControllers[textureId];
+  (int, int)? _targetSizeFor(int playerId) {
+    final controller = _videoControllers[playerId];
     if (controller == null) return null;
     final state = controller.player.state;
     final videoWidth = state.width ?? 0;
     final videoHeight = state.height ?? 0;
     if (videoWidth < 1 || videoHeight < 1) return null;
     if (settings.superResolutionMode == SuperResolutionMode.off) return null;
-    final target = _outputSizeFor(textureId, videoWidth, videoHeight);
+    final target = _outputSizeFor(playerId, videoWidth, videoHeight);
     // 目标等于视频原始尺寸时不需要下发：那本来就是播放内核的默认状态。
     // 多下发一次只会白白重建一次渲染表面，而实测「先按放大倍数、再改回原尺寸」
     // 这种往返在增强档的着色器链路下会把播放直接搞崩。
@@ -721,42 +721,42 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// `mpv_render_context_render() not being called or stuck.`，之后画面永久停在转圈、
   /// 声音却照旧（渲染线程死了，音频线程不受影响）——用户看到的就是「卡死、没法操作」。
   /// 所以这里要求：正在播放、没在缓冲、已经稳定播放 1.5s 以上，且不在链切换后的冷却期。
-  bool _canResizeNow(int textureId) {
-    final player = _players[textureId];
+  bool _canResizeNow(int playerId) {
+    final player = _players[playerId];
     if (player == null) return false;
-    final holdUntil = _resizeHoldUntil[textureId];
+    final holdUntil = _resizeHoldUntil[playerId];
     if (holdUntil != null) {
       if (DateTime.now().isBefore(holdUntil)) return false;
-      _resizeHoldUntil.remove(textureId);
+      _resizeHoldUntil.remove(playerId);
     }
     final state = player.state;
     if (!state.playing || state.buffering) return false;
-    final since = _playingSince[textureId];
+    final since = _playingSince[playerId];
     if (since == null) return false;
     return DateTime.now().difference(since) >= const Duration(milliseconds: 1500);
   }
 
   /// 改尺寸现在不安全，过 500ms 再看一次（最多 30s）。
-  void _scheduleResizeRetry(int textureId) {
-    if (_resizeRetryTimers.containsKey(textureId)) return;
-    final attempt = (_resizeRetryCounts[textureId] ?? 0) + 1;
-    _resizeRetryCounts[textureId] = attempt;
+  void _scheduleResizeRetry(int playerId) {
+    if (_resizeRetryTimers.containsKey(playerId)) return;
+    final attempt = (_resizeRetryCounts[playerId] ?? 0) + 1;
+    _resizeRetryCounts[playerId] = attempt;
     if (attempt > 60) return;
-    _resizeRetryTimers[textureId] = Timer(const Duration(milliseconds: 500), () {
-      _resizeRetryTimers.remove(textureId);
-      _refreshOutputSize(textureId);
+    _resizeRetryTimers[playerId] = Timer(const Duration(milliseconds: 500), () {
+      _resizeRetryTimers.remove(playerId);
+      _refreshOutputSize(playerId);
     });
   }
 
   /// 在接下来的这段时间内不要改渲染尺寸（用于着色器链刚换上的编译期）。
-  void _holdResizes(int textureId, [Duration duration = const Duration(seconds: 3)]) {
-    _resizeHoldUntil[textureId] = DateTime.now().add(duration);
-    _resizeRetryTimers.remove(textureId)?.cancel();
-    _resizeRetryCounts.remove(textureId);
+  void _holdResizes(int playerId, [Duration duration = const Duration(seconds: 3)]) {
+    _resizeHoldUntil[playerId] = DateTime.now().add(duration);
+    _resizeRetryTimers.remove(playerId)?.cancel();
+    _resizeRetryCounts.remove(playerId);
     // 冷却结束后主动重算一次，不依赖外部事件来触发。
-    _resizeRetryTimers[textureId] = Timer(duration, () {
-      _resizeRetryTimers.remove(textureId);
-      _refreshOutputSize(textureId);
+    _resizeRetryTimers[playerId] = Timer(duration, () {
+      _resizeRetryTimers.remove(playerId);
+      _refreshOutputSize(playerId);
     });
   }
 
@@ -764,8 +764,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   ///
   /// 界面层还没报上区域时返回视频原始尺寸（即不下发任何尺寸），不做凭空的倍数猜测——
   /// 那样会让每次加载都多走一次「放大→改回」的往返，既白重建渲染表面又很危险。
-  (int, int) _outputSizeFor(int textureId, int videoWidth, int videoHeight) {
-    final area = _outputAreas[textureId];
+  (int, int) _outputSizeFor(int playerId, int videoWidth, int videoHeight) {
+    final area = _outputAreas[playerId];
     if (area == null || !area.$2 || area.$1.width < 1 || area.$1.height < 1) return (videoWidth, videoHeight);
     // 渲染尺寸要与视频宽高比一致，否则会把黑边烘进纹理；裁剪/拉伸模式按「铺满」算。
     final box = area.$1;
@@ -788,12 +788,12 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 自己会在 videoParams 变化时把原生尺寸改回视频原始尺寸（并不更新它自己的记录），
   /// 所以这里先下发一次不带参数的调用重置记录（原生侧本来就是视频尺寸，属空操作），
   /// 再下发目标尺寸，保证每次都能真正生效。
-  Future<void> _applyOutputSize(int textureId, (int, int)? target) async {
-    final controller = _videoControllers[textureId];
+  Future<void> _applyOutputSize(int playerId, (int, int)? target) async {
+    final controller = _videoControllers[playerId];
     if (controller == null) return;
-    _resizeRetryTimers.remove(textureId)?.cancel();
-    _resizeRetryCounts.remove(textureId);
-    _appliedSizes[textureId] = target;
+    _resizeRetryTimers.remove(playerId)?.cancel();
+    _resizeRetryCounts.remove(playerId);
+    _appliedSizes[playerId] = target;
     try {
       await controller.setSize();
       if (target != null) await controller.setSize(width: target.$1, height: target.$2);
@@ -826,25 +826,25 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 判据见 [shouldCountAsStalled]（纯函数，单测在 test/stall_watchdog_test.dart）。
   /// 要点是必须**真的播稳过**（[_readyAt]）才允许动手，否则刚加载出来就会自己
   /// 重载一遍——那是用户报的「过几秒画面重新加载」。
-  void _checkStall(int textureId) {
-    final player = _players[textureId];
+  void _checkStall(int playerId) {
+    final player = _players[playerId];
     if (player == null) return;
     final state = player.state;
     final stalled = shouldCountAsStalled(
       // 从没播稳过（还在开播缓冲）= 不是画面卡死。
-      ready: _readyAt[textureId] != null,
+      ready: _readyAt[playerId] != null,
       playing: state.playing,
       buffering: state.buffering,
       bufferAhead: state.buffer - state.position,
     );
     if (!stalled) {
-      _stallSeconds[textureId] = 0;
+      _stallSeconds[playerId] = 0;
       return;
     }
-    final seconds = (_stallSeconds[textureId] ?? 0) + 2;
-    _stallSeconds[textureId] = seconds;
-    if (seconds < 6 || _stallRecovered[textureId] == true) return;
-    _stallRecovered[textureId] = true;
+    final seconds = (_stallSeconds[playerId] ?? 0) + 2;
+    _stallSeconds[playerId] = seconds;
+    if (seconds < 6 || _stallRecovered[playerId] == true) return;
+    _stallRecovered[playerId] = true;
     onVideoOutputStalled?.call();
   }
 
@@ -856,26 +856,26 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 管线是热的、不涉及编译），确认表面真的重建完（纹理 id 变化）再换链，
   /// 换完链再压住尺寸几秒不让它被打扰。
   Future<void> _switchSuperResolution() async {
-    for (final textureId in _players.keys.toList(growable: false)) {
-      final controller = _videoControllers[textureId];
-      final native = _players[textureId]?.platform;
+    for (final playerId in _players.keys.toList(growable: false)) {
+      final controller = _videoControllers[playerId];
+      final native = _players[playerId]?.platform;
       if (controller == null || native is! NativePlayer) continue;
-      _beginSwitchingQuality(textureId);
+      _beginSwitchingQuality(playerId);
       try {
-        final target = _targetSizeFor(textureId);
-        if (_appliedSizes[textureId] != target && _canResizeNow(textureId)) {
-          _holdResizes(textureId);
+        final target = _targetSizeFor(playerId);
+        if (_appliedSizes[playerId] != target && _canResizeNow(playerId)) {
+          _holdResizes(playerId);
           final previous = controller.id.value;
-          await _applyOutputSize(textureId, target);
+          await _applyOutputSize(playerId, target);
           await _waitForTextureChange(controller, previous, const Duration(seconds: 2));
         }
         // 尺寸没变（或现在不适合改尺寸）：直接换链，尺寸留给 _refreshOutputSize
         // 在播放稳下来之后自己补上。
         await _applySuperResolution(native, settings, created: false);
-        _holdResizes(textureId);
+        _holdResizes(playerId);
       } finally {
         // 没进缓冲就说明没有重编译（或已瞬间完成），提示条可以立刻收。
-        if (!(_players[textureId]?.state.buffering ?? false)) _endSwitchingQuality(textureId);
+        if (!(_players[playerId]?.state.buffering ?? false)) _endSwitchingQuality(playerId);
       }
     }
   }
@@ -883,16 +883,16 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   /// 标记「正在改画质」：这段时间压掉内核上报的缓冲事件，并让界面显示提示条。
   ///
   /// [timeout] 是兜底：万一内核没有上报缓冲结束，也不会让提示条一直挂着。
-  void _beginSwitchingQuality(int textureId, [Duration timeout = const Duration(seconds: 20)]) {
-    _switchingQuality[textureId] = true;
+  void _beginSwitchingQuality(int playerId, [Duration timeout = const Duration(seconds: 20)]) {
+    _switchingQuality[playerId] = true;
     switchingSuperResolution.value = true;
-    _switchingTimers.remove(textureId)?.cancel();
-    _switchingTimers[textureId] = Timer(timeout, () => _endSwitchingQuality(textureId));
+    _switchingTimers.remove(playerId)?.cancel();
+    _switchingTimers[playerId] = Timer(timeout, () => _endSwitchingQuality(playerId));
   }
 
-  void _endSwitchingQuality(int textureId) {
-    _switchingTimers.remove(textureId)?.cancel();
-    if (_switchingQuality.remove(textureId) != null) {
+  void _endSwitchingQuality(int playerId) {
+    _switchingTimers.remove(playerId)?.cancel();
+    if (_switchingQuality.remove(playerId) != null) {
       switchingSuperResolution.value = _switchingQuality.isNotEmpty;
     }
   }
@@ -915,19 +915,19 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
   Future<void> setMixWithOthers(bool mixWithOthers) => Future.value();
 
   @override
-  Future<void> setWebOptions(int textureId, VideoPlayerWebOptions options) => Future.value();
+  Future<void> setWebOptions(int playerId, VideoPlayerWebOptions options) => Future.value();
 
-  void _initialize(int textureId) {
+  void _initialize(int playerId) {
     // 不能用「订阅列表非空」当作「已初始化」的标志：平台层自己也会往同一个列表里挂
     // 监听（见 `create()` 里用于重算输出尺寸的 `videoParams` 监听）。一旦那样，本方法
     // 会直接返回，`initialized` 事件永远发不出去 —— 表现为播放页一直转圈、不自动播放。
     // 改用「初始化完成时才 complete 的 Completer」判断。
-    if (_completers[textureId]?.isCompleted ?? true) return;
+    if (_completers[playerId]?.isCompleted ?? true) return;
 
-    final player = _players[textureId];
-    final completer = _completers[textureId];
-    final streamController = _streamControllers[textureId];
-    final streamSubscriptions = _streamSubscriptions[textureId];
+    final player = _players[playerId];
+    final completer = _completers[playerId];
+    final streamController = _streamControllers[playerId];
+    final streamSubscriptions = _streamSubscriptions[playerId];
 
     if (player == null ||
         completer == null ||
@@ -940,7 +940,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
     int? height;
     Duration? duration;
 
-    bool isActive() => identical(_streamControllers[textureId], streamController) &&
+    bool isActive() => identical(_streamControllers[playerId], streamController) &&
         !streamController.isClosed;
 
     void notify() {
@@ -955,8 +955,8 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
           );
           completer.complete();
           // 开了张：这次用的传输方式确实可行，记下来供同主机的后续片源直接用。
-          _transportTimers.remove(textureId)?.cancel();
-          final transport = _transports[textureId];
+          _transportTimers.remove(playerId)?.cancel();
+          final transport = _transports[playerId];
           if (transport != null) _hostUsesProxy[transport.$1] = transport.$2;
         }
       }
@@ -1008,7 +1008,7 @@ class ConfiguredMediaKitVideoPlayer extends VideoPlayerPlatform {
         if (!isActive()) return;
         // 改画质要重新编译着色器链（重档位好几秒），内核会短暂进入缓冲状态：
         // 那不是网络加载，也不是卡死（音频一直在放），上报出去界面就会弹个转圈。
-        if (event && (_switchingQuality[textureId] ?? false)) return;
+        if (event && (_switchingQuality[playerId] ?? false)) return;
         streamController.add(
           VideoEvent(eventType: event ? VideoEventType.bufferingStart : VideoEventType.bufferingEnd),
         );

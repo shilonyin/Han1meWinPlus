@@ -79,7 +79,8 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
         if (didPop || _closing) return;
         _closing = true;
         await _syncCookies();
-        if (!mounted) return;
+        // 这里用的是 build 的 context（它遮蔽了 State.context），所以要按 BuildContext 的规矩守卫。
+        if (!context.mounted) return;
         setState(() => _allowPop = true);
         Navigator.pop(context);
       },

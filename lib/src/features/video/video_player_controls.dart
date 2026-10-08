@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_surface_tokens.dart';
 import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
@@ -20,6 +19,9 @@ import '../../core/app_dialog.dart';
 import '../shared/motion_icon.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
+///
+/// 这里的两个滑块在深色控制条上要自己盖一套白轨道（见
+/// [AppSurfaceTokens.darkTrackTheme]）。
 const double _progressBarHeight = 48;
 /// 音量面板的固定尺寸（大约是半尺寸，不要占满播放器）与和进度条之间的间距。
 const double _volumePanelWidth = 40;
@@ -68,7 +70,19 @@ class VideoPlayerControls extends StatelessWidget {
                 SizedBox(
                   height: _progressBarHeight,
                   child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(trackHeight: 3, trackShape: _BufferedTrackShape(fraction: bufferedFraction), thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: const RoundSliderOverlayShape(overlayRadius: 14), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white24, thumbColor: Colors.white, year2023: true),
+                    data: AppSurfaceTokens.darkTrackTheme.copyWith(
+                      trackHeight: 3,
+                      trackShape: _BufferedTrackShape(fraction: bufferedFraction),
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                      // 2024 版的轨道要让开 6px 的缺口：播放头（白竖条）齐到轨道端点时
+                      // 会压进缝里，改用形状齐平、没有缺口的 2023 版轨道。
+                      // 只有浮动标签那类样式在 2024 版，这里显式补上和 2023 版一样的两种形状。
+                      valueIndicatorShape: const DropSliderValueIndicatorShape(),
+                      valueIndicatorColor: Colors.white,
+                      valueIndicatorTextStyle: TextStyle(color: Colors.black.withValues(alpha: 0.87)),
+                      year2023: true,
+                    ),
                     child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }),
                   ),
                 ),
@@ -238,7 +252,13 @@ class VideoPlayerVolumeButton extends StatelessWidget {
                           child: ValueListenableBuilder<VideoPlayerValue>(
                             valueListenable: controller,
                             builder: (context, current, _) => SliderTheme(
-                              data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5), overlayShape: const RoundSliderOverlayShape(overlayRadius: 10), activeTrackColor: Colors.white, inactiveTrackColor: Colors.white30, thumbColor: Colors.white),
+                              data: AppSurfaceTokens.darkTrackTheme.copyWith(
+                                trackHeight: 3,
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                                inactiveTrackColor: Colors.white30,
+                                year2023: true,
+                              ),
                               child: Slider(
                                 value: current.volume.clamp(0.0, 1.0).toDouble(),
                                 onChanged: (next) {
