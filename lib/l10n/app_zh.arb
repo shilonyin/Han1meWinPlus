@@ -926,5 +926,10 @@
   "castLoading": "正在载入投屏内容…",
   "castDisconnect": "断开投屏",
   "castLoadFailed": "投屏内容载入失败：{error}",
-  "@castLoadFailed": {"placeholders": {"error": {}}}
+  "@castLoadFailed": {"placeholders": {"error": {}}},
+  "greetingMorning": "早上好",
+  "greetingNoon": "中午好",
+  "greetingAfternoon": "下午好",
+  "greetingEvening": "晚上好",
+  "greetingLateNight": "夜深了"
 }

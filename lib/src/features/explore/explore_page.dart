@@ -33,6 +33,7 @@ import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import '../video/play_window.dart';
 import 'explore_controller.dart';
+import 'greeting.dart';
 import '../../core/app_motion.dart';
 
 const _gridPadding = 16.0;
@@ -644,6 +645,10 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               // 内容的一部分，往上滚就跟着走，后面的内容才会真的滚到顶栏后面 ——
               // 顶栏底下那条 scroll edge 要的就是这个。
               const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
+              // 问候语放在占位之后、推荐位之前：占位是顶栏的高度，跟着一起滚。
+              // 不挂进 `_SectionHeader`：开着分类页签时 `showHeader` 为假，
+              // 那样问候语会在默认设置下直接消失。
+              const SliverToBoxAdapter(child: HomeGreeting()),
               if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
               for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
               // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
