@@ -2594,21 +2594,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String castLoadFailed(Object error) {
     return '投屏内容载入失败：$error';
   }
-
-  @override
-  String get greetingMorning => '早上好';
-
-  @override
-  String get greetingNoon => '中午好';
-
-  @override
-  String get greetingAfternoon => '下午好';
-
-  @override
-  String get greetingEvening => '晚上好';
-
-  @override
-  String get greetingLateNight => '夜深了';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5201,19 +5186,4 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String castLoadFailed(Object error) {
     return '投屏內容載入失敗：$error';
   }
-
-  @override
-  String get greetingMorning => '早安';
-
-  @override
-  String get greetingNoon => '午安';
-
-  @override
-  String get greetingAfternoon => '下午好';
-
-  @override
-  String get greetingEvening => '晚上好';
-
-  @override
-  String get greetingLateNight => '夜深了';
 }

@@ -886,10 +886,5 @@
   "castLoading": "Loading the cast media…",
   "castDisconnect": "Disconnect",
   "castLoadFailed": "Failed to load the cast media: {error}",
-  "@castLoadFailed": {"placeholders": {"error": {}}},
-  "greetingMorning": "Good morning",
-  "greetingNoon": "Good day",
-  "greetingAfternoon": "Good afternoon",
-  "greetingEvening": "Good evening",
-  "greetingLateNight": "Still up?"
+  "@castLoadFailed": {"placeholders": {"error": {}}}
 }

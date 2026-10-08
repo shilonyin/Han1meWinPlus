@@ -4915,36 +4915,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load the cast media: {error}'**
   String castLoadFailed(Object error);
-
-  /// No description provided for @greetingMorning.
-  ///
-  /// In en, this message translates to:
-  /// **'Good morning'**
-  String get greetingMorning;
-
-  /// No description provided for @greetingNoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Good day'**
-  String get greetingNoon;
-
-  /// No description provided for @greetingAfternoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Good afternoon'**
-  String get greetingAfternoon;
-
-  /// No description provided for @greetingEvening.
-  ///
-  /// In en, this message translates to:
-  /// **'Good evening'**
-  String get greetingEvening;
-
-  /// No description provided for @greetingLateNight.
-  ///
-  /// In en, this message translates to:
-  /// **'Still up?'**
-  String get greetingLateNight;
 }
 
 class _AppLocalizationsDelegate

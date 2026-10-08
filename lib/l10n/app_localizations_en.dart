@@ -2684,19 +2684,4 @@ class AppLocalizationsEn extends AppLocalizations {
   String castLoadFailed(Object error) {
     return 'Failed to load the cast media: $error';
   }
-
-  @override
-  String get greetingMorning => 'Good morning';
-
-  @override
-  String get greetingNoon => 'Good day';
-
-  @override
-  String get greetingAfternoon => 'Good afternoon';
-
-  @override
-  String get greetingEvening => 'Good evening';
-
-  @override
-  String get greetingLateNight => 'Still up?';
 }
