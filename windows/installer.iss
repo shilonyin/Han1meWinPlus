@@ -26,10 +26,24 @@ RestartApplications=no
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [InstallDelete]
-; 升级安装时 Inno 不会清理「旧版本装过、新版本已不再分发」的文件，得显式删除。
+; 升级安装时 Inno 只覆盖、**从不删除**「旧版本装过、新版本已不再分发」的文件，
+; 于是它们会永远赖在 {app} 里占地方。这里显式点名清掉。
+;
+; 本段在 [Files] **之前**执行，所以被删的文件若新版仍需要，会被紧接着重新复制回来，
+; 不会因为清理而缺失。（这条顺序是实测过的，不是照文档抄的：造一个只写进本段、
+; 不写进 [Files] 的 stale-only.txt 会被删掉，而两边都写的 probe.txt 装完仍在，
+; 说明删除确实发生在复制之前。）
 ; desktop_multi_window 的多引擎方案已放弃（播放窗口改为独立进程），这个插件 DLL
 ; 早期版本被装进过 {app}，留着既是死代码，也正是当初让主窗口假死的那套实现。
 Type: files; Name: "{app}\desktop_multi_window_plugin.dll"
+; 字体早先换成 HarmonyOS_Sans_SC.ttf（单文件 19.7 MB，对比 MiSans 静态四档 31 MB）。
+; 四档 MiSans 从此不再分发，实测在安装目录残留约 30 MB。
+Type: files; Name: "{app}\data\flutter_assets\assets\fonts\MiSans-*.ttf"
+; cupertino_icons 依赖已从 pubspec.yaml 移除，这个包整个不再进构建产物。
+Type: filesandordirs; Name: "{app}\data\flutter_assets\packages\cupertino_icons"
+; 上一轮手工留下的可执行文件回退点（名字带版本号，用通配符一并清掉将来的）。
+; 只匹配 `han1me_win_plus.exe.bak-*`，不会碰到正在用的 han1me_win_plus.exe。
+Type: files; Name: "{app}\han1me_win_plus.exe.bak-*"
 
 [Icons]
 Name: "{autoprograms}\Han1meWinPlus"; Filename: "{app}\han1me_win_plus.exe"
