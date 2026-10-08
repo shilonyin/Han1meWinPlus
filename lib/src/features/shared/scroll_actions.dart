@@ -19,10 +19,16 @@ const double floatingActionsClearance = 120;
 /// 需要调用方给出列表自己的 [controller]（不在滚动树里面时 `Scrollable.of` 拿不到），
 /// 以及刷新回调。[visibleAfter] 是「回到顶部」按钮出现的滚动距离。
 class ScrollActions extends StatefulWidget {
-  const ScrollActions({super.key, required this.controller, required this.onRefresh, this.visibleAfter = 240, this.inset = 16});
+  const ScrollActions({super.key, required this.controller, required this.onRefresh, this.onError, this.visibleAfter = 240, this.inset = 16});
 
   final ScrollController controller;
   final Future<void> Function() onRefresh;
+
+  /// 刷新失败时把异常交给调用方（通常弹一条错误提示）。
+  ///
+  /// 不传就是**静默吞掉**——原先这里连 catch 都没有，异常会直接漏进 Flutter 框架，
+  /// 只在控制台留一条报错，界面上什么都不发生。宁可什么都不显示，也不要崩。
+  final void Function(Object error)? onError;
   final double visibleAfter;
   final double inset;
 
@@ -57,6 +63,8 @@ class _ScrollActionsState extends State<ScrollActions> {
     setState(() => _busy = true);
     try {
       await widget.onRefresh();
+    } catch (error) {
+      widget.onError?.call(error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

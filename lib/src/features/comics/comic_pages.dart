@@ -14,10 +14,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/comic_repository.dart';
+import '../../data/remote/han1me_api.dart' show CloudflareChallengeException;
 import '../../data/local/comic_store.dart';
 import '../../data/local/home_cache.dart';
 import '../../domain/models/comic.dart';
 import '../../core/app_shell.dart';
+import '../shared/app_error.dart';
 import '../settings/settings_controller.dart';
 import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
@@ -71,11 +73,17 @@ class ComicExplorePage extends ConsumerWidget {
       ),
       body: home.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => _Retry(error: error, onRetry: () => ref.invalidate(comicHomeProvider)),
+        error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicHomeProvider)),
         data: (feed) => M3EPullToRefreshIndicator(
           onRefresh: () async {
             await ref.read(comicHomeProvider.notifier).refresh();
           },
+          // 列表里已经有内容，下拉刷新失败时不该整页换错误态，弹提示就够。
+          onError: (error, _) => showAppErrorBar(
+            context,
+            error,
+            onRetry: () => unawaited(ref.read(comicHomeProvider.notifier).refresh()),
+          ),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -183,7 +191,11 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
           Expanded(
             child: result.when(
               loading: () => const Center(child: M3EContainedLoadingIndicator()),
-              error: (error, _) => _Retry(error: error, onRetry: () => ref.invalidate(_browseProvider((_path, _page)))),
+              error: (error, _) => AppErrorView(
+                error: error,
+                onRetry: () => ref.invalidate(_browseProvider((_path, _page))),
+                onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(_browseProvider((_path, _page)))),
+              ),
               data: (value) => Column(
                 children: [
                   Expanded(child: _ComicGrid(comics: value.items)),
@@ -226,7 +238,14 @@ class ComicDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ref.watch(comicDetailProvider(id)).when(
       loading: () => const Scaffold(body: Center(child: M3EContainedLoadingIndicator())),
-      error: (error, _) => Scaffold(appBar: AppBar(), body: _Retry(error: error, onRetry: () => ref.invalidate(comicDetailProvider(id)))),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: AppErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(comicDetailProvider(id)),
+          onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicDetailProvider(id))),
+        ),
+      ),
       data: (comic) => _ComicDetail(comic: comic),
     );
   }
@@ -538,9 +557,9 @@ class ComicLibraryPage extends ConsumerWidget {
     final library = ref.watch(comicLibraryProvider);
     if (drawerMode) {
       final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
-      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
+      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
     }
-    return DefaultTabController(initialIndex: selectedTab, length: 2, child: Scaffold(appBar: AppBar(title: Text(l10n.myLibrary), bottom: TabBar(tabs: [Tab(text: l10n.watchLater), Tab(text: l10n.favoriteVideos)])), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => Text('$error'), data: (value) => TabBarView(children: [_ComicGrid(comics: value.watchLater), _ComicGrid(comics: value.favorites)]))));
+    return DefaultTabController(initialIndex: selectedTab, length: 2, child: Scaffold(appBar: AppBar(title: Text(l10n.myLibrary), bottom: TabBar(tabs: [Tab(text: l10n.watchLater), Tab(text: l10n.favoriteVideos)])), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => TabBarView(children: [_ComicGrid(comics: value.watchLater), _ComicGrid(comics: value.favorites)]))));
   }
 }
 
@@ -574,7 +593,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
       appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
       body: ref.watch(comicCacheProvider).when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => Text('$error'),
+        error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicCacheProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicCacheProvider))),
         data: (items) => _cacheList(items, l10n),
       ),
     );
@@ -733,11 +752,14 @@ class _Image extends StatelessWidget {
   Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white)) : CachedNetworkImage(imageUrl: url, cacheManager: appImageCacheManager, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white));
 }
 
-class _Retry extends StatelessWidget {
-  const _Retry({required this.error, required this.onRetry});
-  final Object error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry)))]));
+/// 借应用内 WebView 过一次 Cloudflare 校验，成功后重跑 [retry]。
+///
+/// 漫画源（`comic_api.dart`）也会抛 [CloudflareChallengeException]，但原先这三处
+/// 错误态只有「重试」——被挑战时用户点几次都一样，只能去视频那边撞运气。
+Future<void> _verifyCloudflare(BuildContext context, Object error, VoidCallback retry) async {
+  final url = error is CloudflareChallengeException ? error.url : null;
+  if (await context.push<bool>('/cloudflare', extra: url) == true) {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    retry();
+  }
 }

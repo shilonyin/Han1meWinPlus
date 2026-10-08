@@ -14,6 +14,7 @@ import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, Se
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
 import '../settings/settings_controller.dart';
+import '../shared/app_error.dart';
 import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
@@ -118,7 +119,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               children: [
                 result.when(
                   loading: () => const Center(child: M3EContainedLoadingIndicator()),
-                  error: (error, stackTrace) => _ErrorView(
+                  error: (error, stackTrace) => AppErrorView(
                     error: error,
                     onRetry: () => ref.invalidate(searchResultsProvider(request)),
                     // 首页与播放页都能就地过 Cloudflare 校验，搜索页原来只有「重试」,
@@ -175,7 +176,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: ScrollActions(controller: _scrollController, onRefresh: () => ref.refresh(searchResultsProvider(request).future)),
+                  child: ScrollActions(
+                    controller: _scrollController,
+                    onRefresh: () => ref.refresh(searchResultsProvider(request).future),
+                    onError: (error) => showAppErrorBar(context, error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
+                  ),
                 ),
               ],
             ),
@@ -632,32 +637,6 @@ class _PaginationBar extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.error, required this.onRetry, required this.onCloudflareVerified});
-
-  final Object error;
-  final VoidCallback onRetry;
-  final Future<void> Function() onCloudflareVerified;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Symbols.wifi_off_rounded, size: 56),
-              const SizedBox(height: 12),
-              Text('$error', textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry))),
-              if ('$error'.contains('Cloudflare')) PressScale(child: TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification))),
-            ],
-          ),
-        ),
-      );
 }
 
 class _EmptyState extends StatelessWidget {

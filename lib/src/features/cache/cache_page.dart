@@ -10,6 +10,7 @@ import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../settings/settings_controller.dart';
+import '../shared/app_error.dart';
 import '../shared/press_scale.dart';
 import 'cache_cards.dart';
 import 'cache_folder_page.dart';
@@ -70,7 +71,9 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
     final downloads = ref.watch(downloadProvider);
     return downloads.when(
       loading: () => const Scaffold(body: Center(child: M3EContainedLoadingIndicator())),
-      error: (error, _) => Scaffold(body: Center(child: Text('$error'))),
+      // 下载记录读不出来时先前的写法是把异常对象直接铺在页面上，既没有图标也没有
+      // 重试入口，看着像应用崩了一半。换成共享错误视图，至少能点一下重来。
+      error: (error, _) => Scaffold(body: AppErrorView(error: error, onRetry: () => ref.invalidate(downloadProvider))),
       data: (state) {
         final completed = state.tasks.where((task) => task.status == DownloadStatus.completed).toList(growable: false);
         // 页签上的数字必须和该页签下列出的条数一致（`isActiveTask` 把暂停/失败也算进来，

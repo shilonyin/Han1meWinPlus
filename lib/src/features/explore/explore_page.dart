@@ -25,6 +25,7 @@ import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
+import '../shared/app_error.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
@@ -170,7 +171,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               skipLoadingOnReload: true,
               skipLoadingOnRefresh: true,
               loading: () => const Center(child: M3EContainedLoadingIndicator()),
-              error: (error, _) => _ErrorView(
+              error: (error, _) => AppErrorView(
                 error: error,
                 onRetry: () => ref.read(homeSectionsProvider.notifier).refresh(),
                 onCloudflareVerified: () async {
@@ -408,6 +409,13 @@ class _HomeFeedBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => M3EPullToRefreshIndicator(
         onRefresh: () => ref.read(homeSectionsProvider.notifier).refresh(),
+        // 下拉刷新失败时列表里已经有旧数据了，整页换成错误态太粗暴（还要重新找位置），
+        // 弹一条可重试的提示就够。m3e 的默认行为是把异常吞掉，所以必须显式接住。
+        onError: (error, _) => showAppErrorBar(
+          context,
+          error,
+          onRetry: () => unawaited(ref.read(homeSectionsProvider.notifier).refresh()),
+        ),
         child: _HomeScroll(
           featured: featured,
           sections: single && sections.isNotEmpty ? [sections[index]] : sections,
@@ -648,7 +656,17 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               ),
             ],
           ),
-          Positioned(right: 0, bottom: 0, child: ScrollActions(controller: _controller, onRefresh: _refreshAll)),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            // 刷新失败要被看见：`ScrollActions` 自己只负责转圈，异常得在这里接住
+            // 弹成提示，否则「点了刷新没反应」会变成用户眼里的卡死。
+            child: ScrollActions(
+              controller: _controller,
+              onRefresh: _refreshAll,
+              onError: (error) => showAppErrorBar(context, error, onRetry: () => unawaited(_refreshAll())),
+            ),
+          ),
         ],
       );
 }
@@ -1125,16 +1143,4 @@ class _FeaturedVideoSurface extends ConsumerWidget {
           ),
         )),
       );
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.error, required this.onRetry, required this.onCloudflareVerified});
-  final Object error;
-  final VoidCallback onRetry;
-  final Future<void> Function() onCloudflareVerified;
-  @override
-  Widget build(BuildContext context) => Center(child: Padding(
-    padding: const EdgeInsets.all(24),
-    child: Column(mainAxisSize: MainAxisSize.min, children: [Text('$error', textAlign: TextAlign.center), const SizedBox(height: 12), PressScale(child: FilledButton(onPressed: onRetry, child: Text(AppLocalizations.of(context)!.retry))), if ('$error'.contains('Cloudflare')) PressScale(child: TextButton(onPressed: onCloudflareVerified, child: Text(AppLocalizations.of(context)!.completeCloudflareVerification)))]),
-  ));
 }
