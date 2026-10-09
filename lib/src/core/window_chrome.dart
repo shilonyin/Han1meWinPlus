@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -49,6 +49,17 @@ class WindowChrome {
     immersivePage.value = _immersivePages > 0;
   }
 
+  /// Windows 侧切换标题栏样式的通道，由 runner 提供（`windows/runner/main.cpp`）。
+  ///
+  /// 不用 window_manager 的 `setTitleBarStyle`：那条路径在 **窗口已经显示之后**
+  /// 才改客户区，把 39px 高的标题栏一次折进客户区，窗口外框不动、画面猛地向外
+  /// 弹一截，看起来就是「边缘闪一下」。runner 在自己的 WM_NCCALCSIZE 里按同一套
+  /// 算式处理，并且**在窗口创建前**就读好 setting.json，所以启动时根本不存在这次
+  /// 跳变；这里的调用只在用户于设置里手动改开关时才发生。
+  ///
+  /// 其它平台没有这个通道，继续用 window_manager。
+  static const MethodChannel _titleBarChannel = MethodChannel('han1me/window');
+
   static Future<void> bind() async {
     if (!isSupported) return;
     try {
@@ -62,6 +73,17 @@ class WindowChrome {
   /// every settings change, and at startup to apply the persisted preference.
   static Future<void> setUseSystemTitleBar(bool value) async {
     if (!isSupported) return;
+    if (Platform.isWindows) {
+      try {
+        await _titleBarChannel.invokeMethod<void>('setUseSystemTitleBar', value);
+        return;
+      } on MissingPluginException {
+        // 没有 runner 通道（例如测试环境 / 非标准 runner）：退回插件实现。
+      } catch (error) {
+        debugPrint('[window] title bar style failed: $error');
+        return;
+      }
+    }
     await bind();
     try {
       await windowManager.setTitleBarStyle(value ? TitleBarStyle.normal : TitleBarStyle.hidden);

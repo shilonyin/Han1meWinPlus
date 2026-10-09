@@ -1,5 +1,7 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 #include <dwmapi.h>
 #include <gdiplus.h>
 #include <windows.h>
@@ -10,7 +12,9 @@
 
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <string>
 
@@ -124,6 +128,127 @@ void ApplySplashCaptionColors(HWND window) {
   DwmSetWindowAttribute(window, DWMWA_CAPTION_COLOR, &background, sizeof(background));
   DwmSetWindowAttribute(window, DWMWA_TEXT_COLOR, &text, sizeof(text));
   DwmSetWindowAttribute(window, DWMWA_BORDER_COLOR, &background, sizeof(background));
+}
+
+// ---------------------------------------------------------------------------
+// Window title bar (system caption vs the app's own bar)
+// ---------------------------------------------------------------------------
+//
+// The window is created and shown before the Flutter engine is up, so that the
+// splash has something to sit on. The title bar style, though, is a *user
+// preference* and only Dart used to read it: the runner showed a window with the
+// system caption, and Dart removed that caption about a second later, once the
+// engine was live.
+//
+// Removing it is not a style tweak. window_manager's `TitleBarStyle.hidden`
+// rewrites the client rectangle during WM_NCCALCSIZE, folding the whole caption
+// strip (39 px here) and part of the borders into the client area while the
+// window is already on screen. The window frame does not move, so the content
+// jumps outward and the edges "flash" - on every cold start, and again every
+// time a standalone player window opens (same runner, same sequence).
+//
+// The fix is to have the preference reach the runner too, before the window is
+// first shown, so the first painted frame already carries the final client
+// rectangle. There is then nothing left to change when Dart applies its own
+// setting.
+
+// Only this one key is parsed out of setting.json. A hand written JSON reader
+// would be the wrong size of dependency for a single boolean, and a value that
+// cannot be read falls back to the system title bar - which is also the default
+// Dart uses for a missing key (`json['useSystemTitleBar'] as bool? ?? true`).
+bool ReadUseSystemTitleBar() {
+  const auto length = GetEnvironmentVariableW(L"APPDATA", nullptr, 0);
+  if (length == 0) return true;
+  std::wstring app_data(length, L'\0');
+  GetEnvironmentVariableW(L"APPDATA", app_data.data(), length);
+  app_data.resize(length - 1);
+  const auto path = std::filesystem::path(app_data) / L"han1me_win_plus" / L"setting.json";
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream) return true;
+  const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+  constexpr char key[] = "\"useSystemTitleBar\"";
+  const auto at = contents.find(key);
+  if (at == std::string::npos) return true;
+  const auto colon = contents.find(':', at + sizeof(key) - 1);
+  if (colon == std::string::npos) return true;
+  const auto value = contents.find_first_not_of(" \t\r\n", colon + 1);
+  if (value == std::string::npos) return true;
+  if (contents.compare(value, 5, "false") == 0) return false;
+  return true;
+}
+
+// window_manager keeps one pixel at the top of the client area on Windows 11
+// and later, through a helper named `IsWindows11OrGreater` whose expression
+// tests the opposite (`build < 22000`). The resulting arithmetic is deliberate:
+// the plugin adds 0 on Windows 10 and 1 on Windows 11+ ("on windows 10, if set
+// to 0, there's a white line at the top"). Reproducing the *effect* rather than
+// the misleading name, and re-reading the same version query, keeps the runner
+// and the plugin in step - any mismatch is itself a flicker.
+int CaptionTopInset() {
+  DWORD version = 0;
+  DWORD build = 0;
+#pragma warning(push)
+#pragma warning(disable : 4996)
+  version = GetVersion();
+  if (version < 0x80000000) build = static_cast<DWORD>(HIWORD(version));
+#pragma warning(pop)
+  return build < 22000 ? 0 : 1;
+}
+
+// Mirrors window_manager's TitleBarStyle.hidden client rectangle. The runner
+// only owns this while the window is being prepared and while Dart's preference
+// says to hide the caption; the plugin's own title_bar_style_ stays "normal",
+// so its hidden branch never runs and there is exactly one implementation of
+// this arithmetic in play at any moment.
+void ExpandClientAreaOverCaption(HWND window, NCCALCSIZE_PARAMS* params) {
+  if (IsZoomed(window)) {
+    // Maximised: grow the client area over the frame so the edges are not cut
+    // off. Copied from the plugin's adjustNCCALCSIZE.
+    LONG left = 8;
+    LONG top = 8;
+    const auto monitor = MonitorFromRect(&params->rgrc[0], MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info{};
+    info.cbSize = sizeof(MONITORINFO);
+    if (monitor != nullptr && GetMonitorInfo(monitor, &info)) {
+      left = params->rgrc[0].left - info.rcWork.left;
+      top = params->rgrc[0].top - info.rcWork.top;
+    }
+    params->rgrc[0].left -= left;
+    params->rgrc[0].top -= top;
+    params->rgrc[0].right += left;
+    params->rgrc[0].bottom += top;
+    return;
+  }
+  params->rgrc[0].top += CaptionTopInset();
+  params->rgrc[0].right -= 8;
+  params->rgrc[0].bottom -= 8;
+  params->rgrc[0].left += 8;
+}
+
+// Dart's preference for the window's title bar. Read once before the window is
+// created so the first frame is already final, then kept in step through the
+// `han1me/window` channel (see `ApplyTitleBarStyle`).
+bool g_use_system_title_bar = true;
+
+// Recomputes the client area after the preference changes at runtime. Mirrors
+// window_manager's SetTitleBarStyle, which is what the app used before: the
+// frame extension is reset and a frame-changed resize re-runs WM_NCCALCSIZE.
+void RefreshTitleBarStyle(HWND window) {
+  MARGINS margins = {0, 0, 0, 0};
+  DwmExtendFrameIntoClientArea(window, &margins);
+  RECT rect{};
+  GetWindowRect(window, &rect);
+  SetWindowPos(window, nullptr, rect.left, rect.top, 0, 0,
+               SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+}
+
+// Applies [use_system_title_bar] to the window. A no-op when the value is
+// already in effect, so Dart re-applying the persisted preference at startup
+// (which is what it always did) cannot repaint the frame.
+void ApplyTitleBarStyle(HWND window, bool use_system_title_bar) {
+  if (window == nullptr || g_use_system_title_bar == use_system_title_bar) return;
+  g_use_system_title_bar = use_system_title_bar;
+  RefreshTitleBarStyle(window);
 }
 
 // Loaded once and cached: dragging a resize repaints the splash many times.
@@ -260,6 +385,33 @@ void ConfigureWebViewUserDataFolder() {
   if (!error) SetEnvironmentVariableW(L"WEBVIEW2_USER_DATA_FOLDER", user_data_folder.c_str());
 }
 
+constexpr char kWindowChannelName[] = "han1me/window";
+
+// Wires up the channel Dart uses to change the title bar at runtime, replacing
+// the window_manager call it used to make. Kept process-lifetime: the plugin
+// equivalent is owned by its registrar, and dropping this would leave Dart
+// calling into nothing.
+void RegisterWindowChannel(flutter::BinaryMessenger* messenger, HWND window) {
+  static std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel;
+  channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      messenger, kWindowChannelName, &flutter::StandardMethodCodec::GetInstance());
+  channel->SetMethodCallHandler(
+      [window](const flutter::MethodCall<flutter::EncodableValue>& call,
+               std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() != "setUseSystemTitleBar") {
+          result->NotImplemented();
+          return;
+        }
+        const auto* argument = std::get_if<bool>(call.arguments());
+        if (argument == nullptr) {
+          result->Error("bad-arguments", "setUseSystemTitleBar expects a bool");
+          return;
+        }
+        ApplyTitleBarStyle(window, *argument);
+        result->Success();
+      });
+}
+
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
   auto* app = reinterpret_cast<AppWindow*>(GetWindowLongPtr(window, GWLP_USERDATA));
   if (message == WM_NCCREATE) {
@@ -339,6 +491,29 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
     case WM_DESTROY:
       PostQuitMessage(0);
       return 0;
+    case WM_NCACTIVATE:
+      // With the caption folded into the client area there is no non-client
+      // area left to repaint when the window gains or loses focus. Returning
+      // TRUE says "handled" and stops the system from drawing activation
+      // chrome over the app's own title bar. Same answer window_manager gives
+      // for its hidden style.
+      if (!g_use_system_title_bar) return TRUE;
+      break;
+    case WM_NCCALCSIZE:
+      // The client rectangle is computed once, here, instead of being widened
+      // later by window_manager: whichever preference setting.json carries has
+      // already been applied before the window was first shown, so this only
+      // ever has to run for the value it already reflects.
+      //
+      // Returning 0 for wParam == TRUE means "the client area is exactly
+      // rgrc[0]" - that is what folds the caption strip into the client area.
+      // The resize borders survive because DefWindowProc's WM_NCHITTEST works
+      // off WS_THICKFRAME, not off this rectangle.
+      if (wparam == TRUE && !g_use_system_title_bar) {
+        ExpandClientAreaOverCaption(window, reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam));
+        return 0;
+      }
+      break;
   }
   return DefWindowProc(window, message, wparam, lparam);
 }
@@ -389,13 +564,26 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.instance = instance;
   const auto dpi = SystemDpi();
   app.splash_dpi = dpi;
+  // Read the title bar preference *before* the window exists. CreateWindow runs
+  // WM_NCCALCSIZE on the way up, so this is the one moment at which the client
+  // rectangle can be decided without the window ever having been on screen with
+  // the other value - see the title bar section above.
+  g_use_system_title_bar = ReadUseSystemTitleBar();
   // The player window is a touch narrower and taller than the main one: its
   // layout is "16:9 player + right sidebar", which wants the extra height.
   const auto width = DpiScale(play_window ? 1180 : 1280, dpi);
   const auto height = DpiScale(play_window ? 760 : 720, dpi);
   const auto window = CreateWindow(kWindowClassName, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
+  // CreateWindow sends its own WM_NCCALCSIZE, but only with wParam FALSE - the
+  // "client area is being recalculated" form (wParam TRUE), which is the one
+  // that carries the folding, arrives when the frame is refreshed. Do that here,
+  // while the window is still hidden, so the client rectangle the user ever sees
+  // is already the final one. This is the same frame-changed resize
+  // window_manager performs; the difference is only *when*.
+  if (!g_use_system_title_bar) RefreshTitleBarStyle(window);
   // Tint the native caption before it is first painted, so it matches the splash.
+  // A hidden caption has no colour to tint; the call is harmless either way.
   ApplySplashCaptionColors(window);
 
   // Engine startup loads flutter_windows.dll plus the AOT snapshot and brings up
@@ -420,6 +608,10 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   app.controller = std::make_unique<flutter::FlutterViewController>(bounds.right, bounds.bottom, project);
   if (!app.controller->engine() || !app.controller->view()) return EXIT_FAILURE;
   RegisterPlugins(app.controller->engine());
+  // Lets Dart change the title bar at runtime, without going back through
+  // window_manager (whose hidden branch would be a second implementation of the
+  // same arithmetic - see the title bar section above).
+  RegisterWindowChannel(app.controller->engine()->messenger(), window);
   // NOTE: do NOT register DesktopMultiWindowSetWindowCreatedCallback here.
   // The multi-engine child window is incompatible with this hand written runner:
   // as soon as a child window is created, the main window keeps pumping messages
