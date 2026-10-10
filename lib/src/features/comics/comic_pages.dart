@@ -20,7 +20,6 @@ import '../../data/local/home_cache.dart';
 import '../../domain/models/comic.dart';
 import '../../core/app_shell.dart';
 import '../shared/app_error.dart';
-import '../settings/settings_controller.dart';
 import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
 import '../../core/app_motion.dart';
@@ -64,10 +63,9 @@ class ComicExplorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final home = ref.watch(comicHomeProvider);
-    final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
       appBar: AppBar(
-        leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null,
+        leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))),
         title: const Text('Hanime1.me'),
         actions: [PressScale(child: IconButton(tooltip: l10n.comicBrowse, onPressed: () => context.push('/comics/browse'), icon: const Icon(Symbols.tune_rounded)))],
       ),
@@ -545,21 +543,17 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
 }
 
 class ComicLibraryPage extends ConsumerWidget {
-  const ComicLibraryPage({super.key, this.initialTab = 0, this.drawerMode = false});
+  const ComicLibraryPage({super.key, this.initialTab = 0});
 
   final int initialTab;
-  final bool drawerMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final selectedTab = initialTab.clamp(0, 1).toInt();
     final library = ref.watch(comicLibraryProvider);
-    if (drawerMode) {
-      final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
-      return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
-    }
-    return DefaultTabController(initialIndex: selectedTab, length: 2, child: Scaffold(appBar: AppBar(title: Text(l10n.myLibrary), bottom: TabBar(tabs: [Tab(text: l10n.watchLater), Tab(text: l10n.favoriteVideos)])), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => TabBarView(children: [_ComicGrid(comics: value.watchLater), _ComicGrid(comics: value.favorites)]))));
+    final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
+    return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
   }
 }
 
@@ -588,9 +582,8 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
     return Scaffold(
-      appBar: AppBar(leading: drawerMode && !permanentNavigationDrawer(context) ? PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))) : null, title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
+      appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
       body: ref.watch(comicCacheProvider).when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicCacheProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicCacheProvider))),

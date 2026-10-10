@@ -141,21 +141,21 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   Widget build(BuildContext context) {
     final feed = ref.watch(homeSectionsProvider);
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final drawerMode = settings?.useNavigationDrawer ?? false;
-    final tabs = settings?.useHomeCategoryTabs == true;
+    // 首页固定用收起式分类（顶栏「当前分类 + 下拉菜单」+ 右侧快捷分类），
+    // 原「首页使用收起式分类」开关已删除，见 `docs/ui-polish.md`。
     final categories = feed.valueOrNull == null ? const <_FeedCategory>[] : _feedCategories(feed.value!);
     final sections = [for (final category in categories) category.section];
     final index = sections.isEmpty ? 0 : _sectionIndex.clamp(0, sections.length - 1).toInt();
-    final showPicker = tabs && sections.isNotEmpty;
+    final showPicker = sections.isNotEmpty;
     // 顶栏右侧的快捷分类（在「界面布局 → 首页快捷分类」里自定义内容与排序）。
-    final quick = tabs ? _quickCategories(categories, settings?.homeQuickCategories ?? const <String>[]) : const <({int index, String label})>[];
+    final quick = _quickCategories(categories, settings?.homeQuickCategories ?? const <String>[]);
     // 已经作为快捷分类显示在右侧的分类，不再重复出现在左侧下拉菜单里。
     final quickIndexes = <int>{for (final item in quick) item.index};
     final pickerIndexes = <int>[for (var i = 0; i < sections.length; i++) if (!quickIndexes.contains(i)) i];
     final screenWidth = MediaQuery.sizeOf(context).width;
     // 顶栏右侧不再放图标（直播/我的都在侧栏里有入口），把空间让给搜索框。
     final idleSearchWidth = screenWidth >= 1180 ? 380.0 : (screenWidth >= 940 ? 280.0 : 172.0);
-    final showDrawerButton = drawerMode && !permanentNavigationDrawer(context);
+    final showDrawerButton = !permanentNavigationDrawer(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
@@ -182,7 +182,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   }
                 },
               ),
-              data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index, single: showPicker),
+              data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index),
             ),
           ),
           // 顶栏浮在内容之上，底下带一条 scroll edge（g1455）：内容滚到它下面时
@@ -397,14 +397,11 @@ class _FeedCategory {
 }
 
 class _HomeFeedBody extends ConsumerWidget {
-  const _HomeFeedBody({required this.featured, required this.sections, required this.index, required this.single});
+  const _HomeFeedBody({required this.featured, required this.sections, required this.index});
 
   final VideoCard? featured;
   final List<HomeSection> sections;
   final int index;
-
-  /// Category tabs are off: every section is stacked with its own header.
-  final bool single;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => M3EPullToRefreshIndicator(
@@ -416,10 +413,10 @@ class _HomeFeedBody extends ConsumerWidget {
           error,
           onRetry: () => unawaited(ref.read(homeSectionsProvider.notifier).refresh()),
         ),
+        // 收起式分类：只画当前分类（分区标题由顶栏的下拉菜单承担）。
         child: _HomeScroll(
           featured: featured,
-          sections: single && sections.isNotEmpty ? [sections[index]] : sections,
-          showHeader: !single,
+          sections: sections.isEmpty ? const <HomeSection>[] : [sections[index]],
         ),
       );
 }
@@ -584,10 +581,9 @@ bool _visible(VideoCard video, AppSettings? settings, Set<String> subscribed) {
 }
 
 class _HomeScroll extends ConsumerStatefulWidget {
-  const _HomeScroll({this.featured, required this.sections, this.showHeader = true});
+  const _HomeScroll({this.featured, required this.sections});
   final VideoCard? featured;
   final List<HomeSection> sections;
-  final bool showHeader;
 
   @override
   ConsumerState<_HomeScroll> createState() => _HomeScrollState();
@@ -645,7 +641,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               // 顶栏底下那条 scroll edge 要的就是这个。
               const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
               if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
-              for (final section in widget.sections) _HomeSection(section: section, showHeader: widget.showHeader),
+              for (final section in widget.sections) _HomeSection(section: section),
               // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
               // （见 `floatingActionsClearance`），再叠加系统安全区。
               SliverToBoxAdapter(
@@ -676,10 +672,9 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
 final _sectionPageCache = <String, ({List<VideoCard> videos, int page, int? totalPages})>{};
 
 class _HomeSection extends ConsumerStatefulWidget {
-  const _HomeSection({required this.section, this.showHeader = true});
+  const _HomeSection({required this.section});
 
   final HomeSection section;
-  final bool showHeader;
 
   @override
   ConsumerState<_HomeSection> createState() => _HomeSectionState();
@@ -953,10 +948,6 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
     final cardWidth = homeWaterfallCardWidth(width, columns);
     return SliverMainAxisGroup(
       slivers: [
-        if (widget.showHeader)
-          SliverToBoxAdapter(
-            child: _SectionHeader(section: widget.section, onRefresh: () => _reloadFromFirstPage()),
-          ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(_gridPadding, 0, _gridPadding, 20),
           sliver: SliverGrid(
@@ -1029,52 +1020,9 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// 首页分区的标题行：半粗标题 + 右侧动作，和参考图里的区块标题行同形，
-/// 也和站内已有的两处「标题 + 查看更多」保持一致
-/// （`lib/src/features/video/video_detail_content.dart`、`lib/src/features/comics/comic_pages.dart`）。
-///
-/// 参考图那行的最左侧还有一个小图标，这里**故意不加**：分区标题来自站点，
-/// hanime1 给的是本地化过的分类名，按标题映射图标在换语言/换站点后就会错位；
-/// 唯一稳定的键是 AV 源的 `javSectionKey`（九档），只给这九档加图标不划算。
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.section, this.onRefresh});
-
-  final HomeSection section;
-
-  /// 右侧动作：把这一行退回第一页重新拉（等价于「换一批」）。
-  /// 首页只显示一个分区时不会走到这里（`_HomeFeedBody` 传 `showHeader: !single`），
-  /// 多分区时全局刷新按钮离得远，这一行得能自己刷新。
-  final VoidCallback? onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              section.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          if (onRefresh != null)
-            PressScale(
-              child: TextButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Symbols.refresh_rounded, size: 18),
-                label: Text(l10n.refresh),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
+/// 首页分区的标题行（半粗标题 + 右侧「换一批」）已随「首页使用收起式分类」开关一起删除：
+/// 首页现在固定只画当前分类，分区名由顶栏那个下拉菜单承担，页面上不再有第二处标题。
+/// 需要重拉这一行时用悬停/下拉刷新或右下角的刷新按钮（`ScrollActions`）。
 class _FeaturedVideo extends StatelessWidget {
   const _FeaturedVideo({required this.video});
   final VideoCard video;

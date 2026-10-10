@@ -73,24 +73,13 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final comicMode = settings?.comicMode ?? false;
-    final drawerMode = settings?.useNavigationDrawer ?? false;
+    // 导航形态固定：大屏（最短边 ≥600）常驻窄侧栏，窄屏用抽屉 —— 这是唯一的
+    // 两种形态，原来那个「使用导航抽屉 / NavigationRail / 底部导航栏」三态开关已删除。
     final largeScreen = MediaQuery.sizeOf(context).shortestSide >= 600;
-    // MD3 的窗口尺寸档位：compact <600（底部条）、medium 600–840（侧栏只留图标）、
-    // expanded >840（侧栏图标 + 文字一起展开）。抽屉模式不变，仍是常驻窄侧栏。
-    final railExpanded = MediaQuery.sizeOf(context).width > 840;
-    final permanentDrawer = drawerMode && largeScreen;
-    final useRail = !drawerMode && largeScreen;
-    final destinations = [
-      (icon: Symbols.explore_rounded, selectedIcon: Symbols.explore_rounded, label: AppLocalizations.of(context)!.explore),
-      (icon: Symbols.bookmark_rounded, selectedIcon: Symbols.bookmark_rounded, label: AppLocalizations.of(context)!.library),
-      (icon: Symbols.download_rounded, selectedIcon: Symbols.download_rounded, label: AppLocalizations.of(context)!.cache),
-      (icon: Symbols.settings_rounded, selectedIcon: Symbols.settings_rounded, label: AppLocalizations.of(context)!.settings),
-    ];
-    void select(int index) => widget.navigationShell.goBranch(index, initialLocation: index == widget.navigationShell.currentIndex);
     final content = comicMode
         ? switch (widget.navigationShell.currentIndex) {
             0 => const ComicExplorePage(),
-            1 => ComicLibraryPage(initialTab: _libraryTab(GoRouterState.of(context).pathParameters['tab']), drawerMode: drawerMode),
+            1 => ComicLibraryPage(initialTab: _libraryTab(GoRouterState.of(context).pathParameters['tab'])),
             2 => const ComicCachePage(),
             _ => widget.navigationShell,
           }
@@ -105,41 +94,16 @@ class _AppShellState extends ConsumerState<AppShell> with SingleTickerProviderSt
         _handleRootBack(context);
       },
       child: Scaffold(
-        key: drawerMode ? appShellScaffoldKey : null,
-        drawer: drawerMode && !permanentDrawer ? _AppDrawer(navigationShell: widget.navigationShell) : null,
-        body: permanentDrawer
+        key: appShellScaffoldKey,
+        drawer: largeScreen ? null : _AppDrawer(navigationShell: widget.navigationShell),
+        body: largeScreen
             ? Row(
                 children: [
                   _CompactNavigationRail(navigationShell: widget.navigationShell),
                   Expanded(child: animatedContent),
                 ],
               )
-            : useRail
-                ? Row(
-                    children: [
-                      NavigationRail(
-                        selectedIndex: widget.navigationShell.currentIndex,
-                        // 宽屏按 MD3 的 expanded 档展开（图标 + 文字并排），中等宽度收成
-                        // 只显示图标，窄窗口才落到底部条。
-                        extended: railExpanded,
-                        labelType: railExpanded ? NavigationRailLabelType.all : NavigationRailLabelType.none,
-                        minWidth: railExpanded ? 192 : 72,
-                        // 与常驻窄侧栏一致：整块透出背景画布，靠圆形指示器和文字颜色区分选中。
-                        backgroundColor: Colors.transparent,
-                        onDestinationSelected: select,
-                        destinations: destinations.map((destination) => NavigationRailDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon, fill: 1), label: Text(destination.label))).toList(),
-                      ),
-                      Expanded(child: animatedContent),
-                    ],
-                  )
-                : MediaQuery(data: mediaQuery, child: animatedContent),
-        bottomNavigationBar: drawerMode || useRail
-            ? null
-            : NavigationBar(
-                selectedIndex: widget.navigationShell.currentIndex,
-                onDestinationSelected: select,
-                destinations: destinations.map((destination) => NavigationDestination(icon: Icon(destination.icon), selectedIcon: Icon(destination.selectedIcon, fill: 1), label: destination.label)).toList(),
-              ),
+            : MediaQuery(data: mediaQuery, child: animatedContent),
       ),
     );
   }

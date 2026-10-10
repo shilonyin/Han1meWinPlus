@@ -134,11 +134,8 @@ class AppSettings {
     this.dohTimeoutSeconds = 10,
     this.proxyMode = 'system',
     this.customProxy = '',
-    this.useHorizontalSearchCards = true,
-    this.searchCardsPerRow = 2,
     this.useCompactSearchCards = true,
     this.expandHomeVideoCards = false,
-    this.useNavigationDrawer = true,
     this.useSystemFont = false,
     this.useSystemTitleBar = true,
     this.openVideoInWindow = true,
@@ -151,7 +148,6 @@ class AppSettings {
     this.gpuApi = MpvGpuApi.auto,
     this.localMediaDirectory = '',
     this.dlnaReceiverEnabled = false,
-    this.useHomeCategoryTabs = false,
     this.homeQuickCategories = const <String>[],
     this.blockedVideoTitleKeywords = const [],
     this.blockedAuthors = const [],
@@ -242,11 +238,8 @@ class AppSettings {
   /// `direct` 才能用上内置地址（实测内置 IP 直连站点比走代理还快）。
   final String proxyMode;
   final String customProxy;
-  final bool useHorizontalSearchCards;
-  final int searchCardsPerRow;
   final bool useCompactSearchCards;
   final bool expandHomeVideoCards;
-  final bool useNavigationDrawer;
   final bool useSystemFont;
   final bool useSystemTitleBar;
 
@@ -288,7 +281,6 @@ class AppSettings {
   /// DLNA 接收端（PC 作投屏目标）：开启后在局域网里广播一个 MediaRenderer。
   /// 默认关——它会常驻监听 1900 端口并起一个本地 HTTP 服务。
   final bool dlnaReceiverEnabled;
-  final bool useHomeCategoryTabs;
 
   /// 顶栏「快捷分类」：存的是**站点原始分类名**（如「最新上市」），与界面语言无关，
   /// 显示时再本地化。为空表示默认取首页前 6 个分类。
@@ -411,11 +403,8 @@ class AppSettings {
     'dohTimeoutSeconds': dohTimeoutSeconds,
     'proxyMode': proxyMode,
     'customProxy': customProxy,
-    'useHorizontalSearchCards': useHorizontalSearchCards,
-    'searchCardsPerRow': searchCardsPerRow,
     'useCompactSearchCards': useCompactSearchCards,
     'expandHomeVideoCards': expandHomeVideoCards,
-    'useNavigationDrawer': useNavigationDrawer,
     'useSystemFont': useSystemFont,
     'useSystemTitleBar': useSystemTitleBar,
     'openVideoInWindow': openVideoInWindow,
@@ -428,7 +417,6 @@ class AppSettings {
     'gpuApi': gpuApi.name,
     'localMediaDirectory': localMediaDirectory,
     'dlnaReceiverEnabled': dlnaReceiverEnabled,
-    'useHomeCategoryTabs': useHomeCategoryTabs,
     'homeQuickCategories': homeQuickCategories,
     'blockedVideoTitleKeywords': blockedVideoTitleKeywords,
     'blockedAuthors': blockedAuthors,
@@ -542,12 +530,8 @@ class AppSettings {
         (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60),
     proxyMode: _proxyMode(json['proxyMode'] as String?),
     customProxy: (json['customProxy'] as String? ?? '').trim(),
-    useHorizontalSearchCards: json['useHorizontalSearchCards'] as bool? ?? true,
-    searchCardsPerRow:
-        (json['searchCardsPerRow'] as int? ?? 2).clamp(1, 3),
     useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
     expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
-    useNavigationDrawer: json['useNavigationDrawer'] as bool? ?? true,
     useSystemFont: json['useSystemFont'] as bool? ?? false,
     useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
     openVideoInWindow: json['openVideoInWindow'] as bool? ?? true,
@@ -570,7 +554,6 @@ class AppSettings {
         MpvGpuApi.auto,
     localMediaDirectory: json['localMediaDirectory'] as String? ?? '',
     dlnaReceiverEnabled: json['dlnaReceiverEnabled'] as bool? ?? false,
-    useHomeCategoryTabs: json['useHomeCategoryTabs'] as bool? ?? false,
     homeQuickCategories: ((json['homeQuickCategories'] as List?) ?? const [])
         .whereType<String>()
         .toList(),
@@ -733,11 +716,8 @@ class AppSettings {
     int? dohTimeoutSeconds,
     String? proxyMode,
     String? customProxy,
-    bool? useHorizontalSearchCards,
-    int? searchCardsPerRow,
     bool? useCompactSearchCards,
     bool? expandHomeVideoCards,
-    bool? useNavigationDrawer,
     bool? useSystemFont,
     bool? useSystemTitleBar,
     bool? openVideoInWindow,
@@ -750,7 +730,6 @@ class AppSettings {
     MpvGpuApi? gpuApi,
     String? localMediaDirectory,
     bool? dlnaReceiverEnabled,
-    bool? useHomeCategoryTabs,
     List<String>? homeQuickCategories,
     List<String>? blockedVideoTitleKeywords,
     List<String>? blockedAuthors,
@@ -831,12 +810,8 @@ class AppSettings {
     dohTimeoutSeconds: dohTimeoutSeconds ?? this.dohTimeoutSeconds,
     proxyMode: proxyMode ?? this.proxyMode,
     customProxy: customProxy ?? this.customProxy,
-    useHorizontalSearchCards:
-        useHorizontalSearchCards ?? this.useHorizontalSearchCards,
-    searchCardsPerRow: searchCardsPerRow ?? this.searchCardsPerRow,
     useCompactSearchCards: useCompactSearchCards ?? this.useCompactSearchCards,
     expandHomeVideoCards: expandHomeVideoCards ?? this.expandHomeVideoCards,
-    useNavigationDrawer: useNavigationDrawer ?? this.useNavigationDrawer,
     useSystemFont: useSystemFont ?? this.useSystemFont,
     useSystemTitleBar: useSystemTitleBar ?? this.useSystemTitleBar,
     openVideoInWindow: openVideoInWindow ?? this.openVideoInWindow,
@@ -850,7 +825,6 @@ class AppSettings {
     gpuApi: gpuApi ?? this.gpuApi,
     localMediaDirectory: localMediaDirectory ?? this.localMediaDirectory,
     dlnaReceiverEnabled: dlnaReceiverEnabled ?? this.dlnaReceiverEnabled,
-    useHomeCategoryTabs: useHomeCategoryTabs ?? this.useHomeCategoryTabs,
     homeQuickCategories: homeQuickCategories ?? this.homeQuickCategories,
     blockedVideoTitleKeywords:
         blockedVideoTitleKeywords ?? this.blockedVideoTitleKeywords,

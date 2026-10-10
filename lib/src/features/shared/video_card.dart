@@ -879,10 +879,11 @@ class VideoCardGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider).valueOrNull;
-    final horizontal =
-        this.horizontal ?? settings?.useHorizontalSearchCards ?? true;
-    final cardsPerRow = this.cardsPerRow ?? settings?.searchCardsPerRow ?? 2;
+    // 卡片方向与每行数量不再走设置：原「横向影片卡片」「影片卡片每行数量」两个
+    // 开关已删除（宽窗下会被下面的 autoWiden 覆盖，设了也不生效）。
+    // 调用方要别的形态就显式传 `horizontal` / `cardsPerRow`。
+    final horizontal = this.horizontal ?? true;
+    final cardsPerRow = this.cardsPerRow ?? 2;
     return LayoutBuilder(
       builder: (context, constraints) {
         const horizontalPadding = 24.0;

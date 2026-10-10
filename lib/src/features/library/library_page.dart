@@ -53,27 +53,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     final account = ref.watch(accountProvider).valueOrNull;
-    final drawerMode = ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false;
-    if (account?.id != null) return _RemoteLibrary(initialTab: widget.initialTab, drawerMode: drawerMode);
+    if (account?.id != null) return _RemoteLibrary(initialTab: widget.initialTab);
     final l10n = AppLocalizations.of(context)!;
-    if (drawerMode) {
-      return Scaffold(
-        appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
-        body: LibraryTabView(index: widget.initialTab),
-      );
-    }
-    return DefaultTabController(
-      length: 5,
-      initialIndex: widget.initialTab,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null,
-          title: Text(l10n.myLibrary),
-          actions: [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))],
-          bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n)),
-        ),
-        body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
-      ),
+    return Scaffold(
+      appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
+      body: LibraryTabView(index: widget.initialTab),
     );
   }
 }
@@ -124,27 +108,16 @@ Widget _localTabContent(BuildContext context, LibraryState library, int index, S
 }
 
 class _RemoteLibrary extends ConsumerWidget {
-  const _RemoteLibrary({required this.initialTab, required this.drawerMode});
+  const _RemoteLibrary({required this.initialTab});
 
   final int initialTab;
-  final bool drawerMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    if (drawerMode) {
-      return Scaffold(
-        appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
-        body: LibraryTabView(index: initialTab),
-      );
-    }
-    return DefaultTabController(
-      length: 5,
-      initialIndex: initialTab,
-      child: Scaffold(
-        appBar: AppBar(leading: ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))) : null, title: Text(l10n.myLibrary), bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: _tabs(l10n))),
-        body: TabBarView(children: [for (var index = 0; index < 5; index++) LibraryTabView(index: index)]),
-      ),
+    return Scaffold(
+      appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
+      body: LibraryTabView(index: initialTab),
     );
   }
 }
@@ -853,11 +826,3 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
 }
 
 VideoCard _videoCard(FollowingVideo video) => VideoCard(id: video.videoCode, title: video.title, coverUrl: video.coverUrl ?? '', artist: video.artistName, duration: video.duration, views: video.views, rating: video.rating, uploadTime: video.uploadTime);
-
-List<Tab> _tabs(AppLocalizations l10n) => [
-      Tab(text: l10n.watchLater),
-      Tab(text: l10n.favoriteVideos),
-      Tab(text: l10n.playlists),
-      Tab(text: l10n.subscriptions),
-      Tab(text: l10n.watchHistory),
-    ];

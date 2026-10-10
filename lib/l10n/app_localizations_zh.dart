@@ -1602,12 +1602,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get comicMode => '观看漫画';
 
   @override
-  String get horizontalSearchCards => '横向影片卡片';
-
-  @override
-  String get horizontalSearchCardsDescription => '影片使用横向卡片显示';
-
-  @override
   String get compactSearchCards => '搜索部分分类使用新的影片卡片';
 
   @override
@@ -1620,14 +1614,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get expandHomeVideoCardsDescription =>
       '关闭时首页每个分类横向显示一行影片；开启后使用影片卡片每行数量设置';
-
-  @override
-  String get searchCardsPerRow => '影片卡片每行数量';
-
-  @override
-  String searchCardsPerRowValue(int count) {
-    return '每行 $count 个';
-  }
 
   @override
   String get comicModeDescription => '开启后首页、收藏和缓存仅显示漫画内容';
@@ -1717,9 +1703,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get navigationDrawer => '使用导航抽屉';
-
-  @override
-  String get navigationDrawerDescription => '使用抽屉替代底部导航栏';
 
   @override
   String get colorScheme => '配色方案';
@@ -2197,12 +2180,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unlock => '解锁';
-
-  @override
-  String get homeCategoryTabs => '首页使用收起式分类';
-
-  @override
-  String get homeCategoryTabsDescription => '分类收进标题下拉菜单，影片以多列瀑布流展示';
 
   @override
   String get recommendationFilters => '推荐流设置';
@@ -4194,12 +4171,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get comicMode => '觀看漫畫';
 
   @override
-  String get horizontalSearchCards => '橫向影片卡片';
-
-  @override
-  String get horizontalSearchCardsDescription => '影片使用橫向卡片顯示';
-
-  @override
   String get compactSearchCards => '搜尋部分分類使用新的影片卡片';
 
   @override
@@ -4212,14 +4183,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String get expandHomeVideoCardsDescription =>
       '關閉時首頁每個分類橫向顯示一行影片；開啟後使用影片卡片每行數量設定';
-
-  @override
-  String get searchCardsPerRow => '影片卡片每行數量';
-
-  @override
-  String searchCardsPerRowValue(int count) {
-    return '每行 $count 個';
-  }
 
   @override
   String get comicModeDescription => '開啟後首頁、收藏和快取僅顯示漫畫內容';
@@ -4309,9 +4272,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get navigationDrawer => '使用導覽抽屜';
-
-  @override
-  String get navigationDrawerDescription => '使用抽屜取代底部導覽列';
 
   @override
   String get colorScheme => '配色方案';
@@ -4788,12 +4748,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get unlock => '解鎖';
-
-  @override
-  String get homeCategoryTabs => '首頁使用收合式分類';
-
-  @override
-  String get homeCategoryTabsDescription => '分類收進標題下拉選單，影片以多欄瀑布流呈現';
 
   @override
   String get recommendationFilters => '推薦流設定';

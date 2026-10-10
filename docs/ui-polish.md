@@ -21,6 +21,20 @@
 `setting.json` 里的老键（`glassMaterial` / `glassQuality` / `glassTier` 等）现在只是被忽略的
 陌生字段：`fromJson` 只读它认得的键，多余键不会报错，但下次保存起就不再写回。
 
+后续（2026-10 死设置清理 · 界面布局页）：用户报「横向影片卡片 / 首页使用收起式分类 /
+影片卡片每行数量点了没作用，使用导航抽屉用不上」后逐项核对消费点，结论与处理：
+
+| 设置项 | 实际情况 | 处理 |
+| --- | --- | --- |
+| `searchCardsPerRow` | 只有 `cardsPerRow` 为空时才生效，而搜索页 / 清单页都写死 4 列；即使读到，`video_card.dart` 的 `autoWiden` 在窗口宽 ≥1200 时用 `(width/300).floor().clamp(cardsPerRow, 6)` 覆盖它 —— 用户的窗口正在这个区间，1/2/3 三档全无效 | 删除 |
+| `useHorizontalSearchCards` | 首页是独立 `SliverGrid`（写死横向），搜索页与作者页都显式传 `horizontal: true`，只有清单页那几处跟着它变 | 删除（清单页固定横向） |
+| `useHomeCategoryTabs` | **实测有效**（切换首页是「单个分类 + 下拉」还是「全部分类堆叠」），但用户要求固定为收起式分类 | 删除，首页固定收起式 |
+| `useNavigationDrawer` | 默认开启，用户不需要第二种导航形态 | 删除，固定「大屏常驻窄侧栏 / 窄屏抽屉」 |
+
+`navigationDrawer` 这个**文案键保留**：它还是窄窗汉堡按钮的 tooltip。
+`setting.json` 里的四个老键与玻璃那批一样，只是被忽略的陌生字段，下次保存起不再写回。
+回归测试见 `test/layout_settings_test.dart`（渲染真实页面断言四项不再出现 + 遗留键向后兼容）。
+
 ## 已达标
 
 - 减弱动效：`lib/src/core/app_motion.dart:73` 的 `motionEnabledOf` 已经同时看

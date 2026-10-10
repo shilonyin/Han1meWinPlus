@@ -2990,18 +2990,6 @@ abstract class AppLocalizations {
   /// **'Comic Mode'**
   String get comicMode;
 
-  /// No description provided for @horizontalSearchCards.
-  ///
-  /// In en, this message translates to:
-  /// **'Horizontal Video Cards'**
-  String get horizontalSearchCards;
-
-  /// No description provided for @horizontalSearchCardsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Display videos as horizontal cards'**
-  String get horizontalSearchCardsDescription;
-
   /// No description provided for @compactSearchCards.
   ///
   /// In en, this message translates to:
@@ -3025,18 +3013,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When off, each home category shows a row of videos; when on, uses the videos-per-row setting'**
   String get expandHomeVideoCardsDescription;
-
-  /// No description provided for @searchCardsPerRow.
-  ///
-  /// In en, this message translates to:
-  /// **'Video Cards Per Row'**
-  String get searchCardsPerRow;
-
-  /// No description provided for @searchCardsPerRowValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} per row'**
-  String searchCardsPerRowValue(int count);
 
   /// No description provided for @comicModeDescription.
   ///
@@ -3211,12 +3187,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use Navigation Drawer'**
   String get navigationDrawer;
-
-  /// No description provided for @navigationDrawerDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Use a drawer instead of the bottom navigation bar'**
-  String get navigationDrawerDescription;
 
   /// No description provided for @colorScheme.
   ///
@@ -4147,18 +4117,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock'**
   String get unlock;
-
-  /// No description provided for @homeCategoryTabs.
-  ///
-  /// In en, this message translates to:
-  /// **'Use Collapsed Home Categories'**
-  String get homeCategoryTabs;
-
-  /// No description provided for @homeCategoryTabsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick the home category from a dropdown next to the title; videos are shown as a multi column waterfall'**
-  String get homeCategoryTabsDescription;
 
   /// No description provided for @recommendationFilters.
   ///

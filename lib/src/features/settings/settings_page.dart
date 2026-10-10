@@ -16,7 +16,6 @@ import 'layout_settings_page.dart';
 import 'network_settings_page.dart';
 import 'playback_settings_page.dart';
 import 'selection_settings_pages.dart';
-import 'settings_controller.dart';
 import 'settings_list.dart';
 import 'settings_pane_scope.dart';
 import 'storage_settings_page.dart';
@@ -345,19 +344,15 @@ class _SettingsCategoryList extends ConsumerWidget {
     final sections = _settingsSections(l10n);
     return Scaffold(
       appBar: AppBar(
-        leading:
-            ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ??
-                false
-            ? (permanentNavigationDrawer(context)
-                  ? null
-                  : PressScale(child: IconButton(
-                      // 抽屉入口在窄窗（<600 逻辑像素）才出现，图标是个汉堡，光看图标
-                      // 猜不出点开是什么；补 tooltip 让鼠标有提示、读屏有名字。
-                      tooltip: l10n.navigationDrawer,
-                      onPressed: openAppDrawer,
-                      icon: const Icon(Symbols.menu_rounded),
-                    )))
-            : null,
+        leading: permanentNavigationDrawer(context)
+            ? null
+            : PressScale(child: IconButton(
+                // 抽屉入口在窄窗（<600 逻辑像素）才出现，图标是个汉堡，光看图标
+                // 猜不出点开是什么；补 tooltip 让鼠标有提示、读屏有名字。
+                tooltip: l10n.navigationDrawer,
+                onPressed: openAppDrawer,
+                icon: const Icon(Symbols.menu_rounded),
+              )),
         title: Text(l10n.settings),
       ),
       body: SettingsList(

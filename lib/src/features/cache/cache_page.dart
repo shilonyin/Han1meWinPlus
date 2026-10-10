@@ -9,7 +9,6 @@ import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
-import '../settings/settings_controller.dart';
 import '../shared/app_error.dart';
 import '../shared/press_scale.dart';
 import 'cache_cards.dart';
@@ -83,9 +82,7 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
           appBar: AppBar(
             leading: _selecting
                 ? PressScale(child: IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded)))
-                : ref.watch(settingsProvider).valueOrNull?.useNavigationDrawer ?? false
-                    ? (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))))
-                    : null,
+                : (permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded)))),
             title: Text(_selecting ? l10n.selectedItems(_selected.length) : l10n.cache),
             actions: _selecting
                 ? _selectionActions(state, [...completed, ...active])

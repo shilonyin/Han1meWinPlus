@@ -1653,13 +1653,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comicMode => 'Comic Mode';
 
   @override
-  String get horizontalSearchCards => 'Horizontal Video Cards';
-
-  @override
-  String get horizontalSearchCardsDescription =>
-      'Display videos as horizontal cards';
-
-  @override
   String get compactSearchCards => 'Use New Cards for Some Categories';
 
   @override
@@ -1672,14 +1665,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get expandHomeVideoCardsDescription =>
       'When off, each home category shows a row of videos; when on, uses the videos-per-row setting';
-
-  @override
-  String get searchCardsPerRow => 'Video Cards Per Row';
-
-  @override
-  String searchCardsPerRowValue(int count) {
-    return '$count per row';
-  }
 
   @override
   String get comicModeDescription =>
@@ -1770,10 +1755,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navigationDrawer => 'Use Navigation Drawer';
-
-  @override
-  String get navigationDrawerDescription =>
-      'Use a drawer instead of the bottom navigation bar';
 
   @override
   String get colorScheme => 'Color scheme';
@@ -2270,13 +2251,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unlock => 'Unlock';
-
-  @override
-  String get homeCategoryTabs => 'Use Collapsed Home Categories';
-
-  @override
-  String get homeCategoryTabsDescription =>
-      'Pick the home category from a dropdown next to the title; videos are shown as a multi column waterfall';
 
   @override
   String get recommendationFilters => 'Recommendation Filters';
