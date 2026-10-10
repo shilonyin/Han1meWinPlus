@@ -117,8 +117,8 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
               _ActiveTab(
                 tasks: active,
                 selected: _selected,
+                selecting: _selecting,
                 onToggleSelect: _toggle,
-                onOpenTask: (task) => _openTask(task),
               ),
             ],
           ),
@@ -327,14 +327,19 @@ class _SelectableBorder extends StatelessWidget {
       );
 }
 
-/// 「正在缓存」页签：未完成任务的横排列表。
+/// 「正在缓存」页签：未完成任务的卡片网格。
+///
+/// 版式与「已缓存视频」共用同一套网格参数，两页签切换时列数与卡片宽度不会跳变；
+/// 单张卡内部是 b 站离线缓存那套（封面浮层 + 标题 + 状态行 + 进度条）。
 class _ActiveTab extends StatelessWidget {
-  const _ActiveTab({required this.tasks, required this.selected, required this.onToggleSelect, required this.onOpenTask});
+  const _ActiveTab({required this.tasks, required this.selected, required this.selecting, required this.onToggleSelect});
 
   final List<DownloadTask> tasks;
   final Set<String> selected;
+
+  /// 多选态：卡片上的浮层按钮换成勾选圈，点整张卡是切换选中。
+  final bool selecting;
   final ValueChanged<String> onToggleSelect;
-  final ValueChanged<DownloadTask> onOpenTask;
 
   @override
   Widget build(BuildContext context) {
@@ -363,40 +368,38 @@ class _ActiveTab extends StatelessWidget {
         final byRank = rank(a).compareTo(rank(b));
         return byRank != 0 ? byRank : b.createdAt.compareTo(a.createdAt);
       });
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-      itemCount: sorted.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 4),
-      itemBuilder: (context, index) {
-        final task = sorted[index];
-        return CacheTaskRow(
-          task: task,
-          selected: selected.contains(task.id),
-          onTap: task.status == DownloadStatus.completed ? () => onOpenTask(task) : null,
-          onLongPress: () => onToggleSelect(task.id),
-          trailing: CacheTaskActions(task: task),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 与「已缓存视频」页签同一套列数/宽度算法，切页签时网格不会跳。
+        final columns = ((constraints.maxWidth - 24) / (_minCardWidth + 12)).floor().clamp(2, 8);
+        final width = ((constraints.maxWidth - 24 - 12 * (columns - 1)) / columns).clamp(_minCardWidth, _maxCardWidth);
+        return GridView.builder(
+          padding: EdgeInsets.fromLTRB(12, 12, 12, 24 + MediaQuery.paddingOf(context).bottom),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 12,
+            // 封面是 AspectRatio 锁死的 16:9，这里只需要给足文字部分的高度：
+            // 8 间距 + 标题 + 4 + 状态行 + 6 + 3 进度条 ≈ 57（100% 字号），
+            // 留到 76 是为了字号调到上限 1.4 倍时也不溢出 —— 宁可底部多留白。
+            mainAxisExtent: width * 9 / 16 + 76,
+          ),
+          itemCount: sorted.length,
+          itemBuilder: (context, index) {
+            final task = sorted[index];
+            return _SelectableBorder(
+              selected: selected.contains(task.id),
+              child: CacheTaskCard(
+                task: task,
+                selected: selected.contains(task.id),
+                selecting: selecting,
+                onSelect: () => onToggleSelect(task.id),
+              ),
+            );
+          },
         );
       },
     );
-  }
-}
-
-/// 单条任务右侧的快捷操作：按状态给出「暂停 / 继续 / 重试 / 播放」。
-class CacheTaskActions extends ConsumerWidget {
-  const CacheTaskActions({super.key, required this.task});
-
-  final DownloadTask task;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = ref.read(downloadProvider.notifier);
-    return switch (task.status) {
-      DownloadStatus.downloading || DownloadStatus.queued => PressScale(child: IconButton(tooltip: l10n.pause, onPressed: () => controller.pauseTasks({task.id}), icon: const Icon(Symbols.pause_circle_rounded))),
-      DownloadStatus.paused => PressScale(child: IconButton(tooltip: l10n.resume, onPressed: () => controller.resumeTasks({task.id}), icon: const Icon(Symbols.play_circle_rounded))),
-      DownloadStatus.failed => PressScale(child: IconButton(tooltip: l10n.retry, onPressed: () => controller.retry(task.id), icon: const Icon(Symbols.refresh_rounded))),
-      DownloadStatus.completed => PressScale(child: IconButton(tooltip: l10n.play, onPressed: () => openCachedVideo(context, ref, task), icon: const Icon(Symbols.play_arrow_rounded))),
-    };
   }
 }
 

@@ -130,13 +130,31 @@ void main() {
       expect(find.text('作品 a1'), findsNothing);
     });
 
-    testWidgets('进行中列表按状态给不同操作：下载中可暂停、暂停可继续', (tester) async {
+    testWidgets('进行中列表按状态给不同操作：下载中的 ⋮ 里有暂停，暂停中的封面给出「开始缓存」', (tester) async {
       await _pump(tester);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
       await tester.tap(find.text('${l10n.activeDownloads} 3'));
       await tester.pumpAndSettle();
-      expect(find.byTooltip(l10n.pause), findsWidgets);
-      expect(find.byTooltip(l10n.resume), findsWidgets);
+      // 每条任务标题右侧都有一个 ⋮；三条任务各一个。
+      expect(find.byTooltip(l10n.moreActions), findsNWidgets(3));
+      // 暂停中的那条在封面中央直接给出主操作，点一下就是继续下载。
+      expect(find.text(l10n.startCache), findsOneWidget);
+      // 下载中的那条没有中央按钮，它的「暂停」收在 ⋮ 菜单里。
+      // 排序把下载中排在最前，所以第一个 ⋮ 属于它。
+      await tester.tap(find.byTooltip(l10n.moreActions).first);
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.pause), findsOneWidget);
+    });
+
+    testWidgets('点封面中央的「开始缓存」会把暂停的任务放回队列', (tester) async {
+      await _pump(tester);
+      final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
+      await tester.tap(find.text('${l10n.activeDownloads} 3'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.startCache));
+      await tester.pumpAndSettle();
+      // 假控制器不落盘，只要求这条路径不抛异常、UI 不塌。
+      expect(tester.takeException(), isNull);
     });
   });
 

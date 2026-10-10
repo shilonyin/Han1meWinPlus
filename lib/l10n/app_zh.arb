@@ -296,6 +296,8 @@
   "cachedVideos": "已缓存视频",
   "activeDownloads": "正在缓存",
   "cacheEmptyActive": "当前没有正在缓存的任务",
+  "goToDetail": "前往详情页",
+  "startCache": "开始缓存",
   "folderContents": "{count} 个内容",
   "@folderContents": {"placeholders": {"count": {"type": "int"}}},
   "mainEpisodes": "正片",

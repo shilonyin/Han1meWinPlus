@@ -872,6 +872,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheEmptyActive => '当前没有正在缓存的任务';
 
   @override
+  String get goToDetail => '前往详情页';
+
+  @override
+  String get startCache => '开始缓存';
+
+  @override
   String folderContents(int count) {
     return '$count 个内容';
   }
@@ -3439,6 +3445,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get cacheEmptyActive => '目前沒有正在快取的任務';
+
+  @override
+  String get goToDetail => '前往詳情頁';
+
+  @override
+  String get startCache => '開始快取';
 
   @override
   String folderContents(int count) {

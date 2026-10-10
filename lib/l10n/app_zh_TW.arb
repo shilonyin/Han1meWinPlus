@@ -296,6 +296,8 @@
   "cachedVideos": "已快取影片",
   "activeDownloads": "正在快取",
   "cacheEmptyActive": "目前沒有正在快取的任務",
+  "goToDetail": "前往詳情頁",
+  "startCache": "開始快取",
   "folderContents": "{count} 個內容",
   "@folderContents": {"placeholders": {"count": {"type": "int"}}},
   "mainEpisodes": "正片",

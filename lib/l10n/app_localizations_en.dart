@@ -903,6 +903,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheEmptyActive => 'Nothing is downloading';
 
   @override
+  String get goToDetail => 'Go to details';
+
+  @override
+  String get startCache => 'Start download';
+
+  @override
   String folderContents(int count) {
     return '$count items';
   }

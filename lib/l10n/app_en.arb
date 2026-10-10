@@ -303,6 +303,8 @@
   "cachedVideos": "Downloaded",
   "activeDownloads": "Downloading",
   "cacheEmptyActive": "Nothing is downloading",
+  "goToDetail": "Go to details",
+  "startCache": "Start download",
   "folderContents": "{count} items",
   "@folderContents": {"placeholders": {"count": {"type": "int"}}},
   "mainEpisodes": "Main",

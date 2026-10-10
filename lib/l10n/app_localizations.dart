@@ -1653,6 +1653,18 @@ abstract class AppLocalizations {
   /// **'Nothing is downloading'**
   String get cacheEmptyActive;
 
+  /// No description provided for @goToDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to details'**
+  String get goToDetail;
+
+  /// No description provided for @startCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Start download'**
+  String get startCache;
+
   /// No description provided for @folderContents.
   ///
   /// In en, this message translates to:
