@@ -201,7 +201,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 发布由 GitHub Actions 自动完成（[`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)），不需要本地打包。
 
-1. 更新 `pubspec.yaml` 里的 `version:`（例如 `1.1.9+20`），提交并推送到 `win` 分支
+1. 更新 `pubspec.yaml` 里的 `version:`（例如 `1.1.9+20`），提交并推送到 `master` 分支
 2. 打 tag 并推送，tag 必须和 `pubspec.yaml` 的版本号一致：
 
    ```bash

@@ -21,8 +21,8 @@
 # 审查某个提交
 .\tools\ocr\review.ps1 -Commit 7582316 -Out .review.md
 
-# 审查分支区间（相对 win 分支的改动）
-.\tools\ocr\review.ps1 -From origin/win -To HEAD -Out .review.md
+# 审查分支区间（相对 master 分支的改动）
+.\tools\ocr\review.ps1 -From origin/master -To HEAD -Out .review.md
 
 # 补充业务背景，审查会更准（提交信息里说不清的需求意图写这里）
 .\tools\ocr\review.ps1 -Background "给播放器加重试，失败 3 次后回退到 720p" -Out .review.md

@@ -7,7 +7,7 @@
 # 用法（在仓库根目录执行）：
 #   .\tools\ocr\review.ps1                      # 审查工作区改动（含未跟踪文件）
 #   .\tools\ocr\review.ps1 -Commit 7582316      # 审查单个提交
-#   .\tools\ocr\review.ps1 -From main -To win   # 审查分支区间
+#   .\tools\ocr\review.ps1 -From main -To master # 审查分支区间
 #   .\tools\ocr\review.ps1 -Background "背景"    # 补充业务背景，提升审查准确度
 #   .\tools\ocr\review.ps1 -Out review.md       # 结果写入文件（默认打印到 stdout）
 

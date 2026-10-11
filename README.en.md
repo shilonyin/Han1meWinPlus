@@ -201,7 +201,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 Releases are produced automatically by GitHub Actions ([`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml)); no local packaging is needed.
 
-1. Bump `version:` in `pubspec.yaml` (for example `1.1.9+20`), commit and push to the `win` branch
+1. Bump `version:` in `pubspec.yaml` (for example `1.1.9+20`), commit and push to the `master` branch
 2. Create and push a tag that matches the `pubspec.yaml` version:
 
    ```bash

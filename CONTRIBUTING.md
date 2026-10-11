@@ -31,8 +31,9 @@
 
 ### 分支
 
-- 默认分支是 **`win`**，也是开发分支；所有 Pull Request 请提到 `win`
-- `main` 保持为上游的纯净镜像，用来同步上游改动（`git fetch upstream && git merge upstream/main`）
+- 默认分支是 **`master`**，也是开发分支；所有 Pull Request 请提到 `master`
+- `main` 保持为上游的纯净镜像，默认不再跟踪上游；确需同步时先补回远程：
+  `git remote add upstream https://github.com/1wc10086/Han1mePlus.git && git fetch upstream && git merge upstream/main`
 
 ### 构建
 
@@ -102,7 +103,7 @@ Get-ChildItem -Recurse lib,test,docs -Include *.dart,*.md | Select-String -Patte
 
 ### CI 行为
 
-- 推送到 `win` 或提交 PR：只做构建验证
+- 推送到 `master` 或提交 PR：只做构建验证
 - 推送 `v*` tag：编译 + 打包安装包 + 发布 Release（版本号必须与 `pubspec.yaml` 一致）
 
 发版由维护者执行，正常提交不需要关心 tag。

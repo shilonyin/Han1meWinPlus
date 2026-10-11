@@ -1,13 +1,13 @@
 name: Build Windows
 
 # 只在打 tag（v*，编译 + 打包 + 发 Release）、PR 和手动触发（workflow_dispatch）
-# 时构建；平时推 win 分支不触发 —— 本地验证过再推，省下每次 12 分钟的 CI。
-# 临时想验证某个提交：Actions 页面手动 Run workflow，或对着 win 开一个 PR。
+# 时构建；平时推 master 分支不触发 —— 本地验证过再推，省下每次 12 分钟的 CI。
+# 临时想验证某个提交：Actions 页面手动 Run workflow，或对着 master 开一个 PR。
 on:
   push:
     tags: ['v*']
   pull_request:
-    branches: [win]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
