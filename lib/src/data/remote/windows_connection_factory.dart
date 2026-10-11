@@ -65,27 +65,62 @@ class WindowsConnectionFactory {
     if (proxyHost != null) return Socket.startConnect(proxyHost, proxyPort ?? uri.port);
     final port = uri.hasPort ? uri.port : (uri.isScheme('https') ? 443 : 80);
     final builtIn = useBuiltInHosts ? builtInHosts[uri.host] : null;
+
+    // DoH 与内置 Hosts 是**互补**的，不是二选一：
+    // - 内置 Hosts 是照某次实测写死的 anycast IP，快且稳，但站点换边缘/换 IP 段后会过期；
+    // - DoH 拿的是**当下**的真实解析结果，能跟着站点走，但它本身要先解析 DoH 服务器，
+    //   在 DNS 被污染的网络里需要 bootstrap IP 才起得来。
+    // 把两者的结果合成一个候选池交给 `AddressRanker` 按实测延迟排序，谁快用谁：
+    // 内置项失效时 DoH 顶上，DoH 拿不到或被污染时内置项兜底。以前是「有内置列表就直接
+    // 返回」，导致 hanime 主站（`hanime1.me` 等都在列表里）根本走不到 DoH —— 设置里
+    // 开了 DoH 也对它不生效。
+    final resolved = useDoh ? await _resolveWithDoh(uri.host) : const <String>[];
+
     if (builtIn != null) {
       // 后台预热探测：只有「没有数据」或「数据已过期」的 host 才会真的发起，
       // 而且不 await——本次请求仍按当前已知的排序走，不会因为探测而变慢。
       unawaited(AddressRanker.instance.warmUp(builtInHosts, allowBadCertificate: hanimeHosts.contains));
-      return _connect(uri, [...builtIn, uri.host], port);
+      return _connect(uri, mergeCandidates(builtIn: builtIn, resolved: resolved, host: uri.host), port);
     }
     if (!useDoh) return _startConnect(uri.host, port);
+    return _connect(uri, mergeCandidates(builtIn: const [], resolved: resolved, host: uri.host), port);
+  }
+
+  /// 把「内置地址」「DoH 解析结果」「域名兜底项」合成一个候选池。
+  ///
+  /// 顺序是刻意的：[builtIn] 在前保证内置优选节点的优先级，[resolved] 接上让 DoH
+  /// 能补上内置列表失效/过期的情况，[host] 永远最后 —— `AddressRanker.order` 也会
+  /// 把非字面量地址恒定排在末尾，两边一致，绝不会出现「域名兜底项挡住真实 IP」。
+  ///
+  /// 去重是必要的：DoH 解析出来的往往就是那几个 Cloudflare anycast IP，和内置列表
+  /// 高度重叠；不去重的话 `_connect` 会把同一个坏地址重复烧好几遍超时。
+  static List<String> mergeCandidates({required List<String> builtIn, required List<String> resolved, required String host}) {
+    final seen = <String>{};
+    final merged = <String>[];
+    for (final address in [...builtIn, ...resolved]) {
+      // 域名兜底项统一在最后单独加，这里先跳过，避免它被提前插进 IP 中间。
+      if (address == host) continue;
+      if (seen.add(address)) merged.add(address);
+    }
+    merged.add(host);
+    return merged;
+  }
+
+  /// 用 DoH 解析 [host]，失败返回空表（调用方会退回内置地址或系统解析）。
+  ///
+  /// 单独抽出来是因为 `call` 里有两处要用，而且失败必须**静默兜底** —— DoH 不可用
+  /// 不该让整个请求失败，退回原来的路径即可。
+  Future<List<String>> _resolveWithDoh(String host) async {
     try {
-      final addresses = await _DohResolver(
+      return await _DohResolver(
         preset: dohPreset,
         customUrl: dohCustomUrl,
         bootstrapIps: dohBootstrapIps,
         timeout: _timeout,
-      ).resolve(uri.host);
-      // 这里必须 await：`_connect` 自己会逐个候选重试并在全失败后抛错，不 await 的话
-      // 它的异常会绕过下面的 catch 直接逃出去（lint: unawaited_return_in_try_block）。
-      // await 之后语义不变——DoH 解析出来的地址同样要经过候选重试，只是失败会落到
-      // catch 里、退回 [uri.host] 再试一次。
-      if (addresses.isNotEmpty) return await _connect(uri, [...addresses, uri.host], port);
-    } catch (_) {}
-    return _connect(uri, [uri.host], port);
+      ).resolve(host);
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<ConnectionTask<Socket>> _connect(Uri uri, List<String> addresses, int port) async {
