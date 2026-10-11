@@ -3785,7 +3785,7 @@ abstract class AppLocalizations {
   /// No description provided for @upstreamProject.
   ///
   /// In en, this message translates to:
-  /// **'Upstream project'**
+  /// **'Source project'**
   String get upstreamProject;
 
   /// No description provided for @contributing.
@@ -3803,7 +3803,7 @@ abstract class AppLocalizations {
   /// No description provided for @acknowledgementsBody.
   ///
   /// In en, this message translates to:
-  /// **'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is HarmonyOS Sans by Huawei Device Co., Ltd., free to use under the HarmonyOS Sans Fonts License Agreement.'**
+  /// **'This app is based on Han1mePlus. Thanks to the original author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is HarmonyOS Sans by Huawei Device Co., Ltd., free to use under the HarmonyOS Sans Fonts License Agreement.'**
   String get acknowledgementsBody;
 
   /// No description provided for @agplLicense.
