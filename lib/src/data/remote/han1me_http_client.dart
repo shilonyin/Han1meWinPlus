@@ -7,6 +7,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart' as webview;
 
 import '../../core/desktop_platform.dart';
 import 'address_ranker.dart';
+import 'browser_user_agent.dart';
 import 'windows_connection_factory.dart';
 import 'windows_http_overrides.dart';
 
@@ -35,13 +36,21 @@ class Han1meHttpClient {
   /// `Han1meWinPlus/1.1.24` 与不带 UA 都是 200 且拿到完整的 60 条收藏。
   static const selfIdentifiedUserAgent = 'Han1meWinPlus/1.1.24';
 
-  /// 浏览器 UA —— 只有真正的浏览器内核才该用它：登录/Cloudflare 的 WebView
-  /// （`login_page.dart`、`cloudflare_page.dart`）和播放器请求头。
-  static const browserUserAgent =
-      'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36';
+  /// 浏览器 UA —— 需要「像浏览器」的场景用：登录 / Cloudflare 校验的 WebView、
+  /// 无头代取、播放器请求头，以及会校验 `navigator.userAgent` 的 AV 站点。
+  ///
+  /// 版本号**动态取自本机 WebView2 内核**（见 [BrowserUserAgent]），不写死：
+  /// 写死的版本一旦与真实内核不符（内核 154、代码写 149），请求头与页面自报的
+  /// 信息自相矛盾，会被判定成伪造浏览器，验证永远过不去。
+  static String get browserUserAgent => BrowserUserAgent.value;
 
-  /// 按目标主机挑 UA：hanime 站群走 [selfIdentifiedUserAgent]（见上），
-  /// 其它主机（图片 CDN、getchu 等）继续用浏览器 UA，行为保持原样不回归。
+  /// 按目标主机挑 UA。
+  ///
+  /// 两套 UA 服务的是**两类不同的站点**，不能合并：
+  /// - hanime 站群（`hanime1.*` 等）：靠 [selfIdentifiedUserAgent] 绕过「冒充浏览器」
+  ///   判定 —— Dart 客户端的 TLS 指纹装不成 Chrome，用浏览器 UA 反而会被 403。
+  /// - 其它主机（AV 源、图片 CDN、getchu…）：站点会校验页面内 `navigator.userAgent`，
+  ///   必须用与 WebView 内核一致的 [browserUserAgent]。
   static String userAgentFor(String host) {
     for (final mirror in WindowsConnectionFactory.hanimeHosts) {
       if (host == mirror || host.endsWith('.$mirror')) return selfIdentifiedUserAgent;

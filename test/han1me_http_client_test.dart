@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/src/data/remote/han1me_http_client.dart';
+import 'package:han1me_win_plus/src/data/remote/webview_page_fetcher.dart';
 
 /// 镜像站（`hanime1.com` / `hanime1.me` / `hanimeone.me`）之间必须共享 cookie。
 ///
@@ -65,5 +66,14 @@ void main() {
     for (final host in ['vdownload.hembed.com', 'www.getchu.com', 'example.com']) {
       expect(Han1meHttpClient.userAgentFor(host), Han1meHttpClient.browserUserAgent, reason: host);
     }
+  });
+
+  // 校验页拿 `cf_clearance` 用的 UA，必须和「像浏览器」那批请求同一串；
+  // 而 hanime 站群的 Dart 请求走的是自报 UA —— 两者是不同场景，不能混。
+  test('浏览器 UA 动态取自本机内核，不是写死的版本号', () {
+    expect(Han1meHttpClient.browserUserAgent, contains('Mozilla'));
+    expect(Han1meHttpClient.browserUserAgent, isNot(startsWith('Han1meWinPlus/')));
+    // 与无头代取、AV 源共用同一串（cf_clearance 的前置条件）。
+    expect(Han1meHttpClient.browserUserAgent, WebViewPageFetcher.userAgent);
   });
 }

@@ -69,8 +69,12 @@ class _CloudflarePageState extends ConsumerState<CloudflarePage> {
   Widget build(BuildContext context) {
     final baseUrl = ref.watch(settingsProvider).valueOrNull?.resolvedBaseUrl ?? 'https://hanime1.com';
     final initialUrl = widget.initialUrl ?? baseUrl;
-    // `cf_clearance` 是与 UA 绑定的，所以验证用的 UA 必须和随后抓页面的 UA 一致：
-    // AV 视频源走桌面版 Chrome（见 `JavApi.userAgent`），hanime1 走它自己的移动 UA。
+    // 验证用的 UA 必须和随后「像浏览器」的那批请求逐字一致（`cf_clearance` 与 UA
+    // 绑定）：hanime1 走 `Han1meApi.userAgent`（= 动态取本机内核的浏览器 UA），
+    // AV 源走 `JavApi.userAgent`。
+    // 不能用 `Han1meHttpClient.userAgentFor(host)` —— 它对 hanime 站群返回的是
+    // 自报家门的 UA（桌面 Dart 请求靠它绕过「冒充浏览器」判定），WebView 用它去过
+    // 挑战必然失败。
     final userAgent = javSiteFor(initialUrl) == null ? Han1meApi.userAgent : JavApi.userAgent;
     final webViewEnvironment = ref.watch(webViewEnvironmentProvider).valueOrNull;
     return Scaffold(
