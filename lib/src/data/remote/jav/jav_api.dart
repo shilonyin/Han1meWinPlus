@@ -85,7 +85,10 @@ class JavApi {
       // 返回的是一张错误页，解析出来就是空的）。给界面一个明确的失败，而不是白屏。
       Error.throwWithStackTrace(StateError('${site.label} 暂时没有可用内容（可能被站点限流）'), StackTrace.current);
     }
-    return HomeFeed(sections: sections);
+    // 首页顶部大图（对应 hanime1 的 home-banner）：AV 站点没有独立的横幅元素，
+    // 用第一个分区里最新的一条充当 —— 首页版式（大图 + 下方分区）才和 hanime1 一致。
+    final heroVideos = usable.first.videos;
+    return HomeFeed(sections: sections, featured: heroVideos.isEmpty ? null : heroVideos.first);
   }
 
   /// 搜索。
