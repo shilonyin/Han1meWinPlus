@@ -23,7 +23,12 @@ CloseApplications=yes
 RestartApplications=no
 
 [Files]
-Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Excludes 只在这里出现一次，作用是挡掉 MSVC 链接器的中间产物：
+; `han1me_win_plus.exp`（导出表）与 `han1me_win_plus.lib`（导入库）都落在 Release\
+; 目录里，是链接 exe 时顺手写下的，运行时一个都用不到。早先没排除，实测它们确实
+; 被装进了 {app}（.lib 那份还停留在更早一次构建的日期上）。两者合计 3 KB，体积
+; 上无所谓，纯粹是不该出现在成品目录里。
+Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Excludes: "*.exp,*.lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [InstallDelete]
 ; 升级安装时 Inno 只覆盖、**从不删除**「旧版本装过、新版本已不再分发」的文件，
@@ -44,6 +49,10 @@ Type: filesandordirs; Name: "{app}\data\flutter_assets\packages\cupertino_icons"
 ; 上一轮手工留下的可执行文件回退点（名字带版本号，用通配符一并清掉将来的）。
 ; 只匹配 `han1me_win_plus.exe.bak-*`，不会碰到正在用的 han1me_win_plus.exe。
 Type: files; Name: "{app}\han1me_win_plus.exe.bak-*"
+; 链接器中间产物：早先几版（[Files] 尚未加 Excludes 时）被装进过 {app}，
+; 升级安装不会自己消失，所以这里显式点名清掉。新装则根本不再分发（见 [Files]）。
+Type: files; Name: "{app}\han1me_win_plus.exp"
+Type: files; Name: "{app}\han1me_win_plus.lib"
 
 [Icons]
 Name: "{autoprograms}\Han1meWinPlus"; Filename: "{app}\han1me_win_plus.exe"

@@ -172,7 +172,11 @@ class AppRouter {
         GoRoute(
           path: '/downloads',
           parentNavigatorKey: navigatorKey,
-          builder: (context, state) => const CachePage(),
+          // `?tab=active` 直接落在「正在缓存」页签：播放窗口把用户送过来时（点
+          // 「下载」或「我的下载」）要看到刚加进队列的东西，而不是已下完的列表。
+          builder: (context, state) => CachePage(
+            initialTab: state.uri.queryParameters['tab'] == 'active' ? 1 : 0,
+          ),
         ),
         GoRoute(
           path: '/settings/about',

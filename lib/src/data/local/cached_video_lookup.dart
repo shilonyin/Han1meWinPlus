@@ -35,6 +35,25 @@ String? pickCachedVideoPath(
   return localPath;
 }
 
+/// 从磁盘只读地读一遍下载索引；文件不存在 / 是截断产物 / 解析失败一律返回 null。
+///
+/// 抽出来的原因：播放窗口需要「已有哪些分组」这类信息，但它**不能**去读
+/// [downloadProvider] —— 那会在播放窗口进程里把下载调度器整个拉起来，两个进程
+/// 各持一份内存状态、各写一次同一个索引文件，是会互相覆盖的。
+Future<DownloadState?> loadDownloadStateFromDisk() async {
+  try {
+    // SettingsStore.load() 内部已做 normalizeDownloadPath。
+    final settings = await SettingsStore(JsonStore()).load();
+    final store = File(path.join(settings.downloadPath, 'download_store.json'));
+    if (!await store.exists()) return null;
+    final raw = await store.readAsString();
+    if (raw.trim().isEmpty) return null; // 截断写入的产物，当作没有缓存
+    return DownloadState.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// 按视频 id 查本地缓存，供**独立播放窗口**用。
 ///
 /// 为什么是「只读」而不能复用 [downloadProvider]：
@@ -48,15 +67,8 @@ String? pickCachedVideoPath(
 /// 视频打不开。
 Future<VideoDetail?> loadCachedVideoDetail(String videoCode) async {
   try {
-    // SettingsStore.load() 内部已做 normalizeDownloadPath。
-    final settings = await SettingsStore(JsonStore()).load();
-    final store = File(path.join(settings.downloadPath, 'download_store.json'));
-    if (!await store.exists()) return null;
-    final raw = await store.readAsString();
-    if (raw.trim().isEmpty) return null; // 截断写入的产物，当作没有缓存
-    final state = DownloadState.fromJson(
-      jsonDecode(raw) as Map<String, dynamic>,
-    );
+    final state = await loadDownloadStateFromDisk();
+    if (state == null) return null;
     final localPath = pickCachedVideoPath(
       state,
       videoCode,

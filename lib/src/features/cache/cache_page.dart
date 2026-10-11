@@ -19,7 +19,7 @@ import '../../core/app_dialog.dart';
 
 /// 缓存管理页的分栏宽度上限。
 ///
-/// 参考 b 站离线缓存的卡片网格：窄窗口下两列、宽窗口按可用宽度铺更多列，
+/// 参考离线缓存的卡片网格：窄窗口下两列、宽窗口按可用宽度铺更多列，
 /// 但单张卡不超过 260，免得超大窗口下卡片被拉得又扁又宽。
 const _maxCardWidth = 260.0;
 
@@ -27,13 +27,19 @@ const _minCardWidth = 150.0;
 
 /// 缓存管理页：顶部「已缓存视频 / 正在缓存」双状态页签，下面是内容网格。
 ///
-/// 这一版按 b 站离线缓存的信息架构重组：
+/// 这一版按离线缓存的信息架构重组：
 /// - 状态页签取代了原来的「置顶 / 全部」折叠区 —— 已完成和未完成本来就是两件事，
 ///   混在一个列表里既看不清进度也不好批量操作。
-/// - 分组（系列）聚合成文件夹卡片，点开才是分集列表，对应 b 站的一层目录。
+/// - 分组（系列）聚合成文件夹卡片，点开才是分集列表，对应离线缓存的一层目录。
 /// - 工具栏放排序 / 分组管理 / 批量操作。
 class CachePage extends ConsumerStatefulWidget {
-  const CachePage({super.key});
+  const CachePage({super.key, this.initialTab = 0});
+
+  /// 初始页签：0 = 已缓存视频，1 = 正在缓存。
+  ///
+  /// 独立播放窗口把用户送到缓存页时（点「下载」或「我的下载」）默认落在「正在缓存」：
+  /// 用户刚加进队列的东西就在那一页，停在「已缓存视频」会让人以为没生效。
+  final int initialTab;
 
   @override
   ConsumerState<CachePage> createState() => _CachePageState();
@@ -49,7 +55,7 @@ class _CachePageState extends ConsumerState<CachePage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab.clamp(0, 1));
     _tabs.addListener(() {
       // 切页签时清掉选择：两个列表的任务集合不同，留着上一页的选中项会让
       // 计数和实际能操作的对象对不上。
@@ -230,7 +236,7 @@ class _CachedTab extends StatelessWidget {
     // 注意这里**不**把 `default` 当成一个文件夹：在本应用的数据模型里
     // `default` 的语义是"全部任务"（见 `_inGroup`），拿它当文件夹会把每一条
     // 内容再算一遍，网格上就会出现"文件夹里装着另一张同样的卡"。
-    // 所以：有归属的聚成文件夹，没归属的单铺一张卡 —— 与 b 站离线缓存的形态一致。
+    // 所以：有归属的聚成文件夹，没归属的单铺一张卡 —— 与离线缓存的形态一致。
     final entries = <_CacheEntry>[
       for (final group in groups)
         if (group.id != 'default')
@@ -330,7 +336,7 @@ class _SelectableBorder extends StatelessWidget {
 /// 「正在缓存」页签：未完成任务的卡片网格。
 ///
 /// 版式与「已缓存视频」共用同一套网格参数，两页签切换时列数与卡片宽度不会跳变；
-/// 单张卡内部是 b 站离线缓存那套（封面浮层 + 标题 + 状态行 + 进度条）。
+/// 单张卡内部是离线缓存那套（封面浮层 + 标题 + 状态行 + 进度条）。
 class _ActiveTab extends StatelessWidget {
   const _ActiveTab({required this.tasks, required this.selected, required this.selecting, required this.onToggleSelect});
 
@@ -446,7 +452,7 @@ class _CacheToolbar extends StatelessWidget {
       };
 }
 
-/// 工具栏上的下拉菜单（b 站那种「任务排序 ⌄」按钮）。
+/// 工具栏上的下拉菜单（离线缓存那种「任务排序 ⌄」按钮）。
 class _ToolbarMenu extends StatelessWidget {
   const _ToolbarMenu({required this.tooltip, required this.icon, required this.entries});
 

@@ -82,6 +82,8 @@ Future<void> _postLaunch() async {
 /// setting.json）、应用标题栏偏好、首帧后初始化播放内核，然后跑精简的
 /// [PlayWindowApp]。通知、深链、更新清理这些主窗口专属的启动步骤全部跳过。
 Future<void> _runPlayWindow(PlayWindowArgs args) async {
+  // 界面层据此避开「只有主窗口才能做的事」（下载调度器只有一个进程能持有）。
+  isPlayWindowProcess = true;
   final settings = await SettingsStore(JsonStore()).load();
   await WindowChrome.setUseSystemTitleBar(settings.useSystemTitleBar);
   WidgetsBinding.instance.addPostFrameCallback((_) => MediaPlayerInitializer.bootstrap(settings));

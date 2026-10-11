@@ -2175,6 +2175,12 @@ abstract class AppLocalizations {
   /// **'Added to download queue'**
   String get addedToDownloadQueue;
 
+  /// No description provided for @downloadHandedToMainWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed to the main window — progress shows under Cache'**
+  String get downloadHandedToMainWindow;
+
   /// No description provided for @collapse.
   ///
   /// In en, this message translates to:
@@ -3371,7 +3377,7 @@ abstract class AppLocalizations {
   /// No description provided for @openVideoInWindowDescription.
   ///
   /// In en, this message translates to:
-  /// **'Clicking a cover opens a standalone player window (like the bilibili client); turn off to play inside the main window'**
+  /// **'Clicking a cover opens a standalone player window; turn off to play inside the main window'**
   String get openVideoInWindowDescription;
 
   /// No description provided for @localMedia.

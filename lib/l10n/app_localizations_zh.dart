@@ -1161,6 +1161,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addedToDownloadQueue => '已加入下载队列';
 
   @override
+  String get downloadHandedToMainWindow => '已交给主窗口下载，进度在「缓存」里查看';
+
+  @override
   String get collapse => '收起';
 
   @override
@@ -1795,8 +1798,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openVideoInWindow => '在独立窗口播放视频';
 
   @override
-  String get openVideoInWindowDescription =>
-      '点击封面时弹出独立播放窗口（类似 b 站客户端），关闭后在主窗口内跳转播放页';
+  String get openVideoInWindowDescription => '点击封面时弹出独立播放窗口，关闭后在主窗口内跳转播放页';
 
   @override
   String get localMedia => '本地媒体库';
@@ -3736,6 +3738,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addedToDownloadQueue => '已加入下載佇列';
 
   @override
+  String get downloadHandedToMainWindow => '已交給主視窗下載，進度在「快取」裡查看';
+
+  @override
   String get collapse => '收起';
 
   @override
@@ -4370,8 +4375,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get openVideoInWindow => '在獨立視窗播放影片';
 
   @override
-  String get openVideoInWindowDescription =>
-      '點擊封面時彈出獨立播放視窗（類似 b 站用戶端），關閉後在主視窗內跳轉播放頁';
+  String get openVideoInWindowDescription => '點擊封面時彈出獨立播放視窗，關閉後在主視窗內跳轉播放頁';
 
   @override
   String get localMedia => '本地媒體庫';

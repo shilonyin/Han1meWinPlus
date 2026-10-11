@@ -9,6 +9,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
+import '../../data/local/cached_video_lookup.dart';
+import '../../data/local/download_requests.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/library_repository.dart';
 import '../../domain/models/download.dart';
@@ -20,6 +22,8 @@ import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
 import 'download_picker_sheet.dart';
+import 'download_queue.dart';
+import 'play_window.dart';
 import 'video_controller.dart';
 import '../../core/app_dialog.dart';
 
@@ -182,14 +186,23 @@ Future<void> _pickPlaylist(BuildContext context, WidgetRef ref, VideoDetail vide
 }
 
 /// HLS/播放列表源不能当成普通文件下载（那只会存到一个清单），下载入口只对渐进式片源开放。
-bool _isStreamPlaylist(VideoSource source) => (source.type ?? '').toLowerCase().contains('mpegurl') || source.url.contains('.m3u8');
+bool _isStreamPlaylist(VideoSource source) => isStreamPlaylistSource(source);
 
 Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetail video) async {
   final downloadable = video.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
   if (downloadable.isEmpty) return;
   final settings = await ref.read(settingsProvider.future);
   if (!context.mounted) return;
-  final groups = ref.read(downloadProvider).valueOrNull?.groups ?? const <DownloadGroup>[];
+  // 已有哪些分组只读磁盘索引。
+  //
+  // 这里**不能**读 `downloadProvider`：在独立播放窗口里（另一个进程）读它会把
+  // DownloadController 整个拉起来——它持有内存状态、会自动续传并写回
+  // download_store.json，两个进程各跑一份就是互相覆盖。分组名只用来做「复用还是
+  // 新建」的提示，只读文件完全够。
+  final groups = isPlayWindowProcess
+      ? (await loadDownloadStateFromDisk())?.groups ?? const <DownloadGroup>[]
+      : ref.read(downloadProvider).valueOrNull?.groups ?? const <DownloadGroup>[];
+  if (!context.mounted) return;
 
   // 剧集列表：当前播放的这一集 + playlist 里的其他集（同 id 只留一条）。
   final episodes = <VideoCard>[
@@ -214,6 +227,38 @@ Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetai
     groupNames: {for (final group in groups) if (group.id != 'default') group.name},
   );
   if (picked == null) return;
+
+  // 独立播放窗口里的两个按钮都**不**在本进程执行：
+  //
+  // 下载调度器（DownloadController）持有内存状态并写回 download_store.json，而播放
+  // 窗口是另一个进程。以前在这里就地建任务，结果是「下载内容只出现在点它的那个
+  // 窗口」——主窗口的进度页签永远是空的，反过来也一样。所以这里只把意图投进信箱，
+  // 由主窗口取走执行（见 download_requests.dart 与 download_queue.dart）。
+  if (isPlayWindowProcess) {
+    await postDownloadRequest(
+      DownloadRequest(
+        kind: picked.openDownloads
+            ? DownloadRequestKind.openDownloads
+            : DownloadRequestKind.download,
+        episodes: picked.openDownloads
+            ? const []
+            : episodes
+                .where((episode) => picked.episodeIds.contains(episode.id))
+                .toList(growable: false),
+        quality: picked.source.quality,
+        groupName: picked.groupName,
+        // 同系列的旧任务也要一并归组，所以要带上整个 playlist 的 id。
+        seriesIds: video.playlist.map((item) => item.id).toList(growable: false),
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.downloadHandedToMainWindow)),
+    );
+    return;
+  }
+
   // 「我的下载」：去看已经下好的东西，不创建任务。
   //
   // 两个要点：
@@ -230,44 +275,24 @@ Future<void> _showDownloadPicker(BuildContext context, WidgetRef ref, VideoDetai
     return;
   }
 
-  var groupId = 'default';
-  if (picked.groupName.isNotEmpty) {
-    groupId = await ref.read(downloadProvider.notifier).resolveAutoGroup(picked.groupName, DownloadGroupSort.defaultOrder);
-  }
-
-  // 逐集取详情页拿到真正的下载源：playlist 里只有 id/title，没有片源地址。
-  final repository = ref.read(han1meRepositoryProvider);
-  final baseUrl = settings.resolvedBaseUrl;
-  final wanted = episodes.where((episode) => picked.episodeIds.contains(episode.id)).toList(growable: false);
-  var added = 0;
-  var failed = 0;
-  for (final episode in wanted) {
-    try {
-      final detail = episode.id == video.id ? video : await repository.video(baseUrl, episode.id);
-      // 按用户选的清晰度取源；没有同名清晰度就退回第一个可下载的渐进式源。
-      final candidates = detail.sources.where((item) => !_isStreamPlaylist(item)).toList(growable: false);
-      if (candidates.isEmpty) {
-        failed++;
-        continue;
-      }
-      final match = candidates.where((item) => item.quality == picked.source.quality).firstOrNull ?? candidates.first;
-      await ref.read(downloadProvider.notifier).create(detail, match, groupId);
-      added++;
-    } catch (_) {
-      failed++;
-    }
-  }
-
-  // 同系列的旧任务若还在默认分组，一并归入新组；用户手动分过组的不动。
-  if (groupId != 'default') {
-    final codes = <String>{...wanted.map((episode) => episode.id), ...video.playlist.map((item) => item.id)};
-    await ref.read(downloadProvider.notifier).adoptSeriesTasks(codes, groupId);
-  }
+  final result = await enqueueDownloads(
+    ref,
+    episodes: episodes
+        .where((episode) => picked.episodeIds.contains(episode.id))
+        .toList(growable: false),
+    quality: picked.source.quality,
+    groupName: picked.groupName,
+    seriesIds: {
+      ...video.playlist.map((item) => item.id),
+      ...episodes.map((episode) => episode.id),
+    },
+    currentDetail: video,
+  );
 
   if (!context.mounted) return;
   final l10n = AppLocalizations.of(context)!;
-  final message = failed == 0 ? l10n.addedToDownloadQueue : '${l10n.addedToDownloadQueue} · ${l10n.downloadPartialFailed(failed)}';
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(added == 0 ? l10n.downloadPartialFailed(failed) : message)));
+  final message = result.failed == 0 ? l10n.addedToDownloadQueue : '${l10n.addedToDownloadQueue} · ${l10n.downloadPartialFailed(result.failed)}';
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.added == 0 ? l10n.downloadPartialFailed(result.failed) : message)));
 }
 
 class _PlaylistNameDialog extends StatefulWidget {

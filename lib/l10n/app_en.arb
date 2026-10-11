@@ -405,6 +405,7 @@
   "@downloadPartialFailed": {"placeholders": {"count": {"type": "int"}}},
   "downloadNothingSelected": "Select at least one episode",
   "addedToDownloadQueue": "Added to download queue",
+  "downloadHandedToMainWindow": "Handed to the main window — progress shows under Cache",
   "collapse": "Collapse",
   "collapseSidebar": "Collapse sidebar",
   "expandSidebar": "Expand sidebar",

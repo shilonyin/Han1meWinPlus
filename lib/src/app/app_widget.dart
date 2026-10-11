@@ -8,6 +8,7 @@ import '../core/app_scroll_behavior.dart';
 import '../core/m3e_theme_bridge.dart';
 import '../core/settings.dart';
 import '../features/auth/app_lock_gate.dart';
+import '../features/cache/download_request_listener.dart';
 import '../features/navigation/exit_coordinator.dart';
 import '../features/settings/settings_controller.dart';
 import '../features/window/app_title_bar.dart';
@@ -80,9 +81,13 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
                     navigatorKey: _appRouter.navigatorKey,
                     exitCoordinator: _exitCoordinator,
                     initialLink: widget.initialLink,
-                    child: MediaQuery(
-                      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-                      child: AppLockGate(child: child ?? const SizedBox.shrink()),
+                    child: DownloadRequestListener(
+                      // 独立播放窗口投进来的下载意图由主窗口执行（见该组件说明）。
+                      navigatorKey: _appRouter.navigatorKey,
+                      child: MediaQuery(
+                        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                        child: AppLockGate(child: child ?? const SizedBox.shrink()),
+                      ),
                     ),
                   ),
                 ),

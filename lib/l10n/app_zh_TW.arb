@@ -398,6 +398,7 @@
   "@downloadPartialFailed": {"placeholders": {"count": {"type": "int"}}},
   "downloadNothingSelected": "請至少選擇一集",
   "addedToDownloadQueue": "已加入下載佇列",
+  "downloadHandedToMainWindow": "已交給主視窗下載，進度在「快取」裡查看",
   "collapse": "收起",
   "collapseSidebar": "收起側邊欄",
   "expandSidebar": "展開側邊欄",

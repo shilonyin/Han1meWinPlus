@@ -40,3 +40,5 @@ tools/ocr/.dl/
 # 截图 / 连拍工具的临时产物（.dsh_shots 里的脚本没传 -Out 时会落在仓库根）
 /*.bmp
 
+# Widget Preview related
+.widget_preview/

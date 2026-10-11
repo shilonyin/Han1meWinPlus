@@ -1199,6 +1199,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addedToDownloadQueue => 'Added to download queue';
 
   @override
+  String get downloadHandedToMainWindow =>
+      'Handed to the main window — progress shows under Cache';
+
+  @override
   String get collapse => 'Collapse';
 
   @override
@@ -1852,7 +1856,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openVideoInWindowDescription =>
-      'Clicking a cover opens a standalone player window (like the bilibili client); turn off to play inside the main window';
+      'Clicking a cover opens a standalone player window; turn off to play inside the main window';
 
   @override
   String get localMedia => 'Local media library';

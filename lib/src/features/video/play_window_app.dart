@@ -18,7 +18,6 @@ import '../../core/window_chrome.dart';
 import '../../data/local/cached_video_lookup.dart';
 import '../../domain/models/video.dart';
 import '../author/author_page.dart';
-import '../cache/cache_page.dart';
 import '../settings/cloudflare_page.dart';
 import '../settings/settings_controller.dart';
 import '../window/app_title_bar.dart';
@@ -81,12 +80,18 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
             onHome: revealMainWindow,
           ),
         ),
-        // 换集 / 相关推荐在窗口内导航，不开新窗口（b 站行为一致）。
+        // 换集 / 相关推荐在窗口内导航，不开新窗口（同类客户端行为一致）。
         GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
         // 视频加载遇到 Cloudflare 质询时的过验页。
         GoRoute(path: '/cloudflare', builder: (context, state) => CloudflarePage(initialUrl: state.extra as String?)),
-        // 播放器菜单里的「下载管理」。
-        GoRoute(path: '/downloads', builder: (context, state) => const CachePage()),
+        // 这里**故意没有**缓存页（`/downloads`）。
+        //
+        // 播放窗口是另一个进程，缓存页却整个长在 `downloadProvider` 上——它持有
+        // 下载任务的内存状态并写回下载索引，只有主窗口该跑这一份。以前在播放窗口里
+        // 打开它，看到的就是另一个进程的那份状态：用户在播放窗口点下载、内容只出现在
+        // 播放窗口的缓存页，主窗口（软件本体）永远显示空的；反过来也一样。
+        // 现在下载与「我的下载」都投递意图给主窗口（见 download_requests.dart），
+        // 缓存页只剩主窗口一处入口。
         // 简介里的作者 / 标签会 push 搜索页。
         GoRoute(path: '/search', builder: searchRouteBuilder),
         // 简介里的作者名进作者页（与主窗口同一条路由）。
