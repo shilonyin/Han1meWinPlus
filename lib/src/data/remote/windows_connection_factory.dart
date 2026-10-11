@@ -79,7 +79,11 @@ class WindowsConnectionFactory {
         bootstrapIps: dohBootstrapIps,
         timeout: _timeout,
       ).resolve(uri.host);
-      if (addresses.isNotEmpty) return _connect(uri, [...addresses, uri.host], port);
+      // 这里必须 await：`_connect` 自己会逐个候选重试并在全失败后抛错，不 await 的话
+      // 它的异常会绕过下面的 catch 直接逃出去（lint: unawaited_return_in_try_block）。
+      // await 之后语义不变——DoH 解析出来的地址同样要经过候选重试，只是失败会落到
+      // catch 里、退回 [uri.host] 再试一次。
+      if (addresses.isNotEmpty) return await _connect(uri, [...addresses, uri.host], port);
     } catch (_) {}
     return _connect(uri, [uri.host], port);
   }
@@ -97,7 +101,10 @@ class WindowsConnectionFactory {
       Socket? plain;
       final stopwatch = Stopwatch()..start();
       try {
-        if (address == uri.host) return _startConnect(uri.host, port);
+        // 兜底项（`uri.host` 本身）由 AddressRanker.order 恒定排在候选末尾，所以这里的
+        // await 不会挡住后面的候选；不 await 的话它抛的错会绕过 catch、不走
+        // recordFailure（lint: unawaited_return_in_try_block）。
+        if (address == uri.host) return await _startConnect(uri.host, port);
         // 逐个候选探测用短超时：候选里只要有一个黑洞地址，长超时就会让整次请求
         // 卡满设置里的秒数（默认 10s）才轮到下一个——实测内置列表里就踩过这种坑。
         plain = await Socket.connect(address, port, timeout: AddressRanker.probeTimeout);
