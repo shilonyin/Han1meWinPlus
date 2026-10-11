@@ -8,6 +8,7 @@ import 'src/app.dart';
 import 'src/core/app_notifications.dart';
 import 'src/core/deep_link.dart';
 import 'src/core/media_player_initializer.dart';
+import 'src/core/media_temp_directory.dart';
 import 'src/core/playback_speed_policy.dart';
 import 'src/core/settings.dart';
 import 'src/core/shader_service.dart';
@@ -19,6 +20,13 @@ import 'src/features/video/play_window.dart';
 import 'src/features/video/play_window_app.dart';
 
 Future<void> main(List<String> args) async {
+  // mpv（media_kit）打开片源时要往 `Directory.systemTemp` 写一个临时播放列表，
+  // `%TEMP%` 不可写时这里会直接抛异常、播放页永远转圈。把整个应用跑在「临时目录
+  // 一定可写」的 zone 里，两种情况都能正常开播（见 media_temp_directory.dart）。
+  await runWithWritableMediaTemp(() => _run(args));
+}
+
+Future<void> _run(List<String> args) async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
   // 独立播放窗口（多进程多窗口）：`--play-window --video=<id>` 启动的进程只渲染
