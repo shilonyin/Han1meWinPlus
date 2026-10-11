@@ -53,3 +53,18 @@ README 顶部用的是 **`docs/logo-lockup.svg`**（矢量），不是位图。�
 
 要重做 logo，请用原始矢量源文件（AI/EPS/Figma）或让设计方出图。`docs/logo-lockup.png` 保留
 作为位图版本（外部链接与不支持 SVG 的场合可用）。
+
+### 变体怎么来的
+
+`assets/` 下的两个 SVG 都由 `docs/logo-lockup.svg` 派生，用脚本生成，别手工改：
+
+```powershell
+.\tools\shot\make-logo-variants.py            # 重新生成
+.\tools\shot\make-logo-variants.py --check    # 只比对是否已同步
+```
+
+- `assets/logo_lockup.svg` —— 关于页 / 许可证页用，与主图一致
+- `assets/logo_lockup_compact.svg` —— 标题栏用，图标缩小到 0.626、文字平移，靠变换复用同一份路径
+
+托盘图标、原生启动画面（`assets/logo.png` / `logo_lockup*.png`）保持位图：托盘 API 与 C++ 侧的
+启动画面都用不了 SVG。

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -147,7 +148,7 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
               // 标题栏只有 34px 高：按设计稿比例（图标:字标 = 2.4:1）显示时字标只剩
               // 8~11px，改用紧凑版（1.5:1）—— 16px 高时图标 16px、字标约 11px，
               // 与 Windows 标题栏图标的常规尺寸一致。
-              Image.asset('assets/logo_lockup_compact.png', height: 16, filterQuality: FilterQuality.high, semanticLabel: l10n.appTitle),
+              SvgPicture.asset('assets/logo_lockup_compact.svg', height: 16, semanticsLabel: l10n.appTitle),
               const Spacer(),
               _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 16),
               _TitleBarButton(

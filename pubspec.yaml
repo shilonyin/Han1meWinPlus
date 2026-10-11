@@ -57,6 +57,10 @@ dependencies:
   collection: ^1.19.1
   ffi: ^2.2.0
   video_player_platform_interface: ^6.9.0
+  # 关于页 / 许可证页 / 标题栏的锁标改用矢量图：位图在 150% 缩放下边缘会有锯齿，
+  # 标题栏那个 16px 高的尤其明显。SVG 与 README 用同一份字形。
+  # 注意托盘图标与原生启动画面仍要位图（托盘 API 只吃图，启动画面在 C++ 侧加载）。
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -92,12 +96,16 @@ flutter:
         - asset: assets/fonts/HarmonyOS_Sans_SC.ttf
           weight: 400
   assets:
+    # 托盘图标与打包用的应用图标：托盘 API 只吃位图，应用图标也由位图生成
     - assets/logo.png
-    # 设计稿的字标不是系统字体，必须整张图显示，不能拿图标 + 文字拼
-    - assets/logo_lockup.png
+    # 关于页 / 许可证页的锁标（矢量，与 README 顶部同一份字形）。
+    # 设计稿的字标不是系统字体，必须整张图显示，不能拿图标 + 文字拼。
+    - assets/logo_lockup.svg
     # 紧凑版：图标:字标 = 1.5:1（设计稿是 2.4:1），专给 34px 高的标题栏用
-    - assets/logo_lockup_compact.png
-    # 深色背景用的锁标（字标改浅色、图标不变）：Windows 原生启动画面按系统深浅色二选一
+    - assets/logo_lockup_compact.svg
+    # 深色背景用的锁标（字标改浅色、图标不变）：Windows 原生启动画面按系统深浅色二选一。
+    # 这两个保持位图——启动画面在 C++ 侧加载，用不了 SVG。
+    - assets/logo_lockup.png
     - assets/logo_lockup_dark.png
     - assets/search_options/
     - assets/shaders/

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
@@ -202,7 +203,8 @@ class _AboutHeader extends StatelessWidget {
       children: [
         // 横版锁标是一体图（图标 + 字标），直接整张显示 —— 字标是设计稿里的专用
         // 字形，用系统字体拼字会走样（与 README / 安装包使用同一份资源）。
-        Image.asset('assets/logo_lockup.png', height: 58, filterQuality: FilterQuality.high, semanticLabel: appName),
+        // 用矢量图：位图在 150% 缩放下笔画边缘会有锯齿。
+        SvgPicture.asset('assets/logo_lockup.svg', height: 58, semanticsLabel: appName),
         if (version.isNotEmpty) ...[const SizedBox(height: 10), _VersionBadge(version: version)],
         const SizedBox(height: 16),
         Text(l10n.thirdPartyClient, style: theme.textTheme.bodyLarge),
