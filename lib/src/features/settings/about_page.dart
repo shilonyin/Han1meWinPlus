@@ -44,7 +44,7 @@ class AboutPage extends ConsumerWidget {
       children: [
         _AboutItem(icon: Symbols.volunteer_activism_rounded, title: l10n.acknowledgements, inApp: true, onTap: () => _showAcknowledgements(context, l10n)),
         _AboutItem(icon: Symbols.fork_right_rounded, title: l10n.contributing, onTap: () => _open('$repoUrl/pulls')),
-        _AboutItem(icon: Symbols.balance_rounded, title: l10n.agplLicense, onTap: () => _open('$repoUrl/blob/win/LICENSE')),
+        _AboutItem(icon: Symbols.balance_rounded, title: l10n.agplLicense, onTap: () => _open('$repoUrl/blob/HEAD/LICENSE')),
         _AboutItem(icon: Symbols.description_rounded, title: l10n.thirdPartyLicenses, inApp: true, onTap: () => context.push('/settings/license')),
       ],
     );

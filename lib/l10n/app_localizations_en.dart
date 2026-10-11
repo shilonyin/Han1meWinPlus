@@ -2074,7 +2074,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceCode => 'Source code';
 
   @override
-  String get upstreamProject => 'Upstream project';
+  String get upstreamProject => 'Source project';
 
   @override
   String get contributing => 'Contributing';
@@ -2084,7 +2084,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acknowledgementsBody =>
-      'This app is built on top of an upstream open-source project. Thanks to its author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is HarmonyOS Sans by Huawei Device Co., Ltd., free to use under the HarmonyOS Sans Fonts License Agreement.';
+      'This app is based on Han1mePlus. Thanks to the original author and every contributor.\n\nThe interface and playback are powered by Flutter, media_kit (libmpv), Riverpod, go_router and other open-source projects.\n\nThe UI font is HarmonyOS Sans by Huawei Device Co., Ltd., free to use under the HarmonyOS Sans Fonts License Agreement.';
 
   @override
   String get agplLicense => 'AGPL-3.0 license';
