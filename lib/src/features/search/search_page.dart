@@ -6,7 +6,6 @@ import 'package:g1455/g1455.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
@@ -15,6 +14,7 @@ import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart' show CloudflareChallengeException, SearchResult;
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/search_query.dart';
+import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_error.dart';
 import '../shared/press_scale.dart';
@@ -26,12 +26,18 @@ import 'search_controller.dart';
 import 'search_suggestions.dart';
 import '../../core/app_dialog.dart';
 
+/// 搜索结果的默认列数（除下面两类竖版海报分区之外都用它）。
 const _searchColumns = 4;
 
-/// 「新番预告」的结果是竖版海报（实测站点封面 268x394）—— 塞进 16:9 的槽位会把海报
-/// 按宽度放大再上下裁掉，只剩中间一条（看上去就是放大的身体特写，海报全貌没了）。
-/// 这类结果改按海报比例排版，列数仍是 4 列，与「新番预告」页一致。
-const _posterGenre = '新番預告';
+/// 里番、泡麵番的列表封面是竖版海报（新番预告实测 268x394，这两类同源），
+/// 塞进 16:9 的槽位会把海报按宽度放大再上下裁掉，只剩中间一条 —— 看上去就是放大的
+/// 身体特写，海报全貌没了。这两类改按海报比例排版，并像 B 站「追番」页那样一排六个。
+///
+/// 判据是分类的**站点键**（`search_key`），不是界面文案：不同语言下这里显示的是
+/// 「里番 / 裏番 / Hentai」，写死文案会在换语言或换站点时失效。调用方先用
+/// `SearchOptionGroup.canonical` 归一，再和这里比。
+const _posterGenres = {'裏番', '泡麵番'};
+const _posterColumns = 6;
 const _posterAspectRatio = 3 / 4;
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -54,6 +60,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   /// 输入框聚焦时在它下方铺开「搜索历史 + 热门」面板（与首页顶栏同一个面板）。
   var _panelOpen = false;
+
+  /// 上次把「首屏结果」喂给分页状态时的条件指纹，用于识别「首屏换了」。
+  Object? _pagingKey;
 
   @override
   void initState() {
@@ -109,6 +118,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final baseUrl = ref.watch(settingsProvider.select((settings) => settings.valueOrNull?.resolvedBaseUrl ?? ''));
     final javSource = javSiteFor(baseUrl) != null;
     final l10n = AppLocalizations.of(context)!;
+    // 往下接的页（瀑布流）。首屏由上面那条 provider 负责，这里只管第 2 页往后。
+    final more = ref.watch(searchMoreResultsProvider(request));
+    final paging = ref.read(searchMoreResultsProvider(request).notifier);
+    final page = result.valueOrNull;
+    // 首屏换了（新关键词 / 新标签）时要重新数页码，否则会把上一组条件的「已翻到第几页」
+    // 带过来，表现是「换了条件第一次滚动就跳页」。
+    if (page != null) {
+      final resultKey = Object.hash(request.sessionId, query);
+      if (_pagingKey != resultKey) {
+        _pagingKey = resultKey;
+        paging.adopt(page);
+      }
+    }
     ref.listen<SearchQuery>(searchQueryProvider(request), (previous, next) {
       if (previous != next && next.hasSearchCriteria) unawaited(ref.read(searchHistoryProvider.notifier).record(next));
       if (_textController.text != next.text) _textController.value = _textController.value.copyWith(text: next.text, selection: TextSelection.collapsed(offset: next.text.length));
@@ -116,6 +138,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     void submit(String value) {
       notifier.text(value.trim());
       unawaited(ref.read(searchHistoryProvider.notifier).record(ref.read(searchQueryProvider(request))));
+    }
+    Future<void> loadMore() async {
+      final current = ref.read(searchResultsProvider(request)).valueOrNull;
+      if (current == null) return;
+      await ref.read(searchMoreResultsProvider(request).notifier).next(query, totalPages: current.totalPages);
     }
 
     return Scaffold(
@@ -177,40 +204,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           // AV 源没有标签/分类筛选，从历史里带过来的条件会被清掉，空结果的原因
                           // 就变成「还没输关键词」，直接说清楚，别报成「没有找到匹配的视频」。
                           ? _EmptyState(message: javSource && query.text.trim().isEmpty && query.genre.isEmpty ? l10n.javSourceSearchHint : l10n.noSearchResults)
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // 没输关键词时这页给的是推荐内容，加个小标题说明一下来源，
-                                // 免得被当成搜索结果的兜底。
-                                if (query.text.trim().isEmpty && query.genre.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                                    child: Text(
-                                      l10n.recommendedVideos,
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                Expanded(
-                                  child: VideoCardGrid(
-                                    videos: page.items,
-                                    cardsPerRow: _searchColumns,
-                                    horizontal: true,
-                                    // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
-                                    // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
-                                    bottomPadding: floatingActionsClearance,
-                                    // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
-                                    coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
-                                    controller: _scrollController,
-                                    itemBuilder: (context, index, video, _) => VideoCardTile(
-                                      video: video,
-                                      horizontal: true,
-                                      coverAspectRatio: query.genre == _posterGenre ? _posterAspectRatio : null,
-                                      // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
-                                      onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          : _SearchResultsGrid(
+                              key: ValueKey(query),
+                              result: page,
+                              more: more,
+                              query: query,
+                              scrollController: _scrollController,
+                              // 分类先归一到站点键再比（界面文案随语言变，不能拿来当判据）。
+                              posterLayout: _posterGenres.contains(options?.genres.canonical(query.genre) ?? query.genre),
+                              // 首屏算第 1 页，所以「已接上的页数」= 当前页码 - 1。
+                              loadedPages: ref.read(searchMoreResultsProvider(request).notifier).page - 1,
+                              onLoadMore: loadMore,
+                              onRetryMore: () => ref.invalidate(searchMoreResultsProvider(request)),
                             ),
                     ),
                     Positioned(
@@ -218,16 +223,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       bottom: 0,
                       child: ScrollActions(
                         controller: _scrollController,
-                        onRefresh: () => ref.refresh(searchResultsProvider(request).future),
+                        onRefresh: () async {
+                          // 下拉/点刷新等于「从头看」：连同已经接上的页一起丢掉，
+                          // 否则刷新后前面是第 1 页、后面还挂着第 5 页的内容。
+                          ref.invalidate(searchMoreResultsProvider(request));
+                          final refreshed = ref.refresh(searchResultsProvider(request).future);
+                          if (!context.mounted) return;
+                          await refreshed;
+                        },
                         onError: (error) => showAppErrorBar(context, error, onRetry: () => ref.invalidate(searchResultsProvider(request))),
                       ),
                     ),
                   ],
                 ),
-              ),
-              _PaginationBar(
-                result: result.valueOrNull,
-                onChanged: notifier.page,
               ),
             ],
           ),
@@ -714,28 +722,144 @@ String _tagGroupLabel(AppLocalizations l10n, String group) => switch (group) {
   _ => group,
 };
 
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({required this.result, required this.onChanged});
+/// 结果区：首屏（[SearchResult]）+ 后续接上的页（[more]）拼成一条瀑布流。
+///
+/// 以前这里是「一页一屏 + 底部分页条」，滚到底要回头去点下一个箭头；站点本来就是
+/// 一页一页给数据，所以改成滚到底自动往下列，翻页条整个去掉。分页条同时还挤在结果
+/// 和右下角悬浮按钮之间，去掉之后列表能多吃一段高度。
+class _SearchResultsGrid extends ConsumerWidget {
+  const _SearchResultsGrid({
+    super.key,
+    required this.result,
+    required this.more,
+    required this.query,
+    required this.scrollController,
+    required this.posterLayout,
+    required this.loadedPages,
+    required this.onLoadMore,
+    required this.onRetryMore,
+  });
 
-  final SearchResult? result;
-  final ValueChanged<int> onChanged;
+  /// 首屏（已经是第 1 页）。
+  final SearchResult result;
+
+  /// 第 2 页往后的追加结果；还没接过页时是空的。
+  final AsyncValue<List<VideoCard>> more;
+
+  final SearchQuery query;
+  final ScrollController scrollController;
+
+  /// 里番 / 泡麵番走竖版海报排版（见 [_posterGenres]）：整张封面可见，且一排六个。
+  final bool posterLayout;
+
+  /// 首屏之后已经接上的页数（由分页状态提供，页面 watch 到变化后传进来）。
+  final int loadedPages;
+
+  final Future<void> Function() onLoadMore;
+  final VoidCallback onRetryMore;
 
   @override
-  Widget build(BuildContext context) {
-    final value = result;
-    if (value == null || value.totalPages <= 1) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          PressScale(child: IconButton(onPressed: value.page > 1 ? () => onChanged(value.page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded))),
-          Text('${value.page} / ${value.totalPages}', style: Theme.of(context).textTheme.labelLarge),
-          PressScale(child: IconButton(onPressed: value.page < value.totalPages ? () => onChanged(value.page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded))),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final isRecommendations = query.text.trim().isEmpty && query.genre.isEmpty;
+    final appended = more.valueOrNull;
+    final videos = isRecommendations ? result.items : [...result.items, ...?appended];
+    // 还能不能往下接：推荐位没有分页（`totalPages` 恒为 1），天然不会触发加载。
+    // 看的是「已经被要走的页码」（`loadedPages`，由页面喂进来的分页状态提供），
+    // 而不是站点给的总页数 —— 页码只是分页条的遗留概念，瀑布流不显示它。
+    final hasMore = !isRecommendations && result.totalPages > 1 && loadedPages < result.totalPages;
+    final loading = more.isLoading;
+    final failure = more.error;
+    final aspectRatio = posterLayout ? _posterAspectRatio : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 没输关键词时这页给的是推荐内容，加个小标题说明一下来源，
+        // 免得被当成搜索结果的兜底。
+        if (isRecommendations)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(
+              l10n.recommendedVideos,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+            ),
+          ),
+        Expanded(
+          child: VideoCardGrid(
+            videos: videos,
+            cardsPerRow: posterLayout ? _posterColumns : _searchColumns,
+            horizontal: true,
+            // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
+            // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
+            bottomPadding: floatingActionsClearance + (hasMore ? 56 : 0),
+            // 竖版海报结果按海报比例留高，不再裁成 16:9 的一条。
+            coverAspectRatio: aspectRatio,
+            controller: scrollController,
+            itemBuilder: (context, index, video, _) {
+              final tile = VideoCardTile(
+                video: video,
+                horizontal: true,
+                coverAspectRatio: aspectRatio,
+                // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+                onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
+              );
+              // 末尾那张卡片走进「缓存区」时就去要下一页，滚到之前通常已经拼好了。
+              if (!hasMore || index != videos.length - 1) return tile;
+              return _LoadMoreProbe(onProbe: onLoadMore, child: tile);
+            },
+          ),
+        ),
+        // 页尾只在「正在接下一页」或「接失败了」时才占位置：以前这里常驻一根
+        // 「第几页 / 共几页」的分页条，瀑布流本来就靠滚动表达进度，留着只是噪音。
+        if (hasMore && (loading || failure != null))
+          SizedBox(
+            height: 40,
+            child: Center(
+              child: loading
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                  : PressScale(child: TextButton.icon(onPressed: onRetryMore, icon: const Icon(Symbols.refresh_rounded, size: 18), label: Text(l10n.retry))),
+            ),
+          ),
+      ],
     );
   }
+}
+
+/// 末尾卡片上的探针：它被建出来（也就是滚进缓存区）时去要下一页。
+///
+/// 与首页分区用的是同一套做法 —— 只在 `initState` 里试一次的话，一次失败就会把
+/// 这一行永久卡住；`didUpdateWidget` 让父级重建时还能再试。
+class _LoadMoreProbe extends StatefulWidget {
+  const _LoadMoreProbe({required this.onProbe, required this.child});
+
+  final Future<void> Function() onProbe;
+  final Widget child;
+
+  @override
+  State<_LoadMoreProbe> createState() => _LoadMoreProbeState();
+}
+
+class _LoadMoreProbeState extends State<_LoadMoreProbe> {
+  @override
+  void initState() {
+    super.initState();
+    _probe();
+  }
+
+  @override
+  void didUpdateWidget(_LoadMoreProbe oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _probe();
+  }
+
+  void _probe() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(widget.onProbe());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _EmptyState extends StatelessWidget {

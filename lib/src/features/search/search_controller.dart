@@ -88,6 +88,11 @@ class SearchHistoryController extends AsyncNotifier<List<SearchQuery>> {
   }
 }
 
+/// 搜索结果的**第一页**（外加「还没有条件时」的推荐位）。
+///
+/// 第 2 页往后不在这里：结果区是无限滚动的瀑布流，后续页由
+/// [searchMoreResultsProvider] 追加，这条 provider 只负责首屏的加载/错误状态，
+/// 以及提供总页数——不然每接一页都要重跑首屏，滚动会一跳一跳的。
 final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, SearchRouteRequest>((ref, request) async {
   // 切回搜索结果页（或翻页回来）时不再重新请求；条件变化会自然重算。
   ref.keepAlive();
@@ -106,7 +111,10 @@ final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, Se
   // 请求会被仓库层缓存，不会多打一次站点）。
   if (query.text.trim().isEmpty && query.genre.isEmpty) return _recommendations(settings, repository);
   final catalog = javSource ? null : await ref.watch(searchOptionCatalogProvider.future);
-  final result = await repository.search(
+  // 第 1 页走原路径（保留 catalog 的 await，不依赖它是否已经加载完），
+  // 追加页由 `searchMoreResultsProvider` 用同一个加载器取。
+  final result = await repository
+      .search(
         baseUrl: settings.resolvedBaseUrl,
         query: query.text,
         genre: javSource ? query.genre : catalog!.genres.canonical(query.genre),
@@ -131,8 +139,7 @@ final searchResultsProvider = FutureProvider.autoDispose.family<SearchResult, Se
     );
     return SearchResult(items: verified, page: result.page, totalPages: result.totalPages);
   }
-  if (!settings.applyRecommendationFiltersToSearch) return result;
-  return SearchResult(items: result.items.where((video) => _visible(video, settings)).toList(), page: result.page, totalPages: result.totalPages);
+  return SearchResult(items: visibleVideos(result.items, settings), page: result.page, totalPages: result.totalPages);
 });
 
 Future<List<VideoCard>> verifyAuthorMatches({
@@ -142,7 +149,7 @@ Future<List<VideoCard>> verifyAuthorMatches({
   Duration timeout = const Duration(seconds: 8),
 }) async {
   final expected = expectedAuthor.trim().toLowerCase();
-  final verified = await Future.wait(items.map((video) async {
+  final verified = await Future.wait(videosNeedingAuthorCheck(items, expectedAuthor).map((video) async {
     try {
       final detail = await detailLoader(video.id).timeout(timeout);
       return detail.artist?.trim().toLowerCase() == expected ? video : null;
@@ -155,6 +162,126 @@ Future<List<VideoCard>> verifyAuthorMatches({
   return verified.whereType<VideoCard>().toList(growable: false);
 }
 
+/// 当前结果列表的分页状态。
+///
+/// 「翻页」现在是往下接一页（无限滚动的瀑布流），而不是换掉整个列表，所以
+/// `searchQueryProvider.page` 不再是数据源 —— 页面不能只靠它显示第几页；它只留作
+/// 路由/历史里的初始页码，以及「换条件要回到第 1 页」的语义。这里存的是滚动加载
+/// 真正走到哪儿了，外加「在加载 / 加载失败」两个给页面做提示的状态。
+class SearchPagingState {
+  const SearchPagingState({this.page = 1, this.loadingMore = false, this.error});
+
+  final int page;
+  final bool loadingMore;
+  final Object? error;
+
+  SearchPagingState copyWith({int? page, bool? loadingMore, Object? error, bool clearError = false}) => SearchPagingState(
+        page: page ?? this.page,
+        loadingMore: loadingMore ?? this.loadingMore,
+        error: clearError ? null : (error ?? this.error),
+      );
+}
+
+typedef SearchPageLoader = Future<SearchResult> Function(SearchQuery query, int page);
+
+/// 按搜索页的 request 建一个加载器，负责「取第 N 页 + 套上搜索页的过滤规则」。
+///
+/// 单独抽出来是为了让首屏与「往下接一页」共用同一套过滤/作者校验；
+/// 两处各写一份的话，改动很容易只落在一边（表现就是「第一页过滤对了、翻页漏掉」）。
+SearchPageLoader searchPageLoader(Ref ref, SearchRouteRequest request) {
+  final settings = ref.read(settingsProvider).valueOrNull ?? const AppSettings();
+  final author = request.authorName?.trim() ?? '';
+  final repository = ref.read(han1meRepositoryProvider);
+  final catalog = ref.read(searchOptionCatalogProvider).valueOrNull;
+  final javSource = javSiteFor(settings.resolvedBaseUrl) != null;
+  return (query, page) async {
+    final result = await repository
+        .search(
+          baseUrl: settings.resolvedBaseUrl,
+          query: query.text,
+          genre: javSource ? query.genre : catalog?.genres.canonical(query.genre) ?? query.genre,
+          sort: javSource ? '' : catalog?.sorts.canonical(query.sort) ?? query.sort,
+          date: javSource ? '' : catalog?.releaseDates.canonical(query.date) ?? query.date,
+          duration: javSource ? '' : catalog?.durations.canonical(query.duration) ?? query.duration,
+          tags: javSource ? const <String>[] : query.tags.map((tag) => catalog?.canonicalTag(tag) ?? tag).toList(growable: false),
+          broad: javSource ? false : query.broad,
+          type: javSource ? '' : query.type,
+          page: page,
+        )
+        .timeout(const Duration(seconds: 45));
+    if (javSource && author.isNotEmpty) {
+      return SearchResult(
+        items: await verifyAuthorMatches(items: result.items, expectedAuthor: author, detailLoader: (id) => repository.video(settings.resolvedBaseUrl, id)),
+        page: result.page,
+        totalPages: result.totalPages,
+      );
+    }
+    return SearchResult(items: visibleVideos(result.items, settings), page: result.page, totalPages: result.totalPages);
+  };
+}
+
+/// 在 [searchResultsProvider] 拿到的首屏之上继续往下接页（瀑布流）。
+///
+/// 首屏仍由原 provider 负责（它管加载/错误/推荐位那套状态），这里只负责第 2 页往后：
+/// 用同一个加载器、同一套过滤规则，把新页追加到已有列表末尾。
+final searchMoreResultsProvider = AsyncNotifierProvider.autoDispose.family<SearchMoreResults, List<VideoCard>, SearchRouteRequest>(SearchMoreResults.new);
+
+class SearchMoreResults extends AutoDisposeFamilyAsyncNotifier<List<VideoCard>, SearchRouteRequest> {
+  var _page = 1;
+  var _totalPages = 1;
+  var _loading = false;
+
+  /// 条件一变（换关键词、点标签、改排序）就整体作废重新数页码。
+  SearchQuery? _lastQuery;
+
+  @override
+  Future<List<VideoCard>> build(SearchRouteRequest arg) async => const <VideoCard>[];
+
+  /// 已经取到第几页（首屏算第 1 页）。
+  int get page => _page;
+
+  /// 站点说的总页数，首屏还没回来时先当 1（调用方会拿不到下一页）。
+  int get totalPages => _totalPages;
+
+  /// 首屏数据到手后由页面喂进来，对齐页码与总页数。
+  ///
+  /// 只在「首屏换了」的时候对齐。首屏 provider 会因为账号变化之类的原因重算，
+  /// 那时不能把已经翻到第 5 页的进度打回第 1 页（列表还留在第 5 页）。
+  void adopt(SearchResult result) {
+    if (result.items.isEmpty && result.page <= _page) return;
+    if (result.page == 1) {
+      _page = 1;
+      _totalPages = result.totalPages;
+    }
+  }
+
+  Future<void> next(SearchQuery query, {int? totalPages}) async {
+    if (_loading) return;
+    final limit = totalPages ?? _totalPages;
+    if (limit > 0 && _page >= limit) return;
+    if (_lastQuery != null && _lastQuery != query) {
+      _page = 1;
+      state = const AsyncData(<VideoCard>[]);
+    }
+    _lastQuery = query;
+    final target = _page + 1;
+    final wasEmpty = state.valueOrNull?.isEmpty ?? true;
+    if (wasEmpty) state = const AsyncLoading();
+    _loading = true;
+    try {
+      final result = await searchPageLoader(ref, arg)(query, target);
+      _page = target;
+      _totalPages = result.totalPages;
+      // 追加而不是替换：站点每次只给一页，用户是在「往下看」而不是「换一屏」。
+      state = AsyncData([...?state.valueOrNull, ...result.items]);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+    } finally {
+      _loading = false;
+    }
+  }
+}
+
 /// 首页（推荐位）内容：取第一个有内容的分区。
 ///
 /// 站点被拦或改版时这里会失败，但「推荐拿不到」不该把整个搜索页变成错误页，
@@ -164,8 +291,7 @@ Future<SearchResult> _recommendations(AppSettings settings, Han1meRepository rep
     // 推荐位不该让页面长时间空着：拿不到就退回空状态，别卡着让人以为死机。
     final feed = await repository.home(settings.resolvedBaseUrl).timeout(const Duration(seconds: 8));
     final videos = feed.sections.expand((section) => section.videos).toList(growable: false);
-    final items = settings.applyRecommendationFiltersToSearch ? videos.where((video) => _visible(video, settings)).toList(growable: false) : videos;
-    return SearchResult(items: items, page: 1, totalPages: 1);
+    return SearchResult(items: visibleVideos(videos, settings), page: 1, totalPages: 1);
   } catch (_) {
     return const SearchResult(items: [], page: 1, totalPages: 1);
   }
@@ -182,4 +308,22 @@ bool _visible(VideoCard video, AppSettings settings) {
   final views = videoViews(video.views);
   if (views != null && views < settings.minimumVideoViews) return false;
   return true;
+}
+
+/// 这一页结果里还该剩下哪些卡片。
+///
+/// 搜索页要把「推荐位过滤」和「AV 源作者精确匹配」这两套规则同时用在新加载出来的
+/// 页上，但两套规则看的元数据来源不一样（作者筛选只能靠详情页），所以分开成两个
+/// 纯函数；列表页自己的过滤直接收在原 provider 里。
+List<VideoCard> visibleVideos(List<VideoCard> items, AppSettings settings) =>
+    settings.applyRecommendationFiltersToSearch ? items.where((video) => _visible(video, settings)).toList(growable: false) : items;
+
+/// 挑出列表页信息不够、需要去详情页比对作者的卡片。
+///
+/// 详情页是整页抓取（几百 KB），实测失败率不低；能白拿的元数据就不该再花一次请求：
+/// 列表页已经给了作者时直接比对，「作者为空」（抓取失败）也认下来，否则翻页时被站点
+/// 抽几页就会整页被丢光。
+List<VideoCard> videosNeedingAuthorCheck(List<VideoCard> items, String expectedAuthor) {
+  final expected = expectedAuthor.trim().toLowerCase();
+  return items.where((video) => video.artist?.trim().toLowerCase() != expected).toList(growable: false);
 }
