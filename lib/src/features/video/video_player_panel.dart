@@ -95,6 +95,11 @@ VideoSource? pickSourceToLoad({
 class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     with RouteAware, WidgetsBindingObserver {
   static const _watchThresholdMs = 5000;
+
+  /// 播放器初始化的硬上限：超过就当作播放失败（见 `_load` 里的说明）。
+  /// 正常片源首帧只要 1~4 秒，即使算上代理与慢速站点也远没到这个量级，
+  /// 所以不会误伤；它只用来兜住「内核彻底卡住」这种永远转圈的情况。
+  static const _initializeTimeout = Duration(seconds: 45);
   final ValueNotifier<VideoPlayerController?> _controllerNotifier =
       ValueNotifier(null);
   final ValueNotifier<String?> _qualityNotifier = ValueNotifier(null);
@@ -421,7 +426,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     try {
       final initializing = controller.initialize();
       _pendingInitialize[controller] = initializing;
-      await initializing;
+      // 初始化必须有上限：内核若卡在打开阶段（片源拉不动、mpv 渲染上下文起不来），
+      // `initialize()` 既不返回也不抛错，`_load` 就会一直 await —— 界面永远停在转圈、
+      // 连「播放失败 + 重试」都出不来（用户报的「一直转圈，最后也不报错」）。
+      // 超时后按加载失败处理，交给已有的错误分支显示可重试的提示。
+      await initializing.timeout(
+        _initializeTimeout,
+        onTimeout: () => throw TimeoutException(
+          'player initialization timed out: ${source.url}',
+          _initializeTimeout,
+        ),
+      );
       _pendingInitialize.remove(controller);
       if (!mounted ||
           version != _loadVersion ||
