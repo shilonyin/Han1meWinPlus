@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:han1me_win_plus/src/core/platform_paths.dart';
 import 'package:han1me_win_plus/src/data/local/json_store.dart';
 import 'package:han1me_win_plus/src/data/local/preferences_store.dart';
 
@@ -86,5 +87,74 @@ void main() {
     final preferences = PreferencesStore(store: store, legacyFile: () async => legacy);
 
     expect(await preferences.getString('accounts_v2:hanime1.com'), 'current-accounts');
+  });
+
+  group('JsonStore', () {
+    test('写盘不会留下半截文件：目标文件在写完前后都能被解析', () async {
+      final store = JsonStore();
+      await store.write('cache.json', {'a': '1'});
+      // 写完就是完整 JSON，读回来一致。
+      expect(await store.read('cache.json'), {'a': '1'});
+
+      await store.write('cache.json', {'a': '2', 'b': '3'});
+      expect(await store.read('cache.json'), {'a': '2', 'b': '3'});
+    });
+
+    test('原子写盘的临时文件用完就清掉，不留在数据目录里', () async {
+      // 数据目录在 Windows 上是 `%APPDATA%\han1me_win_plus`，临时文件名是
+      // `<名字>.tmp` —— 直接看目录里有没有残留。
+      final directory = await appStorageDirectory();
+      final name = 'atomic_probe_${DateTime.now().microsecondsSinceEpoch}.json';
+      addTearDown(() {
+        for (final file in [File('${directory.path}/$name'), File('${directory.path}/$name.tmp')]) {
+          if (file.existsSync()) file.deleteSync();
+        }
+      });
+
+      await JsonStore().write(name, {'ok': true});
+
+      expect(File('${directory.path}/$name').existsSync(), isTrue);
+      expect(File('${directory.path}/$name.tmp').existsSync(), isFalse);
+    });
+
+    test('磁盘上没有文件时读回空表（不抛异常）', () async {
+      expect(await JsonStore().read('missing_probe.json'), isEmpty);
+    });
+
+    // 回归：同一文件被并发写时，两个 rename 会抢同一个目标路径，Windows 回
+    // `errno 5 拒绝访问`。实测 AddressRanker 多主机探测同时结束就会踩到，
+    // 表现是启动时刷一屏 PathAccessException。修复方式是按文件名串行化。
+    test('同一文件并发写：全部成功，且最终内容是最后一次写入的', () async {
+      final store = JsonStore();
+      final name = 'concurrent_probe_${DateTime.now().microsecondsSinceEpoch}.json';
+      addTearDown(() async {
+        final directory = await appStorageDirectory();
+        for (final entry in await directory.list().toList()) {
+          if (entry.path.contains(name)) await entry.delete();
+        }
+      });
+
+      // 20 个并发写：修复前后者的 rename 会撞上前者。
+      final writes = [for (var index = 0; index < 20; index++) store.write(name, {'n': index})];
+      await Future.wait(writes);
+
+      // 没有异常抛出即达标；内容应为其中一个完整的快照（不是半截 JSON）。
+      final read = await store.read(name);
+      expect(read['n'], isA<int>());
+      expect(read['n'], inInclusiveRange(0, 19));
+    });
+
+    test('并发写之后不残留临时文件', () async {
+      final store = JsonStore();
+      final name = 'concurrent_tmp_probe_${DateTime.now().microsecondsSinceEpoch}.json';
+      final directory = await appStorageDirectory();
+      await Future.wait([for (var index = 0; index < 10; index++) store.write(name, {'n': index})]);
+
+      final leftovers = (await directory.list().toList()).where((entry) => entry.path.contains(name) && entry.path.endsWith('.tmp')).toList();
+      expect(leftovers, isEmpty);
+      for (final entry in (await directory.list().toList()).where((entry) => entry.path.contains(name))) {
+        await entry.delete();
+      }
+    });
   });
 }

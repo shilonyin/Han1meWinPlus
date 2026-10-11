@@ -24,7 +24,7 @@ class HttpCacheInterceptor extends Interceptor {
     if (cached == null) return handler.next(options);
     if (cached.isExpired(duration)) {
       _memory.remove(key);
-      unawaited(_preferences.remove(_storageKey(key)));
+      unawaited(_preferences.remove(_storageKey(key)).catchError((_) {}));
       return handler.next(options);
     }
     _put(key, cached);
@@ -42,7 +42,9 @@ class HttpCacheInterceptor extends Interceptor {
       final cached = _CachedResponse(DateTime.now().millisecondsSinceEpoch, response.statusCode!, response.data as String);
       final key = _key(response.requestOptions);
       _put(key, cached);
-      unawaited(_persist(key, cached));
+      // HTTP 缓存写盘纯属「下次能省一次请求」，失败不该冒到界面上（Win 上目标文件
+      // 偶尔被占用就是这样）。这里自己兜住异常，别让 unawaited 的 future 抛进 zone。
+      unawaited(_persist(key, cached).catchError((_) {}));
     }
     handler.next(response);
   }
@@ -54,14 +56,13 @@ class HttpCacheInterceptor extends Interceptor {
     try {
       return _CachedResponse.fromJson(Map<String, dynamic>.from(jsonDecode(value) as Map));
     } catch (_) {
-      unawaited(_preferences.remove(storageKey));
+      unawaited(_preferences.remove(storageKey).catchError((_) {}));
       return null;
     }
   }
 
   Future<void> _persist(String key, _CachedResponse value) async {
-    await _preferences.setString(_storageKey(key), jsonEncode(value.toJson()));
-    final keys = (await _preferences.getKeys()).where((item) => item.startsWith(_prefix)).toList();
+    await _preferences.setString(_storageKey(key), jsonEncode(value.toJson()));    final keys = (await _preferences.getKeys()).where((item) => item.startsWith(_prefix)).toList();
     if (keys.length <= _maxPersistedEntries) return;
     final entries = <(String, int)>[];
     for (final storageKey in keys) {

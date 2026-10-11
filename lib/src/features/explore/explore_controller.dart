@@ -36,7 +36,9 @@ class HomeSectionsController extends AsyncNotifier<HomeFeed> {
     final settings = await ref.read(settingsProvider.future);
     final cached = await ref.read(homeCacheProvider).read(settings.homeBaseUrl, account?.id);
     if (cached != null) {
-      unawaited(refresh());
+      // 先拿缓存渲染，再后台刷新。这里必须是「即发即忘」（不能让首屏等网络），
+      // 所以异常得自己接住 —— 漏出去没人接的话会直接弹到界面上。
+      unawaited(refresh().catchError((_) => cached));
       return cached;
     }
     return refresh();

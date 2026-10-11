@@ -34,7 +34,8 @@ class ComicHomeController extends AsyncNotifier<ComicHome> {
     final cache = ref.read(comicHomeCacheProvider);
     final saved = await cache.readComics();
     if (saved != null) {
-      unawaited(refresh());
+      // 同首页：先用缓存渲染、后台刷新，异常自己接住，别冒到界面。
+      unawaited(refresh().catchError((_) => saved));
       return saved;
     }
     return refresh();
