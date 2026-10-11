@@ -10,7 +10,7 @@ import '../search/search_controller.dart';
 import '../settings/settings_controller.dart';
 
 /// 作者页的三档排序 —— 直接用**用户上传页**自己的排序键（页面上就是
-/// `?page=1&sort=latest|popular|oldest`），正好对上 B 站的「最新 / 熱門 / 最早」，
+/// `?page=1&sort=latest|popular|oldest`），正好对上同类客户端的「最新 / 熱門 / 最早」，
 /// 不用自己造一套。
 const authorSortLatest = 'latest';
 const authorSortPopular = 'popular';

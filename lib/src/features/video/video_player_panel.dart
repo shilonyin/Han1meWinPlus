@@ -806,7 +806,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       // 本仓库的手写 runner（windows/runner/main.cpp）不兼容 —— 副窗口一创建，
       // 主窗口的 Flutter 引擎就不再处理输入（Win32 层 IsHungAppWindow=False，
       // 但画面完全不重绘），表现就是「打开视频后首页完全不能控制」。
-      // 播放页用主窗口内的 VideoPageBody（b 站布局），功能完整且稳定。
+      // 播放页用主窗口内的 VideoPageBody（同类客户端布局），功能完整且稳定。
       child: VideoPlayerSurface(
         controller: _controllerNotifier,
         quality: _qualityNotifier,

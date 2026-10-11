@@ -190,7 +190,7 @@ extension AppThemeColorSeed on AppThemeColor {
         AppThemeColor.pink => const Color(0xff9c3c66),
         // morrow（明隙）的品牌紫。中性面会朝它插值 8%，整套界面因此带紫调。
         AppThemeColor.purple => const Color(0xff7662ba),
-        // 「白色」= 白底 + 一抹品牌粉（参考 bilibili），种子取 b 站粉 #FB7299，
+        // 「白色」= 白底 + 一抹品牌粉，种子取这抹粉 #FB7299，
         // 配合 [schemeVariant] 的 fidelity 变体：主色就是这抹粉，中性面保持接近纯白。
         // 注意：**不能拿纯白当种子** —— HCT 色度为 0 时 Material 会回退到色相 192（青），
         // 整套界面会变成青色（`ColorScheme.fromSeed(Color(0xffffffff)).primary` = #006874）。
@@ -201,12 +201,12 @@ extension AppThemeColorSeed on AppThemeColor {
   /// 配色变体：白色主题用 fidelity（主色忠于种子、中性面近白），其余走默认 tonalSpot。
   DynamicSchemeVariant get schemeVariant => this == AppThemeColor.white ? DynamicSchemeVariant.fidelity : DynamicSchemeVariant.tonalSpot;
 
-  /// 是否把中性面换成中性灰（参考 bilibili 的「白底 + 浅灰卡片」）。
+  /// 是否把中性面换成中性灰（「白底 + 浅灰卡片」那套语言）。
   ///
   /// **白色主题取中性**（其余配色仍走 8% 淡染）：用户给的参考图就是这套语言 ——
   /// 页面底是中性浅灰 `#F2F2F7`（见 `AppPageColors`），卡片与侧栏是纯白，
   /// 没有一个面自带主色，主色只出现在按钮、选中态和链接上。
-  /// 淡染版本下白色主题的侧栏会整片发紫（`_lightSurface` 朝 b 站粉插值 8% 的结果），
+  /// 淡染版本下白色主题的侧栏会整片发紫（`_lightSurface` 朝品牌粉插值 8% 的结果），
   /// 那和参考图不是一回事。
   ///
   /// 另一条依据在 `_tintedSurfaces` 上方的文档里：那一段本来就写着
@@ -303,7 +303,7 @@ ColorScheme _tintedSurfaces(ColorScheme scheme, Brightness brightness) {
   );
 }
 
-/// 「白底 + 灰卡片 + 品牌色点缀」的中性面（参考 bilibili）。
+/// 「白底 + 灰卡片 + 品牌色点缀」的中性面。
 ///
 /// fidelity 变体虽然让主色忠于种子，但会把 surface 系列一并染上种子的淡粉；
 /// 这里把中性角色换成固定灰阶，只留 primary / secondary 等强调色是品牌色。

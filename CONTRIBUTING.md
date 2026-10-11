@@ -79,7 +79,26 @@ fix(网络): 修复 xxx
 perf(首页): 优化 xxx
 ```
 
-CI 会把提交分成「新功能 / 改进 / 修复」三组写进 Release 说明。措辞请面向用户、避免出现其他应用或产品的名称。
+CI 会把提交分成「新功能 / 改进 / 修复」三组写进 Release 说明。措辞请面向用户、避免出现其他应用或产品的名称（见下节）。
+
+### 不出现其他应用或产品的名称
+
+这条约束覆盖**所有会被人读到的文字**，不只是 Release 说明：
+
+- **提交信息**：标题与正文都不写。需要说明设计来源时用中性说法（「参考离线缓存版式」「同类客户端的通行做法」），不要写具体是谁。
+- **界面文案**（`*.arb` 与 `lib/l10n/app_localizations*.dart`）：用户直接看得到，最不能出现。
+- **代码注释**：包括 `///` 文档注释、`//` 行内注释与 `test/` 里的说明。设计参考来源同样只说「参考什么形态 / 哪家的通行做法」，不点名。
+- **文档**（`README*.md`、`docs/`）：同上。
+
+**例外**——这些不算「其他产品名」，必须保留：依赖组件与引擎（`Flutter`、`media_kit`、`libmpv`、`Riverpod`、`go_router`）、平台与厂商（`Windows`、`Microsoft`）、字体与素材授权方（`HarmonyOS Sans`、`Huawei Device Co., Ltd.`）、上游项目与开源作者署名。许可与第三方声明一节尤其不能删。
+
+自检：提交前跑一遍
+
+```powershell
+Get-ChildItem -Recurse lib,test,docs -Include *.dart,*.md | Select-String -Pattern "b 站|bilibili|BiliDesk|PotPlayer"
+```
+
+命中即需改成中性说法。
 
 ### CI 行为
 

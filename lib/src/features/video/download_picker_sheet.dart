@@ -69,15 +69,15 @@ Future<DownloadPickerResult?> showDownloadPickerSheet(
       ),
     );
 
-/// 下载弹窗（参考 b 站「离线缓存」）。
+/// 下载弹窗（参考「离线缓存」版式）。
 ///
-/// 与 b 站一致的几处形态，都是刻意为之：
+/// 与同类客户端一致的几处形态，都是刻意为之：
 /// - **悬浮居中卡片**：四周留白 + 圆角，不是贴着屏幕底边的 bottom sheet；
 /// - **紧凑画质下拉**：宽度贴合文字，不撑满整行；
 /// - **「正片」分段小标题**：把集数列表和顶部设置区分开；
 /// - **分组配置在「正片」标题上方**：默认收起、只占一行，集数再多也不会被滚出视野；
 /// - **圆角卡片式分集行**：选中项用主题色描边，而不是加一个复选框
-///   （复选框会把标题挤短，b 站这里就是整行可点）。
+///   （复选框会把标题挤短，离线缓存这里就是整行可点）。
 ///
 /// 拆成独立 widget 是因为它有一整套本地状态（画质、勾选集、自动分组、组名编辑），
 /// 塞在 `video_actions.dart` 里既长又没法单独测试。
@@ -168,12 +168,12 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
     // 等于 920 物理像素，于是卡片占了半个屏幕宽 —— 用户看到的"整个画面中间都是它"。
     // 固定逻辑值在不同 DPI 下差别巨大，比例才与 DPI 无关。
     //
-    // 数值照抄 b 站「离线缓存」弹窗的实测：占高 63.8%（1090x695 于 1734x1089 窗口）。
+    // 数值照抄「离线缓存」弹窗的实测：占高 63.8%（1090x695 于 1734x1089 窗口）。
     // 这里 maxHeight 只作**兜底上限**；内容少时卡片更矮（真正的高度由内容决定），
     // 所以正常情况下占高会小于 64%。
     final available = media.height * .64;
     return Dialog(
-      // 悬浮卡片：圆角 + 四周留白，不贴屏幕边缘（b 站的「离线缓存」就是这种小卡片）。
+      // 悬浮卡片：圆角 + 四周留白，不贴屏幕边缘（「离线缓存」就是这种小卡片）。
       backgroundColor: scheme.surfaceContainer,
       insetPadding: const EdgeInsets.symmetric(horizontal: 56, vertical: 48),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
@@ -299,7 +299,7 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
                   ),
                 ),
                 const Divider(height: 1),
-                // 「正片」分段小标题（b 站这个位置就是它）。
+                // 「正片」分段小标题（离线缓存这个位置就是它）。
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                   child: Align(
@@ -333,7 +333,7 @@ class _DownloadPickerSheetState extends State<DownloadPickerSheet> {
                   ),
                 ),
                 const Divider(height: 1),
-                // 底栏两个按钮（b 站同款）：左边去看已下好的，右边才是开始下载。
+                // 底栏两个按钮（同款布局）：左边去看已下好的，右边才是开始下载。
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
                   child: Row(
@@ -423,7 +423,7 @@ class _QualityDropdown extends StatelessWidget {
   }
 }
 
-/// 弹窗标题条：居中标题 + 右上角关闭（b 站同款）。
+/// 弹窗标题条：居中标题 + 右上角关闭（同款处理）。
 class _DialogHeader extends StatelessWidget {
   const _DialogHeader({required this.title});
 
@@ -447,7 +447,7 @@ class _DialogHeader extends StatelessWidget {
       );
 }
 
-/// 分集行：整行可点的圆角卡片，选中时描主题色边（b 站不给复选框）。
+/// 分集行：整行可点的圆角卡片，选中时描主题色边（离线缓存不给复选框）。
 class _EpisodeRow extends StatelessWidget {
   const _EpisodeRow({required this.title, required this.selected, required this.current, required this.onTap});
 

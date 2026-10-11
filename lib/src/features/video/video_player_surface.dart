@@ -1103,7 +1103,7 @@ class _VolumeHud extends StatelessWidget {
   }
 }
 
-/// 暂停时右下角的常驻标记：白底圆角卡片 + 黑色三角播放图标（B 站那种）。
+/// 暂停时右下角的常驻标记：白底圆角卡片 + 黑色三角播放图标（同类客户端那种）。
 class _PausedBadge extends StatelessWidget {
   const _PausedBadge();
 

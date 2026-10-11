@@ -15,14 +15,14 @@ import '../../core/app_dialog.dart';
 
 /// 网格里单张卡片的目标宽度区间。
 ///
-/// 与 b 站离线缓存的集合内页一致：一行铺 4 张左右，窄窗口自动减列；
+/// 与离线缓存的集合内页一致：一行铺 4 张左右，窄窗口自动减列；
 /// 卡片过少时不会被拉伸成一张巨大的图。
 const _minCardWidth = 150.0;
 const _maxCardWidth = 260.0;
 
-/// 进入某个分组（系列）后的集合内页，对应 b 站离线缓存里点开文件夹的那一层。
+/// 进入某个分组（系列）后的集合内页，对应离线缓存里点开文件夹的那一层。
 ///
-/// 版式按 b 站做成三段：**头部**（大封面 + 集合名 + 「播放全部」）、
+/// 版式按离线缓存做成三段：**头部**（大封面 + 集合名 + 「播放全部」）、
 /// **分段标题**（「正片」）、**剧集卡片网格**（封面带体积/时长角标，标题下一行）。
 /// 原来的横排列表在只有一两条内容时下方会空出一大片，也没有「播放全部」这种
 /// 集合级动作；网格 + 头部信息把这一页填满，也更接近用户的直觉。
@@ -95,7 +95,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
                       allSelected: tasks.isNotEmpty && tasks.every((task) => _selected.contains(task.id)),
                     ),
                     const SizedBox(height: 24),
-                    // 分段标题：b 站这里是「正片」，本应用没有预告/花絮之分，
+                    // 分段标题：离线缓存这里是「正片」，本应用没有预告/花絮之分，
                     // 但保留这条分隔能明确"下面是这一集集的内容"。
                     _SectionTitle(text: l10n.mainEpisodes),
                     const SizedBox(height: 12),
@@ -262,7 +262,7 @@ class _FolderHeader extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  // 「播放全部」是集合级的主操作，用实心按钮突出（b 站同款）。
+                  // 「播放全部」是集合级的主操作，用实心按钮突出（同款处理）。
                   PressScale(child: FilledButton.icon(
                     onPressed: completed == 0 ? null : onPlayAll,
                     icon: const Icon(Symbols.play_arrow_rounded, size: 20),
@@ -330,7 +330,7 @@ class _HeaderCover extends StatelessWidget {
   Widget _sheet(Color color) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(AppRadius.md)));
 }
 
-/// 分段标题（「正片」）：主题色小标题，与 b 站的粉色分段名对应。
+/// 分段标题（「正片」）：主题色小标题，与离线缓存的粉色分段名对应。
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.text});
 

@@ -8,15 +8,15 @@ import 'press_scale.dart';
 /// 首页顶栏的快捷分类、搜索页的分类页签、帐号页的分组都用它，保证几处视觉一致；
 /// [index] 传 -1 表示当前没有任何一项处于选中状态（例如首页选中的分类不在快捷分类里）。
 ///
-/// 两个刻意的做法（照 BiliDesk 的顶栏页签）：
+/// 两个刻意的做法（照同类客户端的顶栏页签）：
 ///  * 下划线是**一根**、宽度固定，切换时只沿 X 滑过去。每项各画一根的话，切换就是
 ///    「这根关掉、那根打开」，是硬跳；宽度跟着文字走的话又会忽胖忽瘦。
 ///  * 每个页签的插槽按**选中态的粗体**预留宽度，所以鼠标划过或选中都不会把邻居挤动
-///    （粗体比常规体宽，不预留的话整排会轻微位移 —— 这也是 BiliDesk 那条注释的意思）。
+///    （粗体比常规体宽，不预留的话整排会轻微位移 —— 这也是那条注释的意思）。
 class UnderlineTabStrip extends StatelessWidget {
   const UnderlineTabStrip({super.key, required this.labels, required this.index, required this.onSelected, this.spacing = 0, this.padding, this.center = false});
 
-  /// 那根下划线的尺寸。BiliDesk 用 20×3、圆角 1.5，这里是同一量级。
+  /// 那根下划线的尺寸。同类客户端用 20×3、圆角 1.5，这里是同一量级。
   static const double underlineWidth = 18;
   static const double underlineHeight = 2;
 

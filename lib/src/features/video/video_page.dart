@@ -181,7 +181,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
               hidePlayerTopBar: widget.inPlayWindow,
             );
           })();
-    // 播放页固定走「沉浸模式」（参考 b 站）：不管应用当前是浅色还是深色主题，
+    // 播放页固定走「沉浸模式」（参考同类客户端）：不管应用当前是浅色还是深色主题，
     // 整页都用深色 —— 播放器舞台纯黑、右侧简介/评论用深色中性面。
     //
     // 字体、配色变体、AMOLED 这些开关必须跟 App 层用同一份设置：这些也是全屏播放器

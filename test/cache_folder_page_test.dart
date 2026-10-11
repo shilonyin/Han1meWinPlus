@@ -74,7 +74,7 @@ void main() {
   group('文件夹（分组）页', () {
     testWidgets('标题与头部都显示分组名，只列出该分组下的分集', (tester) async {
       await _pump(tester, 'g1');
-      // 标题栏与头部大标题各一处（b 站版式：头部有集合名）。
+      // 标题栏与头部大标题各一处（同类客户端版式：头部有集合名）。
       expect(find.text(_groupName), findsNWidgets(2));
       for (final id in ['e1', 'e2', 'e3', 'e4']) {
         expect(find.text('第 $id 集'), findsOneWidget);

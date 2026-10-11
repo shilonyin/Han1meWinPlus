@@ -21,12 +21,12 @@ import '../../core/app_motion.dart';
 ///
 /// 这里踩过两轮坑，最后收敛到「就是铺满」：
 ///  1. 原先固定 1600 上限 + 居中，超宽屏上画面被压成正中一小块（两侧空 480、
-///     上下黑边 365），用户拿 b 站对比后指出「最大化界面有问题」；
+///     上下黑边 365），用户拿同类客户端对比后指出「最大化界面有问题」；
 ///  2. 改成按屏幕动态放大上限后，收起侧栏仍居中留边，于是**视频两边又多出一段
 ///     黑边**——视频自己的 letterbox 已经够显眼，再叠一层就成了双层黑边
 ///     （用户：「视频本身就已经有黑边了还在这基础加一段」）。
 ///
-/// 现在不管侧栏展开还是收起都铺满：播放器撑满左列、侧栏贴右，与 b 站一致；
+/// 现在不管侧栏展开还是收起都铺满：播放器撑满左列、侧栏贴右，与同类客户端一致；
 /// 画面比例不匹配时由播放器自己居中留黑——那才是真正必要的那一层。
 ///
 /// 抽成纯函数便于单测（见 test/stage_width_test.dart）。
@@ -34,7 +34,7 @@ double stageWidthFor({required double availableWidth, required bool sidebarColla
   return availableWidth;
 }
 
-/// 右侧内容栏宽度：参考 b 站（1920 下约 336px）定上限，窗口再宽也不会越拉越宽 ——
+/// 右侧内容栏宽度：参考同类客户端（1920 下约 336px）定上限，窗口再宽也不会越拉越宽 ——
 /// 之前按 1/4 弹性算，全屏时能到 600+ 逻辑像素，播放器反被挤窄、上下黑边更多。
 const double kSidebarWidth = 336;
 const double kSidebarMinWidth = 280;
@@ -237,7 +237,7 @@ class _TabletVideoLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      // b 站那套：播放器与右侧信息栏是**两个独立的块**，内容始终铺满可用宽度，
+      // 同类客户端那套：播放器与右侧信息栏是**两个独立的块**，内容始终铺满可用宽度，
       // 应用层不留任何额外黑边（见 [stageWidthFor] 里记的两轮返工）。
       final stageWidth = stageWidthFor(
         availableWidth: constraints.maxWidth,

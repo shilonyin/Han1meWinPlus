@@ -612,7 +612,7 @@
   "minimizeToTray": "关闭时最小化到系统托盘",
   "minimizeToTrayDescription": "关闭按钮不再退出应用，改为收进托盘常驻；托盘菜单可显示窗口或退出",
   "openVideoInWindow": "在独立窗口播放视频",
-  "openVideoInWindowDescription": "点击封面时弹出独立播放窗口（类似 b 站客户端），关闭后在主窗口内跳转播放页",
+  "openVideoInWindowDescription": "点击封面时弹出独立播放窗口，关闭后在主窗口内跳转播放页",
   "localMedia": "本地媒体库",
   "localMediaDirectory": "本地媒体目录",
   "localMediaPickDirectory": "选择目录",

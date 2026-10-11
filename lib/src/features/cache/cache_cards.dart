@@ -40,8 +40,8 @@ class CacheCoverBadge extends StatelessWidget {
 
 /// 单条已完成缓存的卡片：与文件夹卡同一套版式，只是没有叠层、角标显示时长。
 ///
-/// 没有归入任何分组的影片用这张卡直接铺在网格里（对应 b 站里那些不属于任何
-/// 合集的单个视频），点一下就能播；归入分组的则聚成 [CacheFolderCard]。
+/// 没有归入任何分组的影片用这张卡直接铺在网格里（对应离线缓存里那些不属于
+/// 任何合集的单个视频），点一下就能播；归入分组的则聚成 [CacheFolderCard]。
 class CacheVideoCard extends StatelessWidget {
   const CacheVideoCard({super.key, required this.task, required this.onTap, this.onLongPress});
 
@@ -117,7 +117,7 @@ ImageProvider? folderCoverImage(List<DownloadTask> tasks) {
 /// 集合内页的剧集卡片：16:9 封面（左下体积、右下时长）+ 标题一行 + ⋮ 菜单。
 ///
 /// 与 [CacheVideoCard] 的区别在于它面向"一集一集看完"的场景：
-/// 体积和时长都直接画在封面上（b 站同款），标题只占一行，
+/// 体积和时长都直接画在封面上（同款处理），标题只占一行，
 /// 右侧的 ⋮ 收着播放 / 暂停 / 删除这些单条操作。
 class CacheEpisodeCard extends StatelessWidget {
   const CacheEpisodeCard({
@@ -213,7 +213,7 @@ class CacheEpisodeCard extends StatelessWidget {
 
 /// 「剧集聚合」文件夹卡片：一个分组（通常是一个系列）聚成一张卡。
 ///
-/// 这是参考 b 站离线缓存的「文件夹」形态：封面叠一摞纸的厚度感、右下角标总体积、
+/// 这是参考离线缓存的「文件夹」形态：封面叠一摞纸的厚度感、右下角标总体积、
 /// 标题下一行写「N 个内容」，点进去才是分集列表。分组内的进度也会汇总显示，
 /// 这样在网格上一眼能看出这个系列下了多少。
 class CacheFolderCard extends StatelessWidget {
@@ -242,7 +242,7 @@ class CacheFolderCard extends StatelessWidget {
           Expanded(
             child: Stack(
               children: [
-                // 底下错开的两层"纸"：做出文件夹里叠着多份内容的感觉（b 站同款处理）。
+                // 底下错开的两层"纸"：做出文件夹里叠着多份内容的感觉（同款处理）。
                 Positioned(left: 8, right: 8, top: 0, bottom: 8, child: _StackSheet(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .55))),
                 Positioned(left: 4, right: 4, top: 4, bottom: 4, child: _StackSheet(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .8))),
                 Positioned(
@@ -312,7 +312,7 @@ class _StackSheet extends StatelessWidget {
 bool _needsPrimaryAction(DownloadStatus status) =>
     status == DownloadStatus.paused || status == DownloadStatus.failed;
 
-/// 「正在缓存」页签里的单条任务卡片（b 站离线缓存那套版式）。
+/// 「正在缓存」页签里的单条任务卡片（离线缓存那套版式）。
 ///
 /// 与「已缓存视频」的网格卡不同，这一版把**操作直接压在封面上**：
 /// 右上角「前往详情页」是去影片页的入口，封面中央是当前状态的主操作

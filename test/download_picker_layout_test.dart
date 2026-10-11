@@ -5,14 +5,14 @@ import 'package:han1me_win_plus/src/app/app_theme.dart';
 import 'package:han1me_win_plus/src/domain/models/video.dart';
 import 'package:han1me_win_plus/src/features/video/download_picker_sheet.dart';
 
-/// 守的是一个真实反馈：下载弹窗「占画面太多，没有 b 站那种悬浮感」。
+/// 守的是一个真实反馈：下载弹窗「占画面太多，没有同类客户端那种悬浮感」。
 ///
 /// 实测当时的数据：占宽 50.4%、**占高 99.9%、上下留白各 0px** —— 完全贴满屏幕。
 /// 根因是在 `Column(mainAxisSize.min)` 里套了 `Flexible + ListView(shrinkWrap)`：
 /// Flexible 在 min 模式下仍会把高度顶到 maxHeight，于是集数少时也占满整屏。
 ///
-/// 现在按 b 站「离线缓存」的比例定：卡片宽度取视口的 42%（夹在 460–560），
-/// 高度按内容撑、上限 76%。参考值（b 站）约占宽 31%、占高 64%。
+/// 现在按同类客户端「离线缓存」的比例定：卡片宽度取视口的 42%（夹在 460–560），
+/// 高度按内容撑、上限 76%。参考值约占宽 31%、占高 64%。
 void main() {
   Future<void> open(WidgetTester tester, {required int episodes, required Size viewport}) async {
     // 先把上一轮可能还开着的弹窗收掉，否则新 pump 的按钮点不到。

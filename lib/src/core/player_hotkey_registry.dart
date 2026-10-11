@@ -28,7 +28,7 @@ class PlayerHotkeyAction {
 class PlayerHotkeyRegistry {
   PlayerHotkeyRegistry._();
 
-  // ---- 应用内动作（B 站 / PotPlayer 惯例） ----
+  // ---- 应用内动作（同类客户端与桌面播放器的通行惯例） ----
   static const playPause = PlayerHotkeyAction(id: 'inApp.playPause', scope: PlayerHotkeyScope.inApp, defaultCombo: 'space');
   static const seekBackward = PlayerHotkeyAction(id: 'inApp.seekBackward', scope: PlayerHotkeyScope.inApp, defaultCombo: 'arrowleft');
   static const seekForward = PlayerHotkeyAction(id: 'inApp.seekForward', scope: PlayerHotkeyScope.inApp, defaultCombo: 'arrowright');

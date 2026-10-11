@@ -132,7 +132,7 @@ void main() {
       expect(find.byType(DropdownButton<VideoSource>), findsOneWidget);
       expect(find.text('1080P'), findsWidgets);
       expect(find.text(l10n.downloadSelectAllEpisodes), findsOneWidget);
-      // 「正片」分段标题（b 站这个位置就是它）。
+      // 「正片」分段标题（离线缓存这个位置就是它）。
       expect(find.text(l10n.mainEpisodes), findsOneWidget);
       // 底栏两个按钮，计数写在下载按钮上。
       expect(find.text(l10n.myDownloads), findsOneWidget);

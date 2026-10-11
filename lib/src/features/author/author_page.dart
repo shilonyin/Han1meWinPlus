@@ -22,7 +22,7 @@ import 'author_controller.dart';
 ///
 /// 为什么要有这一页：以前点作者名是「拿作者名去搜索」——落在一个带分类、排序、
 /// 标签的搜索页上，看不出这是谁的页面，而且模糊匹配会混进别人的片子。这里换成
-/// 作者自己的页面（用户对着 B 站的空间页提出的要求）。
+/// 作者自己的页面（用户对着同类客户端的作者空间页提出的要求）。
 class AuthorPage extends ConsumerStatefulWidget {
   const AuthorPage({super.key, required this.artist});
 
@@ -130,7 +130,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
 
   /// 「分享」：站点真实的关系页地址是 `/user/<id>/uploaded`。
   ///
-  /// 解析出用户 id 之后分享这个地址（和 B 站一样的作者页地址）；没有 id 时
+  /// 解析出用户 id 之后分享这个地址（和同类客户端一样的作者页地址）；没有 id 时
   /// 只能退回「拿作者名去搜」的地址。
   Future<void> _share(String name, String artistId) async {
     final settings = await ref.read(settingsProvider.future);
@@ -215,7 +215,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     final cardCount = (card?.artist ?? '').trim();
     final videoCount = data == null ? '' : l10n.videoCount(data.items.length);
     final subscribers = pageProfile?.subscriberCount;
-    // B 站那一行「@id · N 位订阅者 · M 部影片」：站点把订阅数写在这条资料里。
+    // 同类客户端那一行「@id · N 位订阅者 · M 部影片」：站点把订阅数写在这条资料里。
     final counts = subscribers != null
         ? l10n.subscriberVideoCount(
             subscribers,
@@ -319,7 +319,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     );
   }
 
-  /// 资料行右侧的统计柱（B 站那种「大数字 + 小标签」）。
+  /// 资料行右侧的统计柱（同类客户端那种「大数字 + 小标签」）。
   ///
   /// 数字来自 [AppLocalizations.subscriberVideoCount] 那句话，按 ' · ' 拆开、每段再拆出
   /// 开头的数字；模板里数字永远在每段开头，一旦拆不出来（换了模板、或退回搜索路径时

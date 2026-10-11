@@ -238,7 +238,7 @@ class _AppDrawer extends ConsumerWidget {
   }
 }
 
-/// 桌面端的常驻窄侧栏（b 站风格）：宽度固定 88，图标 + 短标签上下排，分组之间用分隔线。
+/// 桌面端的常驻窄侧栏（同款风格）：宽度固定 88，图标 + 短标签上下排，分组之间用分隔线。
 ///
 /// 用自绘而不是 [NavigationDrawer]，是因为抽屉的展开宽度（320）在桌面上太占地方，
 /// 而 [NavigationRail] 又不支持分组与“非分支页面”的选中态。
@@ -416,7 +416,7 @@ Future<void> _cycleThemeMode(BuildContext context, WidgetRef ref) async {
   );
 }
 
-/// 单个窄栏条目：悬停或选中时**只有图标与文字**转为主题色（b 站那种），
+/// 单个窄栏条目：悬停或选中时**只有图标与文字**转为主题色（同款处理），
 /// 不画底色块 —— 底色块会显得比图标本身还抢眼。
 class _CompactRailItem extends StatefulWidget {
   const _CompactRailItem({required this.item, required this.selected, required this.extent, required this.onTap});

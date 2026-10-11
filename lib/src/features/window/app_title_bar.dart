@@ -74,7 +74,7 @@ class AppWindowFrame extends ConsumerWidget {
               valueListenable: WindowChrome.pipMode,
               builder: (context, pip, ___) => pip
                   // 画中画小窗：视频铺满整窗，标题栏与中央大圆按钮**浮在画面上**，
-                  // 而不是把画面挤掉一条（参考实现 b 站小窗就是这么做的）。
+                  // 而不是把画面挤掉一条（参考实现里小窗就是这么做的）。
                   ? Stack(children: [
                       Positioned.fill(child: child),
                       Positioned(top: 0, left: 0, right: 0, child: bar),

@@ -238,8 +238,8 @@ class _HoverZoneState extends State<_HoverZone> {
 /// 封面角标（时长 / 播放量）在悬停时淡出。
 ///
 /// 悬停会同时把封面推近、并在停稳 1.5 秒后在里面放预览画面；角标压在最上面会正好
-/// 挡在那块画面上。BiliDesk 的首页卡片也是悬停即淡出，他们在源码里写的理由是
-/// 「放大的是封面，角标压在上面会挡住画面 —— 这也是 B 站网页版的行为」。
+/// 挡在那块画面上。同类客户端的首页卡片也是悬停即淡出，源码里写的理由是
+/// 「放大的是封面，角标压在上面会挡住画面 —— 这也是同行的通行做法」。
 ///
 /// 淡出比淡入快一档：移开鼠标时希望角标干脆地回来，而不是慢慢浮上来。
 /// 外面套 [IgnorePointer]：角标本来就不该可点（点它等于点卡片），
@@ -400,11 +400,11 @@ class VideoCardTile extends ConsumerWidget {
           constraints.maxWidth,
           MediaQuery.devicePixelRatioOf(context),
         );
-        // 卡片本体不再铺底色：封面是独立的一块，文字直接落在页面底上（对齐 b 站首页卡片）。
+        // 卡片本体不再铺底色：封面是独立的一块，文字直接落在页面底上（对齐同类客户端首页卡片）。
         // 仍套一层**透明** Material —— InkWell 需要一个 Material 祖先才能画水波纹，
         // 但没有底色，就不会再出现"封面和文字同属一块白板"的两层感。
         return _HoverZone(
-          // 整张卡片一个悬停状态，用来给标题换强调色（b 站与 BiliDesk 的卡片都是
+          // 整张卡片一个悬停状态，用来给标题换强调色（同类客户端的卡片都是
           // 悬停即标题变色）。封面推近 / 角标淡出 / 悬停预览另有一个**更小**的悬停区
           // （`_cover` 里那个 `_HoverZone`）：只有鼠标真的压到封面上才开始抓详情，
           // 停在标题或空白处不该发请求。
@@ -426,7 +426,7 @@ class VideoCardTile extends ConsumerWidget {
                 // 可见的标记。用主题色压到很淡，既不破坏"无底卡片"的观感，又能在浅色
                 // 与深色主题下都看出来。
                 focusColor: theme.colorScheme.primary.withValues(alpha: .16),
-                // 统一入口：Windows 上按设置弹出独立播放窗口（b 站客户端行为），其余平台窗口内跳转。
+                // 统一入口：Windows 上按设置弹出独立播放窗口（同类客户端行为），其余平台窗口内跳转。
                 // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
                 onTap:
                     onTap ??
@@ -644,7 +644,7 @@ class VideoCardTile extends ConsumerWidget {
     );
   }
 
-  /// 标题区的高度：**固定两行**，与 B 站一样 —— 标题短也占两排空间。
+  /// 标题区的高度：**固定两行**，与同类客户端一样 —— 标题短也占两排空间。
   ///
   /// 为什么不能按标题实际行数留高：标题一行还是两行会改变卡片内容区的高度，于是同一行里
   /// 封面下沿、作者行、评分行全都跟着错位（用户截图反馈"视频封面怎么也是没对齐的"）。
@@ -680,7 +680,7 @@ class VideoCardTile extends ConsumerWidget {
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
         // 进作者自己的页面，而不是"拿作者名去搜索"：搜索结果里会混进别人的片子，
-        // 也看不出这是谁的页面（用户对比 B 站空间页提出的要求）。
+        // 也看不出这是谁的页面（用户对比作者空间页提出的要求）。
         onTap: () => context.push(
           Uri(path: '/author', queryParameters: {'name': artist}).toString(),
         ),
@@ -709,7 +709,7 @@ class VideoCardTile extends ConsumerWidget {
     // 正文级的次要文字该用 onSurfaceVariant。
     final metaInk = theme.colorScheme.onSurfaceVariant;
     // 标题在三种情况下染主题色：看过（会话级标记）、详情页里正在看的那一张、
-    // 以及鼠标停在这张卡片上 —— b 站与 BiliDesk 的卡片都是「悬停即标题变强调色」。
+    // 以及鼠标停在这张卡片上 —— 同类客户端的卡片都是「悬停即标题变强调色」。
     // 卡片本身不再铺底色、也不再用 InkWell 的灰色高亮提示悬停：那层灰只能从没有
     // 背景的文字区透出来，看起来就是"选中时下面变暗"（用户反馈的原话），
     // 现在改成颜色变化 + 封面推近。
