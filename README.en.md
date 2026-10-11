@@ -11,7 +11,7 @@
 <p align="center">
   <b>A Hanime1 client built for Windows 10 / 11</b><br>
   Hardware decoding · Super-resolution · Installer + portable build · Built-in updater<br>
-  <sub>Built with Flutter and Material Design 3 · a Windows-focused fork of Han1mePlus</sub>
+  <sub>Built with Flutter and Material Design 3 · based on Han1mePlus</sub>
 </p>
 
 <p align="center">
@@ -35,9 +35,9 @@
 
 ## About
 
-Han1meWinPlus is a **Windows-focused fork** of [Han1mePlus](https://github.com/1wc10086/Han1mePlus), built with Flutter and Material Design 3.
+Han1meWinPlus is a Windows client whose base code comes from [Han1mePlus](https://github.com/1wc10086/Han1mePlus), built with Flutter and Material Design 3.
 
-Only Windows is maintained in this branch, and the work concentrates on the Windows side: window behaviour, the player, the installer and the update flow. The `android` / `ios` / `macos` / `linux` directories are kept only so that upstream changes can be merged — they are neither maintained here nor guaranteed to build or work.
+The project concentrates on the Windows side: window behaviour, the player, the installer and the update flow. The `android` / `ios` / `macos` / `linux` directories come from Han1mePlus and are kept for reference only — they are neither maintained here nor guaranteed to build or work.
 
 > This project has no affiliation with Hanime1 whatsoever. It is a community-maintained, third-party open-source client.
 
@@ -70,25 +70,16 @@ Only Windows is maintained in this branch, and the work concentrates on the Wind
 
 > Video covers and account information in the screenshots have been blurred. The screenshots show the Simplified Chinese interface; Traditional Chinese and English are also available in-app.
 
-## Relationship to upstream
+## Project origin
 
-**Windows users should use this repository** — upstream does not maintain Windows-specific work; the Windows window, player, installer and update flow all live here.
+All of the base code comes from [Han1mePlus](https://github.com/1wc10086/Han1mePlus) (AGPL-3.0), and this project is likewise licensed under AGPL v3.0. On top of that, the following work is done for Windows:
 
-- Upstream repository: [1wc10086/Han1mePlus](https://github.com/1wc10086/Han1mePlus) (AGPL-3.0)
-- This repository is a derivative work and is likewise licensed under AGPL v3.0
-- Syncing upstream: `git fetch upstream && git merge upstream/main`
-- Generic issues belong upstream; please file Windows-only issues in this repository
+- **Window & title bar**: custom title bar, full-screen window, multi-monitor and DPI scaling
+- **Player**: hardware-decoder options, super-resolution, proxy passed through to the player
+- **Installer**: installer and portable archive shipped with every release
+- **Update flow**: in-app update check with mirror fallback
 
-| | [Han1mePlus](https://github.com/1wc10086/Han1mePlus) | Han1meWinPlus (this repo) |
-| --- | --- | --- |
-| Purpose | Upstream, multi-platform | Windows-focused fork |
-| Maintained platforms | Android and other mobile platforms | Windows 10 / 11 only |
-| Windows window & title bar | Generic implementation | Purpose-built (custom title bar, full-screen window, DPI scaling) |
-| Windows player | Generic implementation | Purpose-built (hardware-decoder options, super-resolution, proxy passed through to the player) |
-| Windows installer | Depends on upstream | Installer and portable archive shipped with every release |
-| Windows update flow | Generic | Purpose-built (in-app update check with mirror fallback) |
-
-For Android and other platforms, use the upstream project.
+For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 
 ## Download
 
@@ -110,7 +101,7 @@ All previous versions and their changelogs are on the [Releases](../../releases)
 ## Project status
 
 - **Windows**: maintained, features are still being refined
-- **Android / iOS / macOS / Linux**: not maintained; those directories exist only to merge upstream changes
+- **Android / iOS / macOS / Linux**: not maintained; the code in those directories comes from Han1mePlus and is kept for reference only
 
 Known limitations (stated up front so expectations are clear):
 
@@ -136,9 +127,9 @@ Update checks go through GitHub Releases and may time out on restricted networks
 </details>
 
 <details>
-<summary>Why not just use the upstream project?</summary>
+<summary>How does this project relate to Han1mePlus?</summary>
 
-This repository is the Windows-focused fork of upstream: upstream changes are merged in, but the window, player, installer and update flow are maintained separately for Windows, and every release ships ready-to-install artifacts. See "Relationship to upstream" above.
+All of the base code comes from Han1mePlus; the Windows window, player, installer and update flow are maintained separately in this repository, and every release ships ready-to-install artifacts. See "Project origin" above.
 
 </details>
 
@@ -232,7 +223,7 @@ This project is currently maintained by one person. Issues and feature suggestio
 
 - **Feature requests / usage questions**: open an [issue](../../issues/new/choose) or start a [discussion](../../discussions)
 - **Bug reports**: include your Windows version, the app version (Settings → About), reproduction steps and screenshots — it speeds up triage a lot
-- Generic (non-Windows) issues belong in the [upstream repository](https://github.com/1wc10086/Han1mePlus/issues)
+- Generic issues for other platforms belong in the [Han1mePlus repository](https://github.com/1wc10086/Han1mePlus/issues)
 
 ## License
 
@@ -260,7 +251,7 @@ The project is provided "as is"; the developer does not guarantee that it will r
 
 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)
 
-The upstream project of this branch; all of the base code in the Windows-focused fork comes from it.
+The source of this project's base code; the Windows client is built on top of it.
 
 [Han1meViewer](https://github.com/misaka10032w/Han1meViewer)
 

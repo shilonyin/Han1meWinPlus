@@ -6,6 +6,6 @@ contact_links:
   - name: 下载与更新日志
     url: https://github.com/shilonyin/Han1meWinPlus/releases
     about: 查看每个版本的更新内容、下载安装包与免安装包
-  - name: 上游项目（Han1mePlus）
+  - name: 其他平台（Han1mePlus）
     url: https://github.com/1wc10086/Han1mePlus/issues
-    about: 与 Windows 无关的通用问题请提交到上游仓库
+    about: 与 Windows 无关的通用问题请提交到 Han1mePlus 仓库

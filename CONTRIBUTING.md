@@ -12,7 +12,7 @@
 
 写法与用法交流、配置分享请到 [Discussions](https://github.com/shilonyin/Han1meWinPlus/discussions)。
 
-> 与 Windows 无关的通用问题（Android 端、上游基础功能等）请提交到[上游仓库](https://github.com/1wc10086/Han1mePlus/issues)。
+> 其他平台的通用问题（Android 端、基础功能等）请提交到 [Han1mePlus 仓库](https://github.com/1wc10086/Han1mePlus/issues)。
 
 ## 一条好的 Bug 报告
 
@@ -32,7 +32,7 @@
 ### 分支
 
 - 默认分支是 **`master`**，也是开发分支；所有 Pull Request 请提到 `master`
-- `main` 保持为上游的纯净镜像，默认不再跟踪上游；确需同步时先补回远程：
+- `main` 保持为 Han1mePlus 的纯净镜像，默认不再跟踪；确需同步时先补回远程：
   `git remote add upstream https://github.com/1wc10086/Han1mePlus.git && git fetch upstream && git merge upstream/main`
 
 ### 构建
@@ -47,7 +47,7 @@ flutter build windows --release
 
 ### 代码风格
 
-- **不要对既有文件跑 `dart format`**：本仓库刻意保持「长单行」的写法，格式化会制造上千行无意义 diff，破坏与上游的合并
+- **不要对既有文件跑 `dart format`**：本仓库刻意保持「长单行」的写法，格式化会制造上千行无意义 diff，破坏与 Han1mePlus 的后续合并
 - 本地化文案请直接手改 `.arb` 与 `lib/l10n/app_localizations*.dart` 中的对应字符串，**不要运行 `flutter gen-l10n`**（生成器版本不同会产生大量格式噪音）
 - 改动请沿用周围代码的写法与注释密度
 
@@ -91,7 +91,7 @@ CI 会把提交分成「新功能 / 改进 / 修复」三组写进 Release 说�
 - **代码注释**：包括 `///` 文档注释、`//` 行内注释与 `test/` 里的说明。设计参考来源同样只说「参考什么形态 / 哪家的通行做法」，不点名。
 - **文档**（`README*.md`、`docs/`）：同上。
 
-**例外**——这些不算「其他产品名」，必须保留：依赖组件与引擎（`Flutter`、`media_kit`、`libmpv`、`Riverpod`、`go_router`）、平台与厂商（`Windows`、`Microsoft`）、字体与素材授权方（`HarmonyOS Sans`、`Huawei Device Co., Ltd.`）、上游项目与开源作者署名。许可与第三方声明一节尤其不能删。
+**例外**——这些不算「其他产品名」，必须保留：依赖组件与引擎（`Flutter`、`media_kit`、`libmpv`、`Riverpod`、`go_router`）、平台与厂商（`Windows`、`Microsoft`）、字体与素材授权方（`HarmonyOS Sans`、`Huawei Device Co., Ltd.`）、Han1mePlus 与开源作者署名。许可与第三方声明一节尤其不能删。
 
 自检：提交前跑一遍
 

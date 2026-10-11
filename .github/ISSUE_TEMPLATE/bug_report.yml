@@ -68,4 +68,4 @@ body:
       options:
         - label: 我已经在最新版本上确认过（或在最新版上也能复现）
         - label: 我搜索过已有 Issue，确认没有重复
-        - label: 问题只与 Windows 端有关（通用问题会提交到上游仓库）
+        - label: 问题只与 Windows 端有关（通用问题会提交到 Han1mePlus 仓库）

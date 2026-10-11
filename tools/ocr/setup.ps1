@@ -24,7 +24,7 @@ $dest = Join-Path $PSScriptRoot 'bin'
 $exe = Join-Path $dest 'opencodereview.exe'
 New-Item -ItemType Directory -Path $dest -Force | Out-Null
 
-# 平台包名固定为 win32-x64：这个 fork 只维护 Windows。
+# 平台包名固定为 win32-x64：本项目只维护 Windows。
 # 官方 npm 包通过 optionalDependencies 分发各平台二进制，这里直接取 Windows 那一份。
 $pkg = '@alibaba-group/ocr-win32-x64'
 $tmp = Join-Path $repoRoot 'tools\ocr\.dl'

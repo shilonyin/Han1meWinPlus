@@ -1,4 +1,4 @@
-<!-- 请把 Pull Request 提到 master 分支；main 是上游的纯净镜像。 -->
+<!-- 请把 Pull Request 提到 master 分支；main 是 Han1mePlus 的纯净镜像。 -->
 
 ## 改动说明
 

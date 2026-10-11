@@ -11,7 +11,7 @@
 <p align="center">
   <b>专为 Windows 10 / 11 优化的 Hanime1 客户端</b><br>
   硬件解码 · 超分辨率 · 安装包 + 免安装版 · 内置自动更新<br>
-  <sub>基于 Flutter 与 Material Design 3 构建 · Han1mePlus 的 Windows 专修分支</sub>
+  <sub>基于 Flutter 与 Material Design 3 构建 · 源自 Han1mePlus</sub>
 </p>
 
 <p align="center">
@@ -35,9 +35,9 @@
 
 ## 简介
 
-Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Windows 专修分支（fork）**，基于 Flutter 开发，采用 Material Design 3 设计规范。
+Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)，基于 Flutter 开发，采用 Material Design 3 设计规范。
 
-本分支只维护 Windows 平台，专注于 Windows 端的窗口、播放器、安装包与更新流程。`android` / `ios` / `macos` / `linux` 目录仅保留上游代码以便同步上游改动，不在本分支的维护范围内，也不保证可用。
+项目专注于 Windows 端的窗口、播放器、安装包与更新流程。仓库里的 `android` / `ios` / `macos` / `linux` 目录来自 Han1mePlus，仅作参考保留，不在维护范围内，也不保证可用。
 
 > 本项目与 Hanime1 官方无任何关联，为社区维护的第三方开源客户端。
 
@@ -70,25 +70,16 @@ Han1meWinPlus 是 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 **Win
 
 > 截图中的影片封面与账号信息均已做模糊处理。
 
-## 与上游的关系
+## 项目来源
 
-**Windows 用户请直接用本仓库** —— 上游不维护 Windows 专属优化，Windows 端的窗口、播放器、安装包与更新流程都在这里。
+本项目的全部基础代码来自 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)（AGPL-3.0），同样遵循 AGPL v3.0。在此基础上，Windows 端单独做了这些工作：
 
-- 上游仓库：[1wc10086/Han1mePlus](https://github.com/1wc10086/Han1mePlus)（AGPL-3.0）
-- 本仓库为其派生作品，同样遵循 AGPL v3.0
-- 同步上游：`git fetch upstream && git merge upstream/main`
-- 上游通用问题请反馈到上游仓库；仅 Windows 相关的问题请提到本仓库的 Issue
+- **窗口与标题栏**：自绘标题栏、全屏窗口、多显示器与 DPI 缩放适配
+- **播放器**：硬件解码档位、超分辨率、代理透传给播放器
+- **安装包**：每次发版提供安装包与免安装包
+- **更新流程**：应用内检查更新 + 镜像回退
 
-| 项目 | [Han1mePlus](https://github.com/1wc10086/Han1mePlus) | Han1meWinPlus（本仓库） |
-| --- | --- | --- |
-| 定位 | 上游多平台项目 | Windows 专修分支（fork） |
-| 维护平台 | Android 等移动端 | 仅 Windows 10 / 11 |
-| Windows 窗口与标题栏 | 通用实现 | 专门适配（自绘标题栏、全屏窗口、DPI 缩放） |
-| Windows 播放器 | 通用实现 | 专门适配（硬件解码档位、超分辨率、代理透传给播放器） |
-| Windows 安装包 | 视上游情况 | 每次发版提供安装包与免安装包 |
-| Windows 更新流程 | 通用 | 专门适配（应用内检查更新 + 镜像回退） |
-
-Android 等其他平台请使用上游项目。
+其他平台的客户端请使用 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)。
 
 ## 下载
 
@@ -110,7 +101,7 @@ Android 等其他平台请使用上游项目。
 ## 项目状态
 
 - **Windows**：维护中，功能持续完善
-- **Android / iOS / macOS / Linux**：不维护，目录仅保留上游代码以便同步上游改动
+- **Android / iOS / macOS / Linux**：不维护，目录中的代码来自 Han1mePlus，仅作参考保留
 
 已知限制（写在前面，避免误预期）：
 
@@ -136,9 +127,9 @@ Android 等其他平台请使用上游项目。
 </details>
 
 <details>
-<summary>为什么不用上游项目？</summary>
+<summary>这个项目和 Han1mePlus 是什么关系？</summary>
 
-本仓库是上游的 Windows 专修分支：上游的改动会同步进来，但窗口、播放器、安装包与更新流程都针对 Windows 单独维护，并且每次发版都提供可直接安装的产物。详见上方「与上游的关系」。
+本项目的全部基础代码来自 Han1mePlus，Windows 端的窗口、播放器、安装包与更新流程在这里单独维护，每次发版都提供可直接安装的产物。详见上方「项目来源」。
 
 </details>
 
@@ -232,7 +223,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 - **功能建议 / 使用问题**：新建 [Issue](../../issues/new/choose) 或到 [Discussions](../../discussions) 聊聊
 - **Bug 反馈**：附上系统版本与应用版本（设置 → 关于）、复现步骤与截图，能大幅提高定位效率
-- 与 Windows 无关的通用问题请提到[上游仓库](https://github.com/1wc10086/Han1mePlus/issues)
+- 其他平台的通用问题请提到 [Han1mePlus 仓库](https://github.com/1wc10086/Han1mePlus/issues)
 
 ## 开源协议
 
@@ -260,7 +251,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)
 
-本分支的上游项目，Windows 专修分支的全部基础代码均来源于此。
+本项目的基础代码来源，Windows 客户端在此基础上开发。
 
 [Han1meViewer](https://github.com/misaka10032w/Han1meViewer)
 

@@ -209,11 +209,11 @@ jobs:
 
           - 安装包未做代码签名，SmartScreen 或杀毒软件可能误报
           - 部分站点图片 CDN 响应较慢，首屏封面可能需要等待，之后会走本地缓存
-          - 仅维护 Windows，其他平台不在本分支的范围内
+          - 仅维护 Windows，其他平台不在本项目范围内
 
           ## 说明
 
-          基于上游 [Han1mePlus](https://github.com/1wc10086/Han1mePlus) 的 Windows 专修分支。
+          基础代码来自 [Han1mePlus](https://github.com/1wc10086/Han1mePlus)，本项目在此基础上专注 Windows 端。
           应用数据保存在 ``%APPDATA%\han1me_win_plus\``，覆盖安装或升级不会丢失。
           "@
 

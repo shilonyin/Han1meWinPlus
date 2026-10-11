@@ -5,9 +5,9 @@ Issues and specs for this repo live as GitHub issues.
 - 仓库：`shilonyin/Han1meWinPlus`（本仓库的 `origin`）
 - 工具：`gh` CLI（本机已登录为 `shilonyin`）
 
-> 注意：本仓库还有一个 `upstream` remote 指向 `1wc10086/Han1mePlus`（上游）。`gh` 在没写明 `--repo` 时
-> 会按 remote 顺序解析，可能落到 upstream 上。**凡是用 `gh` 命令读写标签、issue、PR，都必须显式带上
-> `--repo shilonyin/Han1meWinPlus`**，否则会改到上游仓库。
+> 注意：本仓库只有 `origin` 一个 remote（原先指向 Han1mePlus 的 `upstream` 已移除）。
+> **凡是用 `gh` 命令读写标签、issue、PR，都必须显式带上
+> `--repo shilonyin/Han1meWinPlus`**，不要依赖 remote 解析的结果。
 
 ## 怎么做（先看这一节）
 

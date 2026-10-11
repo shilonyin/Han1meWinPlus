@@ -17,7 +17,7 @@ Edit the right-hand column to match whatever vocabulary you actually use.
 ## 本仓库的实际情况
 
 - 五个标签字符串与角色同名，**保留默认**，没有做重命名。
-- 这五个标签已经建在 `shilonyin/Han1meWinPlus` 上（不是 upstream）。
-  建标签时必须带 `--repo shilonyin/Han1meWinPlus`，否则会落到 `upstream`（`1wc10086/Han1mePlus`）。
+- 这五个标签已经建在 `shilonyin/Han1meWinPlus` 上。
+  建标签时必须带 `--repo shilonyin/Han1meWinPlus`，避免落到其它仓库。
 - 仓库里另有历史遗留的自定义标签（`accessibility` / `chore` / `P0` / `P1` / `P2` / `P3` 与 GitHub 默认标签），
   它们与本套技能无关。**技能只应用上表这五个 triage 标签，不额外强制任何其它标签。**
