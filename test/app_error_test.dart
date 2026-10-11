@@ -42,6 +42,20 @@ void main() {
       expect(appErrorSuggestion(l10n, _dio(statusCode: 403)), l10n.suggestionCloudflare);
     });
 
+    // 硬封锁（`Attention Required!`）和可解挑战是两种 403，建议必须不同：
+    // 前者没有可点的挑战页，让用户「切换网络或更换镜像」这种含糊说法会引导他去点校验，
+    // 白试一场；后者才该去点。
+    test('硬封锁给「换网络/关代理」的建议，不混同于可解挑战', () {
+      expect(
+        appErrorSuggestion(l10n, const CloudflareChallengeException('https://a/b', blocked: true)),
+        l10n.suggestionCloudflareBlocked,
+      );
+      expect(
+        appErrorSuggestion(l10n, const CloudflareChallengeException('https://a/b', blocked: true)),
+        isNot(l10n.suggestionCloudflare),
+      );
+    });
+
     test('5xx 判站点异常，超时/连接类判网络', () {
       expect(appErrorSuggestion(l10n, _dio(statusCode: 503)), l10n.suggestionSite);
       expect(appErrorSuggestion(l10n, _dio(type: DioExceptionType.connectionTimeout)), l10n.suggestionTimeout);
@@ -93,6 +107,22 @@ void main() {
       await tester.pumpWidget(_host(AppErrorView(error: StateError('Cloudflare said no'), onRetry: () {}, onCloudflareVerified: () async {})));
       await tester.pumpAndSettle();
       expect(find.text('完成 Cloudflare 验证'), findsNothing);
+    });
+
+    // 硬封锁时页面里根本没有可点的挑战，给「完成验证」入口等于骗用户点进去。
+    testWidgets('硬封锁不给「完成验证」入口', (tester) async {
+      await tester.pumpWidget(_host(AppErrorView(
+        error: const CloudflareChallengeException('https://hanime1.me/', blocked: true),
+        onRetry: () {},
+        onCloudflareVerified: () async {},
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('完成 Cloudflare 验证'), findsNothing);
+      // 但要说清楚该怎么办（换网络 / 关代理），不能只丢一句原始错误。
+      expect(find.textContaining('已被 Cloudflare 封锁'), findsOneWidget);
+      // 重试仍然保留：换个网络后点重试是有效的。
+      expect(find.text('重试'), findsOneWidget);
     });
 
     testWidgets('没有 onRetry 时不画重试按钮', (tester) async {

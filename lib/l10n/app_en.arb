@@ -106,6 +106,7 @@
   "diagnosticLoginSkipped": "Not signed in, skipping the login check",
   "suggestionLabel": "Suggestion",
   "suggestionCloudflare": "The server rejected the request; this is usually a Cloudflare challenge or a region restriction — try another network or mirror address",
+  "suggestionCloudflareBlocked": "Cloudflare has blocked this network's outbound IP and no longer offers a challenge page. Switch networks (a home connection usually works; datacenter/proxy IPs are often blocked) or turn off your proxy and retry",
   "suggestionDns": "System DNS may be poisoned; enable \"Use Built-in Hosts\" or switch to DNS over HTTPS",
   "suggestionTimeout": "The server is too slow or unreachable; check your network and retry",
   "suggestionSite": "The site responded abnormally; try another mirror address",

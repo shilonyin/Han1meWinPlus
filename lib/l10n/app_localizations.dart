@@ -657,6 +657,12 @@ abstract class AppLocalizations {
   /// **'The server rejected the request; this is usually a Cloudflare challenge or a region restriction — try another network or mirror address'**
   String get suggestionCloudflare;
 
+  /// No description provided for @suggestionCloudflareBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare has blocked this network\'s outbound IP and no longer offers a challenge page. Switch networks (a home connection usually works; datacenter/proxy IPs are often blocked) or turn off your proxy and retry'**
+  String get suggestionCloudflareBlocked;
+
   /// No description provided for @suggestionDns.
   ///
   /// In en, this message translates to:

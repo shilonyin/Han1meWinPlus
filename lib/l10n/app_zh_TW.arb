@@ -106,6 +106,7 @@
   "diagnosticLoginSkipped": "未登入，跳過登入檢測",
   "suggestionLabel": "建議",
   "suggestionCloudflare": "請求被伺服器拒絕，可能是 Cloudflare 驗證或地區限制，請切換網路環境或更換鏡像站位址",
+  "suggestionCloudflareBlocked": "目前網路出口已被 Cloudflare 封鎖，站點不再提供驗證入口。請更換網路（家寬直連通常可用；機房/代理 IP 容易被攔）或關閉代理後重試",
   "suggestionDns": "系統 DNS 可能被污染，建議開啟「使用內建 Hosts」或改用 DNS over HTTPS",
   "suggestionTimeout": "伺服器回應過慢或網路不通，請檢查網路後重試",
   "suggestionSite": "站點回應異常，請嘗試更換鏡像站位址",

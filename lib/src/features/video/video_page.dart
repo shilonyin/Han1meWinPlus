@@ -229,10 +229,10 @@ class _VideoError extends ConsumerWidget {
             onPressed: () => ref.invalidate(videoDetailProvider(id)),
             child: Text(AppLocalizations.of(context)!.retry),
           )),
-          if (error is CloudflareChallengeException)
+          // 硬封锁时不给「完成验证」入口：那种 403 没有可点的挑战页，进去也是白跑。
+          if (error case CloudflareChallengeException(blocked: false, :final url))
             PressScale(child: TextButton(
               onPressed: () async {
-                final url = (error as CloudflareChallengeException).url;
                 if (await context.push<bool>('/cloudflare', extra: url) ==
                     true) {
                   ref.invalidate(videoDetailProvider(id));

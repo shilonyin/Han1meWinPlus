@@ -20,7 +20,11 @@ import 'press_scale.dart';
 ///
 /// [onRetry] 为空时不画重试按钮（比如「分类加载失败」这类没法原地重试的）。
 /// 返回一个可以手动收起的句柄，调用方想在页面切走时撤掉就调它。
-VoidCallback showAppErrorBar(BuildContext context, Object error, {VoidCallback? onRetry}) {
+VoidCallback showAppErrorBar(
+  BuildContext context,
+  Object error, {
+  VoidCallback? onRetry,
+}) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return () {};
   late final OverlayEntry entry;
@@ -29,7 +33,8 @@ VoidCallback showAppErrorBar(BuildContext context, Object error, {VoidCallback? 
   }
 
   entry = OverlayEntry(
-    builder: (_) => _AppErrorBarHost(error: error, onRetry: onRetry, onDone: remove),
+    builder: (_) =>
+        _AppErrorBarHost(error: error, onRetry: onRetry, onDone: remove),
   );
   overlay.insert(entry);
   return remove;
@@ -40,7 +45,12 @@ VoidCallback showAppErrorBar(BuildContext context, Object error, {VoidCallback? 
 /// 分档跟 `site_diagnostics_page` 的 `_suggestion` 保持一致（403 判 Cloudflare、
 /// 5xx 判站点、DNS/连接判网络），免得同一个错误在诊断页和这里给出两种说法。
 String? appErrorSuggestion(AppLocalizations l10n, Object error) {
-  if (error is CloudflareChallengeException) return l10n.suggestionCloudflare;
+  if (error is CloudflareChallengeException) {
+    // 硬封锁没有可点的挑战页，让用户去「完成验证」只会白试，直接说清是网络被拦。
+    return error.blocked
+        ? l10n.suggestionCloudflareBlocked
+        : l10n.suggestionCloudflare;
+  }
   if (error is DioException) {
     final code = error.response?.statusCode;
     if (code == 403) return l10n.suggestionCloudflare;
@@ -49,26 +59,28 @@ String? appErrorSuggestion(AppLocalizations l10n, Object error) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionError =>
-        l10n.suggestionTimeout,
+      DioExceptionType.connectionError => l10n.suggestionTimeout,
       _ => null,
     };
   }
-  if (error is SocketException || error is HttpException) return l10n.suggestionTimeout;
+  if (error is SocketException || error is HttpException) {
+    return l10n.suggestionTimeout;
+  }
   return null;
 }
 
 /// 按错误种类挑图标：网络类的用断网图标，其余用通用错误图标。
 IconData appErrorIcon(Object error) {
   if (error is CloudflareChallengeException) return Symbols.gpp_maybe_rounded;
-  if (error is SocketException || error is HttpException) return Symbols.wifi_off_rounded;
+  if (error is SocketException || error is HttpException) {
+    return Symbols.wifi_off_rounded;
+  }
   if (error is DioException) {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionError =>
-        Symbols.wifi_off_rounded,
+      DioExceptionType.connectionError => Symbols.wifi_off_rounded,
       _ => Symbols.error_outline_rounded,
     };
   }
@@ -81,7 +93,12 @@ IconData appErrorIcon(Object error) {
 /// `'$error'.contains('Cloudflare')` 判断要不要给「完成验证」的入口 —— 文案一改
 /// 就会静默失效，这里改用类型判断。
 class AppErrorView extends StatelessWidget {
-  const AppErrorView({super.key, required this.error, this.onRetry, this.onCloudflareVerified});
+  const AppErrorView({
+    super.key,
+    required this.error,
+    this.onRetry,
+    this.onCloudflareVerified,
+  });
 
   final Object error;
   final VoidCallback? onRetry;
@@ -93,7 +110,13 @@ class AppErrorView extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final suggestion = appErrorSuggestion(l10n, error);
-    final needsChallenge = error is CloudflareChallengeException && onCloudflareVerified != null;
+    // 硬封锁（`Attention Required!`）不给「完成验证」入口：那种 403 根本不返回挑战页，
+    // 用户点进去只会看到一个没有可点内容的页面，白跑一趟。
+    final needsChallenge = switch (error) {
+      CloudflareChallengeException(blocked: false) =>
+        onCloudflareVerified != null,
+      _ => false,
+    };
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -102,7 +125,11 @@ class AppErrorView extends StatelessWidget {
           children: [
             Icon(appErrorIcon(error), size: 56, color: colorScheme.error),
             const SizedBox(height: 16),
-            Text('$error', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+            Text(
+              '$error',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
             if (suggestion case final text?) ...[
               const SizedBox(height: 8),
               ConstrainedBox(
@@ -110,7 +137,9 @@ class AppErrorView extends StatelessWidget {
                 child: Text(
                   '${l10n.suggestionLabel}：$text',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -120,9 +149,20 @@ class AppErrorView extends StatelessWidget {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: [
-                if (onRetry case final retry?) PressScale(child: FilledButton(onPressed: retry, child: Text(l10n.retry))),
+                if (onRetry case final retry?)
+                  PressScale(
+                    child: FilledButton(
+                      onPressed: retry,
+                      child: Text(l10n.retry),
+                    ),
+                  ),
                 if (needsChallenge)
-                  PressScale(child: TextButton(onPressed: onCloudflareVerified, child: Text(l10n.completeCloudflareVerification))),
+                  PressScale(
+                    child: TextButton(
+                      onPressed: onCloudflareVerified,
+                      child: Text(l10n.completeCloudflareVerification),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -134,7 +174,11 @@ class AppErrorView extends StatelessWidget {
 
 /// 顶部那条提示的本体：滑入 + 淡入，6 秒后自己收起（比 toast 久，因为要留时间点重试）。
 class _AppErrorBarHost extends StatefulWidget {
-  const _AppErrorBarHost({required this.error, required this.onRetry, required this.onDone});
+  const _AppErrorBarHost({
+    required this.error,
+    required this.onRetry,
+    required this.onDone,
+  });
 
   final Object error;
   final VoidCallback? onRetry;
@@ -144,8 +188,12 @@ class _AppErrorBarHost extends StatefulWidget {
   State<_AppErrorBarHost> createState() => _AppErrorBarHostState();
 }
 
-class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, duration: AppMotion.standard);
+class _AppErrorBarHostState extends State<_AppErrorBarHost>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: AppMotion.standard,
+  );
   Timer? _timer;
   var _closing = false;
 
@@ -185,9 +233,16 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerPro
       right: 0,
       child: SafeArea(
         child: SlideTransition(
-          position: Tween<Offset>(begin: const Offset(0, -0.6), end: Offset.zero).animate(
-            CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-          ),
+          position:
+              Tween<Offset>(
+                begin: const Offset(0, -0.6),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: _controller,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
           child: FadeTransition(
             opacity: _controller,
             child: Center(
@@ -207,7 +262,11 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerPro
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Icon(appErrorIcon(widget.error), size: 20, color: colorScheme.onErrorContainer),
+                            child: Icon(
+                              appErrorIcon(widget.error),
+                              size: 20,
+                              color: colorScheme.onErrorContainer,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -219,14 +278,19 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerPro
                                   '${widget.error}',
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onErrorContainer),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onErrorContainer,
+                                  ),
                                 ),
                                 if (suggestion case final text?)
                                   Text(
                                     text,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onErrorContainer.withValues(alpha: 0.78)),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onErrorContainer
+                                          .withValues(alpha: 0.78),
+                                    ),
                                   ),
                               ],
                             ),
@@ -238,7 +302,12 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerPro
                                   _dismiss();
                                   retry();
                                 },
-                                child: Text(l10n.retry, style: TextStyle(color: colorScheme.onErrorContainer)),
+                                child: Text(
+                                  l10n.retry,
+                                  style: TextStyle(
+                                    color: colorScheme.onErrorContainer,
+                                  ),
+                                ),
                               ),
                             ),
                           PressScale(
@@ -246,7 +315,11 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost> with SingleTickerPro
                               tooltip: l10n.close,
                               visualDensity: VisualDensity.compact,
                               onPressed: _dismiss,
-                              icon: Icon(Symbols.close_rounded, size: 18, color: colorScheme.onErrorContainer),
+                              icon: Icon(
+                                Symbols.close_rounded,
+                                size: 18,
+                                color: colorScheme.onErrorContainer,
+                              ),
                             ),
                           ),
                         ],

@@ -9,12 +9,24 @@ import '../../domain/models/library.dart';
 import '../../domain/models/video.dart';
 import 'han1me_http_client.dart';
 
+/// Cloudflare 拦截。
+///
+/// 分两种，处理方式完全不同：
+/// - **可解挑战**（`Just a moment...`，[blocked] 为 false）：走 WebView 过一次
+///   就能拿到 `cf_clearance`，界面给「完成验证」入口。
+/// - **硬封锁**（`Attention Required!`，[blocked] 为 true）：WAF 直接拒绝，
+///   不给任何挑战页面。此时让用户去点验证是白试 —— 页面上根本没有可点的东西。
+///   这种只能换网络/换 IP（常见于机房、代理 IP 被拉黑）。
 class CloudflareChallengeException implements Exception {
-  const CloudflareChallengeException(this.url);
+  const CloudflareChallengeException(this.url, {this.blocked = false});
+
   final String url;
 
+  /// 是否属于不给挑战的硬封锁。
+  final bool blocked;
+
   @override
-  String toString() => 'Cloudflare browser verification is required';
+  String toString() => blocked ? 'Cloudflare blocked this network ($url)' : 'Cloudflare browser verification is required';
 }
 
 class SearchResult {
@@ -60,8 +72,8 @@ class Han1meApi {
   final _resolvedOrigins = <String, String>{};
 
   /// WebView / 播放器请求头用的浏览器 UA —— 都是真正需要「像浏览器」的场景。
-  /// 桌面 Dart 请求不要用它，原因见 [Han1meHttpClient.selfIdentifiedUserAgent]。
-  static const userAgent = Han1meHttpClient.browserUserAgent;
+  /// 桌面 Dart 请求不要用它，原因见 [Han1meHttpClient.userAgentFor]。
+  static String get userAgent => Han1meHttpClient.browserUserAgent;
 
   void setCookie(String value) => _cookie = _mergeCookies(_cookie, value);
   void replaceCookie(String value) => _cookie = value;
@@ -437,7 +449,7 @@ class Han1meApi {
     final origin = _resolvedOrigin(baseUrl);
     final currentToken = await _csrfToken(origin) ?? token;
     final response = await _http.delete('$origin/user/tab-item/$videoId', {'tab': 'histories'}, headers: {'X-CSRF-TOKEN': currentToken, 'Referer': '$origin/'});
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException('$baseUrl/user/tab-item/$videoId');
+    if (cloudflareError(response.statusCode, response.headers, response.body, '$baseUrl/user/tab-item/$videoId') case final error?) throw error;
     if (response.statusCode >= 400) throw DioException(requestOptions: RequestOptions(path: '$baseUrl/user/tab-item/$videoId'), message: 'Request failed: HTTP ${response.statusCode}');
     try {
       final body = jsonDecode(response.body);
@@ -454,7 +466,7 @@ class Han1meApi {
   Future<CommentPage> comments(String baseUrl, String videoId, {String type = 'video'}) async {
     final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final response = await _http.get(Uri.parse('$base/loadComment').replace(queryParameters: {'type': type, 'id': videoId}).toString());
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException('$base/watch?v=$videoId');
+    if (cloudflareError(response.statusCode, response.headers, response.body, '$base/watch?v=$videoId') case final error?) throw error;
     if (response.statusCode >= 400) {
        throw DioException(requestOptions: RequestOptions(path: '$base/loadComment'), message: 'Comment request failed: HTTP ${response.statusCode}');
     }
@@ -513,7 +525,7 @@ class Han1meApi {
 
   Future<CommentPage> replies(String baseUrl, String commentId) async {
     final response = await _http.get(Uri.parse('$baseUrl/loadReplies').replace(queryParameters: {'id': commentId}).toString());
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException('$baseUrl/loadReplies');
+    if (cloudflareError(response.statusCode, response.headers, response.body, '$baseUrl/loadReplies') case final error?) throw error;
     final decoded = jsonDecode(response.body) as Map;
     final document = html_parser.parse(decoded['replies'] as String? ?? '');
     final root = document.querySelector('div[id^="reply-start"]');
@@ -536,7 +548,7 @@ class Han1meApi {
 
   Future<dom.Document> _document(String url, {String? referer, bool skipCache = false}) async {
     final response = await _http.get(url, headers: referer == null ? null : {'Referer': referer});
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException(url);
+    if (cloudflareError(response.statusCode, response.headers, response.body, url) case final error?) throw error;
     if (response.statusCode >= 400) {
       throw DioException(requestOptions: RequestOptions(path: url), message: 'Request failed: HTTP ${response.statusCode}');
     }
@@ -556,7 +568,7 @@ class Han1meApi {
       formData,
       headers: {'X-CSRF-TOKEN': currentToken, 'Referer': '$origin/'},
     );
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException(url);
+    if (cloudflareError(response.statusCode, response.headers, response.body, url) case final error?) throw error;
     if (Uri.tryParse(response.url)?.path == '/login') {
       throw DioException(requestOptions: RequestOptions(path: url), message: 'Authentication expired');
     }
@@ -565,7 +577,7 @@ class Han1meApi {
 
   Future<String?> _csrfToken(String baseUrl) async {
     final response = await _http.get('$baseUrl/', headers: {'Referer': '$baseUrl/'});
-    if (isCloudflareResponse(response.statusCode, response.headers, response.body)) throw CloudflareChallengeException(baseUrl);
+    if (cloudflareError(response.statusCode, response.headers, response.body, baseUrl) case final error?) throw error;
     if (response.statusCode >= 400) return null;
     final document = html_parser.parse(response.body);
     return document.querySelector('meta[name="csrf-token"]')?.attributes['content'] ?? document.querySelector('input[name="_token"]')?.attributes['value'];
@@ -605,12 +617,30 @@ class Han1meApi {
 
   int _pageCount(dom.Document document) => document.querySelectorAll('ul.pagination a.page-link[href]').map((link) => int.tryParse(Uri.tryParse(link.attributes['href'] ?? '')?.queryParameters['page'] ?? '') ?? 1).fold(1, (count, page) => page > count ? page : count);
 
+  /// 403 且是 Cloudflare 的拦截页（两种拦截都算，见 [cloudflareError]）。
   static bool isCloudflareResponse(int? statusCode, Map<String, List<String>> headers, String body) => statusCode == 403 &&
       ((headers['cf-mitigated'] ?? headers['CF-Mitigated'] ?? const <String>[]).any((value) => value.toLowerCase() == 'challenge') ||
           body.contains('cf-chl-') ||
           body.contains('challenge-form') ||
           body.contains('Just a moment') ||
           body.contains('Attention Required'));
+
+  /// 是 Cloudflare 拦截就返回对应异常，否则返回 null（调用方 `throw` 它）。
+  ///
+  /// 故意把**两种性质不同**的 403 都收在这里：`Just a moment...` 是可解的 JS 挑战，
+  /// `Attention Required!` 是 WAF 硬封锁（连挑战页面都不给）。界面据此决定要不要给
+  /// 「完成验证」入口 —— 硬封锁时给了也没用，用户点进去只会看到一个没有可点内容的页面。
+  /// 区分逻辑只写在这一处，避免 6 个请求点各判一次、改一处漏一处。
+  static CloudflareChallengeException? cloudflareError(int? statusCode, Map<String, List<String>> headers, String body, String url) {
+    if (!isCloudflareResponse(statusCode, headers, body)) return null;
+    return CloudflareChallengeException(url, blocked: isCloudflareBlock(statusCode, body));
+  }
+
+  /// Cloudflare 的**硬封锁**（`Attention Required!`）——不是可解的人机校验。
+  ///
+  /// 这种 403 是因为出口 IP 被 WAF 规则直接拒绝（换 IP / 关代理才会恢复），
+  /// 让用户去点「Cloudflare 校验」是没有意义的：页面上不会出现可点的挑战。
+  static bool isCloudflareBlock(int? statusCode, String body) => statusCode == 403 && body.contains('Attention Required') && !body.contains('Just a moment');
 
   VideoCard _card(dom.Element element) {
     final dataHref = element.attributes['data-href'] ?? '';

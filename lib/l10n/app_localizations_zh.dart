@@ -317,6 +317,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '请求被服务端拒绝，可能是 Cloudflare 校验或地区限制，请切换网络环境或更换镜像站地址';
 
   @override
+  String get suggestionCloudflareBlocked =>
+      '当前网络出口已被 Cloudflare 封锁，站点不再提供验证入口。请更换网络（家宽直连通常可用；机房/代理 IP 容易被拦）或关闭代理后重试';
+
+  @override
   String get suggestionDns => '系统 DNS 可能被污染，建议开启「使用内置 Hosts」或改用 DNS over HTTPS';
 
   @override
@@ -2892,6 +2896,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String get suggestionCloudflare =>
       '請求被伺服器拒絕，可能是 Cloudflare 驗證或地區限制，請切換網路環境或更換鏡像站位址';
+
+  @override
+  String get suggestionCloudflareBlocked =>
+      '目前網路出口已被 Cloudflare 封鎖，站點不再提供驗證入口。請更換網路（家寬直連通常可用；機房/代理 IP 容易被攔）或關閉代理後重試';
 
   @override
   String get suggestionDns => '系統 DNS 可能被污染，建議開啟「使用內建 Hosts」或改用 DNS over HTTPS';

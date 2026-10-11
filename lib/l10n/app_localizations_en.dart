@@ -327,6 +327,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The server rejected the request; this is usually a Cloudflare challenge or a region restriction — try another network or mirror address';
 
   @override
+  String get suggestionCloudflareBlocked =>
+      'Cloudflare has blocked this network\'s outbound IP and no longer offers a challenge page. Switch networks (a home connection usually works; datacenter/proxy IPs are often blocked) or turn off your proxy and retry';
+
+  @override
   String get suggestionDns =>
       'System DNS may be poisoned; enable \"Use Built-in Hosts\" or switch to DNS over HTTPS';
 
