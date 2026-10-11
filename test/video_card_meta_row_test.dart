@@ -166,6 +166,23 @@ void main() {
     expect(date.top, closeTo(author.top, 6), reason: '日期与作者名不该差出一行');
   });
 
+  testWidgets('没有作者时上传时间左对齐，不再孤零零挂在卡片右边', (tester) async {
+    // AV 源（xHamster / Jable 等）通常只给上传时间、没有作者名。此前日期仍被塞在
+    // `Expanded` 之后，空位把它推到卡片最右边，看着像少了半行、和设计稿不一致。
+    await tester.pumpWidget(
+      _row([_video(id: 'a', title: '短标题', artist: '', uploadTime: '2026-04-24')]),
+    );
+    await tester.pumpAndSettle();
+
+    final card = tester.getRect(find.byType(VideoCardTile));
+    final date = tester.getRect(find.text('2026-04-24'));
+    expect(
+      date.left - card.left,
+      lessThan(16),
+      reason: '没有作者时日期应当贴着左边，而不是被推到卡片最右',
+    );
+  });
+
   testWidgets('点作者名进作者页（/author?name=作者），不会点开视频', (tester) async {
     await tester.pumpWidget(
       _row([_video(id: 'a', title: '短标题', artist: '甲作者', uploadTime: '2026-04-24')]),

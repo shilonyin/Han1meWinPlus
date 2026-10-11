@@ -708,6 +708,16 @@ class VideoCardTile extends ConsumerWidget {
     // 压在页面底上对比度只有 1.6:1 上下（用户反馈"下面的用户和时间对比度有些弱"）。
     // 正文级的次要文字该用 onSurfaceVariant。
     final metaInk = theme.colorScheme.onSurfaceVariant;
+    // 作者名缺失时（AV 源通常只给上传时间、没有作者）日期要左对齐，见下面 `Row` 的说明。
+    final hasArtist = video.artist != null && video.artist!.isNotEmpty;
+    final dateText = video.uploadTime == null
+        ? null
+        : Text(
+            video.uploadTime!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: metaInk),
+          );
     // 标题在三种情况下染主题色：看过（会话级标记）、详情页里正在看的那一张、
     // 以及鼠标停在这张卡片上 —— 同类客户端的卡片都是「悬停即标题变强调色」。
     // 卡片本身不再铺底色、也不再用 InkWell 的灰色高亮提示悬停：那层灰只能从没有
@@ -763,24 +773,14 @@ class VideoCardTile extends ConsumerWidget {
                 height: dense ? 16 : 18,
                 child: Row(
                   children: [
-                    Expanded(
-                      child: video.artist == null || video.artist!.isEmpty
-                          ? const SizedBox.shrink()
-                          : _artistLink(context, theme, video.artist!, metaInk),
-                    ),
-                    if (video.uploadTime != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: Text(
-                          video.uploadTime!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: dense ? 10 : null,
-                            color: metaInk,
-                          ),
-                        ),
-                      ),
+                    // 有作者：作者居左、日期居右（用户要求「作者名右边加上传时间」）。
+                    // 没作者时（AV 源常见）：日期直接左对齐 —— 若仍塞在 `Expanded`
+                    // 之后，空位会把它推到卡片最右边，看着像少了半行、和设计稿不一致。
+                    if (hasArtist) ...[
+                      Expanded(child: _artistLink(context, theme, video.artist!, metaInk)),
+                      if (dateText != null) Padding(padding: const EdgeInsets.only(left: 6), child: dateText),
+                    ] else if (dateText != null)
+                      dateText,
                   ],
                 ),
               ),
