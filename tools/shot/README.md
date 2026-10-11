@@ -68,3 +68,18 @@ README 顶部用的是 **`docs/logo-lockup.svg`**（矢量），不是位图。�
 
 托盘图标、原生启动画面（`assets/logo.png` / `logo_lockup*.png`）保持位图：托盘 API 与 C++ 侧的
 启动画面都用不了 SVG。
+
+### 位图的重渲染
+
+这三张位图不能换 SVG，但可以**从 SVG 重新渲染**，保证字形与新设计同源：
+
+```powershell
+python .\tools\shot\rasterize-logo.py            # 重新生成
+python .\tools\shot\rasterize-logo.py --check    # 只比对是否需要更新
+```
+
+用 resvg（Rust 实现）渲染，边缘由矢量直接采样，比设计稿导出的 1286x254 位图干净。
+体积也从 71.5 / 41.9 / 119.5 KB 降到 19.5 / 19.9 / 15.8 KB。
+
+`assets/logo.png`（方形，托盘与打包图标用）只取主图里的图标部分。注意它与旧版**比例不同**：
+旧版宽高比 1.079、主图 1.166（旧版被纵向拉伸约 8%），这里按主图原比例放，不做拉伸。
