@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/logo-lockup.png" alt="Han1meWinPlus" width="400">
+  <img src="docs/logo-lockup.svg" alt="Han1meWinPlus" width="400">
 </p>
 
 <p align="center">
