@@ -49,6 +49,8 @@ Type: filesandordirs; Name: "{app}\data\flutter_assets\packages\cupertino_icons"
 ; 上一轮手工留下的可执行文件回退点（名字带版本号，用通配符一并清掉将来的）。
 ; 只匹配 `han1me_win_plus.exe.bak-*`，不会碰到正在用的 han1me_win_plus.exe。
 Type: files; Name: "{app}\han1me_win_plus.exe.bak-*"
+; 标题栏的锁标改用 SVG（assets/logo_lockup_compact.svg），这张位图不再分发。
+Type: files; Name: "{app}\data\flutter_assets\assets\logo_lockup_compact.png"
 ; 链接器中间产物：早先几版（[Files] 尚未加 Excludes 时）被装进过 {app}，
 ; 升级安装不会自己消失，所以这里显式点名清掉。新装则根本不再分发（见 [Files]）。
 Type: files; Name: "{app}\han1me_win_plus.exp"
