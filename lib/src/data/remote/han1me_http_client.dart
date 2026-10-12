@@ -116,6 +116,32 @@ class Han1meHttpClient {
     return value;
   }
 
+  /// 从**多个候选地址**汇总 WebView 里的 cookie（后出现的覆盖先出现的同名项）。
+  ///
+  /// 为什么不能只查一个地址：WebView 登录完成后停在哪一跳并不确定 —— 站点可能落到
+  /// `hanime1.me`、`www.hanime1.me` 或某个镜像域；而 `CookieManager.getCookies(url)`
+  /// **只返回该 URL 作用域内的 cookie**。只查 `settings.resolvedBaseUrl` 时，一旦登录
+  /// 后停留在别的域名上就什么都取不到，「网页里登录成功、应用里仍是未登录」。
+  /// Han1meViewer 用 `getCookie(url.host)` 取当前页域名，上游 Han1mePlus 则是把
+  /// 当前页域名、设置域名、全部镜像域一起查 —— 这里采用后者，覆盖面最大。
+  Future<String> webViewCookiesFor(Iterable<String> urls) async {
+    final merged = <String, String>{};
+    for (final url in urls) {
+      final value = await webViewCookies(url);
+      if (value.isEmpty) continue;
+      for (final entry in _splitCookies(value).entries) {
+        merged[entry.key] = entry.value;
+      }
+    }
+    return merged.entries.map((entry) => '${entry.key}=${entry.value}').join('; ');
+  }
+
+  static Map<String, String> _splitCookies(String cookies) => {
+        for (final part in cookies.split(';'))
+          if (part.trim().isNotEmpty && part.contains('='))
+            part.trim().split('=').first.trim(): part.trim().substring(part.trim().indexOf('=') + 1),
+      };
+
   Future<void> clearWebViewCookies() async {
     if (!_isDesktop) {
       await _channel.invokeMethod<void>('clearWebViewCookies');
