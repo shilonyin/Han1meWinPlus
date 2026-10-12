@@ -1273,6 +1273,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get close => '关闭';
 
   @override
+  String get networkErrorTitle => '网页打不开';
+
+  @override
+  String get loginLoadFailedHint =>
+      '登录页连不上站点。若设置里的代理选了「不使用代理」，该站点通常直连打不开，请到「设置 → 网络」开启代理或切换站点地址后重试。';
+
+  @override
   String get monetColors => '莫奈取色';
 
   @override
@@ -3852,6 +3859,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get close => '關閉';
+
+  @override
+  String get networkErrorTitle => '網頁打不開';
+
+  @override
+  String get loginLoadFailedHint =>
+      '登入頁連不上站點。若設定裡的代理選了「不使用代理」，該站點通常直連打不開，請到「設定 → 網路」開啟代理或切換站點位址後重試。';
 
   @override
   String get monetColors => '莫內取色';

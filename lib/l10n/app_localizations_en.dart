@@ -1313,6 +1313,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
+  String get networkErrorTitle => 'Page failed to load';
+
+  @override
+  String get loginLoadFailedHint =>
+      'The login page cannot reach the site. If the proxy mode is set to \"No proxy\", this site usually cannot be opened directly. Enable a proxy or switch the site address in Settings → Network, then retry.';
+
+  @override
   String get monetColors => 'Monet Colors';
 
   @override

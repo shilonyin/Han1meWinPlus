@@ -443,6 +443,8 @@
   "updateFailed": "Update failed: {error}",
   "@updateFailed": {"placeholders": {"error": {}}},
   "close": "Close",
+  "networkErrorTitle": "Page failed to load",
+  "loginLoadFailedHint": "The login page cannot reach the site. If the proxy mode is set to \"No proxy\", this site usually cannot be opened directly. Enable a proxy or switch the site address in Settings → Network, then retry.",
   "monetColors": "Monet Colors",
   "monetColorsDescription": "Use dynamic system wallpaper colors",
   "downloadSettings": "Download Settings",

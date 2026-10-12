@@ -2385,6 +2385,18 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
+  /// No description provided for @networkErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Page failed to load'**
+  String get networkErrorTitle;
+
+  /// No description provided for @loginLoadFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The login page cannot reach the site. If the proxy mode is set to \"No proxy\", this site usually cannot be opened directly. Enable a proxy or switch the site address in Settings → Network, then retry.'**
+  String get loginLoadFailedHint;
+
   /// No description provided for @monetColors.
   ///
   /// In en, this message translates to:

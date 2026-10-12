@@ -436,6 +436,8 @@
   "updateFailed": "更新失敗：{error}",
   "@updateFailed": {"placeholders": {"error": {}}},
   "close": "關閉",
+  "networkErrorTitle": "網頁打不開",
+  "loginLoadFailedHint": "登入頁連不上站點。若設定裡的代理選了「不使用代理」，該站點通常直連打不開，請到「設定 → 網路」開啟代理或切換站點位址後重試。",
   "monetColors": "莫內取色",
   "monetColorsDescription": "使用系統桌布動態配色",
   "downloadSettings": "下載設定",

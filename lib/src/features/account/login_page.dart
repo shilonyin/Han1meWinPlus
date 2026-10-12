@@ -62,6 +62,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   var _saved = false;
   Object? _error;
 
+  /// 网页自己的加载失败（连不上站点、DNS 挂了等）。
+  ///
+  /// 登录页会**永久白屏**的情形里，最常见的一种就是「站点根本没连上」—— 设置里选
+  /// 「不使用代理」时我们会给 WebView 传 `--no-proxy-server`，而该站点在直连下
+  /// 往往打不开（实测：开代理后登录页立刻正常）。以前这种情况界面上什么都没有，
+  /// 用户只能看到一片白，也不知道该去开代理。这里把失败原因摆出来。
+  String? _loadError;
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -242,7 +250,63 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 if (!mounted) return;
                 _startPolling();
               },
+              // 页面加载失败（连不上站点）必须让用户看见原因，否则就是一块无解的白板。
+              onReceivedError: (_, request, error) {
+                if (request.isForMainFrame != true || !mounted) return;
+                setState(() => _loadError = error.description);
+              },
+              // 收到首个响应后清掉上一次的错误提示（比如用户刚去开了代理再回来重试）。
+              onLoadStart: (_, url) {
+                if (url == null || !mounted || _loadError == null) return;
+                setState(() => _loadError = null);
+              },
             ),
+            if (_loadError != null)
+              Positioned(
+                left: 24,
+                right: 24,
+                top: 24,
+                child: Card(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(children: [
+                          Icon(Symbols.wifi_off_rounded, size: 20, color: Theme.of(context).colorScheme.onErrorContainer),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.of(context)!.networkErrorTitle,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+                          ),
+                        ]),
+                        const SizedBox(height: 6),
+                        // 登录页连不上站点时，最常见的原因就是「代理模式选了不使用代理，
+                        // 而该站点直连打不开」。直接把这句话说出来，比只丢一个技术错误码有用。
+                        Text(
+                          AppLocalizations.of(context)!.loginLoadFailedHint,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(_loadError!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer)),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: PressScale(child: TextButton(
+                            onPressed: () async {
+                              setState(() => _loadError = null);
+                              await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(loginUrl.toString())));
+                            },
+                            child: Text(AppLocalizations.of(context)!.retry),
+                          )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             if (_error != null)
               Positioned(
                 left: 16,

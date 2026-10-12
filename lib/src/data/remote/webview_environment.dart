@@ -21,12 +21,7 @@ final webViewEnvironmentProvider = FutureProvider<WebViewEnvironment?>((ref) asy
   final userDataFolder = path.join(supportDirectory.path, 'webview2');
   final arguments = _browserProxyArgument(rule);
   try {
-    final environment = await WebViewEnvironment.create(
-      settings: WebViewEnvironmentSettings(
-        userDataFolder: userDataFolder,
-        additionalBrowserArguments: arguments,
-      ),
-    );
+    final environment = await _createEnvironment(userDataFolder, arguments);
     debugPrint('[webview] environment ready: $userDataFolder args=$arguments');
     ref.onDispose(() => environment.dispose());
     return environment;
@@ -38,6 +33,21 @@ final webViewEnvironmentProvider = FutureProvider<WebViewEnvironment?>((ref) asy
     rethrow;
   }
 });
+
+/// 创建 WebView2 环境。
+///
+/// 注意 `additionalBrowserArguments` 的选择**直接决定 WebView 能不能打开站点**：
+/// `direct`（不使用代理）时这里传 `--no-proxy-server`，WebView 就真的直连；
+/// 而登录页/挑战页所在的站点在直连下是打不开的（实测：开代理后登录页立刻正常
+/// 加载出来，关代理就是一片白）。所以代理模式为 `direct` 时登录页白屏是
+/// 「网络确实连不上」的正常表现，不是环境创建失败。
+Future<WebViewEnvironment> _createEnvironment(String userDataFolder, String arguments) =>
+    WebViewEnvironment.create(
+      settings: WebViewEnvironmentSettings(
+        userDataFolder: userDataFolder,
+        additionalBrowserArguments: arguments,
+      ),
+    );
 
 /// Chromium 的 `--proxy-server` 只认 HTTP/SOCKS 代理的 `scheme://host:port` 写法，
 /// 与 Dart 的 `PROXY host:port` 规则串不同，需要重新拼一次。
