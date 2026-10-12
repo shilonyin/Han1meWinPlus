@@ -20,6 +20,15 @@ class Han1meHttpResponse {
   final String url;
 }
 
+/// 按域名清理 WebView cookie 时要覆盖的主机：站点自身 + `www.` 变体。
+///
+/// 站点把会话同时写在 `hanime1.me` 与 `www.hanime1.me` 两处，只清叶子域会留下
+/// 另一半，下次进登录页仍然是被登录态。范围必须**锁死在站点自身**：一旦放大到
+/// 「全清」，Cloudflare 的 `cf_clearance` 会被一起抹掉，登录页立刻被 CF 挡住
+/// （回归 issue #18）。
+List<String> webViewCookieHostsFor(Uri uri) =>
+    [uri.host, if (!uri.host.startsWith('www.')) 'www.${uri.host}'];
+
 class Han1meHttpClient {
   static const _channel = MethodChannel('com.liar.han1meplus/http');
   static final _desktopCookies = <String, String>{};
@@ -114,6 +123,30 @@ class Han1meHttpClient {
     }
     await webview.CookieManager.instance().deleteAllCookies();
     await clearCookies();
+  }
+
+  /// 清掉 WebView 里**某一个站点**的 cookie，其它站点原样保留。
+  ///
+  /// 登录页要的是「换一个账号登录」，所以必须先丢掉上一位用户的 `hanime1_session`，
+  /// 否则站点直接回已登录页、根本不显示登录表单。但**不能**顺手清掉
+  /// `cf_clearance`：它是 Cloudflare 给这台机器的通行证，与登录哪个账号无关。
+  /// 用 [clearWebViewCookies] 或 `deleteAllCookies()` 会把 CF 凭证一并抹掉，
+  /// 于是登录页一打开就撞上 CF 拦截，用户登录成功后跳转又被拦在首页前，
+  /// 登录页根本收不到「已离开登录页」的信号（见 [LoginPage] 的保存时机），
+  /// 结果就是「网页里明明登录成功、应用里永远是未登录」。
+  Future<void> clearWebViewCookiesFor(String url) async {
+    if (!_isDesktop) {
+      await _channel.invokeMethod<void>('clearWebViewCookies');
+      return;
+    }
+    final targets = webViewCookieHostsFor(Uri.parse(url));
+    for (final target in targets) {
+      await webview.CookieManager.instance().deleteCookies(url: webview.WebUri('$target/'));
+    }
+    // 内存镜像里也按主机清，`deleteCookies` 不会同步到 [_desktopCookies]。
+    for (final target in targets) {
+      _desktopCookies.remove(target);
+    }
   }
 
   Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds, String proxyMode = 'system', String customProxy = '', bool useAddressRanking = true}) async {

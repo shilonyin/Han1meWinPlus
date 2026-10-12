@@ -123,8 +123,12 @@ class AccountController extends AsyncNotifier<Account?> {
     state = const AsyncData(null);
     if (active?.id != null) await ref.read(accountStoreProvider).remove(settings.resolvedBaseUrl, active!.id!);
     await ref.read(han1meHttpClientProvider).clearCookies(url: settings.resolvedBaseUrl);
+    // `cf_clearance` 是 Cloudflare 给这台机器的通行证，跟登录哪个账号无关，退出登录
+    // 不该把它一起丢掉 —— 丢掉的代价是下次开登录页先撞 CF 拦截，用户登录成功后
+    // 跳转又可能被拦在首页前，登录页收不到「已离开登录页」的信号，于是又一次
+    // 「网页里登录成功、应用里未登录」。这里只按域名清站点自己的会话 cookie。
+    await CookieManager.instance().deleteCookies(url: WebUri(settings.resolvedBaseUrl));
     if (cloudflareCookie?.isNotEmpty == true) await ref.read(han1meHttpClientProvider).saveCookies(cloudflareCookie!, url: settings.resolvedBaseUrl);
-    await CookieManager.instance().deleteAllCookies();
     ref.invalidate(accountsProvider);
   }
 
