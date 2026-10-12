@@ -36,6 +36,12 @@ class WindowsHttpOverrides extends HttpOverrides {
     return systemProxy();
   }
 
+  /// 用户手填的代理地址 → 规则串；填得不对/不支持时返回 null。
+  ///
+  /// 单独暴露出来给 WebView 那条路用：WebView 跟随系统代理（见
+  /// `webViewProxyRule`），但当用户明确手填了代理时应当以用户的为准。
+  static String? ruleForCustom(String custom) => WindowsProxy.rule(custom);
+
   static Future<String> systemProxy() async {
     final environmentProxy = Platform.environment['HTTPS_PROXY'] ??
         Platform.environment['https_proxy'] ??

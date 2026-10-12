@@ -37,6 +37,8 @@ class DeepLink {
         final query = uri.queryParameters['q'] ?? '';
         if (query.isEmpty) return '/search';
         return '/search?q=${Uri.encodeComponent(query)}';
+      case 'login':
+        return '/login';
       default:
         return null;
     }

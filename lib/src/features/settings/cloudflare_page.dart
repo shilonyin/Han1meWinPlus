@@ -76,26 +76,34 @@ class _CloudflarePageState extends ConsumerState<CloudflarePage> {
     // 自报家门的 UA（桌面 Dart 请求靠它绕过「冒充浏览器」判定），WebView 用它去过
     // 挑战必然失败。
     final userAgent = javSiteFor(initialUrl) == null ? Han1meApi.userAgent : JavApi.userAgent;
-    final webViewEnvironment = ref.watch(webViewEnvironmentProvider).valueOrNull;
+    // 和环境就绪判断同理：拿 null 环境建 WebView 会退到默认环境，`cf_clearance`
+    // 会写进另一个数据目录，随后的 Dart 请求读不到。
+    final environment = ref.watch(webViewEnvironmentProvider);
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.cloudflareVerification)),
-      body: Stack(children: [
-        InAppWebView(
-          webViewEnvironment: webViewEnvironment,
-          initialSettings: InAppWebViewSettings(
-            javaScriptEnabled: true,
-            domStorageEnabled: true,
-            thirdPartyCookiesEnabled: true,
-            userAgent: userAgent,
-          ),
-          onWebViewCreated: (controller) async {
-            _initialClearance = _clearanceCookie(await ref.read(han1meHttpClientProvider).webViewCookies(initialUrl));
-            final url = WebUri(initialUrl);
-            await controller.loadUrl(urlRequest: URLRequest(url: url));
-            _startVerification(initialUrl);
-          },
-        ),
-      ]),
+      body: environment.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        // provider 已把创建失败降级成 data(null)，这里兜底也要照常给页面，
+        // 否则本机「环境必然创建失败」会把验证页也堵死。
+        error: (_, __) => _webView(initialUrl, userAgent, null),
+        data: (webViewEnvironment) => _webView(initialUrl, userAgent, webViewEnvironment),
+      ),
     );
   }
+
+  Widget _webView(String initialUrl, String userAgent, WebViewEnvironment? webViewEnvironment) => InAppWebView(
+        webViewEnvironment: webViewEnvironment,
+        initialSettings: InAppWebViewSettings(
+          javaScriptEnabled: true,
+          domStorageEnabled: true,
+          thirdPartyCookiesEnabled: true,
+          userAgent: userAgent,
+        ),
+        onWebViewCreated: (controller) async {
+          _initialClearance = _clearanceCookie(await ref.read(han1meHttpClientProvider).webViewCookies(initialUrl));
+          final url = WebUri(initialUrl);
+          await controller.loadUrl(urlRequest: URLRequest(url: url));
+          _startVerification(initialUrl);
+        },
+      );
 }

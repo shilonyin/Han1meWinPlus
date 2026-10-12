@@ -15,11 +15,16 @@ import 'src/core/shader_service.dart';
 import 'src/core/window_chrome.dart';
 import 'src/data/local/json_store.dart';
 import 'src/data/local/update_installer.dart';
+import 'src/data/remote/webview_environment.dart';
 import 'src/features/settings/settings_controller.dart';
 import 'src/features/video/play_window.dart';
 import 'src/features/video/play_window_app.dart';
 
 Future<void> main(List<String> args) async {
+  // 第一件事就落一条诊断：这条必须**同步、无条件**写出来，且不看任何设置。
+  // 之前把日志放在后面（读完设置之后），一旦真正的故障发生在更早的位置，
+  // 日志里就什么都看不到 —— 排查时会误以为是「代码没跑」。
+  unawaited(writeStartupMarker(args));
   // mpv（media_kit）打开片源时要往 `Directory.systemTemp` 写一个临时播放列表，
   // `%TEMP%` 不可写时这里会直接抛异常、播放页永远转圈。把整个应用跑在「临时目录
   // 一定可写」的 zone 里，两种情况都能正常开播（见 media_temp_directory.dart）。
@@ -46,6 +51,11 @@ Future<void> _run(List<String> args) async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
   PaintingBinding.instance.imageCache.maximumSize = 2000;
   final loadedSettings = await SettingsStore(JsonStore()).load();
+  // WebView2 的域名解析覆盖/代理参数要在**任何 WebView2 创建之前**写进进程环境，
+  // 所以放在这里（设置刚读完、还没有任何 WebView）。见 `bootstrapWebViewArguments`：
+  // 它同时负责把 WebView2 环境创建失败的原因落进 webview_diagnostics.log ——
+  // 本应用是 GUI 子系统程序，从终端启动读不到 debugPrint 输出。
+  await bootstrapWebViewArguments(loadedSettings);
   // Toast 通知要在 runApp 之前初始化（Windows 侧要建开始菜单快捷方式）。
   AppNotifications.enabled = loadedSettings.notificationsEnabled;
   await AppNotifications.ensureInitialized();

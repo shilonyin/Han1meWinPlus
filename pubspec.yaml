@@ -1,7 +1,7 @@
 name: han1me_win_plus
 description: A Windows-focused Flutter client for browsing Han1me content, based on Han1mePlus.
 publish_to: 'none'
-version: 1.1.24+35
+version: 1.1.25+36
 
 environment:
   sdk: '>=3.11.0 <4.0.0'
@@ -68,6 +68,9 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_native_splash: ^2.4.8
   flutter_launcher_icons: ^0.14.3
+  # 封面重试组件的测试要伪造 BaseCacheManager，它的方法签名用 file 包的 File 类型
+  # （不是 dart:io 的），所以测试里必须能直接 import 它。
+  file: ^7.0.1
 
 flutter:
   uses-material-design: true

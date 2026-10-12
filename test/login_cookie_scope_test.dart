@@ -1,3 +1,4 @@
+import 'package:flutter_inappwebview/flutter_inappwebview.dart' as webview;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/src/data/remote/han1me_http_client.dart';
 
@@ -12,6 +13,12 @@ import 'package:han1me_win_plus/src/data/remote/han1me_http_client.dart';
 ///    必然重演坑 1。
 ///
 /// 现在两处都改成「只清本站域名」，`cf_clearance` 保留。这个测试钉住的就是这条边界。
+///
+/// **另外**：第一版修复只改了「清哪些域名」，却把交给原生层的 URL 拼成了裸主机加
+/// 斜杠（`hanime1.me/`），那是个 scheme/host 双空的相对地址 —— Windows 端
+/// `deleteCookies` 拿它去调 `Network.getCookies` 取回空列表，**什么都没删还回调
+/// `true`**。清理整个是空转的，所以 bug 依旧。下面那组
+/// 「交给原生层的 URL」用例钉的就是这个二次缺陷。
 void main() {
   group('登录相关清理的域名范围', () {
     test('清站点 cookie 时同时覆盖裸域与 www，避免残留另一半会话', () {
@@ -35,4 +42,42 @@ void main() {
       expect(targets, isNot(contains('challenges.cloudflare.com')));
     });
   });
+
+  group('交给原生层的 URL 必须是绝对地址（issue #18 二次修复）', () {
+    test('裸主机拼出来的 WebUri 是坏的 —— 这正是必须带 scheme 的原因', () {
+      // 把这个反例留在测试里，免得以后有人又把 '$host/' 当捷径写回去。
+      final broken = webview.WebUri('hanime1.me/');
+      expect(broken.scheme, isEmpty);
+      expect(broken.host, isEmpty,
+          reason: 'host 为空时原生 Network.getCookies 取不到任何 cookie，删除会静默空转');
+    });
+
+    test('webViewCookieUrlsFor 产出的每个 URL 都带 scheme 与 host', () {
+      for (final uri in [
+        Uri.parse('https://hanime1.me/login'),
+        Uri.parse('https://hanime1.com'),
+        Uri.parse('https://www.hanime1.me/login'),
+      ]) {
+        final urls = webViewCookieUrlsFor(uri);
+        expect(urls, hasLength(webViewCookieHostsFor(uri).length));
+        for (final url in urls) {
+          expect(url.scheme, 'https');
+          expect(url.host, isNotEmpty,
+              reason: '发给 CookieManager.deleteCookies 的 URL 没有 host，清理会静默失效');
+          expect(url.path, '/');
+        }
+      }
+    });
+
+    test('传进来的地址没带 scheme 时兜底成 https，host 仍然是好的', () {
+      // logout() 走的是 settings.resolvedBaseUrl，这里防的是它哪天变成裸主机。
+      final urls = webViewCookieUrlsFor(Uri.parse('hanime1.me'));
+      expect(urls.map((webview.WebUri url) => url.host),
+          containsAll(['hanime1.me', 'www.hanime1.me']));
+      for (final url in urls) {
+        expect(url.scheme, 'https');
+      }
+    });
+  });
 }
+

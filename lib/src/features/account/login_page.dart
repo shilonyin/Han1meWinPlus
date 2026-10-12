@@ -198,7 +198,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final baseUrl = ref.watch(settingsProvider).valueOrNull?.resolvedBaseUrl ?? 'https://hanime1.com';
     final loginUrl = Uri.parse('$baseUrl/login');
-    final webViewEnvironment = ref.watch(webViewEnvironmentProvider).valueOrNull;
+    // WebView2 环境是**异步**创建的（要读设置、取目录、建环境）。必须等这个 Future
+    // 结束再建 `InAppWebView`：以前直接取 `valueOrNull`，首帧必然是 null，
+    // `InAppWebView(webViewEnvironment: null)` 于是让 WebView2 回退到**默认环境**
+    // —— 数据目录落到 exe 同目录、系统 DNS、系统代理，`additionalBrowserArguments`
+    // 里配的 `--host-resolver-rules`（绕过被污染的 DNS）和代理参数**全部不生效**，
+    // 表现出来就是登录页先白屏、几秒后报「网页打不开」。
+    //
+    // 注意这里**不能**因为环境建不成就不给页面：`webViewEnvironmentProvider` 在创建
+    // 失败时会降级成 `null`（默认环境），本页照常渲染。曾经写成拿 error 分支显示错误页，
+    // 结果本机上 `WebViewEnvironment.create` 本来就失败，登录页被彻底堵死在错误页上 ——
+    // 比原来的白屏还糟。DNS 覆盖改由进程级环境变量兜底，降级后同样生效。
+    final environment = ref.watch(webViewEnvironmentProvider);
     return PopScope(
       // 用户在 WebView 里登录完成后，多半直接按返回/关闭退出这个页面，而站点是否
       // 「跳转回首页」并不确定（跳转又可能被 CF 拦下）。关页面时再兜底保存一次 ——
@@ -227,105 +238,127 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           onPressed: () => context.push('/login/cookies'),
           child: const Icon(Symbols.cookie_rounded),
         ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            InAppWebView(
-              webViewEnvironment: webViewEnvironment,
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-                domStorageEnabled: true,
-                thirdPartyCookiesEnabled: true,
-                userAgent: Han1meApi.userAgent,
-              ),
-              onWebViewCreated: (controller) async {
-                _controller = controller;
-                // 只清**本站**的登录 cookie，让登录页显示表单而不是直接跳回已登录页。
-                // 这里以前是整个 WebView 一把清（`clearWebViewCookies`），把
-                // `cf_clearance` 也抹了，于是登录页本身就被 Cloudflare 挡住 —— 见
-                // `Han1meHttpClient.clearWebViewCookiesFor` 的注释。
-                await ref.read(han1meHttpClientProvider).clearWebViewCookiesFor(loginUrl.toString());
-                if (!mounted) return;
-                await controller.loadUrl(urlRequest: URLRequest(url: WebUri(loginUrl.toString())));
-                if (!mounted) return;
-                _startPolling();
-              },
-              // 页面加载失败（连不上站点）必须让用户看见原因，否则就是一块无解的白板。
-              onReceivedError: (_, request, error) {
-                if (request.isForMainFrame != true || !mounted) return;
-                setState(() => _loadError = error.description);
-              },
-              // 收到首个响应后清掉上一次的错误提示（比如用户刚去开了代理再回来重试）。
-              onLoadStart: (_, url) {
-                if (url == null || !mounted || _loadError == null) return;
-                setState(() => _loadError = null);
-              },
-            ),
-            if (_loadError != null)
-              Positioned(
-                left: 24,
-                right: 24,
-                top: 24,
-                child: Card(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(children: [
-                          Icon(Symbols.wifi_off_rounded, size: 20, color: Theme.of(context).colorScheme.onErrorContainer),
-                          const SizedBox(width: 8),
-                          Text(
-                            AppLocalizations.of(context)!.networkErrorTitle,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
-                          ),
-                        ]),
-                        const SizedBox(height: 6),
-                        // 登录页连不上站点时，最常见的原因就是「代理模式选了不使用代理，
-                        // 而该站点直连打不开」。直接把这句话说出来，比只丢一个技术错误码有用。
-                        Text(
-                          AppLocalizations.of(context)!.loginLoadFailedHint,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(_loadError!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer)),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: PressScale(child: TextButton(
+        body: environment.when(
+          // 环境还在建：给个明确的加载态，而不是拿 null 环境先把 WebView 建起来。
+          loading: () => const Center(child: CircularProgressIndicator()),
+          // provider 内部已把失败降级成 data(null)，这里只是兜底：即使真的漏出异常，
+          // 也要照常给页面，别把用户挡在错误页上。
+          error: (_, __) => _webView(context, loginUrl, null),
+          data: (webViewEnvironment) => _webView(context, loginUrl, webViewEnvironment),
+        ),
+      ),
+    );
+  }
+
+  Widget _webView(BuildContext context, Uri loginUrl, WebViewEnvironment? webViewEnvironment) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        InAppWebView(
+          webViewEnvironment: webViewEnvironment,
+          initialSettings: InAppWebViewSettings(
+            javaScriptEnabled: true,
+            domStorageEnabled: true,
+            thirdPartyCookiesEnabled: true,
+            userAgent: Han1meApi.userAgent,
+          ),
+          onWebViewCreated: (controller) async {
+            _controller = controller;
+            // 只清**本站**的登录 cookie，让登录页显示表单而不是直接跳回已登录页。
+            // 这里以前是整个 WebView 一把清（`clearWebViewCookies`），把
+            // `cf_clearance` 也抹了，于是登录页本身就被 Cloudflare 挡住 —— 见
+            // `Han1meHttpClient.clearWebViewCookiesFor` 的注释。
+            await ref.read(han1meHttpClientProvider).clearWebViewCookiesFor(loginUrl.toString());
+            if (!mounted) return;
+            await controller.loadUrl(urlRequest: URLRequest(url: WebUri(loginUrl.toString())));
+            if (!mounted) return;
+            _startPolling();
+          },
+          // 页面加载失败（连不上站点）必须让用户看见原因，否则就是一块无解的白板。
+          onReceivedError: (_, request, error) {
+            if (request.isForMainFrame != true || !mounted) return;
+            setState(() => _loadError = error.description);
+          },
+          // 收到首个响应后清掉上一次的错误提示（比如用户刚去开了代理再回来重试）。
+          onLoadStart: (_, url) {
+            if (url == null || !mounted || _loadError == null) return;
+            setState(() => _loadError = null);
+          },
+        ),
+        if (_loadError != null)
+          Positioned(
+            left: 24,
+            right: 24,
+            top: 24,
+            child: Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [
+                      Icon(Symbols.wifi_off_rounded, size: 20, color: Theme.of(context).colorScheme.onErrorContainer),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppLocalizations.of(context)!.networkErrorTitle,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+                      ),
+                    ]),
+                    const SizedBox(height: 6),
+                    // 登录页连不上站点时，最常见的原因就是「代理模式选了不使用代理，
+                    // 而该站点直连打不开」。直接把这句话说出来，比只丢一个技术错误码有用。
+                    Text(
+                      AppLocalizations.of(context)!.loginLoadFailedHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(_loadError!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer)),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 站点被拦时，手动贴 Cookie 是唯一能走通的后备路线 —— 就在这把入口
+                          // 摆出来，别让用户自己去找设置页里的那一项。
+                          PressScale(child: TextButton(
+                            onPressed: () => context.push('/login/cookies'),
+                            child: Text(AppLocalizations.of(context)!.manualCookieLogin),
+                          )),
+                          PressScale(child: TextButton(
                             onPressed: () async {
                               setState(() => _loadError = null);
                               await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(loginUrl.toString())));
                             },
                             child: Text(AppLocalizations.of(context)!.retry),
                           )),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            if (_error != null)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: MaterialBanner(
-                  content: Text('$_error'),
-                  actions: [
-                    PressScale(child: TextButton(
-                      onPressed: () => setState(() => _error = null),
-                      child: Text(AppLocalizations.of(context)!.close),
-                    )),
                   ],
                 ),
               ),
-            if (_saving) const Align(alignment: Alignment.topCenter, child: LinearProgressIndicator()),
-          ],
-        ),
-      ),
+            ),
+          ),
+        if (_error != null)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: MaterialBanner(
+              content: Text('$_error'),
+              actions: [
+                PressScale(child: TextButton(
+                  onPressed: () => setState(() => _error = null),
+                  child: Text(AppLocalizations.of(context)!.close),
+                )),
+              ],
+            ),
+          ),
+        if (_saving) const Align(alignment: Alignment.topCenter, child: LinearProgressIndicator()),
+      ],
     );
   }
 }

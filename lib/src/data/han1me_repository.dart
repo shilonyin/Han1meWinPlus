@@ -7,9 +7,14 @@ import 'remote/han1me_api.dart';
 import 'remote/han1me_http_client.dart';
 import 'remote/jav/jav_api.dart';
 import 'remote/jav/jav_site.dart';
+import 'remote/webview_environment.dart';
 import 'remote/webview_page_fetcher.dart';
 
-final han1meHttpClientProvider = Provider((ref) => Han1meHttpClient());
+/// HTTP 客户端。这里把「WebView 正在用的那个 WebView2 环境」传给它 ——
+/// 网页登录写进自定义环境（`%APPDATA%\<产品名>\webview2`）的 cookie，必须由
+/// 同一个环境来读，否则读的是默认环境（exe 同目录）那份空库，登录态永远读不到。
+/// 闭包是**惰性**的：环境要异步创建，取的时候可能还没好，那时先退回默认实例。
+final han1meHttpClientProvider = Provider((ref) => Han1meHttpClient(webViewEnvironment: () => ref.read(webViewEnvironmentProvider).valueOrNull));
 final han1meRepositoryProvider = Provider((ref) {
   final http = ref.read(han1meHttpClientProvider);
   // AV 源在 Dart 被 Cloudflare 按 TLS 指纹拦下时会改用真实 Chromium 代取。

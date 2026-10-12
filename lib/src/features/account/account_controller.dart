@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../../data/han1me_repository.dart';
 import '../../data/local/account_store.dart';
@@ -127,7 +126,11 @@ class AccountController extends AsyncNotifier<Account?> {
     // 不该把它一起丢掉 —— 丢掉的代价是下次开登录页先撞 CF 拦截，用户登录成功后
     // 跳转又可能被拦在首页前，登录页收不到「已离开登录页」的信号，于是又一次
     // 「网页里登录成功、应用里未登录」。这里只按域名清站点自己的会话 cookie。
-    await CookieManager.instance().deleteCookies(url: WebUri(settings.resolvedBaseUrl));
+    //
+    // 走 `clearWebViewCookiesFor` 而不是直接 `deleteCookies`：后者拿
+    // `resolvedBaseUrl`（`https://hanime1.me`，无尾斜杠、path 为空）只清到裸域，
+    // 站点写在 `www.hanime1.me` 上的另一半会话会留下来，下次进登录页仍是已登录态。
+    await ref.read(han1meHttpClientProvider).clearWebViewCookiesFor(settings.resolvedBaseUrl);
     if (cloudflareCookie?.isNotEmpty == true) await ref.read(han1meHttpClientProvider).saveCookies(cloudflareCookie!, url: settings.resolvedBaseUrl);
     ref.invalidate(accountsProvider);
   }

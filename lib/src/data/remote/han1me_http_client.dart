@@ -29,10 +29,53 @@ class Han1meHttpResponse {
 List<String> webViewCookieHostsFor(Uri uri) =>
     [uri.host, if (!uri.host.startsWith('www.')) 'www.${uri.host}'];
 
+/// 把 [webViewCookieHostsFor] 的主机名拼成交给 [CookieManager.deleteCookies] 的 URL。
+///
+/// **必须是绝对 URL**：`WebUri('hanime1.me/')` 解出来的 `scheme` 与 `host` 都是空串，
+/// 而 Windows 端 `deleteCookies` 是拿这个串去调 `Network.getCookies` 的 —— 无效 URL
+/// 取回空列表，删除循环一次都不跑，**什么都没删还回调 `true`**（静默失败）。
+/// 拼 url 的这一步单独抽出来，就是为了让回归测试能直接钉住「host 不能为空」。
+///
+/// 还兜住另一种坏输入：`Uri.parse('hanime1.me')` 没有 scheme 时，**host 也是空的**
+/// （整串被当成 path）。这种输入不能原样透传，否则又会拼出 `https:///` 这种空 host
+/// 的地址，把同一个静默失败原样带回来。
+List<webview.WebUri> webViewCookieUrlsFor(Uri uri, {String fallbackScheme = 'https'}) {
+  final scheme = uri.scheme.isEmpty ? fallbackScheme : uri.scheme;
+  final hosts = uri.host.isEmpty
+      ? webViewCookieHostsFor(Uri.parse('$scheme://${uri.path}'))
+      : webViewCookieHostsFor(uri);
+  return [for (final host in hosts) webview.WebUri('$scheme://$host/')];
+}
+
 class Han1meHttpClient {
   static const _channel = MethodChannel('com.liar.han1meplus/http');
   static final _desktopCookies = <String, String>{};
   static bool get _isDesktop => isDesktopHttpPlatform;
+
+  /// 取「WebView 正在用的那个 WebView2 环境」。
+  ///
+  /// **必须和登录页/验证页共用一个环境，否则读写的是另一份 cookie 库。**
+  /// `CookieManager.instance()` 不带参数时绑定的是 WebView2 的**默认环境**
+  /// （数据目录在 exe 同目录），而登录页用的是带 `userDataFolder` 的自定义环境
+  /// （数据目录在 `%APPDATA%\<产品名>\webview2`）。两者互不可见：
+  /// 网页里登录成功后，应用按默认环境去读，读到的永远是空 —— 表现就是
+  /// 「网页里明明登录成功、应用里永远是未登录」。
+  final webview.WebViewEnvironment? Function()? _environment;
+
+  webview.WebViewEnvironment? _cachedEnvironment;
+  webview.CookieManager? _cachedCookieManager;
+
+  Han1meHttpClient({webview.WebViewEnvironment? Function()? webViewEnvironment}) : _environment = webViewEnvironment;
+
+  /// 作用在 WebView 那个环境上的 CookieManager（环境没就绪时退回默认实例）。
+  webview.CookieManager _cookieManager() {
+    final environment = _environment?.call();
+    if (identical(environment, _cachedEnvironment) && _cachedCookieManager != null) return _cachedCookieManager!;
+    _cachedEnvironment = environment;
+    return _cachedCookieManager = environment == null
+        ? webview.CookieManager.instance()
+        : webview.CookieManager.instance(webViewEnvironment: environment);
+  }
 
   /// hanime 站群专用的 UA：**故意不冒充浏览器**。
   ///
@@ -110,7 +153,7 @@ class Han1meHttpClient {
 
   Future<String> webViewCookies(String url) async {
     if (!_isDesktop) return await _channel.invokeMethod<String>('webViewCookies', {'url': url}) ?? '';
-    final cookies = await webview.CookieManager.instance().getCookies(url: webview.WebUri(url));
+    final cookies = await _cookieManager().getCookies(url: webview.WebUri(url));
     final value = cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
     if (value.isNotEmpty) await saveCookies(value, url: url);
     return value;
@@ -147,9 +190,8 @@ class Han1meHttpClient {
       await _channel.invokeMethod<void>('clearWebViewCookies');
       return;
     }
-    await webview.CookieManager.instance().deleteAllCookies();
-    await clearCookies();
-  }
+    await _cookieManager().deleteAllCookies();
+    await clearCookies();  }
 
   /// 清掉 WebView 里**某一个站点**的 cookie，其它站点原样保留。
   ///
@@ -160,18 +202,28 @@ class Han1meHttpClient {
   /// 于是登录页一打开就撞上 CF 拦截，用户登录成功后跳转又被拦在首页前，
   /// 登录页根本收不到「已离开登录页」的信号（见 [LoginPage] 的保存时机），
   /// 结果就是「网页里明明登录成功、应用里永远是未登录」。
+  ///
+  /// 传给原生的**必须是绝对 URL**：`WebUri('hanime1.me/')`（裸主机加斜杠）解出来的
+  /// `scheme` 与 `host` 都是空的，而 Windows 端的 `deleteCookies` 会拿这个串去调
+  /// `Network.getCookies` —— 无效 URL 取回空列表，循环一次都不执行，**什么都没删，
+  /// 却照样回调 `true`**。于是老会话一直在、登录页直接跳回已登录页，用户根本拿不到
+  /// 表单；应用侧还继续拿旧会话请求，`saveCookie` 在检出 `id == null` 时抛错，
+  /// 账号从不落盘 —— 这就是 issue #18 修复后仍然「登不进去」的原因。
   Future<void> clearWebViewCookiesFor(String url) async {
     if (!_isDesktop) {
       await _channel.invokeMethod<void>('clearWebViewCookies');
       return;
     }
-    final targets = webViewCookieHostsFor(Uri.parse(url));
-    for (final target in targets) {
-      await webview.CookieManager.instance().deleteCookies(url: webview.WebUri('$target/'));
+    final parsed = Uri.parse(url);
+    final urls = webViewCookieUrlsFor(parsed);
+    for (final target in urls) {
+      await _cookieManager().deleteCookies(url: target);
     }
-    // 内存镜像里也按主机清，`deleteCookies` 不会同步到 [_desktopCookies]。
-    for (final target in targets) {
-      _desktopCookies.remove(target);
+    // 内存镜像也一起清（`deleteCookies` 不会同步到 [_desktopCookies]）。
+    // 键必须走 [_cookieKey]：镜像域在镜像里统一存在 `hanime1-mirrors` 这一个桶下，
+    // 拿裸主机名去 remove 永远删不到东西，旧会话会被一直重放。
+    for (final target in urls) {
+      _desktopCookies.remove(_cookieKey(target.host));
     }
   }
 
