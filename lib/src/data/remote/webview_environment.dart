@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -17,14 +18,25 @@ final webViewEnvironmentProvider = FutureProvider<WebViewEnvironment?>((ref) asy
   // 主界面能打开、WebView 里却打不开。
   final settings = await SettingsStore(JsonStore()).load();
   final rule = await WindowsHttpOverrides.resolveRule(mode: settings.proxyMode, custom: settings.customProxy);
-  final environment = await WebViewEnvironment.create(
-    settings: WebViewEnvironmentSettings(
-      userDataFolder: path.join(supportDirectory.path, 'webview2'),
-      additionalBrowserArguments: _browserProxyArgument(rule),
-    ),
-  );
-  ref.onDispose(() => environment.dispose());
-  return environment;
+  final userDataFolder = path.join(supportDirectory.path, 'webview2');
+  final arguments = _browserProxyArgument(rule);
+  try {
+    final environment = await WebViewEnvironment.create(
+      settings: WebViewEnvironmentSettings(
+        userDataFolder: userDataFolder,
+        additionalBrowserArguments: arguments,
+      ),
+    );
+    debugPrint('[webview] environment ready: $userDataFolder args=$arguments');
+    ref.onDispose(() => environment.dispose());
+    return environment;
+  } catch (error, stack) {
+    // 这里以前是裸 await：创建失败时 FutureProvider 进入 error 态，而所有调用方都读
+    // `valueOrNull`，于是**失败被静默吞掉**，WebView 一直是 null、登录页永久白屏，
+    // 却看不到任何线索。留下日志，让下次白屏时能直接看到原因。
+    debugPrint('[webview] WebViewEnvironment.create failed: $error\n$stack');
+    rethrow;
+  }
 });
 
 /// Chromium 的 `--proxy-server` 只认 HTTP/SOCKS 代理的 `scheme://host:port` 写法，
