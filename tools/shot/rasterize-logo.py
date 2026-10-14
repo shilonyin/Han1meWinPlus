@@ -37,6 +37,21 @@ LOCKUPS = [
 ICON_PNG = ('assets/logo.png', 1024, 1024)
 ICON_DARK_TEXT = '#E9ECF1'  # dark 版字标颜色，实测 (233,236,241)
 
+# Windows 打包图标（.ico）。
+#
+# 为什么也由这里生成：它和上面的 logo.png 是**同一张方形图标**，只是格式不同 ——
+# ico 供 exe 的资源段（windows/runner/Runner.rc 的 IDI_APP_ICON）、安装程序
+# （installer.iss 的 SetupIconFile）以及启动画面（main.cpp 的 StartupIcon）使用。
+#
+# 这里曾经漏掉过它：2026-10-11 那次「位图资源改由矢量图重渲染」更新了
+# assets/*.png（修掉了旧图纵向拉伸 8% 的问题），但没重新生成 .ico，于是
+# exe 图标和安装包图标一直停留在更早的那版。补上这一项，两者就同样源自主图。
+#
+# 尺寸档位沿用原来的 6 档（16/32/48/64/128/256），够覆盖资源管理器各视图、
+# 任务栏、开始菜单与安装程序的显示需求。
+ICON_ICO = 'windows/runner/resources/app_icon.ico'
+ICO_SIZES = [16, 32, 48, 64, 128, 256]
+
 
 def read_master():
     s = io.open(MASTER, encoding='utf-8').read()
@@ -110,11 +125,50 @@ def build_icon(by_fill):
     )
 
 
+def build_native_icon_png(by_fill):
+    """方形图标的 PIL 图像（1024x1024），供 .ico 使用。
+
+    与写进 assets/logo.png 的是同一个 build_icon 画法，保证 exe 图标、安装包
+    图标与应用内看到的方形图标完全一致。
+    """
+    icon_rel, iw, ih = ICON_PNG
+    return render(build_icon(by_fill), iw, ih)
+
+
 def png_bytes_equivalent(path, img):
     """把渲染结果编码成 PNG 字节，用于和磁盘上的文件比对。"""
     buf = io.BytesIO()
     img.save(buf, format='PNG', optimize=True)
     return buf.getvalue()
+
+
+def build_ico_bytes(icon_img):
+    """由方形图标生成多尺寸 .ico 的字节。
+
+    每一档都从 1024 的母图**独立**降采样，而不是从上一档继续缩 —— 逐级缩小会
+    累积重采样误差，16x16 那档会明显发糊。
+    """
+    from PIL import Image
+    buf = io.BytesIO()
+    # sizes 交给 Pillow 逐档生成；append_images 不用，它会自己按 sizes 缩。
+    icon_img.save(buf, format='ICO', sizes=[(s, s) for s in ICO_SIZES])
+    return buf.getvalue()
+
+
+def ico_frame_digest(data):
+    """把 .ico 解码成「各档位像素的摘要」，用于 --check 时的语义比对。
+
+    .ico 是容器格式，同一份图像用不同工具写出的字节流未必一致（Pillow 每次
+    写入还可能带时间戳），直接比字节会永远报「需更新」。这里改成比像素。
+    """
+    import hashlib
+    from PIL import Image
+    im = Image.open(io.BytesIO(data))
+    parts = []
+    for size in sorted(im.info.get('sizes', [])):
+        frame = im.ico.getimage(size).convert('RGBA')
+        parts.append(f'{size[0]}x{size[1]}:' + hashlib.sha256(frame.tobytes()).hexdigest())
+    return '\n'.join(parts)
 
 
 def main():
@@ -145,6 +199,30 @@ def main():
             with open(path, 'wb') as f:
                 f.write(new_bytes)
             print(f'已写入 {rel}  ({w}x{h}, {len(new_bytes)/1024:.1f} KB)')
+
+    # 打包图标：与 assets/logo.png 同源的方形图标，只是写成多尺寸 ico。
+    # 比对用像素摘要而非字节（见 ico_frame_digest 的说明）。
+    ico_path = os.path.join(ROOT, ICON_ICO)
+    ico_new = build_ico_bytes(build_native_icon_png(by_fill))
+    if os.path.exists(ico_path):
+        try:
+            same = ico_frame_digest(open(ico_path, 'rb').read()) == ico_frame_digest(ico_new)
+        except Exception as exc:                     # 旧文件损坏 / 格式不认识
+            print(f'  （现有 {ICON_ICO} 无法解析：{exc}）')
+            same = False
+    else:
+        same = False
+
+    if same:
+        print(f'一致  {ICON_ICO}')
+    else:
+        stale.append(ICON_ICO)
+        if args.check:
+            print(f'需更新 {ICON_ICO}')
+        else:
+            with open(ico_path, 'wb') as f:
+                f.write(ico_new)
+            print(f'已写入 {ICON_ICO}  ({"/".join(str(s) for s in ICO_SIZES)}, {len(ico_new)/1024:.1f} KB)')
 
     if args.check and stale:
         sys.exit(1)
