@@ -85,15 +85,26 @@ For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 
 ### Recommended: the installer
 
-**[Han1meWinPlus-Setup.exe](../../releases/latest)** — Start-menu shortcut, clean uninstall ([direct download](../../releases/latest/download/Han1meWinPlus-Setup.exe))
+**[Han1meWinPlus-Setup.exe](../../releases/latest)** — Start-menu shortcut, clean uninstall
+
+⚠️ The installer consists of **three files**. Download all of them into the **same folder**:
+
+| File | Purpose |
+| --- | --- |
+| `Han1meWinPlus-Setup.exe` | Double-click this to install |
+| `Han1meWinPlus-Setup-0.bin` | Installer data (required) |
+| `Han1meWinPlus-Setup-1.bin` | Installer data (required) |
+
+> Why three files: Inno's default bootstrapper copies itself into `%TEMP%` before running, and on some machines that copy step is refused (`Error 5: Access is denied`, so the install never starts). Disabling the bootstrapper removes that failure; the trade-off is a three-file output.
 
 Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
 
 > An "Unknown publisher" prompt on first launch is expected (the installer is not code-signed). Click "More info → Run anyway"; the portable build skips the installer entirely.
 
 - **System requirements**: Windows 10 (1809 or later) / Windows 11, 64-bit
+- **Install privileges**: administrator rights are required by default (installs to `Program Files`). If your account is a plain standard user (not in the Administrators group), pass `/CURRENTUSER` to install per-user without elevation: `Han1meWinPlus-Setup.exe /CURRENTUSER`
 - **Verifying your download**: each release ships `SHA256SUMS.txt` (also included in the release notes); check it in PowerShell with `certutil -hashfile <file> SHA256`
-- **Data directory**: `%APPDATA%\han1me_win_plus\`. It survives reinstalling and upgrading, and is *not* removed on uninstall (delete the folder manually if you want a clean slate)
+- **Data directory**: `%APPDATA%\han1me_win_plus\`. It survives reinstalling and upgrading. On uninstall you are asked whether to remove app data (settings and history, web cache and sign-in state); **downloaded videos are asked about separately and kept by default**
 - **Upgrading**: when you are on an older version the app shows an update prompt automatically, and you can also check manually under Settings → About
 
 All previous versions and their changelogs are on the [Releases](../../releases) page.
