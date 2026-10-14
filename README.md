@@ -85,17 +85,9 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 
 ### 推荐：安装版
 
-**[Han1meWinPlus-Setup.exe](../../releases/latest)** —— 带开始菜单快捷方式，可正常卸载
+**[Han1meWinPlus-Setup.exe](../../releases/latest)** —— 单文件，带开始菜单快捷方式，可正常卸载（[直接下载](../../releases/latest/download/Han1meWinPlus-Setup.exe)）
 
-⚠️ 安装包由**三个文件**组成，必须一起下载、放进同一个文件夹：
-
-| 文件 | 说明 |
-| --- | --- |
-| `Han1meWinPlus-Setup.exe` | 双击这个启动安装 |
-| `Han1meWinPlus-Setup-0.bin` | 安装数据（必需） |
-| `Han1meWinPlus-Setup-1.bin` | 安装数据（必需） |
-
-> 为什么不是一个文件：默认的 Inno 引导程序会先把自身复制到 `%TEMP%` 再运行，那一步在部分机器上会被拒绝（报 `Error 5: 拒绝访问`，安装根本起不来）。关掉那个引导程序后就没有这个失败了，代价是产物拆成三个文件。
+> 下载这一个文件、双击即可安装，不需要其它配套文件。
 
 免安装版：`Han1meWinPlus-windows-x64.zip` —— 解压即用，运行 `han1me_win_plus.exe`（[直接下载](../../releases/latest/download/Han1meWinPlus-windows-x64.zip)）
 
@@ -211,9 +203,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
    git push origin v1.1.9
    ```
 
-3. Actions 会用 `.fvmrc` 锁定的 Flutter 版本编译，再用 Inno Setup 打包，最后把安装包（`Han1meWinPlus-Setup.exe` 及同名的 `-0.bin` / `-1.bin` 三个文件）、`Han1meWinPlus-windows-x64.zip` 与 `SHA256SUMS.txt` 发到 Releases，并按 `feat` / `fix` 等前缀自动生成分类更新日志
-
-> 安装包为什么是三个文件：`installer.iss` 里设了 `UseSetupLdr=no`。默认的 Inno 引导程序会把自身复制到 `%TEMP%` 再运行，那一步在部分机器上被拒绝（`Error 5`），安装起不来；关掉它之后产物就拆成了三个，**发布时必须一起上传**（CI 已处理）。
+3. Actions 会用 `.fvmrc` 锁定的 Flutter 版本编译，再用 Inno Setup 打包，最后把 `Han1meWinPlus-Setup.exe`、`Han1meWinPlus-windows-x64.zip` 与 `SHA256SUMS.txt` 发到 Releases，并按 `feat` / `fix` 等前缀自动生成分类更新日志
 
 > [!IMPORTANT]
 > tag 必须是 `v` + 数字版本开头（`v1.1.9`、`v1.1.9-win.1` 都可以）。应用内「检查更新」只解析 tag 的前三段数字，写成 `win-v1.1.9` 会被当成 `0.0.0`，永远检测不到更新。tag 与 `pubspec.yaml` 版本不一致时 CI 会直接失败，避免发出对不上号的包。

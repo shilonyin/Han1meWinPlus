@@ -50,29 +50,40 @@ RestartApplications=no
 ; 安装目录里（data/ 下的资源文件因为没被锁定，反而删干净了）。
 AppMutex=Han1meWinPlus.instance.mutex,Han1meWinPlus.play-window.mutex
 
-; 关掉 Setup Loader —— 这是让「双击安装」在受影响的机器上能工作的关键。
+; Setup Loader：保持单文件打包（Inno 默认行为）。
 ;
-; 背景：Inno 默认（UseSetupLdr=yes）把全部数据打进单个 Setup.exe，而这个 exe 其实是
-; 一个叫 SetupLdr 的引导程序。它的启动顺序是：
-;   1) 以调用者权限（未提权）启动
-;   2) **把自己解包到 %TEMP%\is-XXXX.tmp 并从那里启动内嵌的主安装程序**
-;   3) 主程序带提权清单，Windows 这时才弹 UAC
-; 问题出在第 2 步：它发生在提权**之前**。在一部分机器上（机制见文末），未提权的
-; 进程建不了那个 %TEMP% 子目录，于是安装还没开始就死了：
-;   Setup was unable to create the directory "...\Temp\is-XXXX.tmp"
-;   Error 5: 拒绝访问
-; 此时连日志都还没初始化，界面上只有这一个框，看起来像安装包本身坏了。
+; ===== 这里曾经设成 no，那是一个基于错误诊断的决定，已撤销 =====
 ;
-; 设为 no 之后第 2 步整个消失：没有引导程序，主安装程序直接启动 → Windows 先按
-; 清单提权 → 提权之后再建临时目录，于是成功。实测（同一脚本、同一台机器）：
-;   UseSetupLdr=yes（默认）+ admin → ExitCode=1，报上面的 Error 5
-;   UseSetupLdr=no        + admin → ExitCode=0，71 个文件全部装好
+; 当初观察到「双击安装报 Error 5: 拒绝访问 / Setup was unable to create the
+; directory ...\Temp\is-XXXX.tmp」，于是改成 UseSetupLdr=no（产物拆成
+; Setup.exe + Setup-0.bin + Setup-1.bin）来绕开它。后来重新排查发现：
 ;
-; 代价：产物从 1 个 exe 变成 3 个文件（Setup.exe + Setup-0.bin + Setup-1.bin），
-; 发布时必须一起提供、放在同一目录（见 build-windows.yml 与发布说明里的打包处理）。
-; 官方文档对这个指令的说法是 "the only reason you would probably want to use no is
-; for debugging purposes"，但在这个场景下它是唯一能绕开该失败的手段。
-UseSetupLdr=no
+; **真正的触发条件是「安装包所在的目录」，与脚本、与包本身都无关。**
+; 同一个二进制文件，只是换个位置放，结果完全不同（各测 5 次）：
+;
+;   F:\Han1meWinPlus\build\    （本仓库工作区）  → 0 成功 / 5 失败
+;   F:\h1-loc-test\            （同盘普通目录）  → 5 成功 / 0 失败
+;   %TEMP% 下                                  → 全部成功
+;   %USERPROFILE%\Downloads 下                  → 全部成功
+;
+; 工作区目录被开发环境的沙箱加了额外的保护条目（icacls 里能看到
+; "Everyone:(CI)(DENY)(DC)" 以及一个解析不出账户名的信任标签 SID
+; S-1-4-967507726-224904887），从该目录启动的 SetupLdr 在创建 %TEMP% 子目录时
+; 被拒。具体触发点没有完全定位，但上面的对照实验足以确定：**只发生在这个目录下**。
+;
+; 也就是说，真实用户从下载目录双击安装本来就是正常的 —— 当初的「修复」只是绕开了
+; 本机开发环境的怪癖，代价却很实在：Inno 明确规定 SignTool / SignedUninstaller
+; **不能**与 UseSetupLdr=no 同时使用（编译器直接拒绝，原文：
+; "The SignTool and SignedUninstaller directives may not be set when UseSetupLdr is
+; set to \"no\""），于是卸载器永远拿不到数字签名。
+;
+; 改回单文件后：产物只有 1 个 exe（用户不必再凑齐三个文件），并且可以走
+; SignTool + SignedUninstaller 的编译期签名 —— 安装器和卸载器都能签上。
+;
+; ⚠️ 本地测试提醒：在 F:\Han1meWinPlus\ 下运行本产物**仍会**报 Error 5（沙箱 ACL
+;    所致，不是包的问题）。要验证安装，请先把 exe 复制到别的目录（例如 %TEMP%）
+;    再双击或静默安装。
+UseSetupLdr=yes
 
 [Files]
 ; Excludes 只在这里出现一次，作用是挡掉 MSVC 链接器的中间产物：
@@ -134,54 +145,30 @@ Root: HKA; Subkey: "Software\Classes\han1me\shell\open\command"; ValueType: stri
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"
 
 ; ===========================================================================
-; 为什么默认是 admin 而不是免管理员
+; 安装权限：为什么默认 admin（以及一个被推翻的旧结论）
 ; ===========================================================================
 ;
-; 起因：把 PrivilegesRequired 改成 lowest（免管理员）后，安装在同一台机器上
-; 直接失败，报的是和 SetupLdr 那个错一样的文本：
-;   Setup was unable to create the directory "...\Temp\is-XXXX.tmp"
-;   Error 5: 拒绝访问
-; 排查后确认这是**另一个独立的原因**，与 UseSetupLdr 无关，机制如下。
+; ===== 这段曾经写着「免管理员（lowest）在本机必然失败」，那是错的 =====
 ;
-; 1) Inno 创建那个临时目录时，走哪条分支取决于「账户是不是管理员」，而不是
-;    「进程有没有提权」。官方源码 Projects/InstFunc.pas 的 CreateTempDir：
+; 当初把 PrivilegesRequired 改成 lowest 后测出安装失败（同样是 Error 5），
+; 于是留下结论「免管理员这条路在当前令牌模型下走不通」。后来查明：那些测试
+; 也是在本仓库工作区目录下跑的，而该目录的沙箱 ACL 才是 Error 5 的真正来源
+; —— 完整对照实验见本文件 [Setup] 段 UseSetupLdr 附近的说明。
 ;
-;      S := CreateTempDir('.tmp', IsAdminLoggedOn);
+; 在普通目录（C:\h1-lowest-test\）重新编译并安装，实测（唯一变量是模式）：
 ;
-;    参数是 IsAdminLoggedOn —— 只要账户属于 Administrators 组就为真，哪怕当前
-;    进程用的是未提权的 UAC 拆分令牌。
+;   PrivilegesRequired=lowest（免管理员）      → ExitCode=0，71 个文件全部装好
+;   PrivilegesRequired=admin + UseSetupLdr=yes → ExitCode=0，71 个文件全部装好
 ;
-; 2) 为真时它走 "Protected" 分支：创建目录时附带一个显式 SDDL，
-;    而不是靠父目录继承 ACL。SDDL 形如
-;      D:PAI(A;OICI;FRFX;;;<当前用户>)(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)
-;    其中 FRFX 是**受限**权限集（读/执行，不含写）。
+; 两种模式都可用。lowest 从来不是「装不上」，当时的失败是环境造成的。
 ;
-; 3) 本机正是这种情况：TAKI\24243 属于 Administrators 组，而普通双击启动的
-;    进程用拆分令牌（whoami /groups 里该组标着 "Group used for deny only"）。
-;    于是 Inno 选中了那条 SDDL 分支，而它在这个令牌下无法生效 → Error 5。
-;    实测：手工用同一段 SDDL 建目录，目录确实建出来了，但建完连创建者自己都
-;    没有写权限（随后要靠 icacls 夺取才能删掉）—— 与报错完全吻合。
+; 当前仍默认 admin，这是**产品选择而非技术限制**：装到 Program Files 更符合
+; Windows 惯例，且 /CURRENTUSER 已经给纯标准用户账户留了免管理员的口子（见
+; PrivilegesRequiredOverridesAllowed）。若想改成默认免管理员，把这里换成
+; lowest 即可，同时需要更新 README 里关于安装权限的说明。
 ;
-; 4) 三条实测对照（同一脚本、同一台机器，唯一变量是安装模式与调用方式）：
-;
-;      UseSetupLdr=yes + admin（旧默认）         → ExitCode=1  Error 5
-;      UseSetupLdr=no  + admin                   → ExitCode=0  71 个文件
-;      UseSetupLdr=no  + lowest，默认/用户级     → ExitCode=1  Error 5
-;      UseSetupLdr=no  + lowest，加 /ALLUSERS    → ExitCode=0  71 个文件
-;
-;    最后一行是关键：提权之后就能成功。也就是说，在**这台机器这一类环境**里，
-;    要装上就必须提权 —— 免管理员不是脚本没写对，而是这条路在当前令牌模型下
-;    走不通。提权后 Inno 建的目录 owner 是 BUILTIN\Administrators，当前用户只有
-;    读权限，与上面第 2 条的 SDDL 描述一致。
-;
-; 因此：默认保持 admin；解析到「不提权就装不上」的机器走默认路径即可（会弹一次
-; UAC）。而 /CURRENTUSER 这个开关仍然留着 —— 纯非管理员账户（不在
-; Administrators 组里，令牌里没有那个组）走的是另一条不依赖 SDDL 的分支，
-; 用户级安装对他们可用，那条路才是真正免管理员的。
-;
-; 另外：URL 协议注册已经改用 HKA（见 [Registry]），它在两种模式下会自动落到
-; HKLM 或 HKCU，所以无论最终以哪种模式安装，协议都能正确注册 —— 这一项不再
-; 是「必须提权」的理由。
+; 另外：URL 协议注册用的是 HKA（见 [Registry]），它会随安装模式自动落到
+; HKLM 或 HKCU，所以两种模式下协议都能正确注册。
 
 // ===========================================================================
 // 卸载时的数据清理
@@ -239,12 +226,20 @@ begin
 end;
 
 // 统计一个目录有多大、多少文件，用于在对话框上告诉用户「将删除多少」。
-procedure MeasureDir(const Dir: string; var Files: Integer; var Bytes: Int64);
+//
+// [SkipSubdir] 用于把某个子目录排除在统计之外（传空串表示不排除）。存在这个参数
+// 是因为 Download 是数据目录的子目录，而两者在卸载时是**分别**询问的 —— 不排除的话
+// 「设置、观看记录与追番」那一项的体积会把用户下载的视频全算进去，显示成几个 GB，
+// 用户会以为设置本身很大。
+procedure MeasureDir(const Dir, SkipSubdir: string; var Files: Integer; var Bytes: Int64);
 var
   FindRec: TFindRec;
   Sub: string;
+  SkipFull: string;
 begin
   if not DirExists(Dir) then Exit;
+  SkipFull := '';
+  if SkipSubdir <> '' then SkipFull := AddBackslash(Dir) + SkipSubdir;
   if FindFirst(AddBackslash(Dir) + '*', FindRec) then
   begin
     try
@@ -253,11 +248,22 @@ begin
         begin
           Sub := AddBackslash(Dir) + FindRec.Name;
           if (FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
-            MeasureDir(Sub, Files, Bytes)
+          begin
+            // 跳过被排除的子目录；也跳过目录联接（reparse point），
+            // 否则一个指向自身/祖先的联接会让这里无限递归 —— 而在卸载事件
+            // 函数里抛异常是致命的（整个卸载失败）。
+            if (SkipFull <> '') and (CompareText(Sub, SkipFull) = 0) then
+              Continue;
+            if (FindRec.Attributes and FILE_ATTRIBUTE_REPARSE_POINT) = 0 then
+              MeasureDir(Sub, '', Files, Bytes);
+          end
           else
           begin
             Inc(Files);
-            Bytes := Bytes + FindRec.SizeHigh * 4294967296 + FindRec.SizeLow;
+            // 必须显式转 Int64 再乘。4294967296 这个字面量在 Pascal Script 里
+            // 按 32 位处理、被截断成 0，于是 SizeHigh 整段丢失：一个 5 GiB 的
+            // 文件会被报成 1 GiB（实测原式 High=1,Low=0 得 0，而非 4294967296）。
+            Bytes := Bytes + Int64(FindRec.SizeHigh) * 4294967296 + Int64(FindRec.SizeLow);
           end;
         end;
       until not FindNext(FindRec);
@@ -269,11 +275,15 @@ end;
 
 // 把字节数写成人看的单位。
 //
-// 这里刻意全部用整数运算，只有 %d 参与格式化。原因是 Pascal Script 的 Format
-// 对浮点参数很挑剔：Format('%.1f MB', [Bytes / 1048576]) 会抛
-//   Runtime error: Format '%.1f MB' invalid or incompatible with argument
-// 而卸载事件函数里抛异常是致命的 —— 首次实现踩过：整个卸载直接失败、
-// 退出码 1，日志里只有一行 "raised an exception (fatal)"。
+// 这里刻意全部用整数运算、只让 %d 参与格式化。两点原因（均经实测）：
+//
+//  1. Format('%.1f MB', [Bytes / 1048576]) 会抛
+//       Runtime error: Format '%.1f MB' invalid or incompatible with argument
+//     （%f 要求浮点参数，传整数直接报错），而卸载事件函数里抛异常是致命的 ——
+//     首次实现踩过：整个卸载失败、退出码 1，日志里只有 "raised an exception (fatal)"。
+//  2. Pascal Script 的 Format **不实现零填充标志**：Format('%d.%02d GB', [1, 0])
+//     实测输出 "1. 0 GB"（一个空格），不是 "1.00 GB"。所以小数位要自己补零，
+//     见下面 GB 分支的 if。
 function HumanSize(Bytes: Int64): string;
 var
   Whole, Frac: Int64;
@@ -282,7 +292,11 @@ begin
   begin
     Whole := Bytes div 1073741824;
     Frac := (Bytes mod 1073741824) * 100 div 1073741824;
-    Result := Format('%d.%02d GB', [Whole, Frac]);
+    // 手动补零：%02d 不被支持（会变成空格）
+    if Frac < 10 then
+      Result := Format('%d.0%d GB', [Whole, Frac])
+    else
+      Result := Format('%d.%d GB', [Whole, Frac]);
   end
   else if Bytes >= 1048576 then
   begin
@@ -306,6 +320,64 @@ begin
   Result := True;
   if not DirExists(Dir) then Exit;
   if not DelTree(Dir, True, True, True) then Result := False;
+end;
+
+// 删除应用数据目录，但**保住**里面的 Download 子目录。
+//
+// 为什么需要这个专门的函数：Download 物理上是 AppDataDir() 的子目录，而 DelTree
+// 会连子目录一起删。而这两处在卸载时是**分别**询问的 —— 用户完全可能回答「清掉
+// 设置」+「保留视频」。直接 DelTree(AppDataDir()) 会把他明确选择保留的视频一起删光。
+//
+// 实测确认过这个后果（探针脚本，Inno 6.x）：
+//   删前: 父存在=1 Download存在=1
+//   DelTree(父) 后: 父存在=0 Download存在=0   <- 用户选的是「保留下载」
+//
+// 做法：先把 Download 改名到数据目录之外（同一卷内 rename 是元数据操作，几十 GB
+// 也瞬间完成、不搬运数据），删完父目录再建回同名目录并改回来。名字里带 `.` 前缀
+// 是为了不容易和别的东西撞名。
+//
+// [KeepDownload]=False 时退化为普通整树删除（用户选了连视频一起删）。
+function RemoveAppDataKeepingDownload(KeepDownload: Boolean): Boolean;
+var
+  DataDir, DownloadDir, StashDir: string;
+  Stashed: Boolean;
+begin
+  Result := True;
+  DataDir := AppDataDir();
+  if not DirExists(DataDir) then Exit;
+
+  DownloadDir := DefaultDownloadDir();
+  StashDir := DataDir + '.download-keep';
+  Stashed := False;
+
+  if KeepDownload and DirExists(DownloadDir) then
+  begin
+    // 上次异常中断可能留下 stash，先清掉避免撞名
+    if DirExists(StashDir) then RemoveTreeQuiet(StashDir);
+    Stashed := RenameFile(DownloadDir, StashDir);
+    if Stashed then
+      Log('kept downloads aside: ' + StashDir)
+    else
+      // 改名失败（被占用 / 跨卷）时**不要**继续删父目录 —— 那会连视频一起删掉。
+      // 宁可这次不清理设置，也不能丢用户的文件。
+      Log('could not set downloads aside, skipping app data removal');
+  end;
+
+  if (not KeepDownload) or (not DirExists(DownloadDir)) or Stashed then
+  begin
+    if not RemoveTreeQuiet(DataDir) then Result := False;
+  end
+  else
+    Result := False;   // 改名没成功 → 放弃本次删除，交给调用方提示
+
+  // 把保留下来的下载放回原位。父目录已被删掉，这里顺带把数据目录重建出来，
+  // 让应用下次启动时看到的目录结构是完整的。
+  if Stashed and DirExists(StashDir) then
+  begin
+    if not DirExists(DataDir) then CreateDir(DataDir);
+    if not RenameFile(StashDir, DownloadDir) then
+      Log('WARNING: downloads left at ' + StashDir);
+  end;
 end;
 
 // 卸载前问用户要不要清理数据。
@@ -332,9 +404,12 @@ begin
   SettingsFiles := 0; SettingsBytes := 0;
   WebviewFiles := 0; WebviewBytes := 0;
   DownloadFiles := 0; DownloadBytes := 0;
-  MeasureDir(AppDataDir(), SettingsFiles, SettingsBytes);
-  MeasureDir(LegacyAppDataDir(), SettingsFiles, SettingsBytes);
-  MeasureDir(WebViewDir(), WebviewFiles, WebviewBytes);
+  // 统计「设置」时必须排掉 Download：它是数据目录的子目录，不排的话用户下载的
+  // 几十 GB 视频会被算进「设置、观看记录与追番」这一项，显示成几个 GB ——
+  // 实测过：3 个文件的数据目录被报成 3.0 GB，其中 3 GB 全来自 Download 里的视频。
+  MeasureDir(AppDataDir(), 'Download', SettingsFiles, SettingsBytes);
+  MeasureDir(LegacyAppDataDir(), '', SettingsFiles, SettingsBytes);
+  MeasureDir(WebViewDir(), '', WebviewFiles, WebviewBytes);
 
   Message :=
     '是否一并清理本应用留下的数据？' + #13#10 + #13#10 +
@@ -361,7 +436,7 @@ begin
   if DirExists(DefaultDownloadDir()) then
   begin
     DownloadFiles := 0; DownloadBytes := 0;
-    MeasureDir(DefaultDownloadDir(), DownloadFiles, DownloadBytes);
+    MeasureDir(DefaultDownloadDir(), '', DownloadFiles, DownloadBytes);
     if MsgBox('还要删除下载的视频吗？' + #13#10 + #13#10 +
               DefaultDownloadDir() + #13#10 +
               Format('%d 个文件，共 %s', [DownloadFiles, HumanSize(DownloadBytes)]) + #13#10 + #13#10 +
@@ -414,8 +489,11 @@ begin
   if CurUninstallStep <> usUninstall then Exit;
 
   // 静默卸载（/SILENT、/VERYSILENT）下不弹窗：那种场景是脚本或包管理器在驱动，
-  // 一个模态框会把它们挂住。此时按「只清应用自己的设置」处理，与交互模式下
-  // 勾选框的默认值一致。
+  // 一个模态框会把它们挂住。此时取**比交互模式更保守**的默认值：
+  //   清应用设置 = 是（与交互模式一致，这是最常见的诉求）
+  //   清网页缓存与登录态 = **否**（交互模式问「是否清理」时默认是「是」，
+  //                              但静默场景没人能确认，保留登录态代价更小）
+  //   清下载视频 = 否（与交互模式一致，那是用户文件）
   if UninstallSilent then
   begin
     Log('silent path');
@@ -434,22 +512,35 @@ begin
 
   if CleanSettings then
   begin
-    Log('removing ' + AppDataDir());
-    if not RemoveTreeQuiet(AppDataDir()) then Failed := Failed + #13#10 + AppDataDir();
-    // 历史目录一起清掉，避免重装后又读到旧数据。
-    RemoveTreeQuiet(LegacyAppDataDir());
+    // 关键：删数据目录时把 Download 摘出来。用户可能回答「清设置」+「保留视频」，
+    // 而 Download 物理上在数据目录里面 —— 直接整树删会把他明确保留的视频删掉。
+    // 详见 RemoveAppDataKeepingDownload 的说明。
+    Log('removing app data (keep downloads=' + IntToStr(Ord(not CleanDownloads)) + ')');
+    if not RemoveAppDataKeepingDownload(not CleanDownloads) then
+      Failed := Failed + #13#10 + AppDataDir();
+    // 历史目录一起清掉，避免重装后又读到旧数据。失败也要报出来（原先这一处
+    // 的返回值被丢掉了，和其他三处不一致）。
+    if not RemoveTreeQuiet(LegacyAppDataDir()) then
+      Failed := Failed + #13#10 + LegacyAppDataDir()
+    else
+      // 它删掉后父目录 %APPDATA%\Han1meWinPlus 就成了空壳，顺手清掉
+      RemoveTreeQuiet(ExpandConstant('{userappdata}\Han1meWinPlus'));
+  end;
+
+  // 用户选择「连下载一起删」时，Download 还留在原处（RemoveAppDataKeepingDownload
+  // 在 KeepDownload=False 时已随父目录一起删掉，但那是父目录还在的情况；
+  // 这里兜一下独立存在的情形）。
+  if CleanDownloads and DirExists(DefaultDownloadDir()) then
+  begin
+    Log('removing ' + DefaultDownloadDir());
+    if not RemoveTreeQuiet(DefaultDownloadDir()) then
+      Failed := Failed + #13#10 + DefaultDownloadDir();
   end;
 
   if CleanWebview then
   begin
     Log('removing ' + WebViewDir());
     if not RemoveTreeQuiet(WebViewDir()) then Failed := Failed + #13#10 + WebViewDir();
-  end;
-
-  if CleanDownloads then
-  begin
-    Log('removing ' + DefaultDownloadDir());
-    if not RemoveTreeQuiet(DefaultDownloadDir()) then Failed := Failed + #13#10 + DefaultDownloadDir();
   end;
 
   // 有删不掉的（通常是应用 / WebView2 还在跑）就明确说一声，不静默吞掉。

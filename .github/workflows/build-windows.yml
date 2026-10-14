@@ -91,20 +91,13 @@ jobs:
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "找不到 ISCC.exe: $iscc" }
           & $iscc "/DMyAppVersion=$env:APP_VERSION" windows\installer.iss
-          # installer.iss 里设了 UseSetupLdr=no（原因见该文件的大段说明：默认的
-          # Setup Loader 会先把自身复制到 %TEMP% 再运行，那一步在部分机器上被拒，
-          # 报 "Error 5: 拒绝访问"，安装根本起不来）。代价是产物由单个 exe 变成
-          # 三个文件：Setup.exe + Setup-0.bin + Setup-1.bin，**必须一起分发** ——
-          # 只给 exe 的话用户双击后会因为找不到 .bin 而失败。
-          $required = @(
-            'build\Han1meWinPlus-Setup.exe',
-            'build\Han1meWinPlus-Setup-0.bin',
-            'build\Han1meWinPlus-Setup-1.bin'
-          )
-          foreach ($f in $required) {
-            if (-not (Test-Path $f)) { throw "安装包未生成: $f" }
-          }
-          Get-Item $required | Select-Object Name, Length
+          # 单文件产物（UseSetupLdr=yes，Inno 默认）：Setup.exe 自包含全部数据。
+          # 曾经为了绕开一个本机环境问题改成过 no（产物拆成三个文件），后来查明
+          # 那个问题只发生在开发机的工作区目录下，与包无关 —— 详见 installer.iss
+          # 里 [Setup] 段的说明。现在恢复单文件，好处是用户只需下载一个文件，
+          # 而且能走 SignTool + SignedUninstaller 的编译期签名。
+          if (-not (Test-Path 'build\Han1meWinPlus-Setup.exe')) { throw '安装包未生成' }
+          Get-Item 'build\Han1meWinPlus-Setup.exe' | Select-Object Name, Length
 
       - name: Package portable zip
         shell: pwsh
@@ -115,11 +108,9 @@ jobs:
       - name: Build SHA256 checksums
         shell: pwsh
         run: |
-          # 三个安装包文件都要列（见 Build Windows installer 里的说明）
+          # 安装包现在只有 1 个文件（见 Build Windows installer 里的说明）
           $files = @(
             'build\Han1meWinPlus-Setup.exe',
-            'build\Han1meWinPlus-Setup-0.bin',
-            'build\Han1meWinPlus-Setup-1.bin',
             'build\Han1meWinPlus-windows-x64.zip'
           )
           $lines = foreach ($f in $files) {
@@ -133,11 +124,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: Han1meWinPlus-Setup
-          # 三个文件必须一起上传：exe 是引导壳，真正的数据在 .bin 里
-          path: |
-            build/Han1meWinPlus-Setup.exe
-            build/Han1meWinPlus-Setup-0.bin
-            build/Han1meWinPlus-Setup-1.bin
+          path: build/Han1meWinPlus-Setup.exe
           if-no-files-found: error
 
       - name: Upload portable zip
@@ -201,8 +188,6 @@ jobs:
           # -join 之后每段会各占一行。这里改用 foreach 逐行生成字符串。
           $sumRows = foreach ($f in @(
               (Get-Item 'build\Han1meWinPlus-Setup.exe'),
-              (Get-Item 'build\Han1meWinPlus-Setup-0.bin'),
-              (Get-Item 'build\Han1meWinPlus-Setup-1.bin'),
               (Get-Item 'build\Han1meWinPlus-windows-x64.zip'))) {
             $size = [math]::Round($f.Length / 1MB, 2)
             $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -227,9 +212,7 @@ jobs:
 
           ## 安装
 
-          1. 下载 **三个安装文件**（``Han1meWinPlus-Setup.exe`` 与同名的 ``-0.bin``/``-1.bin``），
-             放进**同一个文件夹**，然后双击 ``Han1meWinPlus-Setup.exe``。
-             ⚠️ 三个文件必须放在一起：exe 只是引导壳，真正的数据在 .bin 里，缺了会启动失败。
+          1. 下载 ``Han1meWinPlus-Setup.exe``（单文件），双击安装
           2. 首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下：点「更多信息」→「仍要运行」即可
           3. 安装默认需要管理员权限（装到 ``Program Files``）。如果你的账户是纯标准用户（不在
              Administrators 组里），可以用 ``Han1meWinPlus-Setup.exe /CURRENTUSER`` 免管理员安装到用户目录。
@@ -263,8 +246,6 @@ jobs:
 
           gh release create $env:TAG `
             build/Han1meWinPlus-Setup.exe `
-            build/Han1meWinPlus-Setup-0.bin `
-            build/Han1meWinPlus-Setup-1.bin `
             build/Han1meWinPlus-windows-x64.zip `
             build/SHA256SUMS.txt `
             --title "Han1meWinPlus $env:TAG" `

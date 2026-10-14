@@ -85,17 +85,9 @@ For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 
 ### Recommended: the installer
 
-**[Han1meWinPlus-Setup.exe](../../releases/latest)** — Start-menu shortcut, clean uninstall
+**[Han1meWinPlus-Setup.exe](../../releases/latest)** — single file, Start-menu shortcut, clean uninstall ([direct download](../../releases/latest/download/Han1meWinPlus-Setup.exe))
 
-⚠️ The installer consists of **three files**. Download all of them into the **same folder**:
-
-| File | Purpose |
-| --- | --- |
-| `Han1meWinPlus-Setup.exe` | Double-click this to install |
-| `Han1meWinPlus-Setup-0.bin` | Installer data (required) |
-| `Han1meWinPlus-Setup-1.bin` | Installer data (required) |
-
-> Why three files: Inno's default bootstrapper copies itself into `%TEMP%` before running, and on some machines that copy step is refused (`Error 5: Access is denied`, so the install never starts). Disabling the bootstrapper removes that failure; the trade-off is a three-file output.
+> Download this one file and double-click it; no companion files are needed.
 
 Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
 
