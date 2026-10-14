@@ -718,6 +718,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     }
     if (controller != null) {
       if (_fullscreenOpen) {
+        // 全屏窗口还开着（换片 / 跳转发生在全屏里）：销毁必须等全屏关闭
+        //（否则渲染表面会在全屏窗口仍持有它时被释放），但**暂停不能等**——
+        // 挂起而不暂停就会让旧视频在全屏盖着新页面时继续出声。
+        if (controller.value.isInitialized) {
+          unawaited(controller.pause().catchError((_) {}));
+        }
         _pendingDispose = controller;
       } else {
         if (controller.value.isInitialized) {

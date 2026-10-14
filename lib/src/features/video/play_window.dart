@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/video_player_shutdown.dart';
 import '../settings/settings_controller.dart';
 
 /// 独立播放窗口（多进程多窗口方案）的启动参数与进程启动器。
@@ -12,9 +13,14 @@ import '../settings/settings_controller.dart';
 /// 一个本程序自己的进程，只渲染播放页。之所以用**多进程**而不是
 /// desktop_multi_window 的多引擎，是因为后者与手写 runner 不兼容——副窗口一
 /// 创建，主窗口的引擎就不再处理输入 / 重绘（见 windows/runner/main.cpp 的
-/// NOTE）；独立进程各有各的引擎与消息循环，互不影响，也天然支持同时开多个
-/// 播放窗口。runner 侧对 `--play-window` 启动会跳过单实例互斥（见
-/// IsPlayWindowLaunch），所以播放窗口与主窗口、以及播放窗口彼此之间都能并存。
+/// NOTE）；独立进程各有各的引擎与消息循环，互不影响。
+///
+/// 播放窗口**同时只允许一个**：runner 对 `--play-window` 启动持有专属单实例
+/// 互斥（主窗口互斥之外另一把，见 main.cpp 的 kPlayWindowMutexName）。已有
+/// 播放窗口时再点别的视频，第二个进程会把 `--video=<id>` 经 WM_COPYDATA
+/// 转发给那个窗口、激活它、然后自己退出（不开第二个窗口）；接收侧经
+/// `han1me/play-window` 通道通知 Dart 换片（见 play_window_app.dart 的
+/// _handleNativeCall）。
 const String kPlayWindowFlag = '--play-window';
 const String _kVideoArgumentPrefix = '--video=';
 
@@ -106,6 +112,13 @@ Future<void> openVideo(
   String videoId,
 ) async {
   if (await openVideoInPlayWindow(context, ref, videoId)) return;
+  // 窗口内打开新视频：先把正在播的停掉。
+  //
+  // 这里用的是 push，旧播放页仍留在栈里（返回键要能回到刚才那一集），播放器
+  // 还活着——不暂停就会在后台继续出声。与「我的下载」跳转前的处理同一套
+  //（见 video_actions.dart）。跳到独立播放窗口时不走这里：那种情况由播放窗口
+  // 自己换片并暂停（见 play_window_app.dart 的 didUpdateWidget）。
+  await VideoPlayerShutdown.pauseAll();
   if (context.mounted) context.push('/video/$videoId');
 }
 

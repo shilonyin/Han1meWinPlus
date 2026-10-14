@@ -40,6 +40,11 @@ constexpr const wchar_t kWindowTitle[] = L"Han1meWinPlus";
 // A second launch should focus the window that is already running instead of
 // starting another copy of the engine and the video player.
 constexpr const wchar_t kInstanceMutexName[] = L"Han1meWinPlus.instance.mutex";
+// Player windows keep exactly one live instance of their own (separate from the
+// main window mutex): a click on another video hands the id to the window that
+// is already open instead of spawning a second player.
+constexpr const wchar_t kPlayWindowMutexName[] = L"Han1meWinPlus.play-window.mutex";
+
 
 void ApplyPerMonitorDpiAwareness() {
   if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
@@ -353,11 +358,99 @@ void ActivateExistingWindow() {
 // page. Unlike the abandoned desktop_multi_window approach (multiple engines
 // inside one process, see the NOTE below), every player window is its own
 // process with its own engine and message loop, so it cannot freeze the main
-// window. Player windows opt out of the single instance mutex on purpose: the
-// main window and any number of player windows are expected to coexist.
+// window. Player windows skip the *main* instance mutex (they live alongside
+// the main window) but hold their own: the second player launch forwards its
+// `--video=<id>` to the player that is already open and exits, so at most one
+// player window exists at a time.
 bool IsPlayWindowLaunch() {
   for (int i = 1; i < __argc; ++i) {
     if (wcscmp(__wargv[i], L"--play-window") == 0) return true;
+  }
+  return false;
+}
+
+// The `--video=<id>` argument of this launch, UTF-8 encoded; empty when absent.
+// The forwarding path below needs it before any window exists, so it reads the
+// command line directly instead of waiting for the Dart entrypoint arguments.
+std::string PlayWindowVideoId() {
+  constexpr const wchar_t prefix[] = L"--video=";
+  constexpr size_t prefix_length = sizeof(prefix) / sizeof(wchar_t) - 1;
+  for (int i = 1; i < __argc; ++i) {
+    const std::wstring argument = __wargv[i];
+    if (argument.compare(0, prefix_length, prefix) != 0) continue;
+    const std::wstring value = argument.substr(prefix_length);
+    const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
+    std::string utf8(static_cast<size_t>(size), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), utf8.data(), size, nullptr, nullptr);
+    return utf8;
+  }
+  return {};
+}
+
+// Player windows share the window class with the main window, so they are
+// recognised by a property instead of by class name or title (the title changes
+// with every video). The property list dies with the window, so a crashed or
+// closed player can never leave a stale marker behind.
+constexpr const wchar_t kPlayWindowPropName[] = L"Han1meWinPlus.play-window";
+
+struct PlayWindowSearch {
+  HWND window = nullptr;
+};
+
+BOOL CALLBACK FindPlayWindowCallback(HWND window, LPARAM lparam) {
+  if (GetPropW(window, kPlayWindowPropName) != nullptr) {
+    reinterpret_cast<PlayWindowSearch*>(lparam)->window = window;
+    return FALSE;
+  }
+  return TRUE;
+}
+
+HWND FindPlayWindow() {
+  PlayWindowSearch search;
+  EnumWindows(FindPlayWindowCallback, reinterpret_cast<LPARAM>(&search));
+  return search.window;
+}
+
+// Identifier for the WM_COPYDATA payloads this runner exchanges (dwData).
+// WM_COPYDATA is delivered to any window of any process, so the receiver checks
+// this tag before trusting lpData.
+constexpr ULONG_PTR kCopyDataPlayVideo = 0x48314D50;  // 'H1MP'
+
+std::string g_pending_play_video;      // a video that arrived before the engine was ready
+
+// Hands `video_id` to the player window that is already open: WM_COPYDATA it
+// the id, bring the window to the front, and report whether that worked.
+bool ForwardVideoToPlayWindow(HWND window, const std::string& video_id) {
+  COPYDATASTRUCT data{};
+  data.dwData = kCopyDataPlayVideo;
+  data.cbData = static_cast<DWORD>(video_id.size());
+  // COPYDATASTRUCT::lpData is PVOID, but the receiver must not modify it (the
+  // string belongs to this frame and only has to survive the synchronous
+  // SendMessage below).
+  data.lpData = const_cast<char*>(video_id.data());
+  // SendMessage is synchronous: TRUE means the receiving WindowProc has taken
+  // the id (it may still be parked in g_pending_play_video until the engine is
+  // up - that is fine, delivery is guaranteed once the park happened).
+  if (SendMessageW(window, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&data)) != TRUE) return false;
+  if (!IsWindowVisible(window)) ShowWindow(window, SW_SHOW);
+  if (IsIconic(window)) ShowWindow(window, SW_RESTORE);
+  SetForegroundWindow(window);
+  return true;
+}
+
+// A player launch that found the mutex taken: the running player takes over
+// the video and this process exits without ever showing a window. Fails (and
+// lets the caller fall back to becoming a player itself) only when the running
+// player is on its way out - the mutex exists but its window is already gone.
+bool RedirectPlayWindowLaunch() {
+  const auto video_id = PlayWindowVideoId();
+  if (video_id.empty()) return false;
+  // The mutex holder creates its window a few milliseconds after the mutex, so
+  // a click landing inside that gap has to retry briefly instead of failing.
+  for (int attempt = 0; attempt < 40; ++attempt) {
+    const auto window = FindPlayWindow();
+    if (window != nullptr && ForwardVideoToPlayWindow(window, video_id)) return true;
+    Sleep(25);
   }
   return false;
 }
@@ -386,6 +479,7 @@ void ConfigureWebViewUserDataFolder() {
 }
 
 constexpr char kWindowChannelName[] = "han1me/window";
+constexpr char kPlayWindowChannelName[] = "han1me/play-window";
 
 // Wires up the channel Dart uses to change the title bar at runtime, replacing
 // the window_manager call it used to make. Kept process-lifetime: the plugin
@@ -412,6 +506,30 @@ void RegisterWindowChannel(flutter::BinaryMessenger* messenger, HWND window) {
       });
 }
 
+// Delivers a forwarded video id ("click while this player was already open")
+// to the Dart side. The second player process usually arrives while the engine
+// is still booting - before RegisterPlayWindowChannel ran - so until then the
+// id is parked and pushed once the channel exists.
+std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> g_play_window_channel;
+
+void DeliverPlayVideo(const std::string& video_id) {
+  if (g_play_window_channel == nullptr) {
+    g_pending_play_video = video_id;
+    return;
+  }
+  g_play_window_channel->InvokeMethod("loadVideo", std::make_unique<flutter::EncodableValue>(video_id));
+}
+
+void RegisterPlayWindowChannel(flutter::BinaryMessenger* messenger) {
+  g_play_window_channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      messenger, kPlayWindowChannelName, &flutter::StandardMethodCodec::GetInstance());
+  if (!g_pending_play_video.empty()) {
+    const auto pending = g_pending_play_video;
+    g_pending_play_video.clear();
+    DeliverPlayVideo(pending);
+  }
+}
+
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
   auto* app = reinterpret_cast<AppWindow*>(GetWindowLongPtr(window, GWLP_USERDATA));
   if (message == WM_NCCREATE) {
@@ -426,6 +544,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
     // resizes once the engine is up.
     InvalidateRect(window, nullptr, FALSE);
     if (app->controller == nullptr) UpdateWindow(window);
+  }
+  if (message == WM_COPYDATA) {
+    // Another player process hands over a `--video=<id>` launch. Only player
+    // windows speak this protocol; the main window ignores it, and the payload
+    // tag keeps unrelated COPYDATA senders from being misread.
+    if (IsPlayWindowLaunch()) {
+      const auto* data = reinterpret_cast<COPYDATASTRUCT*>(lparam);
+      if (data != nullptr && data->dwData == kCopyDataPlayVideo && data->cbData > 0 && data->lpData != nullptr) {
+        DeliverPlayVideo(std::string(static_cast<const char*>(data->lpData), data->cbData));
+        return TRUE;
+      }
+    }
   }
   if (message == WM_GETMINMAXINFO) {
     // window_manager (registered as a plugin window proc delegate) claims this
@@ -489,6 +619,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
       return 0;
     }
     case WM_DESTROY:
+      // Tear the engine down *here*, while the message loop is still pumping.
+      //
+      // Destroying the FlutterViewController posts work to the platform thread
+      // and waits for the engine's UI/raster threads to wind down. Doing that
+      // after the loop has exited (i.e. from the stack unwinding at the end of
+      // wWinMain) leaves nobody to run those tasks, and the engine aborts the
+      // process with __fastfail - every window close produced
+      // `flutter_windows.dll` / 0xc0000409 (measured: 4 of 4 closes, the crash
+      // timestamp matching the close to the second). The stock Flutter win32
+      // runner avoids this by dropping its controller in OnDestroy, i.e. at
+      // exactly this point; this runner now does the same.
+      if (app != nullptr) app->controller.reset();
       PostQuitMessage(0);
       return 0;
     case WM_NCACTIVATE:
@@ -536,16 +678,32 @@ static std::vector<std::string> Utf8CommandLineArguments() {
 }
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command) {
-  // Player windows skip the single instance handshake: they must never redirect
-  // to (or activate) the main window, they simply live alongside it.
+  // Player windows never touch the *main* instance handshake (they must never
+  // redirect to or activate the main window), but they hold their own mutex:
+  // a second player launch hands its `--video=<id>` to the player that is
+  // already open and exits, so at most one player window exists at a time.
   const bool play_window = IsPlayWindowLaunch();
   HANDLE instance_mutex = nullptr;
+  HANDLE play_window_mutex = nullptr;
   if (!play_window) {
     instance_mutex = CreateMutexW(nullptr, TRUE, kInstanceMutexName);
     if (instance_mutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
       ActivateExistingWindow();
       CloseHandle(instance_mutex);
       return EXIT_SUCCESS;
+    }
+  } else {
+    play_window_mutex = CreateMutexW(nullptr, TRUE, kPlayWindowMutexName);
+    if (play_window_mutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
+      const bool redirected = RedirectPlayWindowLaunch();
+      CloseHandle(play_window_mutex);
+      play_window_mutex = nullptr;
+      if (redirected) return EXIT_SUCCESS;
+      // Redirect failed only when the holder is on its way out (mutex alive,
+      // window already gone). Fall through and become the player ourselves -
+      // never leave a click without a video. Later launches find this window
+      // through the property marker, not the mutex, so sharing the namespace
+      // with the dying process for a few more milliseconds is harmless.
     }
   }
   ApplyPerMonitorDpiAwareness();
@@ -575,6 +733,13 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   const auto height = DpiScale(play_window ? 760 : 720, dpi);
   const auto window = CreateWindow(kWindowClassName, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
+  if (play_window) {
+    // Mark this top-level window as *the* player window: later launches locate
+    // it by this property (the class name is shared with the main window and
+    // the title changes with every video). The property list dies with the
+    // window, so nothing needs to be cleaned up manually.
+    SetPropW(window, kPlayWindowPropName, reinterpret_cast<HANDLE>(1));
+  }
   // CreateWindow sends its own WM_NCCALCSIZE, but only with wParam FALSE - the
   // "client area is being recalculated" form (wParam TRUE), which is the one
   // that carries the folding, arrives when the frame is refreshed. Do that here,
@@ -601,10 +766,17 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   project.set_dart_entrypoint_arguments(Utf8CommandLineArguments());
   // Prefer the discrete GPU when the machine has more than one.
   project.set_gpu_preference(flutter::GpuPreference::HighPerformancePreference);
-  // The UI isolate already runs on its own thread by default; pinning the policy
-  // keeps that explicit so a future engine change cannot move it onto the
-  // platform thread and stall the Win32 message loop during startup.
-  project.set_ui_thread_policy(flutter::UIThreadPolicy::RunOnSeparateThread);
+  // Do NOT call set_ui_thread_policy(RunOnSeparateThread) here.
+  //
+  // It used to be set as a defensive measure ("keep the UI isolate off the
+  // platform thread so a future engine change cannot stall the message loop").
+  // It turned out to be the cause of a crash on *every* window close: the
+  // process died with 0xc0000005 inside coremessaging.dll (the component that
+  // dispatches thread messages), always at the same offset, 120 occurrences
+  // since July. Measured with the option toggled: 4 of 4 closes crashed with it
+  // on, and every close exited cleanly with it off. The default (which the
+  // stock Flutter win32 runner relies on) already runs the UI isolate on its own
+  // thread - the call only pinned a policy that already held.
   app.controller = std::make_unique<flutter::FlutterViewController>(bounds.right, bounds.bottom, project);
   if (!app.controller->engine() || !app.controller->view()) return EXIT_FAILURE;
   RegisterPlugins(app.controller->engine());
@@ -612,6 +784,10 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   // window_manager (whose hidden branch would be a second implementation of the
   // same arithmetic - see the title bar section above).
   RegisterWindowChannel(app.controller->engine()->messenger(), window);
+  // The channel a redirected player launch talks to ("switch this window to
+  // video X"). Registers once the engine is live, and flushes any video that
+  // arrived while it was still booting.
+  if (play_window) RegisterPlayWindowChannel(app.controller->engine()->messenger());
   // NOTE: do NOT register DesktopMultiWindowSetWindowCreatedCallback here.
   // The multi-engine child window is incompatible with this hand written runner:
   // as soon as a child window is created, the main window keeps pumping messages
@@ -656,7 +832,17 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
     TranslateMessage(&message);
     DispatchMessage(&message);
   }
-  CoUninitialize();
+  // Deliberately no CoUninitialize() here.
+  //
+  // The plugins keep WinRT/COM objects alive past the message loop - the toast
+  // notifier and WebView2 both run on the Windows composition stack
+  // (CoreMessaging.dll, Windows.UI.dll, CoreUIComponents.dll are all in the
+  // crash module list). Releasing those objects after the apartment has been
+  // torn down faults inside coremessaging.dll, which is exactly what every
+  // window close used to do (0xc0000005 at a fixed offset, 120 occurrences since
+  // July). Letting the OS reclaim the apartment at process death is the
+  // standard way out; the thread's apartment is not reused afterwards.
   if (instance_mutex != nullptr) CloseHandle(instance_mutex);
+  if (play_window_mutex != nullptr) CloseHandle(play_window_mutex);
   return EXIT_SUCCESS;
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -13,6 +14,7 @@ import '../../core/app_scroll_behavior.dart';
 import '../../core/m3e_theme_bridge.dart';
 import '../../core/route_observer.dart';
 import '../../core/settings.dart';
+import '../../core/video_player_shutdown.dart';
 import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/cached_video_lookup.dart';
@@ -45,6 +47,11 @@ class PlayWindowApp extends ConsumerStatefulWidget {
 }
 
 class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
+  /// runner → Dart：播放窗口已开着时，用户在别处点了另一个视频，runner 把
+  /// 新视频 id 经 `han1me/play-window` 通道转发进来（见 windows/runner/main.cpp
+  /// 的 WM_COPYDATA 处理），本窗口就地换片而不是再开一个播放窗口。
+  static const MethodChannel _loadVideoChannel = MethodChannel('han1me/play-window');
+
   late final GoRouter _router;
 
   /// 本窗口的材质下发器。播放窗口与主窗口是两个进程、两个顶层窗口，各持一个。
@@ -103,6 +110,30 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         ),
       ],
     );
+    // 在路由就绪之后注册：runner 转发来的「换片」请求要走这条路由，而 channel
+    // 回调只会从事件循环里来，不会早于 initState 返回。
+    _loadVideoChannel.setMethodCallHandler(_handleNativeCall);
+  }
+
+  /// runner 把「播放窗口已开着时又点了别的视频」转发进来：就地换片。
+  ///
+  /// 用 [GoRouter.go] 清栈回播放页——用户此刻可能在标签编辑 / 搜索 / 作者页，
+  /// 换片就该回到播放页，而不是把新播放页叠在上面。落到 `/video/:id` 后由
+  /// [PlayWindowVideo] 重新查一次本地缓存再建页（与窗口内换集同一条路径）。
+  ///
+  /// 换片前先把正在播的**停掉**：旧页面这一帧之后才轮到销毁，而销毁里的 pause
+  /// 是 fire-and-forget，新视频加载出来之前旧视频会一直在出声。在这里（而不是
+  /// 只在 didUpdateWidget 里）暂停，是因为用户当前可能不在播放页上——那样走的是
+  /// 销毁旧页而不是复用 State，[PlayWindowVideo.didUpdateWidget] 根本不会触发。
+  Future<Object?> _handleNativeCall(MethodCall call) async {
+    if (call.method != 'loadVideo') return null;
+    final videoId = call.arguments;
+    if (videoId is String && videoId.isNotEmpty) {
+      debugPrint('[play-window] loadVideo $videoId（转发的换片请求）');
+      unawaited(VideoPlayerShutdown.pauseAll());
+      _router.go('/video/$videoId');
+    }
+    return null;
   }
 
   @override
@@ -130,6 +161,7 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
 
   @override
   void dispose() {
+    _loadVideoChannel.setMethodCallHandler(null);
     _router.dispose();
     super.dispose();
   }
@@ -228,6 +260,9 @@ Widget _defaultPlayWindowPage({
 /// 关键点：查询结束前**不创建任何 `VideoPage`**。如果先按网络源建一个、查完再换成
 /// 缓存源，播放器就会被建两次——那正是这轮一直在修的「加载出来又重来一遍」。
 /// 所以这里先显示黑色加载态，等结果定了再一次性建页面。
+///
+/// 换片（`widget.id` 变了）时同理：重查一次缓存，并让整棵页面子树跟着 id 重建，
+/// 否则既会拿上一个视频的缓存去播新视频，播放器也不会换源。
 @visibleForTesting
 class PlayWindowVideo extends StatefulWidget {
   const PlayWindowVideo({
@@ -256,6 +291,25 @@ class _PlayWindowVideoState extends State<PlayWindowVideo> {
     _resolve();
   }
 
+  @override
+  void didUpdateWidget(PlayWindowVideo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 同一个播放窗口里换片（runner 转发的第二次点击、或窗口内导航）时，
+    // GoRouter 会复用这个 State 而不是重建它——不在这里重查，`_cached` 就还是
+    // 上一个视频的缓存，会拿 A 的本地文件去播 B。先退回未解析态再查一次。
+    if (oldWidget.id == widget.id) return;
+    // 换片前先把正在播的旧视频**停掉**：旧播放页这一帧之后才会被 dispose，
+    // 而它 dispose 里的 pause 是 fire-and-forget、还要排在「等初始化结束」后面，
+    // 于是新视频加载出来之前旧视频一直在出声（用户听到的「点了新视频声音还在」）。
+    // 这里直接全局暂停，不等那条销毁链（与「我的下载」跳转前的处理同一套）。
+    unawaited(VideoPlayerShutdown.pauseAll());
+    setState(() {
+      _cached = null;
+      _resolved = false;
+    });
+    _resolve();
+  }
+
   Future<void> _resolve() async {
     VideoDetail? cached;
     try {
@@ -280,11 +334,16 @@ class _PlayWindowVideoState extends State<PlayWindowVideo> {
         child: Center(child: M3EContainedLoadingIndicator()),
       );
     }
-    return playWindowPageBuilder(
-      id: widget.id,
-      localVideo: _cached,
-      onBack: widget.onBack,
-      onHome: widget.onHome,
+    // id 随 key 走：换片时整棵播放页子树重建，播放器（Player / controller 都在
+    // State 里）才会真正换源——只更新 widget.id 的话播放器会继续放上一个视频。
+    return KeyedSubtree(
+      key: ValueKey('play-window-page-${widget.id}'),
+      child: playWindowPageBuilder(
+        id: widget.id,
+        localVideo: _cached,
+        onBack: widget.onBack,
+        onHome: widget.onHome,
+      ),
     );
   }
 }
