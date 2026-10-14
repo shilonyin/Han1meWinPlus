@@ -10,6 +10,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../data/han1me_repository.dart';
+import '../../data/local/download_requests.dart';
 import '../../data/local/video_meta_cache.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../../domain/models/video.dart';
@@ -681,9 +682,18 @@ class VideoCardTile extends ConsumerWidget {
         splashColor: Colors.transparent,
         // 进作者自己的页面，而不是"拿作者名去搜索"：搜索结果里会混进别人的片子，
         // 也看不出这是谁的页面（用户对比作者空间页提出的要求）。
-        onTap: () => context.push(
-          Uri(path: '/author', queryParameters: {'name': artist}).toString(),
-        ),
+        //
+        // 播放窗口里改走信箱投递：就地 push 会把作者页盖在正在播的画面上，
+        // 视频被挡住。由主窗口打开作者页，播放窗口继续放着。
+        onTap: () {
+          if (isPlayWindowProcess) {
+            unawaited(postOpenAuthorRequest(artist));
+            return;
+          }
+          context.push(
+            Uri(path: '/author', queryParameters: {'name': artist}).toString(),
+          );
+        },
         child: Text(
           artist,
           maxLines: 1,

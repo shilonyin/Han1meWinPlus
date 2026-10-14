@@ -14,6 +14,12 @@ enum DownloadRequestKind {
 
   /// 用户点了「我的下载」：把主窗口唤到前台并切到缓存页。
   openDownloads,
+
+  /// 用户点了作者头像 / 作者名：把主窗口唤到前台并打开该作者页。
+  ///
+  /// 作者页要读关注状态、订阅列表这些只有主窗口持有的状态，而且用户在播放窗口里
+  /// 点作者本来也不是想「在视频上面盖一层」——他要看的是作者的全部作品。
+  openAuthor,
 }
 
 /// 一条下载意图。
@@ -27,6 +33,7 @@ class DownloadRequest {
     this.quality = '',
     this.groupName = '',
     this.seriesIds = const [],
+    this.artist = '',
     this.createdAt = 0,
   });
 
@@ -44,6 +51,9 @@ class DownloadRequest {
   /// 同系列的全部 id：用于把仍留在默认分组的旧任务一并归入新组。
   final List<String> seriesIds;
 
+  /// [DownloadRequestKind.openAuthor] 用：要打开的作者名。
+  final String artist;
+
   final int createdAt;
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +62,7 @@ class DownloadRequest {
         'quality': quality,
         'groupName': groupName,
         'seriesIds': seriesIds,
+        'artist': artist,
         'createdAt': createdAt,
       };
 
@@ -70,6 +81,7 @@ class DownloadRequest {
         seriesIds: ((json['seriesIds'] as List?) ?? const [])
             .whereType<String>()
             .toList(),
+        artist: json['artist'] as String? ?? '',
         createdAt: json['createdAt'] as int? ?? 0,
       );
 }
@@ -107,8 +119,20 @@ Future<void> postDownloadRequest(DownloadRequest request) async {
   await temporary.rename(target.path);
 }
 
-/// 主窗口侧：取出信箱里的全部意图，**取出即删除**（同一个文件不会被处理两次）。
+/// 投递「打开作者页」。
 ///
+/// 作者页依赖关注状态与订阅列表，只有主窗口持有那一份；而且用户在播放窗口点作者
+/// 是想看作者的全部作品，不该在正在播的画面上盖一层（那样会挡住视频）。
+Future<void> postOpenAuthorRequest(String artist) async {
+  if (artist.trim().isEmpty) return;
+  await postDownloadRequest(DownloadRequest(
+    kind: DownloadRequestKind.openAuthor,
+    artist: artist,
+    createdAt: DateTime.now().millisecondsSinceEpoch,
+  ));
+}
+
+/// 主窗口侧：取出信箱里的全部意图，**取出即删除**（同一个文件不会被处理两次）。
 /// 读坏的文件直接删掉并跳过：一封坏信不该把整个信箱卡死。文件名按时间戳升序，
 /// 所以多条意图会按用户点击的先后顺序执行。
 Future<List<DownloadRequest>> takeDownloadRequests() async {

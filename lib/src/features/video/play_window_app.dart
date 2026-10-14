@@ -19,7 +19,6 @@ import '../../core/window_backdrop.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/cached_video_lookup.dart';
 import '../../domain/models/video.dart';
-import '../author/author_page.dart';
 import '../settings/cloudflare_page.dart';
 import '../settings/settings_controller.dart';
 import '../window/app_title_bar.dart';
@@ -101,13 +100,13 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         // 缓存页只剩主窗口一处入口。
         // 简介里的作者 / 标签会 push 搜索页。
         GoRoute(path: '/search', builder: searchRouteBuilder),
-        // 简介里的作者名进作者页（与主窗口同一条路由）。
-        GoRoute(
-          path: '/author',
-          builder: (context, state) => AuthorPage(
-            artist: state.uri.queryParameters['name'] ?? '',
-          ),
-        ),
+        // 这里**故意没有**作者页（`/author`）。
+        //
+        // 作者页要读关注状态与订阅列表，那些状态只有主窗口持有；而且用户在播放窗口
+        // 点作者是想看他的全部作品，不该盖在正在播的画面上（以前注册了这条路由，
+        // 结果就是点作者头像后视频被整页挡住）。两个入口（简介里的作者块、卡片上的
+        // 作者名）都改为投递意图给主窗口打开，见 download_requests.dart 的
+        // postOpenAuthorRequest 与 download_request_listener.dart 的 _openAuthor。
       ],
     );
     // 在路由就绪之后注册：runner 转发来的「换片」请求要走这条路由，而 channel
@@ -117,7 +116,7 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
 
   /// runner 把「播放窗口已开着时又点了别的视频」转发进来：就地换片。
   ///
-  /// 用 [GoRouter.go] 清栈回播放页——用户此刻可能在标签编辑 / 搜索 / 作者页，
+  /// 用 [GoRouter.go] 清栈回播放页——用户此刻可能在标签编辑 / 搜索页，
   /// 换片就该回到播放页，而不是把新播放页叠在上面。落到 `/video/:id` 后由
   /// [PlayWindowVideo] 重新查一次本地缓存再建页（与窗口内换集同一条路径）。
   ///

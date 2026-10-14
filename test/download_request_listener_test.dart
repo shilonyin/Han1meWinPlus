@@ -128,6 +128,14 @@ Widget _app(_Probe probe, _RecordingDownloads downloads, _StubRepository reposit
               return const Scaffold(body: Text('downloads'));
             },
           ),
+          // 作者页：播放窗口里点作者头像应当投递到主窗口由这里打开。
+          GoRoute(
+            path: '/author',
+            builder: (context, state) {
+              probe.pushed.add(state.uri.toString());
+              return const Scaffold(body: Text('author'));
+            },
+          ),
         ],
       ),
       builder: (context, child) => DownloadRequestListener(
@@ -266,6 +274,40 @@ void main() {
     await _pumpUntil(tester, () => false, rounds: 10);
 
     expect(probe.pushed, ['/cache'], reason: '已经在缓存页，不该再 push 一次');
+  });
+
+  testWidgets('作者页意图 → 在主窗口打开该作者，不在播放窗口盖一层', (tester) async {
+    final downloads = _RecordingDownloads();
+    final repository = _StubRepository();
+    final probe = _Probe();
+
+    await tester.pumpWidget(_app(probe, downloads, repository));
+    await tester.pumpAndSettle();
+
+    await _io(tester, () => postOpenAuthorRequest('ばにぃうぉ～か～'));
+    await _pumpUntil(tester, () => probe.pushed.isNotEmpty);
+
+    expect(downloads.created, isEmpty, reason: '打开作者页不该建下载任务');
+    expect(repository.fetched, isEmpty, reason: '不该为了跳转去请求详情页');
+    expect(
+      probe.pushed,
+      ['/author?name=%E3%81%B0%E3%81%AB%E3%81%83%E3%81%86%E3%81%89%EF%BD%9E%E3%81%8B%EF%BD%9E'],
+      reason: '要落在主窗口的作者页，且带上作者名（缺了会退化成空页）',
+    );
+  });
+
+  testWidgets('作者名为空时不跳转', (tester) async {
+    final downloads = _RecordingDownloads();
+    final repository = _StubRepository();
+    final probe = _Probe();
+
+    await tester.pumpWidget(_app(probe, downloads, repository));
+    await tester.pumpAndSettle();
+
+    await _io(tester, () => postOpenAuthorRequest('   '));
+    await _pumpUntil(tester, () => false, rounds: 10);
+
+    expect(probe.pushed, isEmpty, reason: '没有作者名的空跳转只会打开一个空页');
   });
 
   testWidgets('信箱里没有意图时什么都不发生', (tester) async {

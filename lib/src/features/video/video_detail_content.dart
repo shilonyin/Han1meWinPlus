@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
+import '../../data/local/download_requests.dart';
 import '../../data/local/library_repository.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
@@ -19,6 +22,7 @@ import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
 import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
+import 'play_window.dart';
 import 'video_actions.dart';
 import 'video_controller.dart';
 import '../../core/app_motion.dart';
@@ -170,12 +174,22 @@ class _ArtistRow extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
           // 那时作者页会退化成「没有作者名」的空页，看起来就是点了作者没内容。
-          onTap: () => context.push(
-            Uri(
-              path: '/author',
-              queryParameters: {'name': video.artist!},
-            ).toString(),
-          ),
+          //
+          // 播放窗口里改走信箱投递：就地 push 会把作者页整页盖在正在播的画面上
+          // （用户报的就是这个——点作者头像后视频被挡住）。交给主窗口打开，
+          // 播放窗口继续放。
+          onTap: () {
+            if (isPlayWindowProcess) {
+              unawaited(postOpenAuthorRequest(video.artist!));
+              return;
+            }
+            context.push(
+              Uri(
+                path: '/author',
+                queryParameters: {'name': video.artist!},
+              ).toString(),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(

@@ -70,6 +70,8 @@ class _DownloadRequestListenerState
             await _enqueue(request);
           case DownloadRequestKind.openDownloads:
             await _openDownloads();
+          case DownloadRequestKind.openAuthor:
+            await _openAuthor(request.artist);
         }
       }
     } finally {
@@ -102,6 +104,18 @@ class _DownloadRequestListenerState
   Future<void> _openDownloads() async {
     await _reveal();
     _goToDownloads();
+  }
+
+  /// 作者页：把主窗口唤到前台并打开该作者。
+  ///
+  /// 播放窗口里点作者头像不再就地盖在视频上（那会挡住正在播的画面），改为投递到
+  /// 这里执行——用户看到的是软件本体跳到作者页，播放窗口继续放着。
+  Future<void> _openAuthor(String artist) async {
+    if (artist.trim().isEmpty) return;
+    await _reveal();
+    final context = widget.navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    context.push(Uri(path: '/author', queryParameters: {'name': artist}).toString());
   }
 
   Future<void> _reveal() async {

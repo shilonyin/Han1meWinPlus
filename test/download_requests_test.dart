@@ -64,6 +64,22 @@ void main() {
     expect(taken.single.episodes, isEmpty);
   });
 
+  test('作者页意图往返：作者名原样带过去', () async {
+    await postOpenAuthorRequest('ばにぃうぉ～か～');
+
+    final taken = await takeDownloadRequests();
+    expect(taken.single.kind, DownloadRequestKind.openAuthor);
+    expect(taken.single.artist, 'ばにぃうぉ～か～');
+    expect(taken.single.episodes, isEmpty);
+  });
+
+  test('作者名为空或全空白时不投递', () async {
+    await postOpenAuthorRequest('');
+    await postOpenAuthorRequest('   ');
+
+    expect(await takeDownloadRequests(), isEmpty, reason: '空作者名只会打开一个空页');
+  });
+
   test('取走即删除：同一条意图不会被处理两次', () async {
     await postDownloadRequest(
       DownloadRequest(kind: DownloadRequestKind.download, episodes: [_episode('1')]),
