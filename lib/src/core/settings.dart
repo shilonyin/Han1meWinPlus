@@ -137,7 +137,7 @@ class AppSettings {
     this.useCompactSearchCards = true,
     this.expandHomeVideoCards = false,
     this.useSystemFont = false,
-    this.useSystemTitleBar = true,
+    this.useSystemTitleBar = false,
     this.openVideoInWindow = true,
     this.minimizeToTray = false,
     this.globalHotkeysEnabled = true,
@@ -533,7 +533,7 @@ class AppSettings {
     useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
     expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
     useSystemFont: json['useSystemFont'] as bool? ?? false,
-    useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? true,
+    useSystemTitleBar: json['useSystemTitleBar'] as bool? ?? false,
     openVideoInWindow: json['openVideoInWindow'] as bool? ?? true,
     minimizeToTray: json['minimizeToTray'] as bool? ?? false,
     // 老用户强制迁移：见 [hotkeyDefaultsMigrated] 的说明 —— 没有迁移标记的
