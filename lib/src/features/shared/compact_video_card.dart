@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,9 +60,8 @@ class CompactVideoCard extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
+            AppCachedNetworkImage(
               imageUrl: video.coverUrl,
-              cacheManager: appImageCacheManager,
               fit: BoxFit.cover,
               memCacheWidth: cacheWidth,
               fadeInDuration: Duration.zero,

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -101,7 +100,7 @@ ImageProvider? localCoverImage(DownloadTask task) {
   if (local != null && File(local).existsSync()) return FileImage(File(local));
   final remote = task.coverUrl;
   if (remote == null || remote.isEmpty) return null;
-  return CachedNetworkImageProvider(remote, cacheManager: appImageCacheManager);
+  return appCachedImage(remote);
 }
 
 /// 一组任务可用的封面：优先本地已下好的图，否则退回第一条的网络封面。
@@ -111,7 +110,7 @@ ImageProvider? folderCoverImage(List<DownloadTask> tasks) {
   final local = tasks.map((task) => task.localCoverPath).whereType<String>().where((path) => File(path).existsSync()).firstOrNull;
   if (local != null) return FileImage(File(local));
   final remote = tasks.map((task) => task.coverUrl).whereType<String>().where((url) => url.isNotEmpty).firstOrNull;
-  return remote == null ? null : CachedNetworkImageProvider(remote, cacheManager: appImageCacheManager);
+  return remote == null ? null : appCachedImage(remote);
 }
 
 /// 集合内页的剧集卡片：16:9 封面（左下体积、右下时长）+ 标题一行 + ⋮ 菜单。

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -552,9 +551,8 @@ class VideoCardTile extends ConsumerWidget {
                     if (coverImage != null)
                       Image(image: coverImage!, fit: BoxFit.cover)
                     else
-                      CachedNetworkImage(
+                      AppCachedNetworkImage(
                         imageUrl: video.coverUrl,
-                        cacheManager: appImageCacheManager,
                         fit: BoxFit.cover,
                         memCacheWidth: cacheWidth,
                         fadeInDuration: Duration.zero,

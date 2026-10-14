@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,7 +49,7 @@ const _targetCardWidth = 260.0;
 Future<void> precacheCover(String url, int cacheWidth, BuildContext context) async {
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
-      await precacheImage(CachedNetworkImageProvider(url, maxWidth: cacheWidth, cacheManager: appImageCacheManager), context);
+      await precacheImage(appCachedImage(url, maxWidth: cacheWidth), context);
       return;
     } catch (_) {
       // 握手/传输失败时重试一次
@@ -1063,9 +1062,8 @@ class _FeaturedVideoSurface extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CachedNetworkImage(
+              AppCachedNetworkImage(
                 imageUrl: video.coverUrl,
-                cacheManager: appImageCacheManager,
                 fit: BoxFit.cover,
                 memCacheWidth: 960,
                 fadeInDuration: Duration.zero,

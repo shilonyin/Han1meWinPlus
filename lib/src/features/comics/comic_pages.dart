@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -278,7 +277,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, width: 118, height: 172, fit: BoxFit.cover)),
+              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: AppCachedNetworkImage(imageUrl: comic.coverUrl, width: 118, height: 172, fit: BoxFit.cover)),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
             ],
@@ -534,7 +533,7 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     for (final index in [_page - 1, _page + 1, _page + 2]) {
       if (index >= 0 && index < widget.comic.imageUrls.length) {
         final url = widget.comic.imageUrls[index];
-        if (!url.startsWith('/')) precacheImage(CachedNetworkImageProvider(url, cacheManager: appImageCacheManager), context);
+        if (!url.startsWith('/')) precacheImage(appCachedImage(url), context);
       }
     }
   }
@@ -599,7 +598,7 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final visible = _category.isEmpty ? items : items.where((item) => item.category == _category).toList();
     final all = AppLocalizations.of(context)!.all;
     String label(String category) => category.isEmpty ? all : (category == defaultComicCategory ? l10n.defaultCategory : category);
-    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: PressScale(child: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Symbols.delete_rounded))))).toList()))]);
+    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: AppCachedNetworkImage(imageUrl: item.coverUrl, width: 52, fit: BoxFit.cover), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: PressScale(child: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Symbols.delete_rounded))))).toList()))]);
   }
 
   Future<void> _open(ComicCacheEntry entry) async {
@@ -691,7 +690,7 @@ class ComicTile extends StatelessWidget {
           highlightColor: Colors.transparent,
           focusColor: theme.colorScheme.primary.withValues(alpha: .16),
           onTap: () => context.push('/comics/${comic.id}'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: CachedNetworkImage(imageUrl: comic.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: AppCachedNetworkImage(imageUrl: comic.coverUrl, fit: BoxFit.cover, width: double.infinity))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]),
         ),
       ),
     );
@@ -743,7 +742,7 @@ class _Image extends StatelessWidget {
   final String url;
 
   @override
-  Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white)) : CachedNetworkImage(imageUrl: url, cacheManager: appImageCacheManager, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white));
+  Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white)) : AppCachedNetworkImage(imageUrl: url, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white));
 }
 
 /// 借应用内 WebView 过一次 Cloudflare 校验，成功后重跑 [retry]。

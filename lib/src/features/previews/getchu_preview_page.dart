@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -162,9 +161,8 @@ class _PreviewCard extends StatelessWidget {
                   if (item.coverUrl == null)
                     ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Symbols.image_not_supported_rounded))
                   else
-                    CachedNetworkImage(
+                    AppCachedNetworkImage(
                       imageUrl: item.coverUrl!,
-                      cacheManager: appImageCacheManager,
                       httpHeaders: const {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'},
                       fit: BoxFit.cover,
                       memCacheWidth: 480,

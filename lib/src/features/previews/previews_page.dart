@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -256,7 +255,7 @@ class _PreviewHeader extends StatelessWidget {
           if (feed.coverUrl != null && feed.coverUrl!.isNotEmpty)
             AspectRatio(
               aspectRatio: 16 / 8,
-              child: CachedNetworkImage(imageUrl: feed.coverUrl!, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 960, fadeInDuration: Duration.zero),
+              child: AppCachedNetworkImage(imageUrl: feed.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, fadeInDuration: Duration.zero),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -288,7 +287,7 @@ class _PreviewCard extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(imageUrl: item.coverUrl, cacheManager: appImageCacheManager, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                  AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
                   // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
                   const DecoratedBox(
                     decoration: BoxDecoration(
