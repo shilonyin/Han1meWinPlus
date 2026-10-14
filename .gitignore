@@ -42,3 +42,7 @@ tools/ocr/.dl/
 
 # Widget Preview related
 .widget_preview/
+
+# Python 缓存（tools/ 下的脚本运行后产生）
+__pycache__/
+*.pyc
