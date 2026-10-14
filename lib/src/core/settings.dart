@@ -143,6 +143,7 @@ class AppSettings {
     this.globalHotkeysEnabled = true,
     this.hotkeyBindings = const {},
     this.hotkeyDefaultsMigrated = false,
+    this.proxyDefaultsMigrated = false,
     this.windowBackdrop = WindowBackdrop.none,
     this.notificationsEnabled = true,
     this.gpuApi = MpvGpuApi.auto,
@@ -265,6 +266,15 @@ class AppSettings {
   /// 关闭」区分：没有此标记的配置在载入时会被强制置回 true；迁移后用户再
   /// 关掉就是真关（标记随下一次设置保存落盘，不会再被迁移打扰）。
   final bool hotkeyDefaultsMigrated;
+
+  /// 代理模式默认值的一次性迁移标记，与 [hotkeyDefaultsMigrated] 同一套路。
+  ///
+  /// 旧版代理默认是「跟随系统」，而 [toJson] 全量落盘，于是每个老配置里都存着
+  /// 那个 'system'，与「用户主动选的跟随系统」无法区分。默认跟随系统会让没配代理
+  /// 的机器也走一遍系统代理设置，出问题时很难判断是站点不可达还是代理链路的问题；
+  /// 所以没有此标记的配置在载入时把 'system' 改回 'direct'（'custom' 不动），
+  /// 迁移后用户再选跟随系统就是真选。
+  final bool proxyDefaultsMigrated;
 
   /// 窗口背景材质。默认 `none` 保持纯色，开启后由 [appTheme] 把表面调成半透明让材质透出来。
   final WindowBackdrop windowBackdrop;
@@ -412,6 +422,7 @@ class AppSettings {
     'globalHotkeysEnabled': globalHotkeysEnabled,
     'hotkeyBindings': hotkeyBindings,
     'hotkeyDefaultsMigrated': hotkeyDefaultsMigrated,
+    'proxyDefaultsMigrated': proxyDefaultsMigrated,
     'windowBackdrop': windowBackdrop.name,
     'notificationsEnabled': notificationsEnabled,
     'gpuApi': gpuApi.name,
@@ -528,7 +539,15 @@ class AppSettings {
     dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
     dohTimeoutSeconds:
         (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60),
-    proxyMode: _proxyMode(json['proxyMode'] as String?),
+    // 老用户强制迁移：见 [proxyDefaultsMigrated] 的说明。没有迁移标记的配置里，
+    // 'system' 无法区分「用户主动选的」与「旧默认值写进去的」，一律按后者处理；
+    // 但 'custom' 明显是主动配的（要填地址），保留不动。
+    proxyMode: _proxyMode(
+      json['proxyMode'] as String?,
+      migrateSystemToDirect:
+          !(json['proxyDefaultsMigrated'] as bool? ?? false),
+    ),
+    proxyDefaultsMigrated: true,
     customProxy: (json['customProxy'] as String? ?? '').trim(),
     useCompactSearchCards: json['useCompactSearchCards'] as bool? ?? true,
     expandHomeVideoCards: json['expandHomeVideoCards'] as bool? ?? false,
@@ -640,10 +659,19 @@ class AppSettings {
     _ => 'alidns',
   };
 
-  static String _proxyMode(String? value) => switch (value) {
-    'system' || 'direct' || 'custom' => value!,
-    _ => 'direct',
-  };
+  /// 解析代理模式。
+  ///
+  /// [migrateSystemToDirect] 只在载入**没有迁移标记**的旧配置时为真：那时 'system'
+  /// 无法区分「用户主动选的」与「旧默认值写进去的」（旧版 [toJson] 全量落盘，所以
+  /// 每个老配置里都存着当时那个 'system'），一律按后者处理，改回不使用代理。
+  /// 'custom' 不受影响 —— 它要求用户填过地址，是明确的主动选择。
+  static String _proxyMode(String? value, {bool migrateSystemToDirect = false}) =>
+      switch (value) {
+        'custom' => 'custom',
+        'system' => migrateSystemToDirect ? 'direct' : 'system',
+        'direct' => 'direct',
+        _ => 'direct',
+      };
 
   static String _previewSource(String? value) => switch (value) {
     'auto' || 'default' || 'getchu' => value!,
@@ -725,6 +753,7 @@ class AppSettings {
     bool? globalHotkeysEnabled,
     Map<String, String>? hotkeyBindings,
     bool? hotkeyDefaultsMigrated,
+    bool? proxyDefaultsMigrated,
     WindowBackdrop? windowBackdrop,
     bool? notificationsEnabled,
     MpvGpuApi? gpuApi,
@@ -820,6 +849,7 @@ class AppSettings {
     hotkeyBindings: hotkeyBindings ?? this.hotkeyBindings,
     hotkeyDefaultsMigrated:
         hotkeyDefaultsMigrated ?? this.hotkeyDefaultsMigrated,
+    proxyDefaultsMigrated: proxyDefaultsMigrated ?? this.proxyDefaultsMigrated,
     windowBackdrop: windowBackdrop ?? this.windowBackdrop,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     gpuApi: gpuApi ?? this.gpuApi,
