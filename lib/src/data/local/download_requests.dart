@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
+import '../../core/mailbox_channel.dart';
 import '../../core/platform_paths.dart';
 import '../../domain/models/video.dart';
 
@@ -117,6 +119,9 @@ Future<void> postDownloadRequest(DownloadRequest request) async {
   final temporary = File('${target.path}.tmp');
   await temporary.writeAsString(jsonEncode(request.toJson()), flush: true);
   await temporary.rename(target.path);
+  // 写完立刻戳一下主窗口。信本身在盘上（唯一事实来源），这一步只是让主窗口
+  // 不必等下一次轮询 —— 否则用户点完作者头像/下载要空等最多两秒才看到反应。
+  unawaited(MailboxChannel.pokeMainWindow());
 }
 
 /// 投递「打开作者页」。

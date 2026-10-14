@@ -411,12 +411,65 @@ HWND FindPlayWindow() {
   return search.window;
 }
 
+// The main window is the same window class but *without* the play-window
+// property.
+//
+// Matching on the class name is essential, not cosmetic: without it this would
+// also match every other top-level window on the desktop (browsers, Explorer,
+// chat apps), and the poke below would be delivered to whichever one happened to
+// be enumerated first. That was observed in practice - the message went to an
+// unrelated window and the main window never saw it.
+struct MainWindowSearch {
+  HWND window = nullptr;
+};
+
+BOOL CALLBACK FindMainWindowCallback(HWND window, LPARAM lparam) {
+  if (!IsWindowVisible(window)) return TRUE;
+  // Same class as this process's windows; anything else is not ours.
+  wchar_t class_name[64] = {};
+  if (GetClassNameW(window, class_name, static_cast<int>(std::size(class_name))) == 0) return TRUE;
+  if (wcscmp(class_name, kWindowClassName) != 0) return TRUE;
+  // Player windows share the class, so they are excluded by the property.
+  if (GetPropW(window, kPlayWindowPropName) != nullptr) return TRUE;
+  reinterpret_cast<MainWindowSearch*>(lparam)->window = window;
+  return FALSE;
+}
+
+HWND FindMainWindow() {
+  MainWindowSearch search;
+  EnumWindows(FindMainWindowCallback, reinterpret_cast<LPARAM>(&search));
+  return search.window;
+}
+
 // Identifier for the WM_COPYDATA payloads this runner exchanges (dwData).
 // WM_COPYDATA is delivered to any window of any process, so the receiver checks
 // this tag before trusting lpData.
 constexpr ULONG_PTR kCopyDataPlayVideo = 0x48314D50;  // 'H1MP'
+// Player -> main: "the mailbox has a new letter, come and get it". Carries no
+// payload; the letter itself is already on disk (see download_requests.dart).
+constexpr ULONG_PTR kCopyDataMailboxPoke = 0x48314D51;  // 'H1MQ'
 
 std::string g_pending_play_video;      // a video that arrived before the engine was ready
+
+// Tells the main window to drain the request mailbox right now.
+//
+// Why this exists: the main window polls that mailbox on a timer, so a click in
+// the player window used to sit there for up to one polling interval before
+// anything happened - the user-visible symptom was "I clicked the author and
+// nothing moved for a second or two". The letter is still written to disk (that
+// part is unchanged and stays the source of truth); this only says "look now".
+//
+// Best effort by design: if the main window is gone, or something else owns the
+// handle, the polling timer still picks the letter up. Never fails the caller.
+void PokeMainWindowMailbox() {
+  const auto window = FindMainWindow();
+  if (window == nullptr) return;
+  COPYDATASTRUCT data{};
+  data.dwData = kCopyDataMailboxPoke;
+  data.cbData = 0;
+  data.lpData = nullptr;
+  SendMessageW(window, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&data));
+}
 
 // Hands `video_id` to the player window that is already open: WM_COPYDATA it
 // the id, bring the window to the front, and report whether that worked.
@@ -480,6 +533,38 @@ void ConfigureWebViewUserDataFolder() {
 
 constexpr char kWindowChannelName[] = "han1me/window";
 constexpr char kPlayWindowChannelName[] = "han1me/play-window";
+// Mailbox wake-up channel. Both processes register it, in opposite roles:
+//   - the player window calls `poke` right after dropping a letter on disk;
+//   - the main window receives `drain` when a player pokes it.
+// See PokeMainWindowMailbox above for why the timer alone is not enough.
+constexpr char kMailboxChannelName[] = "han1me/mailbox";
+
+// Main-window side of the mailbox channel: kept process-lifetime so a poke that
+// arrives before/after a rebuild still has somewhere to go.
+std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> g_mailbox_channel;
+
+void DeliverMailboxDrain() {
+  if (g_mailbox_channel == nullptr) return;
+  g_mailbox_channel->InvokeMethod("drain", nullptr);
+}
+
+// Registered in both processes: the player gets the `poke` method, the main
+// window gets its `drain` callback routed through the same channel object.
+void RegisterMailboxChannel(flutter::BinaryMessenger* messenger, bool play_window) {
+  g_mailbox_channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      messenger, kMailboxChannelName, &flutter::StandardMethodCodec::GetInstance());
+  if (!play_window) return;
+  g_mailbox_channel->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() != "poke") {
+          result->NotImplemented();
+          return;
+        }
+        PokeMainWindowMailbox();
+        result->Success();
+      });
+}
 
 // Wires up the channel Dart uses to change the title bar at runtime, replacing
 // the window_manager call it used to make. Kept process-lifetime: the plugin
@@ -553,6 +638,15 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
       const auto* data = reinterpret_cast<COPYDATASTRUCT*>(lparam);
       if (data != nullptr && data->dwData == kCopyDataPlayVideo && data->cbData > 0 && data->lpData != nullptr) {
         DeliverPlayVideo(std::string(static_cast<const char*>(data->lpData), data->cbData));
+        return TRUE;
+      }
+    } else {
+      // Main window: a player window says the request mailbox has a new letter.
+      // Payload is empty - the letter is already on disk, this only removes the
+      // wait for the next polling tick.
+      const auto* data = reinterpret_cast<COPYDATASTRUCT*>(lparam);
+      if (data != nullptr && data->dwData == kCopyDataMailboxPoke) {
+        DeliverMailboxDrain();
         return TRUE;
       }
     }
@@ -788,6 +882,9 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   // video X"). Registers once the engine is live, and flushes any video that
   // arrived while it was still booting.
   if (play_window) RegisterPlayWindowChannel(app.controller->engine()->messenger());
+  // Mailbox wake-up: the player pokes, the main window drains. Registered in
+  // both processes (roles differ, see RegisterMailboxChannel).
+  RegisterMailboxChannel(app.controller->engine()->messenger(), play_window);
   // NOTE: do NOT register DesktopMultiWindowSetWindowCreatedCallback here.
   // The multi-engine child window is incompatible with this hand written runner:
   // as soon as a child window is created, the main window keeps pumping messages

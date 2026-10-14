@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../core/mailbox_channel.dart';
 import '../../data/local/download_requests.dart';
 import '../video/download_queue.dart';
 
@@ -38,7 +39,13 @@ class DownloadRequestListener extends ConsumerStatefulWidget {
 
 class _DownloadRequestListenerState
     extends ConsumerState<DownloadRequestListener> {
-  static const _interval = Duration(seconds: 2);
+  /// 兜底轮询周期。
+  ///
+  /// 主路径已经是播放窗口主动通知（见 initState 里的 MailboxChannel），这里只负责
+  /// 「通知落空」与「信比主窗口先到」这两种情况。原来是 2 秒——那是唯一的取信途径，
+  /// 所以用户能感知到延迟；现在降到 500ms 也不会带来可观的 IO（看的是一个通常为空的
+  /// 目录），却让兜底路径同样不卡顿。
+  static const _interval = Duration(milliseconds: 500);
 
   Timer? _timer;
   var _draining = false;
@@ -47,6 +54,10 @@ class _DownloadRequestListenerState
   void initState() {
     super.initState();
     _timer = Timer.periodic(_interval, (_) => unawaited(_drain()));
+    // 播放窗口投完信会戳一下这里，省掉最多一个轮询周期的等待（用户看到的就是
+    // 「点了作者头像之后要卡一两秒才跳」）。轮询保留：主窗口可能是在那封信写完之后
+    // 才起来的，也可能有通知落空的情况。
+    MailboxChannel.bindMainWindow(() => unawaited(_drain()));
     // 启动时先看一眼：主窗口可能是在播放窗口之后才起来的（上一轮退出时刚好有一封
     // 信没来得及处理），晚了会让用户以为下载没生效。
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_drain()));
