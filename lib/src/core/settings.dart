@@ -132,7 +132,7 @@ class AppSettings {
     this.dohCustomUrl = '',
     this.dohBootstrapIps = '',
     this.dohTimeoutSeconds = 10,
-    this.proxyMode = 'system',
+    this.proxyMode = 'direct',
     this.customProxy = '',
     this.useCompactSearchCards = true,
     this.expandHomeVideoCards = false,
@@ -642,7 +642,7 @@ class AppSettings {
 
   static String _proxyMode(String? value) => switch (value) {
     'system' || 'direct' || 'custom' => value!,
-    _ => 'system',
+    _ => 'direct',
   };
 
   static String _previewSource(String? value) => switch (value) {
