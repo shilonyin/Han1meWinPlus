@@ -23,6 +23,48 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 资格核对的依据：仓库 `shilonyin/Han1meWinPlus` 公开、AGPL-3.0（OSI 认可）、构建全程在
 GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项目的核心要求。
 
+### ⚠️ 一个必须先知道的风险：本项目大概率**通不过审核**
+
+SignPath Foundation 的免费证书不是「开源就给」，它**明确要求项目已有一定的公众信誉**。
+一份被拒申请的官方回信原文列出了评估维度：
+
+> Community adoption (e.g., GitHub stars, forks, contributors)
+> Independent references or discussions (Reddit, Stack Overflow, YouTube, etc.)
+> External articles, blog posts, or institutional backing
+> Evidence of sustained activity and user engagement
+>
+> …your project does not yet provide sufficient external verification signals for us to
+> issue a Foundation certificate in our name. Please note that this is not a judgment on
+> the quality or potential of your work. The Foundation program is designed specifically
+> for projects that have already established a certain level of public trust and visibility.
+
+（来源：一份 2026-06 被拒申请的公开记录，[v2ex.com/t/1218906](https://v2ex.com/t/1218906)）
+
+对照本项目在写下时点的实际数据：
+
+| 指标 | 本项目 | 该被拒项目的处境 |
+| --- | --- | --- |
+| GitHub star | 4 | 「fork 数，star 数太惨淡了」 |
+| fork | 0 | 同上 |
+| 累计 Release 下载 | 192（19 个版本，最多的一版 46 次） | 「其他社区也没有什么公开讨论」 |
+| 外部讨论 / 文章 / 背书 | 未检索到 | —— |
+
+**结论：以当前体量提交，被拒的概率较高。** 拒信允许以后再申请，所以提交本身没有代价，
+只是不要指望一次通过。社区里也确实有百来星甚至五十星的项目通过了 —— 关键不在绝对数字，
+而在**「现实中是否真的有人在用、能被外部证实」**。
+
+### 如果决定申请，先把这些证据凑齐
+
+申请表单会问「声誉证据」，能拿出下面任意几项会实质提高通过率：
+
+- 外部讨论：Reddit / 贴吧 / 论坛 / B站 / YouTube 上提过这个项目的帖子或视频（链接）
+- 文章或博客介绍；任何机构、社群、Up 主的推荐
+- 持续活跃的证据：issue 与 PR（哪怕是别人的）、历史版本下载量的增长
+- 真实的用户反馈截图或讨论串
+
+> 这一节的意义不是劝退，而是把「提交了但被拒」和「按标准看确实还不够」区分开 ——
+> 后者不该被当成意外，也不该反复重提。
+
 ## 二、你需要做的（只有账号持有者能做）
 
 ### 1. 提交申请
