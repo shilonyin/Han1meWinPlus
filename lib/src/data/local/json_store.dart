@@ -48,7 +48,14 @@ class JsonStore {
     Object? lastError;
     for (var attempt = 0; attempt < 5; attempt++) {
       // 每次尝试都用新的临时名，避免并发写之间、以及重试之间互相抢文件。
-      final temp = File('${target.path}.${_tempSequence++}.tmp');
+      //
+      // 名字里必须带 `pid`：本应用是多进程的（主窗口 + 各个播放窗口），而
+      // [_tempSequence] 是**进程内**自增的，两个进程会各自走到同一个序号、生成同一个
+      // 临时文件名，然后一起抢这个文件 —— 实测报
+      // `PathAccessException: Cannot open file ... address_latency.json.44.tmp
+      // (OS Error: 拒绝访问, errno = 5)`，且因为两边都在重试，谁都写不成。
+      // 加上 pid 之后临时名跨进程唯一，`rename` 到目标由系统保证原子替换。
+      final temp = File('${target.path}.$pid.${_tempSequence++}.tmp');
       try {
         await temp.writeAsString(encoded, flush: true);
         await temp.rename(target.path);
@@ -66,7 +73,7 @@ class JsonStore {
     throw lastError!;
   }
 
-  /// 临时文件名的自增序号，保证同一进程内不重名。
+  /// 临时文件名的自增序号，保证同一进程内不重名（跨进程靠名字里的 pid 区分）。
   static int _tempSequence = 0;
 
   Future<File> _file(String fileName) async {

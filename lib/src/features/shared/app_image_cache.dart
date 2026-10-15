@@ -1,6 +1,21 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:path/path.dart' as path;
+
+/// 图片缓存索引文件的路径（`<应用数据目录>/han1me_images.json`）。
+///
+/// 必须显式给：`flutter_cache_manager` 内部用 `getApplicationSupportDirectory()` 决定
+/// 索引位置，而那条路径在 Windows 上由 exe 的 VERSIONINFO（`CompanyName\ProductName`）
+/// 拼出来，指向 `%APPDATA%\Han1meWinPlus\Han1meWinPlus\` —— 与应用真正在用的
+/// `%APPDATA%\han1me_win_plus\` 是两个目录。后果实测过：索引写进了那个历史目录，
+/// 而图片本体在 `%TEMP%`，两边对不上账，清缓存清不干净、索引还时不时写失败
+/// （`PathAccessException: 拒绝访问`）。详见 platform_paths.dart 的说明。
+///
+/// 惰性求值：`APPDATA` 要等进程起来才读得到，所以先给个 null，首次用到时再算。
+String? _imageCacheIndexPath;
 
 /// 封面图的磁盘缓存。
 ///
@@ -8,8 +23,24 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 /// 客户端能做的就是别重复下载：`CacheManager` 默认只留 200 个对象，首页翻两屏就被挤掉。
 /// 这里放宽到 2000 个（单张缩略图只有 20–50KB）、保留 30 天。
 final appImageCacheManager = CacheManager(
-  Config('han1me_images', stalePeriod: const Duration(days: 30), maxNrOfCacheObjects: 2000),
+  Config(
+    'han1me_images',
+    stalePeriod: const Duration(days: 30),
+    maxNrOfCacheObjects: 2000,
+    // 索引落到应用自己的数据目录，别让它跟着 VERSIONINFO 跑。
+    repo: JsonCacheInfoRepository(
+      path: _imageCacheIndexPath ??= _resolveImageCacheIndexPath(),
+    ),
+  ),
 );
+
+String _resolveImageCacheIndexPath() {
+  final appData = Platform.environment['APPDATA'];
+  final base = (appData != null && appData.isNotEmpty)
+      ? Directory(path.join(appData, 'han1me_win_plus'))
+      : Directory.systemTemp;
+  return path.join(base.path, 'han1me_images.json');
+}
 
 /// 易变参数：这些值由服务端按请求现算，不能进缓存 key。
 ///

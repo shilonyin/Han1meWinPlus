@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/platform_paths.dart';
 import '../../core/settings.dart';
@@ -108,7 +107,14 @@ final webViewEnvironmentProvider = FutureProvider<WebViewEnvironment?>((ref) asy
   if (!Platform.isWindows) return null;
   final settings = await SettingsStore(JsonStore()).load();
   final rule = await webViewProxyRule(settings);
-  final userDataFolder = path.join((await getApplicationSupportDirectory()).path, 'webview2');
+  // 用 appStorageDirectory 而不是 getApplicationSupportDirectory：后者在 Windows
+  // 上按 exe 的版本资源拼路径，指向 %APPDATA%\Han1meWinPlus\Han1meWinPlus\ 那个
+  // 历史目录，与应用真正在用的 %APPDATA%\han1me_win_plus\ 分家。它的后果不是
+  // 「路径不好看」，而是 **WebView2 环境建不出来**（实测报
+  // PlatformException(0, Cannot create WebViewEnvironment: 请求的资源在使用中) ），
+  // 于是登录页加载不出、点登录一直卡着，最后报 Account profile is unavailable。
+  // 详见 platform_paths.dart 的说明。
+  final userDataFolder = path.join((await appStorageDirectory()).path, 'webview2');
   final arguments = webViewBrowserArguments(rule, settings: settings);
   // 兜底再设一次：`bootstrapWebViewArguments()` 已在启动早期设过，但环境可能在设置
   // 变更后被 invalidate 重建，那时参数（代理/内置 IP 排序）已经变了。
