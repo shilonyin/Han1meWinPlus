@@ -122,6 +122,36 @@ Satisfactory Modding）、以及众多 B站 / Steam / 网易云相关的第三�
 
 ## 二、你需要做的（只有账号持有者能做）
 
+### 0. 提交前必须满足的硬性条件（已逐条核对条款）
+
+SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成立**的条件，不是通过后再补。
+下面是把条款逐条对照本项目的结果：
+
+| 条款要求 | 本项目 | 状态 |
+| --- | --- | --- |
+| 不含恶意软件 / 潜在不受欢迎程序 | — | ✅ |
+| OSI 认可许可，无商业双授权 | AGPL-3.0 | ✅ |
+| 不含专有代码 | 全部源码公开 | ✅ |
+| 持续维护中 | 一个月内 19 个版本 | ✅ |
+| 已发布（即要签的形态已存在） | 19 个 Release | ✅ |
+| 下载页说明功能 | README | ✅ |
+| **主页写明「Code signing policy」** | README「代码签名政策」一节 | ✅ |
+| **隐私政策** | README「代码签名政策 → 隐私政策」 | ✅ |
+| **指定 Authors / Reviewers / Approvers** | README 角色表（单人项目，三角色同一人） | ✅ |
+| 只签自己的项目与二进制 | 构建产物全部来自本仓库 | ✅ |
+| 不修改系统配置而不告知 | 只写 `%APPDATA%` / `%LOCALAPPDATA%` | ✅ |
+| 提供卸载 | 安装包自带卸载器 | ✅ |
+| **所有成员启用 MFA** | GitHub 账号 | ⚠️ **请自行确认已开启两步验证** |
+| **产物元数据 product name / version 一致** | `ProductName=Han1meWinPlus`、两份二进制 `ProductVersion` 同为 `1.1.27+38` | ✅ |
+
+> 条款原文里「Specify a code signing policy」要求主页出现 **Code signing policy** 这个词，
+> 并在同一处给出「Free code signing provided by SignPath.io, certificate by SignPath
+> Foundation」这句原话、团队角色、以及隐私政策 —— 这三样现在都在 `README.md` 的
+> 「代码签名政策」一节里。改动 README 时别把这一节删掉。
+
+> 另外条款提到「Approvers：每次签名请求都要由团队内被信任的成员批准」，
+> 以及「每个 release 都需要人工批准签名」。单人项目即由你自己批准每一次发布。
+
 ### 1. 提交申请
 
 到 <https://signpath.org/apply> 申请 **Foundation（免费 OSS）** 计划，填入：

@@ -1,6 +1,9 @@
 # SignPath Foundation 申请草稿
 
-> 复制下面各段到 <https://about.signpath.io/product/open-source> 的申请表单。
+> 申请入口：<https://signpath.org/apply>（站内导航「Apply」）。
+> 条款：<https://signpath.org/terms> —— **提交前对照 `code-signing.md` 第 0 节那张表逐条核对**，
+> 里面列的是条款要求、申请前就必须成立的条件。
+>
 > **提交前请先读「已知的弱点」一节** —— 那里列了本项目暂时拿不出的证据，
 > 心里有数就行，不必因此不提交。
 
@@ -67,7 +70,24 @@ Both are submitted as a single artifact to one signing request.
 See docs/code-signing.md in the repository for the artifact configuration.
 ```
 
-## 7. Admission of what we lack (optional, but honest)
+## 7. Conditions from the terms (self-checked)
+
+```
+All prerequisites from https://signpath.org/terms are already in place:
+
+- OSI-approved license (AGPL-3.0), no commercial dual-licensing
+- No proprietary components; all sources public
+- Actively maintained (19 releases in the past month) and already released
+- Functionality described in README
+- "Code signing policy" section on the project home page, including the
+  required wording, team roles (Authors / Reviewers / Approvers) and a
+  privacy policy: https://github.com/shilonyin/Han1meWinPlus#代码签名政策
+- Only our own binaries are submitted; no upstream pre-built files are signed
+- Product metadata is uniform across signed binaries:
+  ProductName=Han1meWinPlus, ProductVersion identical for installer and main exe
+```
+
+## 8. Admission of what we lack (optional, but honest)
 
 ```
 We are a small, early-stage project: the repository was created in September 2026,
