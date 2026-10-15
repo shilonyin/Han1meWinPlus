@@ -123,8 +123,8 @@ SignPath 的 Action 提交一个签名请求
 | `SIGNPATH_POLICY_SLUG` | `release-signing` |
 | `SIGNPATH_ARTIFACT_SLUG` | 第 2.3 步的 slug |
 
-> **四项要一次填齐。** CI 的签名步骤只在 tag 推送时执行，并且以 API token 是否存在
-> 作为启用信号 —— 只填了一半会在签名步骤才报错，而不是提前跳过。
+> **Variables 不启用链路**：签名是否执行只看 `SIGNPATH_API_TOKEN` 在不在。四个 Variables
+> 仍要一次填齐 —— 缺任何一个都会让 SignPath 那一步报错，但不会提前跳过。
 
 > AniBaka 的做法是把 Organization ID、project slug、artifact slug **硬编码在 workflow
 > 里**（这些值本来就不保密，公开仓库里能直接看到），只把 API token 放 Secret。
@@ -142,15 +142,15 @@ SignPath 的 Action 提交一个签名请求
 Actions → Build Windows → Run workflow → signing_policy: test-signing
 ```
 
-> 注意：我们的 CI 平时只在**打 tag** 时执行签名步骤（`startsWith(github.ref, 'refs/tags/')`）。
-> 手动触发时 `github.ref` 是分支，签名步骤会被跳过。
-> 想在分支上验证要先改那个条件，或者直接打一个测试 tag（如 `v0.0.0-test`）再删掉。
+> 手动触发走的是分支 ref，签名步骤照样会执行 —— 门控看的是 `signing_policy`
+> 这个输入（`none` 才跳过），不再看 ref。所以**在分支上就能验签，不必打测试 tag**。
+> 正式发布仍然由 tag 触发自动走 `release-signing`。
 
 检查这几处：
 
 1. 上传 artifact 的步骤绿了，且 artifact 名里带了 `run_id`/`run_attempt`
-2. 「Submit artifacts to SignPath」返回一个 **signing request web URL** —— 记下它，
-   签名失败时要去那个页面看原因，CI 日志只会显示超时
+2. 「Sign artifacts via SignPath」返回一个 **signing request web URL** —— 记下它，
+   签名失败时要去那个页面看原因（CI 日志只显示到超时为止）
 3. 「Replace artifacts with signed ones」里打印的 `状态: Valid` 和签名者
    —— **test-signing 时签名者是自签测试证书，不是 SignPath Foundation，这是正常的**
 

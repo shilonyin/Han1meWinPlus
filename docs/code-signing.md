@@ -5,8 +5,9 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 通道 —— 它对符合条件的公开 OSS 项目免费签发，私钥存在 SignPath 的 HSM 上，不需要自己
 买证书、也不需要 USB token。
 
-> 这份文档是**待办清单**，不是已完成记录。截至写下时点，CI 接入已就绪，但**尚未提交申请**，
-> 因此仓库里还没有 `SIGNPATH_*` 配置，签名步骤会被自动跳过，发布流程照旧产出未签名包。
+> 这份文档是**待办清单**，不是已完成记录。截至写下时点，CI 接入已就绪（含手动验签开关），
+> 但**申请尚未提交**，因此仓库里还没有 `SIGNPATH_*` 配置，签名步骤会被自动跳过，
+> 发布流程照旧产出未签名包。
 
 ---
 
@@ -16,7 +17,8 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 | --- | --- |
 | CI 签名步骤（`.github/workflows/build-windows.yml`） | ✅ 已写好，带门控，未配置时自动跳过 |
 | 仓库资格（公开 / OSS 许可 / GH Actions 构建） | ✅ 满足 |
-| SignPath 账号与申请 | ❌ **未申请**（需要人来操作） |
+| 审核先例与门槛 | ⚠️ 无公开量化标准；已有同类项目通过（见下一节） |
+| SignPath 账号与申请 | ❌ **未提交**（需要账号持有人操作） |
 | 仓库 Secrets / Variables | ❌ 未配置（等申请通过） |
 | SignPath 侧的 Project / 策略 / 产物配置 | ❌ 未配置（等申请通过） |
 
@@ -156,11 +158,12 @@ SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量�
 | --- | --- |
 | `SIGNPATH_ORGANIZATION_ID` | 组织 id（GUID） |
 | `SIGNPATH_PROJECT_SLUG` | 第 2 步的 Project slug |
-| `SIGNPATH_POLICY_SLUG` | 签名策略 slug，如 `release-signing` |
+| `SIGNPATH_POLICY_SLUG` | 签名策略 slug，`release-signing` |
 | `SIGNPATH_ARTIFACT_SLUG` | 产物配置 slug，可参考 AniBaka 的 `windows-release` |
 
-**填完 `SIGNPATH_ORGANIZATION_ID` 的那一刻签名链路就启用了** —— 这正是指令里那个门控
-条件。所以四个值要一次填齐，否则会走到签名步骤才报错。
+**填完 `SIGNPATH_API_TOKEN` 的那一刻签名链路就启用了** —— 这正是指令里那个门控条件。
+四个 Variables 缺任何一个都会让 SignPath 那一步报错，所以确认要一次填齐；但**它们不启用
+链路**，只填 Variables 不会触发签名。
 
 ## 三、Artifact Configuration 该怎么写
 
