@@ -165,18 +165,24 @@ jobs:
             $compare = "**完整对比**: https://github.com/$env:REPO/compare/$previous...$env:TAG"
           }
           # 按提交类型分组（新功能 / 改进 / 修复）：发布说明是给用户读的，分组比把标题
-          # 平铺成一列好扫读。按 Conventional Commits 前缀归类，前缀会从标题里去掉。
+          # 平铺成一列好扫读。按提交前缀归类，前缀会从标题里去掉。
+          #
+          # 前缀**中英都要认**：仓库规范（AGENTS.md）要求提交信息用中文类型
+          # （`修复(范围): …`），而这里原来只认英文 Conventional Commits ——
+          # 结果是发版说明里所有条目都掉进「改进」，还把版本号提交也原样列出来
+          # （例如「构建(发布): 版本号升到 1.1.27+38」），读起来不像给用户看的说明。
           $groups = [ordered]@{ '新功能' = @(); '改进' = @(); '修复' = @() }
           foreach ($line in (git log $range --no-merges --pretty=format:'%s')) {
             $text = $line.Trim()
             if ([string]::IsNullOrWhiteSpace($text)) { continue }
             # 版本号提交不进发布说明（它只负责把 pubspec 的版本号推上去）
-            if ($text -match '^chore\s*\(\s*release\s*\)') { continue }
+            if ($text -match '^(chore\s*\(\s*release\s*\)|构建\s*\(\s*发布\s*\))') { continue }
             $bucket = '改进'
-            if ($text -match '^(feat|feature)\s*(\(|:|：)') { $bucket = '新功能' }
-            elseif ($text -match '^(fix|bugfix|hotfix|perf)\s*(\(|:|：)') { $bucket = '修复' }
+            if ($text -match '^(feat|feature)\s*(\(|:|：)' -or $text -match '^功能\s*(\(|:|：)') { $bucket = '新功能' }
+            elseif ($text -match '^(fix|bugfix|hotfix|perf)\s*(\(|:|：)' -or $text -match '^修复\s*(\(|:|：)') { $bucket = '修复' }
             # 去掉类型前缀只留正文；没有前缀的提交原样归入「改进」
             $clean = $text -replace '^(feat|feature|fix|bugfix|hotfix|perf|refactor|chore|docs|style|test|build|ci)\s*(\([^)]*\))?\s*[:：]\s*', ''
+            $clean = $clean -replace '^(功能|修复|重构|文档|样式|测试|构建|杂项|性能)\s*(\([^)]*\))?\s*[:：]\s*', ''
             $groups[$bucket] += "- $clean"
           }
           $sections = ($groups.GetEnumerator() | Where-Object { $_.Value.Count -gt 0 } | ForEach-Object { "## $($_.Key)" + [Environment]::NewLine + [Environment]::NewLine + ($_.Value -join [Environment]::NewLine) }) -join ([Environment]::NewLine + [Environment]::NewLine)
