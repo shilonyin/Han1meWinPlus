@@ -81,9 +81,11 @@ GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项�
 #### 项目类型不是障碍（已核对）
 
 SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量同类项目：游戏启动器
-（Bloxstrap、Heroic Games Launcher、Starward、TwintailLauncher）、游戏工具与 Mod 管理器
-（Genshin FPS Unlocker、DLSS Swapper、Balatro Mod Manager、Satisfactory Modding）、
-以及众多 B站 / Steam / 网易云相关的第三方客户端。
+（Bloxstrap、Heroic Games Launcher、Starward、TwintailLauncher、Collapse Launcher）、
+游戏工具与 Mod 管理器（Genshin FPS Unlocker、DLSS Swapper、Balatro Mod Manager、
+Satisfactory Modding）、以及众多 B站 / Steam / 网易云相关的第三方客户端
+（HyPlayer、Spicetify、Millennium）。清单固定展示约 300 个项目，横跨二十多个类别 ——
+其中**「第三方客户端」是占比很大的一类**，这也是与本项目最接近的一类。
 
 **从公开清单能读出的只有「这类软件没有被一刀切排除」**，至于某一类内容领域的具体项目
 是否会因内容性质被拒，公开资料里没有反例也没有正例可查 —— 这一点仍是未知，不要把它
@@ -98,7 +100,8 @@ SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量�
 | --- | --- |
 | GitHub star | 4 |
 | fork | 0 |
-| 累计 Release 下载 | 192（19 个版本，最多的一版 46 次） |
+| 仓库年龄 | 约 1 个月（创建于 2026-09-13） |
+| 累计 Release 下载 | 212（19 个版本，最多的一版 73 次） |
 | 外部讨论 / 文章 / 背书 | 未检索到 |
 
 （对照那份被拒样本的处境：回信里提到「fork 数，star 数太惨淡了」「其他社区也没有什么
