@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
+import '../../core/app_logger.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/library.dart';
 import '../../domain/models/video.dart';
@@ -400,28 +401,34 @@ class Han1meApi {
   Future<void> updatePassword(String baseUrl, String userId, String token, String oldPassword, String password, String confirmation) => _form('$baseUrl/user/$userId', {'_token': token, '_method': 'patch', 'type': 'password', 'password_old': oldPassword, 'password_new': password, 'password_new_confirm': confirmation}, token);
 
   Future<RemoteLibrary> library(String baseUrl, String userId) async {
+    // 四个页面**各自独立失败**，不再用 `Future.wait` 一起抛。
+    //
+    // 原来的写法下，任一请求超时（站点把 .com 301 到 .me，每个请求都多一跳，再叠加
+    // 代理，首字节本来就在 500ms 量级）就会让整页「我的」报错 —— 实测日志里出现过
+    // `HttpException: 信号灯超时时间已到, uri = .../user/605056/likes`，而其余三个页面
+    // 明明都拿到了。现在改成：哪个失败就那个分区空着，别的照常显示。
     final pages = await Future.wait([
-      _document('$baseUrl/user/$userId/saves', skipCache: true),
-      _document('$baseUrl/user/$userId/likes', skipCache: true),
-      _document('$baseUrl/user/$userId/playlists', skipCache: true),
-      _document('$baseUrl/user/$userId/histories?sort=latest&page=1', skipCache: true),
+      _documentOrNull('$baseUrl/user/$userId/saves', skipCache: true),
+      _documentOrNull('$baseUrl/user/$userId/likes', skipCache: true),
+      _documentOrNull('$baseUrl/user/$userId/playlists', skipCache: true),
+      _documentOrNull('$baseUrl/user/$userId/histories?sort=latest&page=1', skipCache: true),
     ]);
-    final subscriptionPage = await _document('$baseUrl/subscriptions?page=1', skipCache: true);
+    final subscriptionPage = await _documentOrNull('$baseUrl/subscriptions?page=1', skipCache: true);
     final subscriptionArtists = _subscriptionArtists(baseUrl, subscriptionPage);
     final subscriptionPages = _pageCount(subscriptionPage);
     final subscriptionVideos = <FollowingVideo>[
-      ..._subscriptionVideos(baseUrl, subscriptionPage),
+      ..._subscriptionVideosOrEmpty(baseUrl, subscriptionPage),
       for (final page in await Future.wait([
-        for (var number = 2; number <= subscriptionPages; number++) _document('$baseUrl/subscriptions?page=$number', skipCache: true),
+        for (var number = 2; number <= subscriptionPages; number++) _documentOrNull('$baseUrl/subscriptions?page=$number', skipCache: true),
       ]))
-        ..._subscriptionVideos(baseUrl, page),
+        ..._subscriptionVideosOrEmpty(baseUrl, page),
     ];
     final playlistPage = pages[2];
-    final playlists = playlistPage.querySelectorAll('.user-tab-item-wrapper, .playlist-item-wrapper, .playlist-card').map((element) {
+    final playlists = playlistPage == null ? const <Playlist>[] : playlistPage.querySelectorAll('.user-tab-item-wrapper, .playlist-item-wrapper, .playlist-card').map((element) {
       final href = element.querySelector('a.video-link, a[href*="playlist?list="]')?.attributes['href'] ?? '';
       return Playlist(id: Uri.tryParse(href)?.queryParameters['list'] ?? RegExp(r'[?&]list=([^&]+)').firstMatch(href)?.group(1) ?? '', title: element.querySelector('.title, .playlist-title')?.text.trim() ?? '', count: int.tryParse(RegExp(r'\d+').firstMatch(element.querySelector('.stat-item, .playlist-count')?.text ?? '')?.group(0) ?? '') ?? 0, coverUrl: _absolute(baseUrl, element.querySelector('img.main-thumb, img')?.attributes['src']));
     }).where((item) => item.id.isNotEmpty && item.title.isNotEmpty).toList(growable: false);
-    return RemoteLibrary(watchLater: _libraryVideos(baseUrl, pages[0]), favorites: _libraryVideos(baseUrl, pages[1]), playlists: playlists, subscriptionArtists: subscriptionArtists, subscriptions: subscriptionVideos, history: _libraryVideos(baseUrl, pages[3]), csrfToken: [playlistPage, pages[0], pages[1], pages[3]].map((page) => page.querySelector('meta[name="csrf-token"]')?.attributes['content'] ?? page.querySelector('input[name="_token"]')?.attributes['value']).whereType<String>().firstOrNull);
+    return RemoteLibrary(watchLater: _libraryVideosOrEmpty(baseUrl, pages[0]), favorites: _libraryVideosOrEmpty(baseUrl, pages[1]), playlists: playlists, subscriptionArtists: subscriptionArtists, subscriptions: subscriptionVideos, history: _libraryVideosOrEmpty(baseUrl, pages[3]), csrfToken: [playlistPage, pages[0], pages[1], pages[3]].whereType<dom.Document>().map((page) => page.querySelector('meta[name="csrf-token"]')?.attributes['content'] ?? page.querySelector('input[name="_token"]')?.attributes['value']).whereType<String>().firstOrNull);
   }
 
   Future<void> saveToPlaylist(String baseUrl, String token, String listId, String videoId, bool checked) => _form('$baseUrl/save', {'_token': token, 'input_id': listId, 'video_id': videoId, 'is_checked': '$checked', 'user_id': ''}, token);
@@ -546,6 +553,20 @@ class Han1meApi {
   Future<void> voteComment(String baseUrl, String token, Comment comment, bool positive) => _form('$baseUrl/commentLike', {'_token': token, 'foreign_type': comment.id.isEmpty ? 'reply' : 'comment', 'foreign_id': comment.foreignId ?? '', 'is_positive': positive ? '1' : '0', 'comment-like-user-id': comment.likeUserId ?? '', 'comment-likes-count': '${comment.likesCount ?? 0}', 'comment-likes-sum': '${comment.likesSum ?? 0}', 'like-comment-status': comment.liked ? '1' : '0', 'unlike-comment-status': comment.disliked ? '1' : '0'}, token);
   Future<void> reportComment(String baseUrl, String token, String userId, Comment comment, String reason) => _form('$baseUrl/user/$userId/report', {'redirect-url': '', 'reportable-id': comment.reportableId ?? comment.foreignId ?? '', 'reportable-type': comment.reportableType ?? (comment.id.isEmpty ? 'reply' : 'comment'), 'reason': reason}, token);
 
+  /// 与 [_document] 同，但**取不到就返回 null 而不是抛异常**。
+  ///
+  /// 给 [library] 这类「多分区拼一页」的场景用：站点把 `hanime1.com` 301 到
+  /// `hanime1.me`，每个请求都要多一跳，再叠加代理，首字节本来就在 500ms 量级 ——
+  /// 四个并发请求里偶尔有一个超时是常态。整页因此报错太脆，哪个分区失败就让它空着。
+  Future<dom.Document?> _documentOrNull(String url, {String? referer, bool skipCache = false}) async {
+    try {
+      return await _document(url, referer: referer, skipCache: skipCache);
+    } catch (error) {
+      AppLogger.instance.warning('页面取不到（该分区留空）: $url | $error', tag: 'api');
+      return null;
+    }
+  }
+
   Future<dom.Document> _document(String url, {String? referer, bool skipCache = false}) async {
     final response = await _http.get(url, headers: referer == null ? null : {'Referer': referer});
     if (cloudflareError(response.statusCode, response.headers, response.body, url) case final error?) throw error;
@@ -591,6 +612,10 @@ class Han1meApi {
     return target.replace(scheme: base.scheme, host: base.host, port: base.hasPort ? base.port : null).toString();
   }
 
+  /// 与 [_libraryVideos] 同，但页面没取到时返回空列表（见 [library] 的容错说明）。
+  List<FollowingVideo> _libraryVideosOrEmpty(String baseUrl, dom.Document? document) =>
+      document == null ? const [] : _libraryVideos(baseUrl, document);
+
   List<FollowingVideo> _libraryVideos(String baseUrl, dom.Document document) => document.querySelectorAll('div[class^="user-tab-item-wrapper"]').map((card) {
         final link = card.querySelector('a')?.attributes['href'] ?? '';
         final image = card.querySelector('img');
@@ -603,11 +628,14 @@ class Han1meApi {
         return FollowingVideo(videoCode: Uri.tryParse(link)?.queryParameters['v'] ?? '', title: card.querySelector('.video-title')?.text.trim() ?? '', coverUrl: _absolute(baseUrl, image?.attributes['src']), artistName: card.querySelector('.meta-author a')?.text.trim(), duration: card.querySelector('.duration')?.text.trim(), views: _statText(card.querySelectorAll('.stats-container .stat-item').skip(1).firstOrNull), rating: _statText(card.querySelector('.stats-container .stat-item')), uploadTime: card.querySelector('.meta-stats span')?.text.trim(), addedAt: 0, playlistItemId: RegExp(r'playlist-item-(\d+)').firstMatch(card.id)?.group(1));
       }).where((video) => video.videoCode.isNotEmpty && video.title.isNotEmpty).toList(growable: false);
 
-  List<SubscribedArtist> _subscriptionArtists(String baseUrl, dom.Document document) => document.querySelectorAll('.subscriptions-nav .subscriptions-artist-card').map((card) {
+  List<SubscribedArtist> _subscriptionArtists(String baseUrl, dom.Document? document) => document == null ? const [] : document.querySelectorAll('.subscriptions-nav .subscriptions-artist-card').map((card) {
         final images = card.querySelectorAll('img');
         final name = card.querySelector('.card-mobile-title')?.text.trim() ?? '';
         return SubscribedArtist(id: name, name: name, avatarUrl: _absolute(baseUrl, images.length > 1 ? images[1].attributes['src'] : images.firstOrNull?.attributes['src']), addedAt: 0);
       }).where((artist) => artist.name.isNotEmpty).toList(growable: false);
+
+  List<FollowingVideo> _subscriptionVideosOrEmpty(String baseUrl, dom.Document? document) =>
+      document == null ? const [] : _subscriptionVideos(baseUrl, document);
 
   List<FollowingVideo> _subscriptionVideos(String baseUrl, dom.Document document) => document.querySelectorAll('.content-padding-new div[class^="video-item-container"]').map((card) {
         final link = card.querySelector('a[class^="video-link"]')?.attributes['href'] ?? '';
@@ -615,7 +643,7 @@ class Han1meApi {
         return FollowingVideo(videoCode: Uri.tryParse(link)?.queryParameters['v'] ?? '', title: card.attributes['title']?.trim() ?? '', coverUrl: _absolute(baseUrl, image?.attributes['src']), artistName: card.querySelector('.subtitle a')?.text.trim(), duration: card.querySelector('.duration')?.text.trim(), views: _statText(card.querySelectorAll('.stats-container .stat-item').skip(1).firstOrNull), rating: _statText(card.querySelector('.stats-container .stat-item')), uploadTime: card.querySelector('.meta-stats span')?.text.trim(), addedAt: 0);
       }).where((video) => video.videoCode.isNotEmpty && video.title.isNotEmpty).toList(growable: false);
 
-  int _pageCount(dom.Document document) => document.querySelectorAll('ul.pagination a.page-link[href]').map((link) => int.tryParse(Uri.tryParse(link.attributes['href'] ?? '')?.queryParameters['page'] ?? '') ?? 1).fold(1, (count, page) => page > count ? page : count);
+  int _pageCount(dom.Document? document) => document == null ? 1 : document.querySelectorAll('ul.pagination a.page-link[href]').map((link) => int.tryParse(Uri.tryParse(link.attributes['href'] ?? '')?.queryParameters['page'] ?? '') ?? 1).fold(1, (count, page) => page > count ? page : count);
 
   /// 403 且是 Cloudflare 的拦截页（两种拦截都算，见 [cloudflareError]）。
   static bool isCloudflareResponse(int? statusCode, Map<String, List<String>> headers, String body) => statusCode == 403 &&
