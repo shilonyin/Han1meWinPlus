@@ -141,6 +141,97 @@ jobs:
           path: build/SHA256SUMS.txt
           if-no-files-found: error
 
+      # ---- 代码签名（SignPath Foundation 免费 OSS 签名）----
+      #
+      # **默认不执行**：只有仓库里配好了 SignPath 的四个变量才会跑（见下面 `if`）。
+      # 没配时整步跳过，发布流程照常产出未签名包 —— 也就是「随时可以接上，
+      # 接不上也不会把发布卡住」。
+      #
+      # 为什么要把签名产物再走一遍发布：SignPath 是「把产物提交过去、它签好还回来」，
+      # 签名后的文件与本地构建的不是同一个字节流，所以校验值和 Release 都要用签过的那份。
+      #
+      # 需要配置的（仓库 Settings → Secrets and variables → Actions）：
+      #   Secret   SIGNPATH_API_TOKEN          SignPath 的 CI 用户 API token
+      #   Variable SIGNPATH_ORGANIZATION_ID    组织 id（GUID）
+      #   Variable SIGNPATH_PROJECT_SLUG       项目 slug
+      #   Variable SIGNPATH_POLICY_SLUG        签名策略 slug（如 release-signing）
+      #   Variable SIGNPATH_ARTIFACT_SLUG      产物配置 slug（如 windows-installer）
+      # 申请入口 https://signpath.org/apply ，条款 https://www.signpath.org/terms
+      - name: Upload unsigned artifacts for signing
+        id: upload-unsigned
+        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: unsigned-artifacts
+          # 两份都要签，各自在 SignPath 里对应一个 Artifact Configuration：
+          # - 安装包：用户双击的就是它，被判「未知发布者」的也是它
+          # - 主程序 exe：免安装版解压后直接运行它，不签的话那条件照样被拦
+          # ⚠️ 两者要用**同一个** artifact 上传（SignPath 一次请求签一个 artifact），
+          #    因此 Artifact Configuration 的根元素应当是 `<zip-file>`，里面按文件名
+          #    分别声明 `<pe-file>`。上传时不加 `archive: false`，让 GitHub 打成 zip。
+          path: |
+            build/Han1meWinPlus-Setup.exe
+            build/windows/x64/runner/Release/han1me_win_plus.exe
+          if-no-files-found: error
+
+      - name: Sign artifacts via SignPath
+        id: signpath
+        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Replace artifacts with signed ones
+        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        shell: pwsh
+        run: |
+          # 按**文件名**认领，不能只取第一个 exe —— 签名的有两份（安装包 + 主程序），
+          # 顺序不可依赖，取错了会把主程序当成安装包覆盖掉。
+          $signedFiles = Get-ChildItem 'signed' -Filter '*.exe' -Recurse -File
+          $signedFiles | ForEach-Object { Write-Host "  签名产物: $($_.Name)  $($_.Length) 字节" }
+
+          function Take-Signed([string]$fileName) {
+            $hit = $signedFiles | Where-Object { $_.Name -eq $fileName } | Select-Object -First 1
+            if (-not $hit) { throw "签名产物里找不到 $fileName" }
+            return $hit.FullName
+          }
+
+          # 1) 安装包
+          Copy-Item (Take-Signed 'Han1meWinPlus-Setup.exe') 'build\Han1meWinPlus-Setup.exe' -Force
+          # 2) 主程序，放回 Release 目录，随后的免安装压缩包要从这里取
+          Copy-Item (Take-Signed 'han1me_win_plus.exe') `
+                    'build\windows\x64\runner\Release\han1me_win_plus.exe' -Force
+
+          # 3) 重新打免安装压缩包：原来那次是在签名**之前**打的（第 102 行附近），
+          #    里面还是未签名的 exe，必须用签过的重打一遍，否则两种分发方式一签一不签。
+          Compress-Archive -Path 'build\windows\x64\runner\Release\*' `
+                           -DestinationPath 'build\Han1meWinPlus-windows-x64.zip' -Force
+
+          # 4) 重算校验值：签完字节流变了，不重算用户按 SHA256SUMS.txt 核对必然对不上
+          $files = @('build\Han1meWinPlus-Setup.exe', 'build\Han1meWinPlus-windows-x64.zip')
+          $lines = foreach ($f in $files) {
+            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  " + (Split-Path $f -Leaf)
+          }
+          $lines | Set-Content 'build\SHA256SUMS.txt' -Encoding utf8NoBOM
+
+          # 5) 签名是否真的生效要落证据，不能只看步骤绿了就当签上了
+          $ok = $true
+          foreach ($f in @('build\Han1meWinPlus-Setup.exe', 'build\windows\x64\runner\Release\han1me_win_plus.exe')) {
+            $sig = Get-AuthenticodeSignature $f
+            Write-Host "$f`n  状态: $($sig.Status)`n  签名者: $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { $ok = $false }
+          }
+          if (-not $ok) { throw '有文件签名无效，不要发布' }
+          Get-Content 'build\SHA256SUMS.txt'
+
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
@@ -219,7 +310,7 @@ jobs:
           ## 安装
 
           1. 下载 ``Han1meWinPlus-Setup.exe``（单文件），双击安装
-          2. 首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下：点「更多信息」→「仍要运行」即可
+          2. 首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下：点「更多信息」→「仍要运行」即可（安装包尚未做代码签名，见 docs/code-signing.md）
           3. 安装默认需要管理员权限（装到 ``Program Files``）。如果你的账户是纯标准用户（不在
              Administrators 组里），可以用 ``Han1meWinPlus-Setup.exe /CURRENTUSER`` 免管理员安装到用户目录。
           4. 不想安装就用 ``Han1meWinPlus-windows-x64.zip``，解压后直接运行 ``han1me_win_plus.exe``
@@ -236,7 +327,7 @@ jobs:
 
           ## 已知问题
 
-          - 安装包未做代码签名，SmartScreen 或杀毒软件可能误报
+          - 安装包尚未做代码签名，SmartScreen 或杀毒软件可能误报
           - 部分站点图片 CDN 响应较慢，首屏封面可能需要等待，之后会走本地缓存
           - 仅维护 Windows，其他平台不在本项目范围内
 

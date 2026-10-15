@@ -91,7 +91,7 @@ For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 
 Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
 
-> An "Unknown publisher" prompt on first launch is expected (the installer is not code-signed). Click "More info → Run anyway"; the portable build skips the installer entirely.
+> If an "Unknown publisher" prompt appears on first launch, click "More info → Run anyway"; the portable build skips the installer entirely.
 
 - **System requirements**: Windows 10 (1809 or later) / Windows 11, 64-bit
 - **Install privileges**: administrator rights are required by default (installs to `Program Files`). If your account is a plain standard user (not in the Administrators group), pass `/CURRENTUSER` to install per-user without elevation: `Han1meWinPlus-Setup.exe /CURRENTUSER`
@@ -108,7 +108,6 @@ All previous versions and their changelogs are on the [Releases](../../releases)
 
 Known limitations (stated up front so expectations are clear):
 
-- The installer is not code-signed, so the first launch triggers a SmartScreen / "Unknown publisher" prompt
 - Only Windows is maintained; other platforms are not guaranteed to compile or work
 - Image CDNs of some sources are slow; the first paint of covers may take a moment before the local cache kicks in
 - There is no automated test coverage for all features — the only unit tests in the repository cover update checking
@@ -118,7 +117,7 @@ Known limitations (stated up front so expectations are clear):
 <details>
 <summary>Windows says "Unknown publisher" or an antivirus blocks the app on first launch</summary>
 
-The installer is not code-signed (a personal project does not buy a signing certificate), so this is the normal prompt for unsigned software. Click "More info" → "Run anyway", or download the portable archive and run it directly.
+The installer is not code-signed yet (see [docs/code-signing.md](docs/code-signing.md) for the signing setup), so this is the normal prompt for unsigned software. Click "More info" → "Run anyway", or download the portable archive and run it directly.
 
 </details>
 
@@ -209,7 +208,7 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 > Tags must start with `v` followed by a numeric version (`v1.1.9`, `v1.1.9-win.1` are both fine). The in-app update check only parses the first three numeric segments of the tag, so something like `win-v1.1.9` is read as `0.0.0` and updates would never be detected. When the tag does not match the `pubspec.yaml` version, CI fails outright, which keeps mismatched builds from being published.
 
 > [!NOTE]
-> The installer is not code-signed, so Windows may show an "Unknown publisher" prompt on first launch. That is expected.
+> Code signing goes through the free [SignPath Foundation](https://signpath.org/) open-source programme; see [docs/code-signing.md](docs/code-signing.md) for the setup and current progress. Until the signature is live, Windows may show an "Unknown publisher" prompt on first launch. That is expected.
 
 ## Contributing
 

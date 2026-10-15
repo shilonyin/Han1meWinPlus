@@ -91,7 +91,7 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 
 免安装版：`Han1meWinPlus-windows-x64.zip` —— 解压即用，运行 `han1me_win_plus.exe`（[直接下载](../../releases/latest/download/Han1meWinPlus-windows-x64.zip)）
 
-> 首次运行出现「未知发布者」是正常现象（安装包未做代码签名），点「更多信息 → 仍要运行」即可；免安装版不经过安装流程，不会被拦。
+> 首次运行如果出现「未知发布者」提示，点「更多信息 → 仍要运行」即可；免安装版不经过安装流程，不会被拦。
 
 - **系统要求**：Windows 10（1809 及以上）/ Windows 11，64 位
 - **安装权限**：默认需要管理员权限（装到 `Program Files`）。如果你的账户是纯标准用户（不在 Administrators 组里），可以加 `/CURRENTUSER` 参数免管理员安装到用户目录：`Han1meWinPlus-Setup.exe /CURRENTUSER`
@@ -108,7 +108,6 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 
 已知限制（写在前面，避免误预期）：
 
-- 安装包未做代码签名，首次运行会有 SmartScreen / 「未知发布者」提示
 - 仅维护 Windows，其他平台不保证可编译或可用
 - 部分站点图片 CDN 较慢，首屏封面可能需要等待，之后会走本地缓存
 - 未提供自动化测试覆盖全部功能，仓库内目前只有更新检查相关的单元测试
@@ -118,7 +117,7 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 <details>
 <summary>首次运行提示「未知发布者」或被杀毒软件拦截？</summary>
 
-安装包未做代码签名（个人项目不购买签名证书），这是未签名程序的正常提示。点「更多信息」→「仍要运行」即可，也可以直接下载免安装版解压运行。
+安装包尚未做代码签名（正式签名的接入见 [docs/code-signing.md](docs/code-signing.md)），这是未签名程序的正常提示。点「更多信息」→「仍要运行」即可，也可以直接下载免安装版解压运行。
 
 </details>
 
@@ -209,7 +208,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 > tag 必须是 `v` + 数字版本开头（`v1.1.9`、`v1.1.9-win.1` 都可以）。应用内「检查更新」只解析 tag 的前三段数字，写成 `win-v1.1.9` 会被当成 `0.0.0`，永远检测不到更新。tag 与 `pubspec.yaml` 版本不一致时 CI 会直接失败，避免发出对不上号的包。
 
 > [!NOTE]
-> 安装包未做代码签名，Windows 首次运行可能提示「未知发布者」，属正常现象。
+> 要不要给安装包做数字签名，走的是 [SignPath Foundation](https://signpath.org/) 的免费开源通道，接入步骤与当前进度见 [docs/code-signing.md](docs/code-signing.md)。签名生效前，Windows 首次运行可能提示「未知发布者」，属正常现象。
 
 ## 如何贡献
 
