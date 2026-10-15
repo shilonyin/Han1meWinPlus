@@ -210,6 +210,45 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 > [!NOTE]
 > 要不要给安装包做数字签名，走的是 [SignPath Foundation](https://signpath.org/) 的免费开源通道，接入步骤与当前进度见 [docs/code-signing.md](docs/code-signing.md)。签名生效前，Windows 首次运行可能提示「未知发布者」，属正常现象。
 
+## 代码签名政策
+
+**Code signing policy**
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+本项目的发行产物（`Han1meWinPlus-Setup.exe` 与免安装版内的 `han1me_win_plus.exe`）由
+GitHub Actions 在本仓库源码上自动构建，并提交 SignPath 签名；签名只覆盖本项目自己构建的
+二进制，不含任何第三方预编译文件。
+
+### 团队角色
+
+本仓库目前由单人维护（[shilonyin](https://github.com/shilonyin)），三类角色均由同一人担任：
+
+| 角色 | 职责 | 成员 |
+| --- | --- | --- |
+| **Authors**（提交者） | 可直接修改仓库源码 | [@shilonyin](https://github.com/shilonyin) |
+| **Reviewers**（审核者） | 审阅非提交者发来的改动（PR） | [@shilonyin](https://github.com/shilonyin) |
+| **Approvers**（批准者） | 决定某次发布是否可提交签名 | [@shilonyin](https://github.com/shilonyin) |
+
+若日后有其他维护者加入，角色划分会在此处与仓库权限组同步更新。
+
+> 当前签名通道的接入进度见 [docs/code-signing.md](docs/code-signing.md)。
+> 在签名正式生效前，Windows 首次运行可能提示「未知发布者」，属正常现象。
+
+### 隐私政策
+
+**本程序不会向其他联网系统传输任何信息，除非用户或安装/操作本程序的人明确要求。**
+
+具体说明：
+
+- 应用只连接两处外部服务：**用户自行填写的视频站点地址**，以及本项目的 **GitHub Releases**
+  （用于检查更新）。除此之外没有遥测、统计或上报。
+- 应用在本地保存的数据（登录凭据、观看历史、收藏、设置、图片缓存）全部位于用户本机
+  `%APPDATA%\han1me_win_plus\` 与 `%LOCALAPPDATA%\Han1meWinPlus\`，不会上传。
+- WebView2 组件由 Microsoft 提供，其数据处理参见
+  [Microsoft 隐私声明](https://privacy.microsoft.com/privacystatement)。
+- 诊断日志（设置 → 日志）只写在本地磁盘，**只有用户主动导出**才会离开本机。
+
 ## 如何贡献
 
 本项目目前由个人维护。欢迎提 Issue 和功能建议，代码贡献请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

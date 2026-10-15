@@ -210,6 +210,52 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 > [!NOTE]
 > Code signing goes through the free [SignPath Foundation](https://signpath.org/) open-source programme; see [docs/code-signing.md](docs/code-signing.md) for the setup and current progress. Until the signature is live, Windows may show an "Unknown publisher" prompt on first launch. That is expected.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+This project's release artifacts (`Han1meWinPlus-Setup.exe`, and `han1me_win_plus.exe`
+inside the portable archive) are built automatically by GitHub Actions from this
+repository's sources and submitted to SignPath for signing. Signing covers only binaries
+built by this project; no pre-compiled third-party files are signed.
+
+### Team roles
+
+The repository is currently maintained by a single person
+([shilonyin](https://github.com/shilonyin)); all three roles are held by that person.
+
+| Role | Responsibility | Member |
+| --- | --- | --- |
+| **Authors** | May modify repository sources directly | [@shilonyin](https://github.com/shilonyin) |
+| **Reviewers** | Review changes from non-committers (PRs) | [@shilonyin](https://github.com/shilonyin) |
+| **Approvers** | Decide whether a given release may be submitted for signing | [@shilonyin](https://github.com/shilonyin) |
+
+If other maintainers join, the role split here will be updated together with the
+repository permission groups.
+
+> Current progress on enabling the signing pipeline is in
+> [docs/code-signing.md](docs/code-signing.md). Until the signature is live, Windows may
+> show an "Unknown publisher" prompt on first launch. That is expected.
+
+### Privacy policy
+
+**This program will not transfer any information to other networked systems unless
+specifically requested by the user or the person installing or operating it.**
+
+In detail:
+
+- The app connects to exactly two kinds of external services: **the video site address the
+  user enters themselves**, and this project's **GitHub Releases** (for update checks).
+  There is no telemetry, analytics or reporting of any kind.
+- Data the app stores locally (credentials, watch history, favourites, settings, image
+  cache) lives in `%APPDATA%\han1me_win_plus\` and `%LOCALAPPDATA%\Han1meWinPlus\` on the
+  user's own machine and is never uploaded.
+- The WebView2 component is provided by Microsoft; see the
+  [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement) for its
+  data handling.
+- Diagnostic logs (Settings → Logs) are written to local disk only and leave the machine
+  **only when the user explicitly exports them**.
+
 ## Contributing
 
 This project is currently maintained by one person. Issues and feature suggestions are very welcome; for code contributions please read [CONTRIBUTING.md](CONTRIBUTING.md) first (currently in Chinese).
