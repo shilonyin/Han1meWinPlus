@@ -24,6 +24,9 @@ android/workspace.json
 .dsh-edit-review.json
 .dsh-edit-review-archive.json
 
+# Agent 工作目录（本体与运行态），不属于项目代码
+clear/
+
 # 截图与图像工具的临时产物
 .dsh_shots/
 .dsh-tool-vision/
