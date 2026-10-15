@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'src/app.dart';
+import 'src/core/app_logger.dart';
 import 'src/core/app_notifications.dart';
 import 'src/core/deep_link.dart';
 import 'src/core/media_player_initializer.dart';
@@ -25,6 +27,18 @@ Future<void> main(List<String> args) async {
   // 之前把日志放在后面（读完设置之后），一旦真正的故障发生在更早的位置，
   // 日志里就什么都看不到 —— 排查时会误以为是「代码没跑」。
   unawaited(writeStartupMarker(args));
+  // 版本号要在第一条日志之前拿到，否则「=== 应用启动 v? ===」那行没有版本，
+  // 而用户报问题时第一件要确认的就是「你装的是哪一版」。
+  try {
+    final info = await PackageInfo.fromPlatform();
+    appLoggerVersionLabel = '${info.version}+${info.buildNumber}';
+  } catch (_) {
+    // 读不到就用占位符，日志本身不该因此中断。
+  }
+  // 常驻日志：接上之后 `debugPrint` 也会落盘，出问题时从设置页导出即可，
+  // 不必再临时埋诊断、重编译、请用户复现一轮（见 app_logger.dart 的说明）。
+  await initAppLogger();
+  AppLogger.instance.info('启动参数: ${args.join(' ')}', tag: 'startup');
   // mpv（media_kit）打开片源时要往 `Directory.systemTemp` 写一个临时播放列表，
   // `%TEMP%` 不可写时这里会直接抛异常、播放页永远转圈。把整个应用跑在「临时目录
   // 一定可写」的 zone 里，两种情况都能正常开播（见 media_temp_directory.dart）。
@@ -102,6 +116,9 @@ Future<void> _postLaunch() async {
 Future<void> _runPlayWindow(PlayWindowArgs args) async {
   // 界面层据此避开「只有主窗口才能做的事」（下载调度器只有一个进程能持有）。
   isPlayWindowProcess = true;
+  // 播放窗口是**独立进程**，它跟主窗口共写同一份日志文件。多条线索（多进程写文件
+  // 撞车、播放器起不来）只有在对得上两个进程各自的记录时才查得动，所以这里也记。
+  AppLogger.instance.info('播放窗口启动 video=${args.videoId}', tag: 'play-window');
   final settings = await SettingsStore(JsonStore()).load();
   await WindowChrome.setUseSystemTitleBar(settings.useSystemTitleBar);
   WidgetsBinding.instance.addPostFrameCallback((_) => MediaPlayerInitializer.bootstrap(settings));

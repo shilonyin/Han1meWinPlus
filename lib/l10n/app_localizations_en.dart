@@ -575,6 +575,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get more => 'See More';
 
   @override
+  String get logs => 'Logs';
+
+  @override
+  String get logsDescription =>
+      'Records what the app does and what fails; export them when reporting a problem';
+
+  @override
+  String logsUsage(String size, int count) {
+    return '$size in $count files';
+  }
+
+  @override
+  String get logFiles => 'Log files';
+
+  @override
+  String get exportLogs => 'Export logs';
+
+  @override
+  String get openLogsFolder => 'Open logs folder';
+
+  @override
+  String get clearLogs => 'Clear logs';
+
+  @override
+  String get clearLogsDescription =>
+      'Delete every log file; settings and downloads are not affected';
+
+  @override
+  String get logsExported => 'Logs exported';
+
+  @override
+  String get logsCleared => 'Logs cleared';
+
+  @override
+  String get noLogsToExport => 'No logs to export yet';
+
+  @override
+  String get logsFolderUnavailable =>
+      'Could not open the logs folder; the path is shown in settings';
+
+  @override
   String get previousPage => 'Previous page';
 
   @override

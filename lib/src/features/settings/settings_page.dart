@@ -13,6 +13,7 @@ import 'comment_settings_page.dart';
 import 'hotkey_settings_page.dart';
 import 'language_settings_page.dart';
 import 'layout_settings_page.dart';
+import 'log_settings_page.dart';
 import 'network_settings_page.dart';
 import 'playback_settings_page.dart';
 import 'selection_settings_pages.dart';
@@ -126,6 +127,12 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
       (
         l10n.other,
         [
+          _SettingsEntry(
+            Symbols.receipt_long_rounded,
+            l10n.logs,
+            const LogSettingsPage(),
+            '/settings/logs',
+          ),
           _SettingsEntry(
             Symbols.info_rounded,
             l10n.about,

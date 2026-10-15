@@ -28,18 +28,26 @@ void main() {
       expect(targets, containsAll(['hanime1.me', 'www.hanime1.me']));
     });
 
-    test('已经是 www 的地址不再叠加前缀', () {
-      final targets = webViewCookieHostsFor(Uri.parse('https://www.hanime1.me/login'));
-      expect(targets, equals(['www.hanime1.me']));
+    test('站点已从 .com 重定向到 .me：清 .com 时必须一并清 .me', () {
+      // 站点把 hanime1.com 301 到 hanime1.me，而用户设置里存的仍是 .com。
+      // 会话 cookie 写在重定向之后的域名上，只清 .com 等于什么都没清 ——
+      // 旧会话还在，用户再提交登录时站点回 auth.failed。
+      final targets = webViewCookieHostsFor(Uri.parse('https://hanime1.com/login'));
+      expect(targets, containsAll(['hanime1.com', 'www.hanime1.com']));
+      expect(targets, containsAll(['hanime1.me', 'www.hanime1.me']),
+          reason: '不覆盖 .me 就清不掉真实会话');
     });
 
     test('清站点 cookie 的范围里不含任何第三方域，cf_clearance 因此不会被波及', () {
       final targets = webViewCookieHostsFor(Uri.parse('https://hanime1.com/login'));
-      for (final host in targets) {
-        expect(host, anyOf(equals('hanime1.com'), equals('www.hanime1.com')));
-      }
-      // Cloudflare 的凭证挂在挑战域上；只要清理范围锁在站点自身，它就活下来。
+      // Cloudflare 的凭证挂在挑战域上；只要清理范围锁在站群自身，它就活下来。
       expect(targets, isNot(contains('challenges.cloudflare.com')));
+      expect(targets, isNot(contains('cloudflare.com')));
+    });
+
+    test('非站群主机不受影响（别把别的站点的 cookie 一起清了）', () {
+      final targets = webViewCookieHostsFor(Uri.parse('https://example.com/login'));
+      expect(targets, equals(['example.com', 'www.example.com']));
     });
   });
 

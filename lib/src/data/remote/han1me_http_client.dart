@@ -20,14 +20,33 @@ class Han1meHttpResponse {
   final String url;
 }
 
-/// 按域名清理 WebView cookie 时要覆盖的主机：站点自身 + `www.` 变体。
+/// 按域名清理 WebView cookie 时要覆盖的主机：站点自身 + `www.` 变体，
+/// 外加**同一站群的所有镜像域名**。
 ///
-/// 站点把会话同时写在 `hanime1.me` 与 `www.hanime1.me` 两处，只清叶子域会留下
-/// 另一半，下次进登录页仍然是被登录态。范围必须**锁死在站点自身**：一旦放大到
-/// 「全清」，Cloudflare 的 `cf_clearance` 会被一起抹掉，登录页立刻被 CF 挡住
-/// （回归 issue #18）。
-List<String> webViewCookieHostsFor(Uri uri) =>
-    [uri.host, if (!uri.host.startsWith('www.')) 'www.${uri.host}'];
+/// 为什么要带上镜像：站点已把 `hanime1.com` **301 永久重定向**到
+/// `hanime1.me`，而用户设置里存的仍是 `.com`。会话 cookie 是写在重定向之后的
+/// 那个域名上的，只清 `.com` 等于什么都没清 —— 旧会话还在，用户再提交登录时
+/// 站点认为「已登录态下发登录请求」，直接回 `auth.failed`。
+///
+/// 三个域名（`hanime1.com` / `hanime1.me` / `hanimeone.me`）是同一站点、登录态互通，
+/// Dart 侧早就用共用的 cookie 桶（[Han1meHttpClient._mirrorCookieKey]）处理了这件事，
+/// WebView 这边原来漏了。
+///
+/// 范围仍**锁死在站群自身**：一旦放大到「全清」，Cloudflare 的 `cf_clearance`
+/// 会被一起抹掉，登录页立刻被 CF 挡住（回归 issue #18）。
+List<String> webViewCookieHostsFor(Uri uri) {
+  final host = uri.host.isEmpty ? uri.path : uri.host;
+  // 只有确实是站群主机时才扩展；其它站点（AV 源等）保持原样，别误伤。
+  final isHanimeHost = WindowsConnectionFactory.hanimeHosts.any(
+    (mirror) => host == mirror || host == 'www.$mirror' || host.endsWith('.$mirror'),
+  );
+  if (!isHanimeHost) {
+    return [host, if (!host.startsWith('www.')) 'www.$host'];
+  }
+  return [
+    for (final mirror in WindowsConnectionFactory.hanimeHosts) ...[mirror, 'www.$mirror'],
+  ];
+}
 
 /// 把 [webViewCookieHostsFor] 的主机名拼成交给 [CookieManager.deleteCookies] 的 URL。
 ///
@@ -216,16 +235,53 @@ class Han1meHttpClient {
     }
     final parsed = Uri.parse(url);
     final urls = webViewCookieUrlsFor(parsed);
+    // **逐个 cookie 删，保留 Cloudflare 的凭证；而不是按域删掉整片。**
+    //
+    // 按域删（`deleteCookies(url:)`）会把该域上的 `cf_clearance` 一起抹掉，那是
+    // Cloudflare 给这台机器的通行证、与登录哪个账号无关；丢了它登录页立刻被 CF
+    // 挡住（回归 issue #18）。
+    //
+    // 这里**不按名字白名单删** —— 会话 cookie 叫什么由站点决定（改版就可能变），
+    // 写死名字迟早会漏。改成「读出来、只留 CF 的、其余全删」：判据只有一条，
+    // 就是 Cloudflare 的前缀，不依赖对站点实现的猜测。
     for (final target in urls) {
-      await _cookieManager().deleteCookies(url: target);
+      List<webview.Cookie> cookies;
+      try {
+        cookies = await _cookieManager().getCookies(url: target);
+      } catch (_) {
+        continue;
+      }
+      for (final cookie in cookies) {
+        if (_isCloudflareCookie(cookie.name)) continue;
+        try {
+          await _cookieManager().deleteCookie(
+            url: target,
+            name: cookie.name,
+            path: cookie.path ?? '/',
+            domain: cookie.domain,
+          );
+        } catch (_) {
+          // 单个 cookie 删不掉不该让整个登录流程失败。
+        }
+      }
     }
-    // 内存镜像也一起清（`deleteCookies` 不会同步到 [_desktopCookies]）。
+    // 内存镜像也一起清（`deleteCookie` 不会同步到 [_desktopCookies]）。
     // 键必须走 [_cookieKey]：镜像域在镜像里统一存在 `hanime1-mirrors` 这一个桶下，
     // 拿裸主机名去 remove 永远删不到东西，旧会话会被一直重放。
+    //
+    // 这里只能整桶丢掉：桶里存的是拼好的 `k=v; k=v` 串，没有按名拆分的粒度。
+    // 代价是 Dart 侧那份 CF 凭证也没了，但下一轮请求会重新学习
+    // （[Han1meHttpClient] 每次响应都会 `_saveResponseCookies`），不影响可用性。
     for (final target in urls) {
       _desktopCookies.remove(_cookieKey(target.host));
     }
   }
+
+  /// 是否是 Cloudflare 的凭证 cookie（`cf_clearance` / `cf_chl_*` 等）。
+  ///
+  /// 这些与「登录了哪个账号」无关，是 Cloudflare 发给这台机器的通行证，
+  /// 清登录态时必须留着 —— 丢了它登录页自己就会被 CF 挡住（issue #18）。
+  static bool _isCloudflareCookie(String name) => name.toLowerCase().startsWith('cf_');
 
   Future<void> setNetworkSettings({required bool useBuiltInHosts, required bool useDoh, required String dohPreset, required String dohCustomUrl, required String dohBootstrapIps, required int dohTimeoutSeconds, String proxyMode = 'direct', String customProxy = '', bool useAddressRanking = true}) async {
     // 地址优选器是全局单例（连接工厂在同步路径上要用它排序），设置在这里统一下发。

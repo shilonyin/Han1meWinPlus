@@ -553,6 +553,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get more => '查看更多';
 
   @override
+  String get logs => '日志';
+
+  @override
+  String get logsDescription => '记录应用的运行过程与错误，排查问题时导出给开发者';
+
+  @override
+  String logsUsage(String size, int count) {
+    return '当前占用 $size，共 $count 个文件';
+  }
+
+  @override
+  String get logFiles => '日志文件';
+
+  @override
+  String get exportLogs => '导出日志';
+
+  @override
+  String get openLogsFolder => '打开日志文件夹';
+
+  @override
+  String get clearLogs => '清空日志';
+
+  @override
+  String get clearLogsDescription => '删除全部日志文件，不影响设置与下载内容';
+
+  @override
+  String get logsExported => '日志已导出';
+
+  @override
+  String get logsCleared => '日志已清空';
+
+  @override
+  String get noLogsToExport => '还没有日志可导出';
+
+  @override
+  String get logsFolderUnavailable => '打不开日志文件夹，可在设置里查看路径';
+
+  @override
   String get previousPage => '上一页';
 
   @override
@@ -3139,6 +3177,44 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get more => '查看更多';
+
+  @override
+  String get logs => '日誌';
+
+  @override
+  String get logsDescription => '記錄應用程式的執行過程與錯誤，排查問題時匯出給開發者';
+
+  @override
+  String logsUsage(String size, int count) {
+    return '目前佔用 $size，共 $count 個檔案';
+  }
+
+  @override
+  String get logFiles => '日誌檔案';
+
+  @override
+  String get exportLogs => '匯出日誌';
+
+  @override
+  String get openLogsFolder => '開啟日誌資料夾';
+
+  @override
+  String get clearLogs => '清空日誌';
+
+  @override
+  String get clearLogsDescription => '刪除全部日誌檔案，不影響設定與下載內容';
+
+  @override
+  String get logsExported => '日誌已匯出';
+
+  @override
+  String get logsCleared => '日誌已清空';
+
+  @override
+  String get noLogsToExport => '還沒有日誌可匯出';
+
+  @override
+  String get logsFolderUnavailable => '無法開啟日誌資料夾，可在設定中查看路徑';
 
   @override
   String get previousPage => '上一頁';

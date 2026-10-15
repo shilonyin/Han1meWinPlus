@@ -7,6 +7,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 
+import '../../core/app_logger.dart';
 import '../../core/platform_paths.dart';
 import '../../core/settings.dart';
 import '../local/json_store.dart';
@@ -68,8 +69,13 @@ Future<File> webViewDiagnosticsLogFile() async =>
     File(path.join((await appStorageDirectory()).path, diagnosticLogFileName));
 
 /// 追加一行诊断日志。**失败静默**：日志本身不该影响启动，也不该让调用方崩。
+///
+/// 同时进常驻日志（`logs/app.log`）：原来只写 `webview_diagnostics.log`，而那个文件
+/// 只在 WebView 相关的少数几处被写，排查别的问题时用不上；接进 [AppLogger] 之后
+/// 设置页导出的那一份里就能一起看到。
 Future<void> appendWebViewDiagnostic(String message) async {
   debugPrint(message);
+  AppLogger.instance.info(message, tag: 'webview');
   try {
     final file = await webViewDiagnosticsLogFile();
     await file.writeAsString('${DateTime.now().toIso8601String()} $message\n', mode: FileMode.append, flush: true);

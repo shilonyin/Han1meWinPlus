@@ -34,6 +34,7 @@ import '../features/settings/home_categories_page.dart';
 import '../features/settings/hotkey_settings_page.dart';
 import '../features/settings/keyframes_page.dart';
 import '../features/settings/language_settings_page.dart';
+import '../features/settings/log_settings_page.dart';
 import '../features/settings/layout_settings_page.dart';
 import '../features/settings/license_page.dart';
 import '../features/settings/network_settings_page.dart';
@@ -257,6 +258,10 @@ class AppRouter {
         GoRoute(
           path: '/settings/storage/backup',
           builder: (context, state) => const BackupSettingsPage(),
+        ),
+        GoRoute(
+          path: '/settings/logs',
+          builder: (context, state) => const LogSettingsPage(),
         ),
         GoRoute(
           path: '/settings/language',

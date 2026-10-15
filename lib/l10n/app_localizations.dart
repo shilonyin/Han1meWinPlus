@@ -1077,6 +1077,78 @@ abstract class AppLocalizations {
   /// **'See More'**
   String get more;
 
+  /// No description provided for @logs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get logs;
+
+  /// No description provided for @logsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Records what the app does and what fails; export them when reporting a problem'**
+  String get logsDescription;
+
+  /// No description provided for @logsUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} in {count} files'**
+  String logsUsage(String size, int count);
+
+  /// No description provided for @logFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Log files'**
+  String get logFiles;
+
+  /// No description provided for @exportLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Export logs'**
+  String get exportLogs;
+
+  /// No description provided for @openLogsFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open logs folder'**
+  String get openLogsFolder;
+
+  /// No description provided for @clearLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear logs'**
+  String get clearLogs;
+
+  /// No description provided for @clearLogsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete every log file; settings and downloads are not affected'**
+  String get clearLogsDescription;
+
+  /// No description provided for @logsExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs exported'**
+  String get logsExported;
+
+  /// No description provided for @logsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs cleared'**
+  String get logsCleared;
+
+  /// No description provided for @noLogsToExport.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs to export yet'**
+  String get noLogsToExport;
+
+  /// No description provided for @logsFolderUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the logs folder; the path is shown in settings'**
+  String get logsFolderUnavailable;
+
   /// No description provided for @previousPage.
   ///
   /// In en, this message translates to:
