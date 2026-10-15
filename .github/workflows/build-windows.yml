@@ -106,11 +106,23 @@ jobs:
           }
           "release_version=$pubspecVersion" >> $env:GITHUB_OUTPUT
 
+          # 安装包的版本资源要跟主程序一字不差。Flutter 会把 pubspec.yaml 的
+          # `version:` 整串（含 `+build`）写进 exe 的 ProductVersion，而上面那个正则
+          # 只取到 `1.1.27`。若把后者交给 Inno，同一个 release 里两个二进制的
+          # ProductVersion 就变成 `1.1.27` 与 `1.1.27+38` 不一致 —— SignPath 的
+          # metadata restrictions 会据此报错（它按字符串比对，不区分 build 号）。
+          # 所以这里单独解析出带 build 号的完整值，只用于传给 ISCC。
+          $pubspecFull = (Select-String -Path pubspec.yaml -Pattern '^version:\s*(\S+)').Matches[0].Groups[1].Value
+          "installer_version=$pubspecFull" >> $env:GITHUB_OUTPUT
+          Write-Host "安装包版本资源: $pubspecFull"
+
       - name: Build Windows installer
         shell: pwsh
         env:
           # 用环境变量传递，避免把表达式拼进脚本正文
-          APP_VERSION: ${{ steps.version.outputs.release_version }}
+          # 用 installer_version（含 +build）而非 release_version：要与主程序
+          # exe 的 ProductVersion 保持一致，见上面 Resolve release version 里的说明。
+          APP_VERSION: ${{ steps.version.outputs.installer_version }}
         run: |
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "找不到 ISCC.exe: $iscc" }

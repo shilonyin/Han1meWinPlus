@@ -1,5 +1,8 @@
 #ifndef MyAppVersion
-#define MyAppVersion "1.1.25"
+; 兜底值，只在手动跑 ISCC 且没传 /DMyAppVersion= 时生效。
+; CI 每次都会显式传入（见 .github/workflows/build-windows.yml），所以正常发布的包不受这里影响；
+; 手动编译请用 ISCC.exe /DMyAppVersion=<版本> windows\installer.iss 覆盖。
+#define MyAppVersion "0.0.0"
 #endif
 
 [Setup]
