@@ -53,6 +53,15 @@ SignPath Foundation 的免费证书不是「开源就给」，它**明确要求�
 只是不要指望一次通过。社区里也确实有百来星甚至五十星的项目通过了 —— 关键不在绝对数字，
 而在**「现实中是否真的有人在用、能被外部证实」**。
 
+### 项目性质不是障碍（已核对）
+
+SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量同类项目：游戏启动器
+（Bloxstrap、Heroic Games Launcher、Starward、TwintailLauncher）、游戏工具与 Mod 管理器
+（Genshin FPS Unlocker、DLSS Swapper、Balatro Mod Manager、Satisfactory Modding）、
+以及众多 B站 / Steam / 网易云相关的第三方客户端。**审核卡的从来不是「这算什么类型的软件」，
+而是「有多少人能证实它在被真实使用」** —— 所以申请材料要把重心放在使用证据上，不必为
+项目类型做任何辩护式说明。
+
 ### 如果决定申请，先把这些证据凑齐
 
 申请表单会问「声誉证据」，能拿出下面任意几项会实质提高通过率：
