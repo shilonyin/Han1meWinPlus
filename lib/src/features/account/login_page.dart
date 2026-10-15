@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_logger.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/remote/han1me_api.dart';
 import '../../data/remote/webview_environment.dart';
@@ -14,6 +15,7 @@ import '../../data/remote/windows_connection_factory.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
 import 'account_controller.dart';
+import 'login_url_scope.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -118,7 +120,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   /// 保存这次登录拿到的 cookie。返回是否走通（调用方据此决定放不放行）。
-  Future<bool> _capture({bool allowEmpty = false}) async {
+  ///
+  /// [quiet] 用于轮询触发的自动采集：那时失败**不该弹给用户**。
+  ///
+  /// 原因是用户能直接看到的那个症状：密码输错时站点在登录页上显示
+  /// `auth.failed`（「账号或密码错误」），而轮询同时也会尝试采集 cookie —— 拿到的是
+  /// 未登录的 cookie，`saveCookie` 抓不到账号资料就抛
+  /// `Account profile is unavailable`。那条内部错误一旦弹成横幅，就**盖住了站点自己
+  /// 那条用户真正需要看的提示**；而且轮询每 2 秒一次，横幅会反复出现。
+  ///
+  /// 所以自动采集失败时只记日志、不设 [_error]；用户点「确定」或关闭页面时走的是
+  /// 非 quiet 路径，那时才把失败摆出来（用户主动操作了，需要知道结果）。
+  Future<bool> _capture({bool allowEmpty = false, bool quiet = false}) async {
     if (_saving || _saved || !mounted) return _saved;
     setState(() => _saving = true);
     try {
@@ -141,11 +154,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _timer = null;
       Navigator.pop(context);
       return true;
-    } catch (error) {
+    } catch (error, stack) {
+      AppLogger.instance.warning('登录采集失败 quiet=$quiet: $error', tag: 'login');
+      AppLogger.instance.debug('$stack', tag: 'login');
       if (!mounted) return false;
       setState(() {
         _saving = false;
-        _error = error;
+        if (!quiet) _error = error;
       });
       return false;
     }
@@ -169,10 +184,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!await _hasLoginMarker() && !await _leftLoginPage()) return;
     if (!mounted) return;
     _lastAttempt = DateTime.now();
-    await _capture();
+    await _capture(quiet: true);
   }
 
   /// 当前页是否**已经离开登录页**（且不是挑战页）。
+  ///
+  /// 判据见 [isStillOnLoginPage]：**不能按精确 host 比** —— 站点已把 `hanime1.com`
+  /// 301 到 `hanime1.me`，而用户设置里存的仍是 `.com`，精确比较会恒为「已离开」，
+  /// 导致轮询每 2 秒强制采集一次、把站点的「账号或密码错误」提示盖掉。
   Future<bool> _leftLoginPage() async {
     final controller = _controller;
     if (controller == null) return false;
@@ -180,8 +199,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final url = await controller.getUrl();
       if (url == null || url.host.isEmpty) return false;
       final settings = await ref.read(settingsProvider.future);
-      final login = Uri.parse('${settings.resolvedBaseUrl}/login');
-      return url.host != login.host || url.path != login.path;
+      return !isStillOnLoginPage(current: Uri.parse(url.toString()), base: settings.resolvedBaseUrl);
     } catch (_) {
       return false;
     }

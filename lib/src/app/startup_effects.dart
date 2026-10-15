@@ -71,9 +71,14 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       if (settings == null) return;
       if (settings.autoUpdate && !_checkedForUpdate) {
         _checkedForUpdate = true;
-        WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _checkForUpdate(settings.useUpdateMirror),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // 帧回调是**延迟执行**的：调度与执行之间这个 State 可能已经销毁
+          // （启动阶段重建、热重载、窗口切换都会）。`_checkForUpdate` 一进去就
+          // `ref.read`，销毁后调用会抛 `Bad state: Cannot use "ref" after the
+          // widget was disposed` —— 实测每次启动都在日志里留一条未捕获异常。
+          if (!mounted) return;
+          unawaited(_checkForUpdate(settings.useUpdateMirror));
+        });
       }
       if (!_appliedPrivacySettings) {
         _appliedPrivacySettings = true;
