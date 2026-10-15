@@ -23,10 +23,18 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 资格核对的依据：仓库 `shilonyin/Han1meWinPlus` 公开、AGPL-3.0（OSI 认可）、构建全程在
 GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项目的核心要求。
 
-### ⚠️ 一个必须先知道的风险：本项目大概率**通不过审核**
+### 审核标准未知，但有已通过的先例，且项目类型不是障碍
 
-SignPath Foundation 的免费证书不是「开源就给」，它**明确要求项目已有一定的公众信誉**。
-一份被拒申请的官方回信原文列出了评估维度：
+**先说事实层面能确定的部分**：SignPath Foundation 明面上只写了「公开 OSS 项目」这类条件，
+**它实际用什么样的门槛去筛，公开资料里没有量化标准**。所以任何「我们能不能过」的判断
+都只能是推测，不该被写成结论。
+
+下面把这个题目里的三块材料分开摆：一份**被拒**的样本、一个**已通过**的先例、以及
+**我们自己的现状数据**。
+
+#### 一份被拒样本揭示的审核维度
+
+一份 2026-06 被拒申请的官方回信原文，列出了它评估时看的东西：
 
 > Community adoption (e.g., GitHub stars, forks, contributors)
 > Independent references or discussions (Reddit, Stack Overflow, YouTube, etc.)
@@ -38,33 +46,66 @@ SignPath Foundation 的免费证书不是「开源就给」，它**明确要求�
 > the quality or potential of your work. The Foundation program is designed specifically
 > for projects that have already established a certain level of public trust and visibility.
 
-（来源：一份 2026-06 被拒申请的公开记录，[v2ex.com/t/1218906](https://v2ex.com/t/1218906)）
+（来源：**一份** 2026-06 被拒申请的公开记录，[v2ex.com/t/1218906](https://v2ex.com/t/1218906)）
 
-对照本项目在写下时点的实际数据：
+**这是 n=1 的样本**，只能说明「外部可证实的声誉」确实是它看重的维度之一，
+**不能用来估计通过率**。用它推出「我们大概率被拒」是把单点样本当成了分布。
 
-| 指标 | 本项目 | 该被拒项目的处境 |
-| --- | --- | --- |
-| GitHub star | 4 | 「fork 数，star 数太惨淡了」 |
-| fork | 0 | 同上 |
-| 累计 Release 下载 | 192（19 个版本，最多的一版 46 次） | 「其他社区也没有什么公开讨论」 |
-| 外部讨论 / 文章 / 背书 | 未检索到 | —— |
+#### 一个已通过的先例：AniBaka
 
-**结论：以当前体量提交，被拒的概率较高。** 拒信允许以后再申请，所以提交本身没有代价，
-只是不要指望一次通过。社区里也确实有百来星甚至五十星的项目通过了 —— 关键不在绝对数字，
-而在**「现实中是否真的有人在用、能被外部证实」**。
+以下全部是**从它的公开仓库配置里直接读到的**，不是推测：
 
-### 项目性质不是障碍（已核对）
+| 参数 | 值 |
+| --- | --- |
+| 项目 | `AniBakaBaka/AniBaka`（GPL-3.0，Dart/Flutter，动漫播放器，约 638 star） |
+| 证书主题 | `CN=SignPath Foundation, O=SignPath Foundation, C=US, S=DE, L=Lewes` |
+| Organization ID | `ad88b2e9-2cf4-4984-b56b-4f4d2e575e15` |
+| Project slug | `AniBaka` |
+| Artifact Configuration slug | `windows-release` |
+| Signing Policy | `release-signing`（另有 `test-signing` 策略，用于自签测试证书） |
+| 使用的 Action | `signpath/github-action-submit-signing-request@v2` |
+
+它把 Organization ID 这类**非保密值直接硬编码在 workflow 里**，只有 API token 放 Secret。
+
+它的签名链路（可作为我们的对照参考）：Fastforge 打包出 exe + msix + zip → 放进
+`signpath-input/` → 上传 artifact → 提交 SignPath 签名请求（`wait-for-completion: true`）
+→ 取回后用 `verify-windows-signing.ps1` 校验证书与签名，通过后才进 staging。
+它还用 `windows_signing_policy` 这个手动输入选项在三档策略之间切换。
+
+**它证明的事**：这条路是走得通的，同类项目拿到过 Foundation 证书。
+**它不能证明的事**：它的体量（638 star）比我们大得多，**所以它通过不等于我们能通过** ——
+它只说明「门槛存在但可达」，不说明门槛在哪。
+
+#### 项目类型不是障碍（已核对）
 
 SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量同类项目：游戏启动器
 （Bloxstrap、Heroic Games Launcher、Starward、TwintailLauncher）、游戏工具与 Mod 管理器
 （Genshin FPS Unlocker、DLSS Swapper、Balatro Mod Manager、Satisfactory Modding）、
-以及众多 B站 / Steam / 网易云相关的第三方客户端。**审核卡的从来不是「这算什么类型的软件」，
-而是「有多少人能证实它在被真实使用」** —— 所以申请材料要把重心放在使用证据上，不必为
-项目类型做任何辩护式说明。
+以及众多 B站 / Steam / 网易云相关的第三方客户端。
 
-### 如果决定申请，先把这些证据凑齐
+**从公开清单能读出的只有「这类软件没有被一刀切排除」**，至于某一类内容领域的具体项目
+是否会因内容性质被拒，公开资料里没有反例也没有正例可查 —— 这一点仍是未知，不要把它
+说成「已确认没问题」。清单能支持的说法只有「审核卡的更像是『有多少人能证实它在被真实
+使用』，而不是『这算什么类型的软件』」。
 
-申请表单会问「声誉证据」，能拿出下面任意几项会实质提高通过率：
+#### 我们的现状（事实陈述，不是被拒的论据）
+
+以下是本项目在写下时点的实际数据。它们**只描述现状**，不构成对审核结果的推断：
+
+| 指标 | 本项目 |
+| --- | --- |
+| GitHub star | 4 |
+| fork | 0 |
+| 累计 Release 下载 | 192（19 个版本，最多的一版 46 次） |
+| 外部讨论 / 文章 / 背书 | 未检索到 |
+
+（对照那份被拒样本的处境：回信里提到「fork 数，star 数太惨淡了」「其他社区也没有什么
+公开讨论」—— 两边描述的是同一类信号的强弱，但样本量仍是 1。）
+
+#### 如果决定申请，先把这些证据凑齐
+
+申请表单会问「声誉证据」，能拿出下面任意几项会实质提高通过率（**这一条是推测性建议，
+不是已核实的标准**）：
 
 - 外部讨论：Reddit / 贴吧 / 论坛 / B站 / YouTube 上提过这个项目的帖子或视频（链接）
 - 文章或博客介绍；任何机构、社群、Up 主的推荐
@@ -72,7 +113,7 @@ SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量�
 - 真实的用户反馈截图或讨论串
 
 > 这一节的意义不是劝退，而是把「提交了但被拒」和「按标准看确实还不够」区分开 ——
-> 后者不该被当成意外，也不该反复重提。
+> 后者不该被当成意外，也不该反复重提。**拒信允许以后再申请，所以提交本身没有代价。**
 
 ## 二、你需要做的（只有账号持有者能做）
 
@@ -91,11 +132,13 @@ SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量�
 
 登录 SignPath 控制台，在新建的 Organization 里：
 
-1. **Project** —— 记下它的 *slug*
+1. **Project** —— 记下它的 *slug*（AniBaka 用的是 `AniBaka`，即与仓库名同名）
 2. **Trusted Build System** —— 选预置的 *GitHub.com*，链接到上面的 Project
    （这一步让 SignPath 认可「产物确实由本仓库的 Actions 构建」，是免费签名能成立的前提）
 3. **Artifact Configuration** —— 见下面第三节，**根元素要用 `<zip-file>`**
+   （AniBaka 把它的 slug 取作 `windows-release`，含义是「面向 Windows 发布的产物集」）
 4. **Signing Policy** —— 绑定 Foundation 证书，例如 slug 取 `release-signing`
+   （AniBaka 就是 `release-signing`，另配了一个 `test-signing` 用于自签测试证书）
 
 ### 3. 把四个值填进 GitHub
 
@@ -114,7 +157,7 @@ SignPath 的[已收录项目清单](https://signpath.org/projects)里有大量�
 | `SIGNPATH_ORGANIZATION_ID` | 组织 id（GUID） |
 | `SIGNPATH_PROJECT_SLUG` | 第 2 步的 Project slug |
 | `SIGNPATH_POLICY_SLUG` | 签名策略 slug，如 `release-signing` |
-| `SIGNPATH_ARTIFACT_SLUG` | 产物配置 slug，如 `windows-artifacts` |
+| `SIGNPATH_ARTIFACT_SLUG` | 产物配置 slug，可参考 AniBaka 的 `windows-release` |
 
 **填完 `SIGNPATH_ORGANIZATION_ID` 的那一刻签名链路就启用了** —— 这正是指令里那个门控
 条件。所以四个值要一次填齐，否则会走到签名步骤才报错。
@@ -145,6 +188,11 @@ CI 把两个 exe 放在**同一个** artifact 里上传（SignPath 一次请求�
 > Inno Setup 的 `SignTool` 指令是另一条路（编译期签，能连卸载器一起签上）。本项目**没有**
 > 走它，原因是它需要本地 `signtool` + 证书文件，而 SignPath 是托管的 HSM，不给导出私钥。
 > 两者选一即可，不要同时配 —— 那会导致安装包被签两次或两次签名互相覆盖。
+>
+> 我们的方案是 **CI 侧签名（非编译期）**：编译产出未签名的 exe，打包之后再把产物交给
+> SignPath 签，签完放回原位。这与上面 AniBaka 的做法一致 —— 它同样是先用 Fastforge
+> 打包出 exe/msix/zip，再走 `signpath/github-action-submit-signing-request@v2` 提交签名。
+> 所以「CI 侧 Action 签名」不是我们退而求其次的将就，而是同类项目已经在用的常见形态。
 
 ## 四、接上之后会发生什么
 

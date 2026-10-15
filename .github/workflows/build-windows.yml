@@ -9,6 +9,19 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      # 签名策略开关。默认 none：手动 Run workflow 平时只是「验证某个提交能不能编译」，
+      # 不该顺手把产物提交到 SignPath 排队。要验签就显式选 test-signing（签完只验证链路，
+      # 不发布），正式出包才选 release-signing。
+      signing_policy:
+        description: '代码签名策略（none=不签名；test-signing=自签名测试证书；release-signing=正式签名）'
+        required: true
+        type: choice
+        default: none
+        options:
+          - none
+          - test-signing
+          - release-signing
 
 permissions:
   contents: write
@@ -21,6 +34,17 @@ concurrency:
 jobs:
   build-windows:
     runs-on: windows-latest
+    # 只写「会写入签名」的两种情况。tag 推送时 inputs 为空（tag 不是手动触发，没有输入），
+    # 默认表达式会直接给出 none —— 那发布包就静默不签名了。所以这里显式兜成 release-signing，
+    # 保证「打了 tag 就出签名包」这条既有承诺不因加了开关而失效。
+    # 反过来，PR 什么都不填 ⇒ none ⇒ 只编译，不浪费 SignPath 的签名额度。
+    env:
+      WINDOWS_SIGNING_POLICY: >-
+        ${{
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && 'release-signing')
+          || inputs.signing_policy
+          || 'none'
+        }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -143,26 +167,35 @@ jobs:
 
       # ---- 代码签名（SignPath Foundation 免费 OSS 签名）----
       #
-      # **默认不执行**：只有仓库里配好了 SignPath 的四个变量才会跑（见下面 `if`）。
-      # 没配时整步跳过，发布流程照常产出未签名包 —— 也就是「随时可以接上，
-      # 接不上也不会把发布卡住」。
+      # 三个签名步骤都带同一个门控：`env.SIGNPATH_API_TOKEN != ''`。
+      # 为什么用 secret 而不是 vars：四个 vars 漏填任何一个，都要等 SignPath 那一步
+      # 才炸（而且报的是「参数为空」这类看不出真因的错）；只留一个信号 —— 有没有 token ——
+      # 没有 token 就整段跳过、照常发未签名包，链路「随时能接上，接不上也不卡发布」。
+      #
+      # ⚠️ 四个 vars 在 SignPath 申请通过前都是**空字符串**，属正常状态：此时 token
+      #    也没配，门控直接跳过，下面这些 `||` 后的默认值不会被执行到，写它们只是
+      #    为了让 SignPath 那步即便被强行触发也有个可读的取值，不至于传空串过去。
       #
       # 为什么要把签名产物再走一遍发布：SignPath 是「把产物提交过去、它签好还回来」，
       # 签名后的文件与本地构建的不是同一个字节流，所以校验值和 Release 都要用签过的那份。
       #
       # 需要配置的（仓库 Settings → Secrets and variables → Actions）：
-      #   Secret   SIGNPATH_API_TOKEN          SignPath 的 CI 用户 API token
-      #   Variable SIGNPATH_ORGANIZATION_ID    组织 id（GUID）
+      #   Secret   SIGNPATH_API_TOKEN          SignPath 的 CI 用户 API token（配了才算启用）
+      #   Variable SIGNPATH_ORGANIZATION_ID    组织 id（GUID，裸值，不要写成 url:...）
       #   Variable SIGNPATH_PROJECT_SLUG       项目 slug
       #   Variable SIGNPATH_POLICY_SLUG        签名策略 slug（如 release-signing）
-      #   Variable SIGNPATH_ARTIFACT_SLUG      产物配置 slug（如 windows-installer）
+      #   Variable SIGNPATH_ARTIFACT_SLUG      产物配置 slug（如 windows-release）
       # 申请入口 https://signpath.org/apply ，条款 https://www.signpath.org/terms
       - name: Upload unsigned artifacts for signing
         id: upload-unsigned
-        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        if: env.WINDOWS_SIGNING_POLICY != 'none' && env.SIGNPATH_API_TOKEN != ''
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
         uses: actions/upload-artifact@v6
         with:
-          name: unsigned-artifacts
+          # 带上 run_id/run_attempt：同一个 tag 重跑时不会撞名（撞名会让旧 artifact
+          # 被覆盖或上传直接失败，导致拿错一份产物去签）。
+          name: unsigned-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           # 两份都要签，各自在 SignPath 里对应一个 Artifact Configuration：
           # - 安装包：用户双击的就是它，被判「未知发布者」的也是它
           # - 主程序 exe：免安装版解压后直接运行它，不签的话那条件照样被拦
@@ -173,23 +206,38 @@ jobs:
             build/Han1meWinPlus-Setup.exe
             build/windows/x64/runner/Release/han1me_win_plus.exe
           if-no-files-found: error
+          # 签完就没用了，别占仓库的 artifact 配额
+          retention-days: 1
 
       - name: Sign artifacts via SignPath
         id: signpath
-        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        if: env.WINDOWS_SIGNING_POLICY != 'none' && env.SIGNPATH_API_TOKEN != ''
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
         uses: signpath/github-action-submit-signing-request@v3
         with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_SLUG }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Han1meWinPlus' }}
+          # 策略 slug 由 workflow_dispatch 的输入直接给出（SignPath 的策略名就叫
+          # test-signing / release-signing）；没配 vars 时用 WINDOWS_SIGNING_POLICY 兜底。
+          signing-policy-slug: ${{ inputs.signing_policy || env.WINDOWS_SIGNING_POLICY }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_SLUG || 'windows-release' }}
           github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
           wait-for-completion: true
+          # 签名不是即时的：SignPath 排队 + 人工审批可能拖很久，默认超时会把发布打断。
+          # 4 小时给足余量，宁可等也不要在发布中途失败。
+          wait-for-completion-timeout-in-seconds: 14400
+          # 版本号要传给 SignPath 写进签名元数据；用 toJSON 包一层避免纯数字被 YAML
+          # 解析成数值（如 1.10 会被读成 1.1，签名元数据里版本号就错了）。
+          parameters: |
+            version: ${{ toJSON(steps.version.outputs.release_version) }}
           output-artifact-directory: signed
 
       - name: Replace artifacts with signed ones
-        if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        if: env.WINDOWS_SIGNING_POLICY != 'none' && env.SIGNPATH_API_TOKEN != ''
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
         shell: pwsh
         run: |
           # 按**文件名**认领，不能只取第一个 exe —— 签名的有两份（安装包 + 主程序），
