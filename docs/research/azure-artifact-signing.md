@@ -20,7 +20,7 @@
 | 中国大陆个人能否注册使用 | **不能。** 官方文档一致要求 Public Trust 证书的个人开发者必须位于**美国或加拿大**；中国大陆不在任何一份官方列表内 | 高（三份官方文档一致） |
 | 是否有个人成功案例 | 有，但**全部早于 2025-04-02**。中国大陆个人用身份证通过验证的教程停留在 2025-02 | 中（社区单一来源） |
 | 2025-04-02 起的政策 | 微软官方博客宣布**暂停个人开发者 onboarding**，新客户订阅仅限「美国/加拿大、且有 3 年以上可验证历史的组织」 | 高（微软官方博客原文） |
-| 2026 年是否恢复 | **未找到**任何微软公告宣布个人 onboarding 恢复或地理范围扩大。2026-09-11 更新的官方快速入门仍写个人限美加 | 中（以最新文档倒推，非正面声明） |
+| 2026 年是否恢复 | **未找到**任何微软公告宣布个人 onboarding 恢复或地理范围扩大。本轮（2026-10-16）抓取到的官方快速入门仍写个人限美加 | 中（以最新文档倒推，非正面声明） |
 | SmartScreen 是否立即信任 | **否。** 官方明确写「Artifact Signing 不提供即时 SmartScreen 信任」，与 OV 证书同一套声誉积累模型 | 高（官方原文，且与社区说法相反） |
 
 **对该申请者的直接判断**：以当前官方文档为准，Azure Artifact Signing 的 Public Trust 路径对「中国大陆个人开发者」**不可用**，且这不是需要准备材料就能绕过的门槛——地理限制写在资格层，且 2025-04-02 起个人通道本身处于暂停状态。下文第 3 节给出全部依据，第 9 节给出替代方向。
@@ -85,7 +85,7 @@ API 原始响应存盘于 `docs/research/_sources/azure-retail-prices-signing.js
 - Public 身份验证 → 仅适用于 Public Trust、Public Trust Test、VBS Enclave 证书配置文件类型。
 - Private 身份验证 → 仅适用于 Private Trust、Private Trust CI Policy；且**专用身份验证仅限组织**。
 
-**地理限制**（quickstart 原文，2026-09-11 更新版）：
+**地理限制**（quickstart 原文；下文「本轮抓取到的版本」指 2026-10-16 抓取的留档 `_sources/learn-artifact-signing-quickstart.md`）：
 > Public Trust certificates are available to organizations in the United States, Canada, the European Union, the United Kingdom, Australia, New Zealand, Japan, South Korea, Singapore, Switzerland, Norway, and Israel. **Individual developers must be located in the United States or Canada.** These geographic restrictions do not apply to Private Trust certificates.
 
 同一限制在另一份官方文档中以对比表形式重复（来源：<https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options>）：
@@ -112,7 +112,7 @@ API 原始响应存盘于 `docs/research/_sources/azure-retail-prices-signing.js
 
 - 组织可用范围：United States, Canada, European Union, United Kingdom, Australia, New Zealand, Japan, South Korea, Singapore, Switzerland, Norway, Israel。
 - 个人开发者可用范围：**United States 或 Canada**。
-- 来源：<https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart>（2026-09-11 更新）
+- 来源：<https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart>（本轮抓取时间为 **2026-10-16**；此处**不主张**页面自身的最后更新日期——该日期在留档文件中未获证实，报告早前版本曾写成一个具体日期，已更正）
 
 **2）身份验证页面上的国家/地区下拉列表只列出受支持地区，且不可手工填写。**
 
@@ -410,7 +410,7 @@ README 说明依赖缓存默认 `false`，理由是「GitHub Actions 缓存不�
 
 **（a）区域绑定：账号只能建在受支持区域，且无中国区域**
 
-quickstart 给出完整区域与 endpoint 对照表（共 14 个区域）：
+quickstart 给出完整区域与 endpoint 对照表（**共 15 个区域**——留档 `docs/research/_sources/learn-artifact-signing-quickstart.md` 的表格实际有 15 行，即 `brs` / `cus` / `eus` / `jpe` / `krc` / `ncus` / `neu` / `plc` / `scus` / `swn` / `wcus` / `weu` / `wus` / `wus2` / `wus3`；本报告早前版本曾误写「14 个」，此处更正）：
 
 | Region | Region class field | Endpoint URI |
 | --- | --- | --- |
@@ -448,7 +448,7 @@ quickstart 给出完整区域与 endpoint 对照表（共 14 个区域）：
 官方概念文档原文：「Artifact Signing does *not* support importing or exporting private keys and certificates. All certificates and keys that you use in Artifact Signing are managed inside **FIPS 140-2 Level 3** operated hardware crypto modules.」
 来源：<https://learn.microsoft.com/en-us/azure/artifact-signing/concept-certificate-management>
 
-> ⚠️ **注意此处两处官方表述不一致**：概念文档（证书管理）写 **FIPS 140-2 Level 3**，而 FAQ 写「What is the Artifact Signing compliance level? — **FIPS 140-3 Level 3.**」（<https://learn.microsoft.com/en-us/azure/artifact-signing/faq>）。本报告并列两者，不推测哪个为准。
+> ⚠️ **注意此处官方文档内部不一致**：同一份概念文档（证书管理）**自身就有两种写法**——正文第 71 行写 **FIPS 140-3 Level 3**（"Secure key generation, storage, and usage in FIPS 140-3 Level 3 hardware crypto modules"），而同文件第 77 行的原文引用块写 **FIPS 140-2 Level 3**；FAQ 侧则写「What is the Artifact Signing compliance level? — **FIPS 140-3 Level 3.**」（<https://learn.microsoft.com/en-us/azure/artifact-signing/faq>）。本报告并列两者，**不推测哪个为准**。（更正说明：本报告早前版本把这条不一致描述为「概念文档 vs FAQ 两处」，实际是概念文档自身第 71/77 行先不一致，FAQ 只是第三种来源，此处更正。）
 
 **（e）证书配置文件的持久身份靠自定义 EKU**
 
@@ -548,9 +548,11 @@ FAQ 明确列出会导致失败的因素：不要用弱 Wi-Fi、**不要使用�
 
 **这不是「材料准备不足」的问题，而是资格层的地理限制。** 截至 2026-10-16 抓取到的全部官方文档一致把个人开发者限定在美国或加拿大，中国大陆不在任何一份官方支持列表中。
 
+> **证据强度说明（重要）**：本案「不可用」的判定**不依赖** 2025-04-02 博客里「for the remainder of the preview」这句暂停措辞——该措辞绑定了「预览期」这一可能已经过期的前提，而本轮又**未找到 GA 公告**（第 9 节），因此「暂停是否仍然生效」本身是有疑问的。**真正承重的是两条与时点无关的地理限制**：官方 quickstart 明写「Individual developers must be located in the United States or Canada」，官方 Windows 文档的对比表同样写「Individuals: USA and Canada only」；**即便个人 onboarding 明天恢复，中国大陆开发者仍然不符合地理条件**。因此博客那条只作为「2025 年发生过什么」的历史记录，不作为本案结论的前提。
+
 ### 尚未确定的事项（影响结论的强度）
 
-1. **个人 onboarding 是否已恢复**：本轮**未找到**正面声明。现有推断基于「2026-09-11 更新的 quickstart 仍写个人限美加」这一间接证据。若微软恢复个人 onboarding，**仍需个人开发者位于美国或加拿大**，因此对本申请者的结论不变。
+1. **个人 onboarding 是否已恢复**：本轮**未找到**正面声明。现有推断基于「2026-10-16 抓取到的官方 quickstart 仍写个人限美加」这一间接证据（该页面的历史更新时点本轮**未能从留档中证实**）。若微软恢复个人 onboarding，**仍需个人开发者位于美国或加拿大**，因此对本申请者的结论不变。
 2. ~~**超额单价 0.005 还是 0.01**~~ —— **已在收尾复核中排除**：先前看到的 `0.01` 是 PowerShell `Format-Table` 对 `0.005` 的显示舍入，非 API 返回值。连续三次读取 JSON 原值均为 `0.005`，两个官方渠道一致。此项不再是未确定项。
 3. **MSI / PowerShell / ClickOnce 的逐类支持情况**：官方只给「所有 SignTool 支持的类型」，未逐类确认。
 4. **「暂停个人 onboarding」的最新状态**：官方博客原文发布于 2025-04-02，本轮**未找到**后续的恢复公告；社区在 2026 年仍报告被地理限制或验证供应商卡住（见第 3 节）。
@@ -579,7 +581,7 @@ FAQ 明确列出会导致失败的因素：不要用弱 Wi-Fi、**不要使用�
 | 9 | <https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool> | 官方文档 | HTTP GET（MicrosoftDocs/win32 raw markdown） | `docs/research/_sources/learn-signtool-cmd.md` |
 | 10 | <https://learn.microsoft.com/en-us/windows/win32/seccrypto/cryptography-tools> | 官方文档 | HTTP GET（raw markdown） | `docs/research/_sources/learn-crypto-tools.md` |
 | 11 | <https://learn.microsoft.com/en-us/azure/artifact-signing/concept-certificate-management> | 官方文档 | HTTP GET | `docs/research/_sources/learn-concept-certificate-management.md` |
-| 12 | <https://learn.microsoft.com/en-us/azure/artifact-signing/concept-trust-models> | 官方文档 | HTTP GET | `docs/research/_sources/learn-concept-trust-models.md` |
+| 12 | <https://learn.microsoft.com/en-us/azure/artifact-signing/concept-trust-models> | 官方文档 | HTTP GET | `docs/research/_sources/learn-concept-trust-models.md`（**未在正文中直接引用**；用于确认 Public Trust 证书链与「Private Trust 证书在任何根程序与 Windows 中均不被默认信任」这一背景，支撑第 10 节 Private Trust 一行的判定） |
 | 13 | <https://learn.microsoft.com/en-us/answers/questions/2238411/how-do-i-do-trusted-signing-identity-verification> | 社区（含微软员工/版主回复） | HTTP GET | — |
 | 14 | <https://learn.microsoft.com/en-us/answers/questions/5810735/cant-create-a-new-trusted-signing-individual-ident> | 社区（含 AI 回答） | HTTP GET | — |
 | 15 | <https://learn.microsoft.com/en-us/answers/questions/5960832/azure-artifact-signing-individual-identity-verific> | 社区 | HTTP GET | — |
