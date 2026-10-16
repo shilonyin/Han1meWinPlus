@@ -222,6 +222,12 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
+> The sentence above is the exact wording SignPath requires on the download page (the
+> `Download URL` field). **This project is not currently enrolled in that programme**
+> (the application was not approved), so the sentence describes the arrangement *once
+> signing is in place*, not a fact that holds today — see "Signing status" below for the
+> current state.
+
 This project's release artifacts (`Han1meWinPlus-Setup.exe`, and `han1me_win_plus.exe`
 inside the portable archive) are built automatically by GitHub Actions from this
 repository's sources. **These artifacts are currently unsigned**: the free SignPath

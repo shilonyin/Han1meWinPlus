@@ -222,6 +222,10 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
+> 上面这句是 SignPath 要求的声明原文（表单 `Download URL` 一栏要求下载页出现它）。
+> **本项目当前尚未接入该通道**（申请未通过），所以这句话描述的是**接入后的安排，不是
+> 已生效的事实** —— 当前真实状态见下方「签名现状」。
+
 本项目的发行产物（`Han1meWinPlus-Setup.exe` 与免安装版内的 `han1me_win_plus.exe`）由
 GitHub Actions 在本仓库源码上自动构建。**当前这些产物没有签名**：SignPath Foundation 的
 免费签名申请[已被拒绝](#签名现状)，理由是项目缺少外部可验证的知名度（星标、第三方讨论、
