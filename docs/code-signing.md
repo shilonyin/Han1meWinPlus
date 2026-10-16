@@ -5,9 +5,15 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 通道 —— 它对符合条件的公开 OSS 项目免费签发，私钥存在 SignPath 的 HSM 上，不需要自己
 买证书、也不需要 USB token。
 
-> 这份文档是**待办清单**，不是已完成记录。截至写下时点，CI 接入已就绪（含手动验签开关），
-> 但**申请尚未提交**，因此仓库里还没有 `SIGNPATH_*` 配置，签名步骤会被自动跳过，
-> 发布流程照旧产出未签名包。
+> **申请已提交并被拒绝**（2026 年）。拒信理由是项目缺少外部可验证的知名度 —— 评估维度
+> 包括社区采纳度、独立引用或讨论、外部文章或机构背书、持续活跃与用户参与的证据。条款中
+> **没有等待期，也没有申请次数限制**，项目知名度提高后可以重申。
+>
+> 因此本仓库当前**没有任何签名**：所有发行产物 `Get-AuthenticodeSignature` 均为
+> `NotSigned`，CI 里也没有 `SIGNPATH_*` 配置，签名步骤被门控自动跳过。
+>
+> 文档第二、三节保留为**重申时的操作手册**（CI 侧接入已就绪，重新获批后照做即可）；
+> 第六节列出已核实过的其他途径及其排除理由。
 
 ---
 
@@ -17,26 +23,34 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 | --- | --- |
 | CI 签名步骤（`.github/workflows/build-windows.yml`） | ✅ 已写好，带门控，未配置时自动跳过 |
 | 仓库资格（公开 / OSS 许可 / GH Actions 构建） | ✅ 满足 |
-| 审核先例与门槛 | ⚠️ 无公开量化标准；已有同类项目通过（见下一节） |
-| SignPath 账号与申请 | ❌ **未提交**（需要账号持有人操作） |
-| 仓库 Secrets / Variables | ❌ 未配置（等申请通过） |
-| SignPath 侧的 Project / 策略 / 产物配置 | ❌ 未配置（等申请通过） |
+| 审核先例与门槛 | ✅ 已明确：**卡的是外部可验证的知名度**，非资格、非项目类型 |
+| SignPath 账号与申请 | ❌ **已提交，未通过**（2026 年） |
+| 当前发行产物签名 | ❌ 未签名（`Get-AuthenticodeSignature` = `NotSigned`） |
+| 仓库 Secrets / Variables | ❌ 未配置（无签名通道可接） |
+| SignPath 侧的 Project / 策略 / 产物配置 | ❌ 未配置 |
 
 资格核对的依据：仓库 `shilonyin/Han1meWinPlus` 公开、AGPL-3.0（OSI 认可）、构建全程在
 GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项目的核心要求。
 
-### 审核标准未知，但有已通过的先例，且项目类型不是障碍
+### 审核门槛：已由本项目的实际申请结果确认
 
-**先说事实层面能确定的部分**：SignPath Foundation 明面上只写了「公开 OSS 项目」这类条件，
-**它实际用什么样的门槛去筛，公开资料里没有量化标准**。所以任何「我们能不能过」的判断
-都只能是推测，不该被写成结论。
+**结论先说**：卡的不是资格，也不是项目类型，而是**外部可验证的知名度**。这一条不是推测 ——
+本项目在 2026 年提交申请后被拒，拒信给出的正是这个理由，与下面那份被拒样本揭示的评估维度
+完全一致。
 
-下面把这个题目里的三块材料分开摆：一份**被拒**的样本、一个**已通过**的先例、以及
-**我们自己的现状数据**。
+下面把三块材料分开摆：**本项目自己的被拒结果**、一份**公开的被拒样本**、一个**已通过的
+先例**。
 
-#### 一份被拒样本揭示的审核维度
+#### 本项目的申请结果（第一手）
 
-一份 2026-06 被拒申请的官方回信原文，列出了它评估时看的东西：
+- 申请时间：2026 年
+- 结果：**未通过**
+- 理由：项目缺少**外部可验证的声誉信号**（external verification signals）
+- 重申条件：条款中无等待期、无申请次数限制；知名度提高后可重新申请
+
+#### 那份公开样本揭示的评估维度
+
+同一套维度在一份 2026-06 被拒申请的官方回信原文里写得更细：
 
 > Community adoption (e.g., GitHub stars, forks, contributors)
 > Independent references or discussions (Reddit, Stack Overflow, YouTube, etc.)
@@ -48,10 +62,9 @@ GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项�
 > the quality or potential of your work. The Foundation program is designed specifically
 > for projects that have already established a certain level of public trust and visibility.
 
-（来源：**一份** 2026-06 被拒申请的公开记录，[v2ex.com/t/1218906](https://v2ex.com/t/1218906)）
+（来源：2026-06 被拒申请的公开记录，[v2ex.com/t/1218906](https://v2ex.com/t/1218906)）
 
-**这是 n=1 的样本**，只能说明「外部可证实的声誉」确实是它看重的维度之一，
-**不能用来估计通过率**。用它推出「我们大概率被拒」是把单点样本当成了分布。
+这份样本与本项目的被拒结果指向同一组维度，两者的措辞几乎可以相互替换。
 
 #### 一个已通过的先例：AniBaka
 
@@ -75,8 +88,8 @@ GitHub 托管的 Actions runner 上跑 —— 这三点是 SignPath 对 OSS 项�
 它还用 `windows_signing_policy` 这个手动输入选项在三档策略之间切换。
 
 **它证明的事**：这条路是走得通的，同类项目拿到过 Foundation 证书。
-**它不能证明的事**：它的体量（638 star）比我们大得多，**所以它通过不等于我们能通过** ——
-它只说明「门槛存在但可达」，不说明门槛在哪。
+**它不能证明的事**：它的体量（638 star）比我们大得多 —— 对照本项目被拒的结果，可以看出
+**门槛落在知名度这一侧**，而不在资格或项目类型那一侧。
 
 #### 项目类型不是障碍（已核对）
 
@@ -92,33 +105,35 @@ Satisfactory Modding）、以及众多 B站 / Steam / 网易云相关的第三�
 说成「已确认没问题」。清单能支持的说法只有「审核卡的更像是『有多少人能证实它在被真实
 使用』，而不是『这算什么类型的软件』」。
 
-#### 我们的现状（事实陈述，不是被拒的论据）
+#### 我们的现状（申请被拒的实际数据）
 
-以下是本项目在写下时点的实际数据。它们**只描述现状**，不构成对审核结果的推断：
+以下数据取自 `gh` 实测（2026-10-16），也正是被拒时项目所处的状态：
 
 | 指标 | 本项目 |
 | --- | --- |
 | GitHub star | 4 |
 | fork | 0 |
+| watcher | 0 |
 | 仓库年龄 | 约 1 个月（创建于 2026-09-13） |
-| 累计 Release 下载 | 212（19 个版本，最多的一版 73 次） |
+| 累计 Release 下载 | 259（19 个版本，最多的一版 46 次） |
 | 外部讨论 / 文章 / 背书 | 未检索到 |
 
-（对照那份被拒样本的处境：回信里提到「fork 数，star 数太惨淡了」「其他社区也没有什么
-公开讨论」—— 两边描述的是同一类信号的强弱，但样本量仍是 1。）
+（对照那份公开样本的处境：回信里提到「fork 数，star 数太惨淡了」「其他社区也没有什么
+公开讨论」—— 同一类信号的强弱。）
 
-#### 如果决定申请，先把这些证据凑齐
+#### 重申之前，先把这些证据凑齐
 
-申请表单会问「声誉证据」，能拿出下面任意几项会实质提高通过率（**这一条是推测性建议，
-不是已核实的标准**）：
+拒信与条款都没有给出量化门槛，但从评估维度反推，下列证据是直接对应的（**反推关系明确，
+具体到多少才够仍是未知**）：
 
 - 外部讨论：Reddit / 贴吧 / 论坛 / B站 / YouTube 上提过这个项目的帖子或视频（链接）
 - 文章或博客介绍；任何机构、社群、Up 主的推荐
 - 持续活跃的证据：issue 与 PR（哪怕是别人的）、历史版本下载量的增长
 - 真实的用户反馈截图或讨论串
 
-> 这一节的意义不是劝退，而是把「提交了但被拒」和「按标准看确实还不够」区分开 ——
-> 后者不该被当成意外，也不该反复重提。**拒信允许以后再申请，所以提交本身没有代价。**
+> 提交本身没有代价 —— 条款里没有等待期与次数限制，拒信也写明欢迎在知名度提高后重申。
+> 但**在证据没变的情况下重复提交只会再收到同一封拒信**，所以重申前应当先让上面的信号发生
+> 变化。
 
 ## 二、你需要做的（只有账号持有者能做）
 
@@ -267,12 +282,41 @@ Get-AuthenticodeSignature .\Han1meWinPlus-Setup.exe |
 
 `Status` 为 `Valid` 才算成功。`UnknownError` / `NotSigned` 表示没签上。
 
-## 六、如果申请被拒或不想等
+## 六、申请被拒之后的其他途径
 
-- **Azure Trusted Signing** —— 约 $10/月，微软自己的可信签名，需要身份验证，能过
-  Smart App Control
-- **Certum Open Source Code Signing** —— 约 €30/年的 OSS 优惠 OV 证书
-- **自签名** —— 免费但对分发**没用**：Windows 不信任自签根，该拦还是拦
+以下每一条都经过一手来源核实（官方定价页、官方知识库、Microsoft 官方文档），**价格取自官方
+原文而非二手估算**。完整来源清单与逐条原文见
+[`research/code-signing-options.md`](research/code-signing-options.md)。
+
+### 6.1 可行
+
+| 途径 | 到手成本（1 年，官方价） | 说明 |
+| --- | --- | --- |
+| **Certum Open Source Code Signing in the Cloud** | **€49** | **首选**。官方明文 `Open Source Code Signing are issued only for individuals`，组织字段填 `Open Source Developer`；云端交付，无需硬件、无跨境寄送。每月 5000 次签名上限，证书 459 天后需重签发，不得用于商业分发软件 |
+| Certum Open Source Code Signing set（实体卡版） | €69 + 运费 €35 = **€104** | 同样只发给自然人，加密卡与读卡器含在 €69 内。代价是跨境寄送（官方配送表逐字含 `China €35.00`）、卡不可退、可能产生关税 |
+| SSL.com IV（Individual Validation） | **$129** | 官方写 `Business entity required: No`，面向 `Independent developers, open source maintainers`。**下单前须确认是否强制搭配 $379 的硬件令牌** —— 若强制，实际首年成本是 $508 |
+| OSSign（`ossign.org`） | **€0** | 除 SignPath 外唯一找到的免费同类计划，但**当前暂停受理**（`Applications are currently suspended due to a high workload and large backlog`），且要求 6 个月以上活跃度；运营方身份未公开，信任锚在该组织而非项目方 |
+
+### 6.2 已排除
+
+| 途径 | 排除理由 |
+| --- | --- |
+| **EV 档（任何 CA）** | Microsoft 官方文档明写 `EV certificates no longer bypass SmartScreen`、`Paying a premium for EV solely to avoid SmartScreen warnings is no longer justified`。OV 与 EV 在 SmartScreen 上待遇已趋同（`Same as OV since 2024 — no longer instant bypass`），多付钱没有额外收益 |
+| **Azure Trusted Signing** | Microsoft 官方表格 `Individuals: USA and Canada only` —— 中国大陆个人不可用；且 2025-04-02 起个人开发者 onboarding 本身已暂停 |
+| **DigiCert** | 官方配置器的 Validation 维度只有 OV / EV，**没有个人档**；`Starting at $44 / month / certificate` |
+| **GlobalSign** | 区域选项以公司法定注册地为据，列表无中国大陆，且官方明文 `Tokens will not be shipped outside of the Region you select`；OV 标价 $529/年 |
+| **中国国内 CA**（沃通、上海 CA 等） | 证书组织字段必须填营业执照上的中文名称 —— 沃通官方原文 `中文版的软件发行商名称为公司中文名称,也就是营业执照上的中文名称`，个人过不了主体资格 |
+| **自签名** | 免费但对分发**没用**：Windows 不信任自签根，该拦还是拦 |
+
+### 6.3 收益预期要调低
+
+**任何证书都不能消除首次下载时的 SmartScreen 警告。** 官方口径是靠时间与下载量累积信誉
+（`several weeks and hundreds of clean installs`）。付费证书买到的是「发布者身份可验证」——
+把「未知发布者」换成可识别的名字，这与 SignPath 免费证书的收益完全相同。
+
+> 顺带纠正一条常见误解：CA/B Forum 自 2023-06 起要求 **OV 的私钥也存于 HSM / 硬件令牌**，
+> 所以「买 OV 可以省掉硬件」也是错的。免硬件的唯一路径是云端签名服务（如 Certum 的
+> in the Cloud 档或 SSL.com 的 eSigner）。
 
 ## 七、相关文件
 

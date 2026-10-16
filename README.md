@@ -89,10 +89,11 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 
 > 下载这一个文件、双击即可安装，不需要其它配套文件。
 >
-> 发行包使用 **SignPath Foundation** 提供的免费代码签名（Free code signing provided by
-> [SignPath.io](https://about.signpath.io), certificate by
-> [SignPath Foundation](https://signpath.org)）。签名生效后，属性 → 数字签名 里会显示
-> SignPath Foundation。详见[代码签名政策](#代码签名政策)。
+> **安装包目前没有代码签名**，所以属性 → 数字签名 是空的，Windows 首次运行会提示
+> 「未知发布者」。计划使用 **SignPath Foundation** 提供的免费代码签名（Free code signing
+> provided by [SignPath.io](https://about.signpath.io), certificate by
+> [SignPath Foundation](https://signpath.org)），但申请未通过，见
+> [代码签名政策](#代码签名政策)与[可选的签名途径](#可选的签名途径)。
 
 免安装版：`Han1meWinPlus-windows-x64.zip` —— 解压即用，运行 `han1me_win_plus.exe`（[直接下载](../../releases/latest/download/Han1meWinPlus-windows-x64.zip)）
 
@@ -122,7 +123,7 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 <details>
 <summary>首次运行提示「未知发布者」或被杀毒软件拦截？</summary>
 
-安装包尚未做代码签名（正式签名的接入见 [docs/code-signing.md](docs/code-signing.md)），这是未签名程序的正常提示。点「更多信息」→「仍要运行」即可，也可以直接下载免安装版解压运行。
+安装包尚未做代码签名（免费签名通道的申请未通过；其他可选途径见 [docs/code-signing.md](docs/code-signing.md)），这是未签名程序的正常提示。点「更多信息」→「仍要运行」即可，也可以直接下载免安装版解压运行。
 
 </details>
 
@@ -213,7 +214,7 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 > tag 必须是 `v` + 数字版本开头（`v1.1.9`、`v1.1.9-win.1` 都可以）。应用内「检查更新」只解析 tag 的前三段数字，写成 `win-v1.1.9` 会被当成 `0.0.0`，永远检测不到更新。tag 与 `pubspec.yaml` 版本不一致时 CI 会直接失败，避免发出对不上号的包。
 
 > [!NOTE]
-> 要不要给安装包做数字签名，走的是 [SignPath Foundation](https://signpath.org/) 的免费开源通道，接入步骤与当前进度见 [docs/code-signing.md](docs/code-signing.md)。签名生效前，Windows 首次运行可能提示「未知发布者」，属正常现象。
+> 给安装包做数字签名，第一选择是 [SignPath Foundation](https://signpath.org/) 的免费开源通道，但**申请未通过**（理由是项目缺少外部可验证的知名度）。尚未接入任何签名，Windows 首次运行可能提示「未知发布者」，属正常现象。其余可选途径见 [可选的签名途径](#可选的签名途径)。
 
 ## 代码签名政策
 
@@ -222,8 +223,9 @@ iscc /DMyAppVersion=1.1.21 windows/installer.iss
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
 本项目的发行产物（`Han1meWinPlus-Setup.exe` 与免安装版内的 `han1me_win_plus.exe`）由
-GitHub Actions 在本仓库源码上自动构建，并提交 SignPath 签名；签名只覆盖本项目自己构建的
-二进制，不含任何第三方预编译文件。
+GitHub Actions 在本仓库源码上自动构建。**当前这些产物没有签名**：SignPath Foundation 的
+免费签名申请[已被拒绝](#签名现状)，理由是项目缺少外部可验证的知名度（星标、第三方讨论、
+外部引用等）。签名一旦接入，只会覆盖本项目自己构建的二进制，不含任何第三方预编译文件。
 
 ### 团队角色
 
@@ -237,8 +239,38 @@ GitHub Actions 在本仓库源码上自动构建，并提交 SignPath 签名；�
 
 若日后有其他维护者加入，角色划分会在此处与仓库权限组同步更新。
 
-> 当前签名通道的接入进度见 [docs/code-signing.md](docs/code-signing.md)。
-> 在签名正式生效前，Windows 首次运行可能提示「未知发布者」，属正常现象。
+> 当前未接入任何签名通道；其余可选途径见下文「可选的签名途径」，申请与备查材料见
+> [docs/code-signing.md](docs/code-signing.md)。签名生效前，Windows 首次运行可能提示
+> 「未知发布者」，属正常现象。
+
+### 签名现状
+
+**当前所有发行产物均未签名**（`Get-AuthenticodeSignature` 返回 `NotSigned`）。2026 年提交的
+SignPath Foundation 免费签名申请未通过，拒信给出的理由是项目缺少外部可验证的知名度——
+评估维度包括社区采纳度（星标、fork、贡献者）、独立引用或讨论、外部文章或机构背书、持续
+活跃与用户参与的证据。条款中没有等待期与申请次数限制，项目知名度提高后可以重申。
+
+因此，安装时显示「未知发布者」是当前的真实状态，不是配置遗漏。
+
+### 可选的签名途径
+
+除 SignPath Foundation 的免费通道外，其余可行途径与排除理由如下（价格与条款原文、来源清单
+见 [docs/research/code-signing-options.md](docs/research/code-signing-options.md)）：
+
+| 途径 | 到手成本（1 年，官方价） | 判断 |
+| --- | --- | --- |
+| **Certum Open Source Code Signing in the Cloud** | €49 | **可行首选**。官方明文只发给自然人（`issued only for individuals`），云端交付无需硬件、无跨境寄送 |
+| Certum Open Source Code Signing set（实体卡版） | €69 + 运费 €35 = €104 | 可行，代价是跨境寄送、卡不可退 |
+| SSL.com IV（Individual Validation） | $129 | 官方写明无需企业实体；须先确认是否强制搭配 $379 硬件令牌 |
+| OSSign | €0 | 同类免费代签，但当前暂停受理，且要求 6 个月以上活跃度 |
+| EV 档（任何 CA） | — | **排除**。Microsoft 官方口径：`EV certificates no longer bypass SmartScreen`，多付钱没有额外收益 |
+| Azure Trusted Signing | — | **排除**。Microsoft 官方表格写 `Individuals: USA and Canada only`，中国大陆个人不可用 |
+| DigiCert / GlobalSign | — | **排除**。前者配置器只有 OV / EV 无个人档；后者区域以公司法定注册地为据、令牌不跨区寄送 |
+| 中国国内 CA（沃通、上海 CA 等） | — | **排除**。证书组织字段须填营业执照上的中文名称，个人过不了主体资格 |
+
+需要提醒的是：**任何证书都不能消除首次下载时的 SmartScreen 提示**。官方口径是靠时间与下载量
+累积信誉（`several weeks and hundreds of clean installs`），证书买到的是「发布者身份可验证」，
+即把「未知发布者」换成可识别的名字。
 
 ### 隐私政策
 

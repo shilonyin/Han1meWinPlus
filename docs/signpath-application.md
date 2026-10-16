@@ -1,5 +1,8 @@
 # SignPath Foundation 申请草稿
 
+> **现状：申请已被拒（理由为外部可验证的声誉不足），本页仅作重申时的备用参考。**
+> 重申条件与已核实的替代途径见 [`code-signing.md`](code-signing.md)。
+
 > 申请入口：<https://signpath.org/apply>（站内导航「Apply」）——页面内嵌一个 HubSpot 表单，
 > 直接往下滚就能看到，**没有独立的表单页 URL**。
 >
