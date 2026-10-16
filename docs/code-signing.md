@@ -9,6 +9,11 @@ Authenticode 签名。本项目走 [SignPath Foundation](https://signpath.org/) 
 > 包括社区采纳度、独立引用或讨论、外部文章或机构背书、持续活跃与用户参与的证据。条款中
 > **没有等待期，也没有申请次数限制**，项目知名度提高后可以重申。
 >
+> 依据说明：拒信是 SignPath Foundation 发给申请人的**邮件通知**，本仓库不含该邮件的副本，
+> 因此「已申请、被拒、理由为知名度不足」这一条是**申请人的转述**，不是仓库内可复核的物证。
+> 仓库内可独立复核的只有「当前未签名」这一半（见下表）。若日后要引用本次申请结果，请以
+> 申请人邮箱中的原信为准。
+>
 > 因此本仓库当前**没有任何签名**：所有发行产物 `Get-AuthenticodeSignature` 均为
 > `NotSigned`，CI 里也没有 `SIGNPATH_*` 配置，签名步骤被门控自动跳过。
 >
@@ -140,25 +145,27 @@ Satisfactory Modding）、以及众多 B站 / Steam / 网易云相关的第三�
 ### 0. 提交前必须满足的硬性条件（已逐条核对条款）
 
 SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成立**的条件，不是通过后再补。
-下面是把条款逐条对照本项目的结果：
+下面是把条款逐条对照本项目的结果。**来源分两类，别混为一谈**：多数行出自[条款页](https://signpath.org/terms)；
+标了「表单」的行出自申请表单里对应字段的说明文字 —— 前者是「申请前就必须成立」，后者是
+「那一栏要求你填的页面长什么样」，两者都是硬性要求但出处不同：
 
-| 条款要求 | 本项目 | 状态 |
-| --- | --- | --- |
-| 不含恶意软件 / 潜在不受欢迎程序 | — | ✅ |
-| OSI 认可许可，无商业双授权 | AGPL-3.0 | ✅ |
-| 不含专有代码 | 全部源码公开 | ✅ |
-| 持续维护中 | 一个月内 19 个版本 | ✅ |
-| 已发布（即要签的形态已存在） | 19 个 Release | ✅ |
-| 下载页说明功能 | README | ✅ |
-| **下载页出现 SignPath Foundation 字样** | README 下载一节（表单 `Download URL` 的硬性要求） | ✅ |
-| **主页写明「Code signing policy」** | README「代码签名政策」一节 | ✅ |
-| **隐私政策** | README「代码签名政策 → 隐私政策」 | ✅ |
-| **指定 Authors / Reviewers / Approvers** | README 角色表（单人项目，三角色同一人） | ✅ |
-| 只签自己的项目与二进制 | 构建产物全部来自本仓库 | ✅ |
-| 不修改系统配置而不告知 | 只写 `%APPDATA%` / `%LOCALAPPDATA%` | ✅ |
-| 提供卸载 | 安装包自带卸载器 | ✅ |
-| **所有成员启用 MFA** | GitHub 账号 | ⚠️ **请自行确认已开启两步验证** |
-| **产物元数据 product name / version 一致** | `ProductName=Han1meWinPlus`、两份二进制 `ProductVersion` 相同 | ✅ |
+| 要求 | 出处 | 本项目 | 状态 |
+| --- | --- | --- | --- |
+| 不含恶意软件 / 潜在不受欢迎程序 | 条款 | — | ✅ |
+| OSI 认可许可，无商业双授权 | 条款 | AGPL-3.0 | ✅ |
+| 不含专有代码 | 条款 | 全部源码公开 | ✅ |
+| 持续维护中 | 条款 | 一个月内 19 个版本 | ✅ |
+| 已发布（即要签的形态已存在） | 条款 | 19 个 Release | ✅ |
+| 下载页说明功能 | 条款 | README | ✅ |
+| **下载页出现 SignPath Foundation 字样** | 表单（`Download URL` 字段说明；字段本身非必填） | README 下载一节 | ✅ |
+| **主页写明「Code signing policy」** | 条款 | README「代码签名政策」一节 | ✅ |
+| **隐私政策** | 条款 | README「代码签名政策 → 隐私政策」 | ✅ |
+| **指定 Authors / Reviewers / Approvers** | 条款 | README 角色表（单人项目，三角色同一人） | ✅ |
+| 只签自己的项目与二进制 | 条款 | 构建产物全部来自本仓库 | ✅ |
+| 不修改系统配置而不告知 | 条款 | 只写 `%APPDATA%` / `%LOCALAPPDATA%` | ✅ |
+| 提供卸载 | 条款 | 安装包自带卸载器 | ✅ |
+| **所有成员启用 MFA** | 条款 | GitHub 账号 | ⚠️ **请自行确认已开启两步验证** |
+| **产物元数据 product name / version 一致** | 条款 | `ProductName=Han1meWinPlus`、两份二进制 `ProductVersion` 相同 | ✅ |
 
 > 条款原文里「Specify a code signing policy」要求主页出现 **Code signing policy** 这个词，
 > 并在同一处给出「Free code signing provided by SignPath.io, certificate by SignPath
@@ -284,9 +291,15 @@ Get-AuthenticodeSignature .\Han1meWinPlus-Setup.exe |
 
 ## 六、申请被拒之后的其他途径
 
-以下每一条都经过一手来源核实（官方定价页、官方知识库、Microsoft 官方文档），**价格取自官方
-原文而非二手估算**。完整来源清单与逐条原文见
+以下每一条的价格都取自**本次实际打开的官方页面原文**，不是二手估算或训练数据里的旧价。
+完整来源清单（含每条 URL 与官方/二手/过时标注）见
 [`research/code-signing-options.md`](research/code-signing-options.md)。
+
+**物证留存情况（如实说明，勿高估）**：仓库内留有原始页面副本的**只有 Microsoft / Azure 那
+一部分** —— `docs/research/_sources/` 下 28 份文件（官方 learn 页面 markdown、定价页 HTML、
+零售价 API JSON）。Certum、SSL.com、OSSign、DigiCert、GlobalSign、沃通这几家的核实过程记在
+`docs/research/notes/` 的六份取证笔记里（含引用的原文句子与 URL），**未留存原始页面副本** ——
+这些站点价格与条款变动频繁，要复核请照笔记里的 URL 重取。
 
 ### 6.1 可行
 

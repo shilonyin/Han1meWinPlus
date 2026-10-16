@@ -172,7 +172,7 @@ Q&A 帖「Azure Artifact Signing individual identity verification blocked after 
 
 **（d）中国大陆个人的历史成功案例（现已失效）**
 
-第三方教程《[完整版]70元个人EV代码签名申请教程-工件签名Artifact Signing（原受信任签名Trusted Signing）》（2025-02-13）记录了完整的中国大陆个人申请路径：注册即用即付订阅 → 创建 Trusted Signing 账户（Basic 9.9 美元/月）→ 分配 Code Signing Identity Verifier 角色 → 切换为 Individual → New identity → Public → 填写身份证信息（国家选 "China"、省市用中文、邮编用身份证实际邮编）→ 通过 AU10TIX 扫描身份证人像面 + 人脸 → 等待约 10 分钟收到通过邮件。
+第三方教程《[完整版]70元个人EV代码签名申请教程-工件签名Artifact Signing（原受信任签名Trusted Signing）》（2025-02-13）记录了完整的中国大陆个人申请路径：注册即用即付订阅 → 创建 Trusted Signing 账户（Basic 9.99 USD/月）→ 分配 Code Signing Identity Verifier 角色 → 切换为 Individual → New identity → Public → 填写身份证信息（国家选 "China"、省市用中文、邮编用身份证实际邮编）→ 通过 AU10TIX 扫描身份证人像面 + 人脸 → 等待约 10 分钟收到通过邮件。
 来源：<https://sign.94xy.com/trusted-signing/>
 
 同一页面顶部现已加上警示：
@@ -207,7 +207,7 @@ FAQ 与 quickstart 中均未使用 OV/EV 分级措辞。可确认的相关事实
 > **SmartScreen behavior:** New files can show a SmartScreen warning until they accumulate sufficient reputation. Azure Artifact Signing does **not** provide instant SmartScreen trust, but signing consecutive releases with a consistent publisher/signing identity lets publisher reputation build over time, so later releases can inherit trust.
 
 同一文档的对比表把 Artifact Signing 与 OV 证书标为**同一种 SmartScreen 行为**：
-> | Azure Artifact Signing (formerly Trusted Signing) | ~$9.99/month | ... | ⚠️ Reputation builds over time; initial warnings expected |
+> | Azure Artifact Signing (formerly Trusted Signing) | ~$9.99 USD/month | ... | ⚠️ Reputation builds over time; initial warnings expected |
 > | OV certificate | $150–300/year | ... | ⚠️ Same as Azure Artifact Signing — reputation builds over time |
 > | EV certificate | $400+/year | ... | ⚠️ Same as OV since 2024 — no longer instant bypass |
 
@@ -234,7 +234,7 @@ FAQ 侧的说法与此一致（来源：<https://learn.microsoft.com/en-us/azure
 ### 💬 社区转述 / 个人经验（与官方说法冲突，请注意）
 
 第三方教程《[完整版]70元个人EV代码签名申请教程》（2025-02-13）明确声称 Artifact Signing 的效果**等同 EV、可立即获得 SmartScreen 信誉**：
-> 只需要 9.9 美元/月，即可获得等同于市面上普遍在 4000 元的 EV 代码签名证书同等的效果：**立即消除未知发布者警告、直接获得信誉**
+> 只需要 9.99 USD/月，即可获得等同于市面上普遍在 4000 元的 EV 代码签名证书同等的效果：**立即消除未知发布者警告、直接获得信誉**
 > 申请成功签名后，可立即消除"未知发布者"警告、直接获得 Microsoft SmartScreen 信誉……**效果等同 EV**
 
 来源：<https://sign.94xy.com/trusted-signing/>
@@ -525,7 +525,7 @@ FAQ 明确列出会导致失败的因素：不要用弱 Wi-Fi、**不要使用�
 **（d）价格：本轮未发现 2025–2026 年间的价格变动证据**
 
 - Azure 零售价 API 中三个 meter 的 `effectiveStartDate` 均为 **2024/06/01**，即本轮抓取到的最早生效日期，未出现 2025 或 2026 年新生效的价格条目。
-- 定价页与 API 的月费（9.99 / 99.99）与超额单价（0.005 USD/签名）**两个官方渠道完全一致**，未发现价格调整痕迹。
+- 定价页与 API 的月费（9.99 USD / 99.99 USD）与超额单价（0.005 USD/签名）**两个官方渠道完全一致**，未发现价格调整痕迹。
 来源：<https://prices.azure.com/api/retail/prices?$filter=contains(serviceName,'Signing')>、<https://azure.microsoft.com/en-us/pricing/details/artifact-signing/>
 
 ### ❌ 未找到
