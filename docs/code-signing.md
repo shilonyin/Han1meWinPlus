@@ -315,7 +315,7 @@ Get-AuthenticodeSignature .\Han1meWinPlus-Setup.exe |
 | 途径 | 排除理由 |
 | --- | --- |
 | **EV 档（任何 CA）** | Microsoft 官方文档明写 `EV certificates no longer bypass SmartScreen`、`Paying a premium for EV solely to avoid SmartScreen warnings is no longer justified`。OV 与 EV 在 SmartScreen 上待遇已趋同（`Same as OV since 2024 — no longer instant bypass`），多付钱没有额外收益 |
-| **Azure Trusted Signing** | Microsoft 官方表格 `Individuals: USA and Canada only` —— 中国大陆个人不可用；且 2025-04-02 起个人开发者 onboarding 本身已暂停 |
+| **Azure Trusted Signing**（现名 Azure Artifact Signing） | Microsoft 官方 quickstart 明写 `Individual developers must be located in the United States or Canada`，官方对比表同样写 `Individuals: USA and Canada only`，组织名单也不含中国大陆 —— **中国大陆个人在资格层就被排除**。另有 2025-04-02 微软博客宣布暂停个人 onboarding，但该措辞绑定「预览期」前提且未找到 GA 公告，**不作为承重理由**：即便个人通道恢复，地理限制仍在 |
 | **DigiCert** | 官方配置器的 Validation 维度只有 OV / EV，**没有个人档**；`Starting at $44 / month / certificate` |
 | **GlobalSign** | 区域选项以公司法定注册地为据，列表无中国大陆，且官方明文 `Tokens will not be shipped outside of the Region you select`；OV 标价 $529/年 |
 | **中国国内 CA**（沃通、上海 CA 等） | 证书组织字段必须填营业执照上的中文名称 —— 沃通官方原文 `中文版的软件发行商名称为公司中文名称,也就是营业执照上的中文名称`，个人过不了主体资格 |
