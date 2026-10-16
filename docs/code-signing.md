@@ -135,6 +135,7 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 | 持续维护中 | 一个月内 19 个版本 | ✅ |
 | 已发布（即要签的形态已存在） | 19 个 Release | ✅ |
 | 下载页说明功能 | README | ✅ |
+| **下载页出现 SignPath Foundation 字样** | README 下载一节（表单 `Download URL` 的硬性要求） | ✅ |
 | **主页写明「Code signing policy」** | README「代码签名政策」一节 | ✅ |
 | **隐私政策** | README「代码签名政策 → 隐私政策」 | ✅ |
 | **指定 Authors / Reviewers / Approvers** | README 角色表（单人项目，三角色同一人） | ✅ |
@@ -142,7 +143,7 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 | 不修改系统配置而不告知 | 只写 `%APPDATA%` / `%LOCALAPPDATA%` | ✅ |
 | 提供卸载 | 安装包自带卸载器 | ✅ |
 | **所有成员启用 MFA** | GitHub 账号 | ⚠️ **请自行确认已开启两步验证** |
-| **产物元数据 product name / version 一致** | `ProductName=Han1meWinPlus`、两份二进制 `ProductVersion` 同为 `1.1.27+38` | ✅ |
+| **产物元数据 product name / version 一致** | `ProductName=Han1meWinPlus`、两份二进制 `ProductVersion` 相同 | ✅ |
 
 > 条款原文里「Specify a code signing policy」要求主页出现 **Code signing policy** 这个词，
 > 并在同一处给出「Free code signing provided by SignPath.io, certificate by SignPath
@@ -154,12 +155,20 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 
 ### 1. 提交申请
 
-到 <https://signpath.org/apply> 申请 **Foundation（免费 OSS）** 计划，填入：
+到 <https://signpath.org/apply> 申请 **Foundation（免费 OSS）** 计划。页面内嵌一个
+HubSpot 表单，**逐字段该填什么见 [`signpath-apply-checklist.md`](signpath-apply-checklist.md)**。
 
-- 仓库地址 `https://github.com/shilonyin/Han1meWinPlus`
-- 许可证：AGPL-3.0
-- 项目简介：Windows 桌面客户端（Flutter），替代网页端观看体验
-- 维护者身份
+表单共 20 项，几个容易踩的点先记在这里：
+
+- **`Download URL` 有硬性要求**：表单原话 *"This page must mention that the project uses
+  the SignPath Foundation for code signing."* —— 下载页必须提到 SignPath Foundation。
+  `README.md` / `README.en.md` 的下载一节已补上这句，**别删**。
+- **`Category` 下拉只有 10 个值**，没有「视频 / 媒体播放器」类，选 `Other`。
+- **`Build System` 下拉只有两个值**：`GitHub Actions` / `GitLab CI/CD`。选前者。
+- **`Tagline` 可能被公开展示**在 SignPath 官网上，写成中性准确的一句话。
+- **`Reputation` 是唯一拿不出强证据的字段**，如实写 + 附上能给的量化数据，不要编。
+- 表单**没有** License 字段、没有产物清单字段、没有条款自检字段 —— 那些内容只作为
+  邮件追问时的备查材料留在 `signpath-application.md` 第 14 节。
 
 审核是人工的，通过后会给你一个 SignPath **Organization**。
 
@@ -270,3 +279,6 @@ Get-AuthenticodeSignature .\Han1meWinPlus-Setup.exe |
 - 签名步骤：[`.github/workflows/build-windows.yml`](../../.github/workflows/build-windows.yml)（搜 `SignPath`）
 - 安装包脚本：[`windows/installer.iss`](../../windows/installer.iss)
 - 安装器选型调研：[`windows-installer-options.md`](windows-installer-options.md)
+- 申请表逐字段填写清单：[`signpath-apply-checklist.md`](signpath-apply-checklist.md)
+- 申请正文成文版：[`signpath-application.md`](signpath-application.md)
+- 通过后的控制台配置步骤：[`signpath-setup.md`](signpath-setup.md)
