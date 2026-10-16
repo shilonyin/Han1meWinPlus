@@ -88,6 +88,12 @@ For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 **[Han1meWinPlus-Setup.exe](../../releases/latest)** — single file, Start-menu shortcut, clean uninstall ([direct download](../../releases/latest/download/Han1meWinPlus-Setup.exe))
 
 > Download this one file and double-click it; no companion files are needed.
+>
+> Release binaries use free code signing from **SignPath Foundation** (Free code signing
+> provided by [SignPath.io](https://about.signpath.io), certificate by
+> [SignPath Foundation](https://signpath.org)). Once signing is active, Properties →
+> Digital Signatures shows SignPath Foundation. See the
+> [Code signing policy](#code-signing-policy).
 
 Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
 

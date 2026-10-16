@@ -88,6 +88,11 @@ Han1meWinPlus 是一款 Windows 客户端，基础代码来自 [Han1mePlus](http
 **[Han1meWinPlus-Setup.exe](../../releases/latest)** —— 单文件，带开始菜单快捷方式，可正常卸载（[直接下载](../../releases/latest/download/Han1meWinPlus-Setup.exe)）
 
 > 下载这一个文件、双击即可安装，不需要其它配套文件。
+>
+> 发行包使用 **SignPath Foundation** 提供的免费代码签名（Free code signing provided by
+> [SignPath.io](https://about.signpath.io), certificate by
+> [SignPath Foundation](https://signpath.org)）。签名生效后，属性 → 数字签名 里会显示
+> SignPath Foundation。详见[代码签名政策](#代码签名政策)。
 
 免安装版：`Han1meWinPlus-windows-x64.zip` —— 解压即用，运行 `han1me_win_plus.exe`（[直接下载](../../releases/latest/download/Han1meWinPlus-windows-x64.zip)）
 
