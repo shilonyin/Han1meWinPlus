@@ -59,9 +59,24 @@ void main() {
       expect(historyNeighbours([_entry('a', 100)], '').hasNext, isFalse);
     });
 
-    test('当前视频不在历史里 → 两头都没有', () {
+    test('当前视频不在历史里 → 上一条是最新那条，下一条没有', () {
       final history = [_entry('a', 100), _entry('b', 200)];
       final result = historyNeighbours(history, 'z');
+
+      expect(
+        result.previous?.videoCode,
+        'b',
+        reason: '刚点开的新视频还没进历史，箭头不能全灰——上一条给「上次看的」',
+      );
+      expect(
+        result.hasNext,
+        isFalse,
+        reason: '当前视频就是最新的，没有「下一条」',
+      );
+    });
+
+    test('历史为空时两头都没有', () {
+      final result = historyNeighbours(const [], 'z');
 
       expect(result.hasPrevious, isFalse);
       expect(result.hasNext, isFalse);

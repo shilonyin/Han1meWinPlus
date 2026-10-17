@@ -30,9 +30,10 @@ class HistoryNeighbours {
 ///   「上一条」不该还是自己。
 /// - **按 createdAt 升序排**。`histories` 是 append 出来的，正常已经有序，但
 ///   WebDAV 同步合并后的顺序不保证，排序不依赖输入顺序。
-/// - **当前视频不在历史里就都没有**。刚从首页点开、还没看够时长
-///   （`_watchThresholdMs`）时它确实还没被记下，这时两个箭头都置灰——比「凭空
-///   插到最新位置」更好预测。
+/// - **当前视频不在历史里时，把最新一条当作它的上一条**。刚从首页点开、还没
+///   看够时长（`_watchThresholdMs`）时它确实还没被记下。早先这里让两个箭头都
+///   置灰，结果是「点开任何新视频，箭头都是灰的」——功能看起来根本没做。改成
+///   锚在最新位置之后：此时上一条是「我上次看的」，下一条没有（还没看新的）。
 HistoryNeighbours historyNeighbours(
   List<WatchHistory> history,
   String videoCode,
@@ -43,6 +44,7 @@ HistoryNeighbours historyNeighbours(
       .where((entry) => entry.videoCode.isNotEmpty)
       .toList(growable: false)
     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  if (ordered.isEmpty) return const HistoryNeighbours();
 
   var anchor = -1;
   for (var i = ordered.length - 1; i >= 0; i--) {
@@ -51,7 +53,10 @@ HistoryNeighbours historyNeighbours(
       break;
     }
   }
-  if (anchor < 0) return const HistoryNeighbours();
+  if (anchor < 0) {
+    // 不在历史里：当前视频视为排在最新一条之后。
+    return HistoryNeighbours(previous: ordered.last, next: null);
+  }
 
   WatchHistory? previous;
   for (var i = anchor - 1; i >= 0; i--) {
