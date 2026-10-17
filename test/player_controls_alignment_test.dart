@@ -119,12 +119,15 @@ void main() {
       source = File('lib/src/features/video/video_player_controls.dart').readAsStringSync();
     });
 
-    /// 取底部按钮行那一段源码（从 row 变量定义到处）。
+    /// 取底部按钮行那一段源码（从 row 变量定义到「返回 row」之前）。
+    ///
+    /// 不要按 `final row = Row(children: [` 匹配：dart format 会把这一行拆成
+    /// `final row = Row(` + `children: [`，字面量匹配会失效。
     String controlsRowSource() {
-      final start = source.indexOf('final row = Row(children: [');
+      final start = source.indexOf('final row = Row(');
       expect(start, greaterThanOrEqualTo(0), reason: '找不到底部按钮行的定义，测试需要跟着结构更新');
-      final end = source.indexOf(']);', start);
-      expect(end, greaterThan(start));
+      final end = source.indexOf('if (!tight) return row;', start);
+      expect(end, greaterThan(start), reason: '找不到按钮行的结束位置，测试需要跟着结构更新');
       return source.substring(start, end);
     }
 

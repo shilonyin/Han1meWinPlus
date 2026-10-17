@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_surface_tokens.dart';
-import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../data/local/keyframe_repository.dart';
 import '../../domain/models/video.dart';
@@ -23,16 +24,37 @@ import '../shared/motion_icon.dart';
 /// 这里的两个滑块在深色控制条上要自己盖一套白轨道（见
 /// [AppSurfaceTokens.darkTrackTheme]）。
 const double _progressBarHeight = 48;
+
+/// 悬浮控制条离画面左右边与底边的距离。
+///
+/// 控制条不再贴底通栏，而是浮在画面上的一枚圆角条：留出这段距离才有「悬浮」
+/// 的观感，它同时也是暂停标记等浮层的定位基准。
+const double _controlsInset = 12;
+
 /// 音量面板的固定尺寸（大约是半尺寸，不要占满播放器）与和进度条之间的间距。
 const double _volumePanelWidth = 40;
 const double _volumePanelHeight = 100;
 const double _volumePanelGap = 8;
+
 /// 竖排滑杆的长度与宽度（旋转 270° 后长度就是面板里的竖向轨道）。
 const double _volumeSliderLength = 70;
 const double _volumeSliderThickness = 30;
 
 class VideoPlayerControls extends StatelessWidget {
-  const VideoPlayerControls({required this.controller, required this.fullscreen, required this.onFullscreen, required this.onInteraction, required this.video, required this.quality, required this.onQualitySelected, required this.onSuperResolutionSelected, this.onNext, this.onEpisodeSelected, this.onFloat, super.key});
+  const VideoPlayerControls({
+    required this.controller,
+    required this.fullscreen,
+    required this.onFullscreen,
+    required this.onInteraction,
+    required this.video,
+    required this.quality,
+    required this.onQualitySelected,
+    required this.onSuperResolutionSelected,
+    this.onNext,
+    this.onEpisodeSelected,
+    this.onFloat,
+    super.key,
+  });
   final VideoPlayerController controller;
   final bool fullscreen;
   final Future<void> Function() onFullscreen;
@@ -43,124 +65,283 @@ class VideoPlayerControls extends StatelessWidget {
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
+
   /// 弹出系统级悬浮窗（独立窗口）。非桌面端不传。
   final VoidCallback? onFloat;
 
   @override
   Widget build(BuildContext context) => Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: DecoratedBox(
-          // 底衬压在视频画面上：两阶线性的 [transparent, black87] 会在中段
-          // 浮出一道看得见的硬边（马赫带），改用非线性停靠点让消散平滑收尾。
-          decoration: BoxDecoration(
-            gradient: ProgressiveFade.bottomSolid(Colors.black87),
-          ),
-          child: ValueListenableBuilder<VideoPlayerValue>(
-            valueListenable: controller,
-            builder: (context, value, _) {
-              final l10n = AppLocalizations.of(context)!;
-              final progress = value.duration == Duration.zero ? 0.0 : value.position.inMilliseconds / value.duration.inMilliseconds;
-              // 已缓冲到的位置：直接画在进度条轨道上，卡住时一眼能看出
-              // 是「缓冲没跟上」还是别的问题（比如解码/渲染卡住时缓冲条是跑在前面的）。
-              final buffered = value.buffered.isEmpty ? Duration.zero : value.buffered.last.end;
-              final bufferedFraction = value.duration.inMilliseconds == 0 ? 0.0 : (buffered.inMilliseconds / value.duration.inMilliseconds).clamp(0.0, 1.0);
-              return Column(mainAxisSize: MainAxisSize.min, children: [
-                SizedBox(
-                  height: _progressBarHeight,
-                  child: SliderTheme(
-                    data: AppSurfaceTokens.darkTrackTheme.copyWith(
-                      trackHeight: 3,
-                      trackShape: _BufferedTrackShape(fraction: bufferedFraction),
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                      // 2024 版的轨道要让开 6px 的缺口：播放头（白竖条）齐到轨道端点时
-                      // 会压进缝里，改用形状齐平、没有缺口的 2023 版轨道。
-                      // 只有浮动标签那类样式在 2024 版，这里显式补上和 2023 版一样的两种形状。
-                      valueIndicatorShape: const DropSliderValueIndicatorShape(),
-                      valueIndicatorColor: Colors.white,
-                      valueIndicatorTextStyle: TextStyle(color: Colors.black.withValues(alpha: 0.87)),
-                      year2023: true,
-                    ),
-                    child: Slider(value: progress.clamp(0, 1).toDouble(), onChanged: (next) { controller.seekTo(Duration(milliseconds: (next * value.duration.inMilliseconds).round())); onInteraction(); }),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-                  child: LayoutBuilder(builder: (context, constraints) {
-                    // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
-                    final roomy = constraints.maxWidth >= 620;
-                    // 画中画小窗（380 逻辑像素）里，7 个 48px 按钮加时间文本要 440px，
-                    // 必然溢出、右侧的全屏/画中画被裁掉。用 IconButtonTheme 把这一行的
-                    // 按钮统一收到 32px —— Skip 与音量是各自独立的组件，只有主题能一次
-                    // 改到它们内部的 IconButton。
-                    final tight = constraints.maxWidth < 420;
-                    final row = Row(children: [
-                      PressScale(child: IconButton(color: Colors.white, tooltip: value.isPlaying ? l10n.pause : l10n.play, visualDensity: VisualDensity.compact, onPressed: () { value.isPlaying ? controller.pause() : controller.play(); onInteraction(); }, icon: MotionStateIcon(icon: value.isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded))),
-                      if (onNext != null) PressScale(child: IconButton(color: Colors.white, tooltip: l10n.autoPlayNext, visualDensity: VisualDensity.compact, onPressed: onNext, icon: const Icon(Symbols.skip_next_rounded))),
-                      // 快进按钮：从顶部条移到左下角控制行
-                      VideoPlayerSkipButton(controller: controller, onInteraction: onInteraction),
-                      VideoPlayerVolumeButton(controller: controller, onInteraction: onInteraction),
-                      // 时间文本：固定宽度，不参与 flex。
-                      //
-                      // 实测（test/player_controls_alignment_test.dart）：把它包进
-                      // Flexible(flex:1) 会与后面的 Spacer(flex:1) 平分剩余空间，
-                      // 窄窗口下确实能自动收缩防溢出，但**宽窗口下会让整行铺不满、
-                      // 右侧按钮离开右缘上百像素**（1000 逻辑像素时实测偏 130.8px）。
-                      // 实测时间文本自身宽度 197.3px 在任何宽度下都够用，真正会溢出
-                      // 的是右侧那一组菜单，所以防溢出交给下面的 Expanded，而不是这里。
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text('${_formatDuration(value.position)} / ${_formatDuration(value.duration)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontFeatures: [FontFeature.tabularFigures()])),
-                      ),
-                      // 右侧按钮组：吃掉剩余空间并右对齐。
-                      //
-                      // 用 Expanded + Align 而不是「Spacer + 固定子节点」：Expanded 会把
-                      // 剩余宽度全部拿走后交给 Align 右对齐，右侧按钮因此始终贴右缘；
-                      // 而里面加一层 SingleChildScrollView(horizontal) 让**极窄窗口**下
-                      // 按钮组自己可横向滚动，而不是把这一行撑破（原 Flexible 写法的用意）。
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            reverse: true,
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              if (roomy) ...[
-                                _AspectMenu(),
-                                if (onEpisodeSelected != null && video.playlist.isNotEmpty) _EpisodeMenu(video: video, onSelected: onEpisodeSelected!),
-                                _Anime4KMenu(onSelected: onSuperResolutionSelected),
-                                if (video.sources.isNotEmpty) _QualityMenu(sources: video.sources, quality: quality, onSelected: onQualitySelected),
-                                _SpeedMenu(controller: controller, onInteraction: onInteraction),
-                                AndroidCastButton(sources: video.sources, quality: quality),
-                              ] else
-                                VideoPlayerPortraitMoreMenu(controller: controller, video: video, quality: quality, onQualitySelected: onQualitySelected, onSuperResolutionSelected: onSuperResolutionSelected),
-                              PressScale(child: IconButton(color: Colors.white, tooltip: fullscreen ? l10n.exitFullscreen : l10n.fullscreenPlayback, visualDensity: VisualDensity.compact, onPressed: onFullscreen, icon: Icon(fullscreen ? Symbols.fullscreen_exit_rounded : Symbols.fullscreen_rounded))),
-                              if (onFloat != null) PressScale(child: IconButton(color: Colors.white, tooltip: l10n.floatWindow, visualDensity: VisualDensity.compact, onPressed: onFloat, icon: const Icon(Symbols.picture_in_picture_rounded))),
-                            ]),
+    left: _controlsInset,
+    right: _controlsInset,
+    bottom: _controlsInset,
+    // 悬浮圆角条：半透明黑底 + 背景模糊，压在视频画面上而不遮满底部。
+    //
+    // 不再用贴底通栏的渐隐底衬（[ProgressiveFade.bottomSolid]）：那条把画面
+    // 下半截整体压暗，和「浮起来的一枚控制条」是两种观感。边框只画一圈极淡
+    // 的白线，让条子在有亮有暗的画面上都能看出边界。
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: .48),
+            child: ValueListenableBuilder<VideoPlayerValue>(
+              valueListenable: controller,
+              builder: (context, value, _) {
+                final l10n = AppLocalizations.of(context)!;
+                final progress = value.duration == Duration.zero
+                    ? 0.0
+                    : value.position.inMilliseconds /
+                          value.duration.inMilliseconds;
+                // 已缓冲到的位置：直接画在进度条轨道上，卡住时一眼能看出
+                // 是「缓冲没跟上」还是别的问题（比如解码/渲染卡住时缓冲条是跑在前面的）。
+                final buffered = value.buffered.isEmpty
+                    ? Duration.zero
+                    : value.buffered.last.end;
+                final bufferedFraction = value.duration.inMilliseconds == 0
+                    ? 0.0
+                    : (buffered.inMilliseconds / value.duration.inMilliseconds)
+                          .clamp(0.0, 1.0);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: _progressBarHeight,
+                      child: SliderTheme(
+                        data: AppSurfaceTokens.darkTrackTheme.copyWith(
+                          trackHeight: 3,
+                          trackShape: _BufferedTrackShape(
+                            fraction: bufferedFraction,
                           ),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 6,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 14,
+                          ),
+                          // 2024 版的轨道要让开 6px 的缺口：播放头（白竖条）齐到轨道端点时
+                          // 会压进缝里，改用形状齐平、没有缺口的 2023 版轨道。
+                          // 只有浮动标签那类样式在 2024 版，这里显式补上和 2023 版一样的两种形状。
+                          valueIndicatorShape:
+                              const DropSliderValueIndicatorShape(),
+                          valueIndicatorColor: Colors.white,
+                          valueIndicatorTextStyle: TextStyle(
+                            color: Colors.black.withValues(alpha: 0.87),
+                          ),
+                          year2023: true,
+                        ),
+                        child: Slider(
+                          value: progress.clamp(0, 1).toDouble(),
+                          onChanged: (next) {
+                            controller.seekTo(
+                              Duration(
+                                milliseconds:
+                                    (next * value.duration.inMilliseconds)
+                                        .round(),
+                              ),
+                            );
+                            onInteraction();
+                          },
                         ),
                       ),
-                    ]);
-                    if (!tight) return row;
-                    return IconButtonTheme(
-                      data: const IconButtonThemeData(
-                        style: ButtonStyle(
-                          minimumSize: WidgetStatePropertyAll(Size(32, 32)),
-                          padding: WidgetStatePropertyAll(EdgeInsets.zero),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
+                          final roomy = constraints.maxWidth >= 620;
+                          // 画中画小窗（380 逻辑像素）里，7 个 48px 按钮加时间文本要 440px，
+                          // 必然溢出、右侧的全屏/画中画被裁掉。用 IconButtonTheme 把这一行的
+                          // 按钮统一收到 32px —— Skip 与音量是各自独立的组件，只有主题能一次
+                          // 改到它们内部的 IconButton。
+                          final tight = constraints.maxWidth < 420;
+                          final row = Row(
+                            children: [
+                              PressScale(
+                                child: IconButton(
+                                  color: Colors.white,
+                                  tooltip: value.isPlaying
+                                      ? l10n.pause
+                                      : l10n.play,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    value.isPlaying
+                                        ? controller.pause()
+                                        : controller.play();
+                                    onInteraction();
+                                  },
+                                  icon: MotionStateIcon(
+                                    icon: value.isPlaying
+                                        ? Symbols.pause_rounded
+                                        : Symbols.play_arrow_rounded,
+                                  ),
+                                ),
+                              ),
+                              if (onNext != null)
+                                PressScale(
+                                  child: IconButton(
+                                    color: Colors.white,
+                                    tooltip: l10n.autoPlayNext,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: onNext,
+                                    icon: const Icon(Symbols.skip_next_rounded),
+                                  ),
+                                ),
+                              // 快进按钮：从顶部条移到左下角控制行
+                              VideoPlayerSkipButton(
+                                controller: controller,
+                                onInteraction: onInteraction,
+                              ),
+                              VideoPlayerVolumeButton(
+                                controller: controller,
+                                onInteraction: onInteraction,
+                              ),
+                              // 时间文本：固定宽度，不参与 flex。
+                              //
+                              // 实测（test/player_controls_alignment_test.dart）：把它包进
+                              // Flexible(flex:1) 会与后面的 Spacer(flex:1) 平分剩余空间，
+                              // 窄窗口下确实能自动收缩防溢出，但**宽窗口下会让整行铺不满、
+                              // 右侧按钮离开右缘上百像素**（1000 逻辑像素时实测偏 130.8px）。
+                              // 实测时间文本自身宽度 197.3px 在任何宽度下都够用，真正会溢出
+                              // 的是右侧那一组菜单，所以防溢出交给下面的 Expanded，而不是这里。
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFeatures: [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // 右侧按钮组：吃掉剩余空间并右对齐。
+                              //
+                              // 用 Expanded + Align 而不是「Spacer + 固定子节点」：Expanded 会把
+                              // 剩余宽度全部拿走后交给 Align 右对齐，右侧按钮因此始终贴右缘；
+                              // 而里面加一层 SingleChildScrollView(horizontal) 让**极窄窗口**下
+                              // 按钮组自己可横向滚动，而不是把这一行撑破（原 Flexible 写法的用意）。
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    reverse: true,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (roomy) ...[
+                                          _AspectMenu(),
+                                          if (onEpisodeSelected != null &&
+                                              video.playlist.isNotEmpty)
+                                            _EpisodeMenu(
+                                              video: video,
+                                              onSelected: onEpisodeSelected!,
+                                            ),
+                                          _Anime4KMenu(
+                                            onSelected:
+                                                onSuperResolutionSelected,
+                                          ),
+                                          if (video.sources.isNotEmpty)
+                                            _QualityMenu(
+                                              sources: video.sources,
+                                              quality: quality,
+                                              onSelected: onQualitySelected,
+                                            ),
+                                          _SpeedMenu(
+                                            controller: controller,
+                                            onInteraction: onInteraction,
+                                          ),
+                                          AndroidCastButton(
+                                            sources: video.sources,
+                                            quality: quality,
+                                          ),
+                                        ] else
+                                          VideoPlayerPortraitMoreMenu(
+                                            controller: controller,
+                                            video: video,
+                                            quality: quality,
+                                            onQualitySelected:
+                                                onQualitySelected,
+                                            onSuperResolutionSelected:
+                                                onSuperResolutionSelected,
+                                          ),
+                                        PressScale(
+                                          child: IconButton(
+                                            color: Colors.white,
+                                            tooltip: fullscreen
+                                                ? l10n.exitFullscreen
+                                                : l10n.fullscreenPlayback,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            onPressed: onFullscreen,
+                                            icon: Icon(
+                                              fullscreen
+                                                  ? Symbols
+                                                        .fullscreen_exit_rounded
+                                                  : Symbols.fullscreen_rounded,
+                                            ),
+                                          ),
+                                        ),
+                                        if (onFloat != null)
+                                          PressScale(
+                                            child: IconButton(
+                                              color: Colors.white,
+                                              tooltip: l10n.floatWindow,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              onPressed: onFloat,
+                                              icon: const Icon(
+                                                Symbols
+                                                    .picture_in_picture_rounded,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                          if (!tight) return row;
+                          return IconButtonTheme(
+                            data: const IconButtonThemeData(
+                              style: ButtonStyle(
+                                minimumSize: WidgetStatePropertyAll(
+                                  Size(32, 32),
+                                ),
+                                padding: WidgetStatePropertyAll(
+                                  EdgeInsets.zero,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            child: row,
+                          );
+                        },
                       ),
-                      child: row,
-                    );
-                  }),
-                ),
-              ]);
-            },
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// 在原本的进度条轨道下面先画一段「已缓冲」的亮色。
@@ -188,11 +369,20 @@ class _BufferedTrackShape extends RoundedRectSliderTrackShape {
     bool isEnabled = false,
     double additionalActiveTrackHeight = 2,
   }) {
-    final rect = getPreferredRect(parentBox: parentBox, offset: offset, sliderTheme: sliderTheme, isEnabled: isEnabled, isDiscrete: isDiscrete);
+    final rect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
     final width = rect.width * fraction.clamp(0.0, 1.0);
     if (width > 0 && rect.height > 0) {
       context.canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(rect.left, rect.top, width, rect.height), Radius.circular(rect.height / 2)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(rect.left, rect.top, width, rect.height),
+          Radius.circular(rect.height / 2),
+        ),
         Paint()..color = Colors.white54,
       );
     }
@@ -214,85 +404,128 @@ class _BufferedTrackShape extends RoundedRectSliderTrackShape {
 
 /// 左下角的音量入口：点开后用竖排滑杆调音量（桌面端调的是播放器音量）。
 class VideoPlayerVolumeButton extends StatelessWidget {
-  const VideoPlayerVolumeButton({required this.controller, required this.onInteraction, super.key});
+  const VideoPlayerVolumeButton({
+    required this.controller,
+    required this.onInteraction,
+    super.key,
+  });
   final VideoPlayerController controller;
   final VoidCallback onInteraction;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
-        valueListenable: controller,
-        builder: (context, value, _) => MenuAnchor(
-          // 控制条贴在播放器底部，音量面板固定弹在按钮正上方（对齐按钮左上角）
-          // 半透明圆角面板，压在进度条上方而不是盖住它
-          style: const MenuStyle(
-            alignment: Alignment.topLeft,
-            padding: WidgetStatePropertyAll(EdgeInsets.zero),
-            backgroundColor: WidgetStatePropertyAll(Color(0x99000000)),
-            surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-            elevation: WidgetStatePropertyAll(0),
-            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)))),
+  Widget build(
+    BuildContext context,
+  ) => ValueListenableBuilder<VideoPlayerValue>(
+    valueListenable: controller,
+    builder: (context, value, _) => MenuAnchor(
+      // 控制条贴在播放器底部，音量面板固定弹在按钮正上方（对齐按钮左上角）
+      // 半透明圆角面板，压在进度条上方而不是盖住它
+      style: const MenuStyle(
+        alignment: Alignment.topLeft,
+        padding: WidgetStatePropertyAll(EdgeInsets.zero),
+        backgroundColor: WidgetStatePropertyAll(Color(0x99000000)),
+        surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        elevation: WidgetStatePropertyAll(0),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
           ),
-          menuChildren: [
-            SizedBox(
-              width: _volumePanelWidth,
-              height: _volumePanelHeight,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 6, 5, 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SizedBox(
-                      height: _volumeSliderLength,
-                      // 旋转 270° 让滑杆变成下小上大的竖条
-                      child: RotatedBox(
-                        quarterTurns: 3,
-                        child: SizedBox(
-                          width: _volumeSliderLength,
-                          height: _volumeSliderThickness,
-                          child: ValueListenableBuilder<VideoPlayerValue>(
-                            valueListenable: controller,
-                            builder: (context, current, _) => SliderTheme(
-                              data: AppSurfaceTokens.darkTrackTheme.copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-                                inactiveTrackColor: Colors.white30,
-                                year2023: true,
-                              ),
-                              child: Slider(
-                                value: current.volume.clamp(0.0, 1.0).toDouble(),
-                                onChanged: (next) {
-                                  controller.setVolume(next);
-                                  onInteraction();
-                                },
-                              ),
+        ),
+      ),
+      menuChildren: [
+        SizedBox(
+          width: _volumePanelWidth,
+          height: _volumePanelHeight,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 6, 5, 6),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  height: _volumeSliderLength,
+                  // 旋转 270° 让滑杆变成下小上大的竖条
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: SizedBox(
+                      width: _volumeSliderLength,
+                      height: _volumeSliderThickness,
+                      child: ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: controller,
+                        builder: (context, current, _) => SliderTheme(
+                          data: AppSurfaceTokens.darkTrackTheme.copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 5,
                             ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 10,
+                            ),
+                            inactiveTrackColor: Colors.white30,
+                            year2023: true,
+                          ),
+                          child: Slider(
+                            value: current.volume.clamp(0.0, 1.0).toDouble(),
+                            onChanged: (next) {
+                              controller.setVolume(next);
+                              onInteraction();
+                            },
                           ),
                         ),
                       ),
                     ),
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: controller,
-                      builder: (context, current, _) => Text('${(current.volume.clamp(0.0, 1.0) * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 10, fontFeatures: [FontFeature.tabularFigures()])),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                ValueListenableBuilder<VideoPlayerValue>(
+                  valueListenable: controller,
+                  builder: (context, current, _) => Text(
+                    '${(current.volume.clamp(0.0, 1.0) * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-          builder: (context, menu, child) => PressScale(child: IconButton(
-            color: Colors.white,
-            visualDensity: VisualDensity.compact,
-            tooltip: AppLocalizations.of(context)!.volume,
-            // 用 position 直接指定弹层位置：面板顶边 = 按钮顶边 - (面板高度 + 进度条高度 + 间距)，也就是让它停在进度条上方
-            onPressed: () => menu.isOpen ? menu.close() : menu.open(position: const Offset((40 - _volumePanelWidth) / 2, -(_volumePanelHeight + _progressBarHeight + _volumePanelGap))),
-            icon: Icon(value.volume <= 0 ? Symbols.volume_off_rounded : (value.volume < .5 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded)),
-          )),
+          ),
         ),
-      );
+      ],
+      builder: (context, menu, child) => PressScale(
+        child: IconButton(
+          color: Colors.white,
+          visualDensity: VisualDensity.compact,
+          tooltip: AppLocalizations.of(context)!.volume,
+          // 用 position 直接指定弹层位置：面板顶边 = 按钮顶边 - (面板高度 + 进度条高度 + 间距)，也就是让它停在进度条上方
+          onPressed: () => menu.isOpen
+              ? menu.close()
+              : menu.open(
+                  position: const Offset(
+                    (40 - _volumePanelWidth) / 2,
+                    -(_volumePanelHeight +
+                        _progressBarHeight +
+                        _volumePanelGap),
+                  ),
+                ),
+          icon: Icon(
+            value.volume <= 0
+                ? Symbols.volume_off_rounded
+                : (value.volume < .5
+                      ? Symbols.volume_down_rounded
+                      : Symbols.volume_up_rounded),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
-class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButton({required this.controller, required this.onInteraction, super.key});
+class VideoPlayerSkipButton extends ConsumerWidget {
+  const VideoPlayerSkipButton({
+    required this.controller,
+    required this.onInteraction,
+    super.key,
+  });
   final VideoPlayerController controller;
   final VoidCallback onInteraction;
 
@@ -301,13 +534,40 @@ class VideoPlayerSkipButton extends ConsumerWidget {  const VideoPlayerSkipButto
     final seconds = ref.watch(settingsProvider).valueOrNull?.skipSeconds ?? 80;
     return GestureDetector(
       onLongPress: () => _configure(context, ref, seconds),
-      child: PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.seconds(seconds), visualDensity: VisualDensity.compact, onPressed: () { final value = controller.value; final target = (value.position.inSeconds + seconds).clamp(0, value.duration.inSeconds); controller.seekTo(Duration(seconds: target)); onInteraction(); }, icon: const Icon(Symbols.forward_10_rounded))),
+      child: PressScale(
+        child: IconButton(
+          color: Colors.white,
+          tooltip: AppLocalizations.of(context)!.seconds(seconds),
+          visualDensity: VisualDensity.compact,
+          onPressed: () {
+            final value = controller.value;
+            final target = (value.position.inSeconds + seconds).clamp(
+              0,
+              value.duration.inSeconds,
+            );
+            controller.seekTo(Duration(seconds: target));
+            onInteraction();
+          },
+          icon: const Icon(Symbols.forward_10_rounded),
+        ),
+      ),
     );
   }
 
-  Future<void> _configure(BuildContext context, WidgetRef ref, int current) async {
-    final result = await showAppDialog<int>(context: context, builder: (_) => _SkipSecondsDialog(initialValue: '$current'));
-    if (result != null && result > 0) await ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(skipSeconds: result));
+  Future<void> _configure(
+    BuildContext context,
+    WidgetRef ref,
+    int current,
+  ) async {
+    final result = await showAppDialog<int>(
+      context: context,
+      builder: (_) => _SkipSecondsDialog(initialValue: '$current'),
+    );
+    if (result != null && result > 0) {
+      await ref
+          .read(settingsProvider.notifier)
+          .saveChanges((settings) => settings.copyWith(skipSeconds: result));
+    }
   }
 }
 
@@ -320,7 +580,9 @@ class _SkipSecondsDialog extends StatefulWidget {
 }
 
 class _SkipSecondsDialogState extends State<_SkipSecondsDialog> {
-  late final TextEditingController _controller = TextEditingController(text: widget.initialValue);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  );
 
   @override
   void dispose() {
@@ -333,10 +595,25 @@ class _SkipSecondsDialogState extends State<_SkipSecondsDialog> {
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(l10n.seconds(int.tryParse(widget.initialValue) ?? 0)),
-      content: TextField(controller: _controller, autofocus: true, keyboardType: TextInputType.number),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+      ),
       actions: [
-        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))),
-        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(_controller.text.trim())), child: Text(l10n.save))),
+        PressScale(
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+        ),
+        PressScale(
+          child: FilledButton(
+            onPressed: () =>
+                Navigator.pop(context, int.tryParse(_controller.text.trim())),
+            child: Text(l10n.save),
+          ),
+        ),
       ],
     );
   }
@@ -345,10 +622,33 @@ class _SkipSecondsDialogState extends State<_SkipSecondsDialog> {
 class _AspectMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final aspect = ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ?? VideoAspectRatio.auto;
+    final aspect =
+        ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ??
+        VideoAspectRatio.auto;
     return MenuAnchor(
-      builder: (context, controller, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.videoAspectRatio, onPressed: controller.open, icon: const Icon(Symbols.aspect_ratio_rounded))),
-      menuChildren: VideoAspectRatio.values.map((item) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: item)), leadingIcon: item == aspect ? const Icon(Symbols.check_rounded, size: 18) : null, child: Text(_aspectLabel(AppLocalizations.of(context)!, item)))).toList(),
+      builder: (context, controller, child) => PressScale(
+        child: IconButton(
+          color: Colors.white,
+          tooltip: AppLocalizations.of(context)!.videoAspectRatio,
+          onPressed: controller.open,
+          icon: const Icon(Symbols.aspect_ratio_rounded),
+        ),
+      ),
+      menuChildren: VideoAspectRatio.values
+          .map(
+            (item) => MenuItemButton(
+              onPressed: () => ref
+                  .read(settingsProvider.notifier)
+                  .saveChanges(
+                    (settings) => settings.copyWith(videoAspectRatio: item),
+                  ),
+              leadingIcon: item == aspect
+                  ? const Icon(Symbols.check_rounded, size: 18)
+                  : null,
+              child: Text(_aspectLabel(AppLocalizations.of(context)!, item)),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -360,13 +660,46 @@ class _EpisodeMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, controller, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.episodeList, onPressed: controller.open, icon: const Icon(Symbols.view_list_rounded))),
-        menuChildren: video.playlist.map((episode) => MenuItemButton(onPressed: episode.id == video.id ? null : () => onSelected(episode), leadingIcon: episode.id == video.id ? const Icon(Symbols.play_arrow_rounded) : null, child: SizedBox(width: 280, child: Text(episode.title, maxLines: 1, overflow: TextOverflow.ellipsis)))).toList(),
-      );
+    builder: (context, controller, child) => PressScale(
+      child: IconButton(
+        color: Colors.white,
+        tooltip: AppLocalizations.of(context)!.episodeList,
+        onPressed: controller.open,
+        icon: const Icon(Symbols.view_list_rounded),
+      ),
+    ),
+    menuChildren: video.playlist
+        .map(
+          (episode) => MenuItemButton(
+            onPressed: episode.id == video.id
+                ? null
+                : () => onSelected(episode),
+            leadingIcon: episode.id == video.id
+                ? const Icon(Symbols.play_arrow_rounded)
+                : null,
+            child: SizedBox(
+              width: 280,
+              child: Text(
+                episode.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        )
+        .toList(),
+  );
 }
 
 class VideoPlayerPortraitMoreMenu extends ConsumerWidget {
-  const VideoPlayerPortraitMoreMenu({required this.controller, required this.video, required this.quality, required this.onQualitySelected, required this.onSuperResolutionSelected, super.key});
+  const VideoPlayerPortraitMoreMenu({
+    required this.controller,
+    required this.video,
+    required this.quality,
+    required this.onQualitySelected,
+    required this.onSuperResolutionSelected,
+    super.key,
+  });
   final VideoPlayerController controller;
   final VideoDetail video;
   final ValueListenable<String?> quality;
@@ -375,44 +708,145 @@ class VideoPlayerPortraitMoreMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MenuAnchor(
-        builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded))),
-        menuChildren: [
-          SubmenuButton(menuChildren: VideoAspectRatio.values.map((aspect) => MenuItemButton(onPressed: () => ref.read(settingsProvider.notifier).saveChanges((settings) => settings.copyWith(videoAspectRatio: aspect)), child: Text(_aspectLabel(AppLocalizations.of(context)!, aspect)))).toList(), child: Text(AppLocalizations.of(context)!.videoAspectRatio)),
-          SubmenuButton(menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) => MenuItemButton(onPressed: () => controller.setPlaybackSpeed(speed), child: Text('${speed}x'))).toList(), child: Text(AppLocalizations.of(context)!.playbackSpeed)),
-          SubmenuButton(menuChildren: SuperResolutionMode.values.map((mode) => MenuItemButton(onPressed: () => onSuperResolutionSelected(mode), child: Text(_superResolutionLabel(AppLocalizations.of(context)!, mode)))).toList(), child: Text(AppLocalizations.of(context)!.superResolution)),
-          if (video.sources.isNotEmpty) SubmenuButton(menuChildren: video.sources.map((source) => MenuItemButton(onPressed: () => onQualitySelected(source), child: Text(source.quality))).toList(), child: Text(AppLocalizations.of(context)!.quality)),
-          if (video.sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(video.sources, quality.value), leadingIcon: const Icon(Symbols.open_in_new_rounded), child: Text(AppLocalizations.of(context)!.externalPlayback)),
-        ],
-      );
+    builder: (context, menu, child) => PressScale(
+      child: IconButton(
+        color: Colors.white,
+        tooltip: AppLocalizations.of(context)!.more,
+        onPressed: menu.open,
+        icon: const Icon(Symbols.more_vert_rounded),
+      ),
+    ),
+    menuChildren: [
+      SubmenuButton(
+        menuChildren: VideoAspectRatio.values
+            .map(
+              (aspect) => MenuItemButton(
+                onPressed: () => ref
+                    .read(settingsProvider.notifier)
+                    .saveChanges(
+                      (settings) => settings.copyWith(videoAspectRatio: aspect),
+                    ),
+                child: Text(
+                  _aspectLabel(AppLocalizations.of(context)!, aspect),
+                ),
+              ),
+            )
+            .toList(),
+        child: Text(AppLocalizations.of(context)!.videoAspectRatio),
+      ),
+      SubmenuButton(
+        menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3]
+            .map(
+              (speed) => MenuItemButton(
+                onPressed: () => controller.setPlaybackSpeed(speed),
+                child: Text('${speed}x'),
+              ),
+            )
+            .toList(),
+        child: Text(AppLocalizations.of(context)!.playbackSpeed),
+      ),
+      SubmenuButton(
+        menuChildren: SuperResolutionMode.values
+            .map(
+              (mode) => MenuItemButton(
+                onPressed: () => onSuperResolutionSelected(mode),
+                child: Text(
+                  _superResolutionLabel(AppLocalizations.of(context)!, mode),
+                ),
+              ),
+            )
+            .toList(),
+        child: Text(AppLocalizations.of(context)!.superResolution),
+      ),
+      if (video.sources.isNotEmpty)
+        SubmenuButton(
+          menuChildren: video.sources
+              .map(
+                (source) => MenuItemButton(
+                  onPressed: () => onQualitySelected(source),
+                  child: Text(source.quality),
+                ),
+              )
+              .toList(),
+          child: Text(AppLocalizations.of(context)!.quality),
+        ),
+      if (video.sources.isNotEmpty)
+        MenuItemButton(
+          onPressed: () => _openExternal(video.sources, quality.value),
+          leadingIcon: const Icon(Symbols.open_in_new_rounded),
+          child: Text(AppLocalizations.of(context)!.externalPlayback),
+        ),
+    ],
+  );
 
   Future<void> _openExternal(List<VideoSource> sources, String? current) async {
-    final source = sources.where((source) => source.quality == current).firstOrNull ?? sources.first;
-    await launchUrl(Uri.parse(source.url), mode: LaunchMode.externalApplication);
+    final source =
+        sources.where((source) => source.quality == current).firstOrNull ??
+        sources.first;
+    await launchUrl(
+      Uri.parse(source.url),
+      mode: LaunchMode.externalApplication,
+    );
   }
 }
 
 class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
-  const VideoPlayerFullscreenMoreMenu({required this.sources, required this.quality, super.key});
+  const VideoPlayerFullscreenMoreMenu({
+    required this.sources,
+    required this.quality,
+    super.key,
+  });
   final List<VideoSource> sources;
   final ValueListenable<String?> quality;
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-        builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.more, onPressed: menu.open, icon: const Icon(Symbols.more_vert_rounded))),
-        menuChildren: [
-          if (sources.isNotEmpty) MenuItemButton(onPressed: () => _openExternal(), leadingIcon: const Icon(Symbols.open_in_new_rounded), child: Text(AppLocalizations.of(context)!.externalPlayback)),
-        ],
-      );
+    builder: (context, menu, child) => PressScale(
+      child: IconButton(
+        color: Colors.white,
+        tooltip: AppLocalizations.of(context)!.more,
+        onPressed: menu.open,
+        icon: const Icon(Symbols.more_vert_rounded),
+      ),
+    ),
+    menuChildren: [
+      if (sources.isNotEmpty)
+        MenuItemButton(
+          onPressed: () => _openExternal(),
+          leadingIcon: const Icon(Symbols.open_in_new_rounded),
+          child: Text(AppLocalizations.of(context)!.externalPlayback),
+        ),
+    ],
+  );
 
   Future<void> _openExternal() async {
-    final source = sources.where((source) => source.quality == quality.value).firstOrNull ?? sources.first;
-    await launchUrl(Uri.parse(source.url), mode: LaunchMode.externalApplication);
+    final source =
+        sources
+            .where((source) => source.quality == quality.value)
+            .firstOrNull ??
+        sources.first;
+    await launchUrl(
+      Uri.parse(source.url),
+      mode: LaunchMode.externalApplication,
+    );
   }
 }
 
-String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) => switch (mode) { SuperResolutionMode.off => l10n.superResolutionOff, SuperResolutionMode.efficiency => l10n.superResolutionEfficiency, SuperResolutionMode.quality => l10n.superResolutionQuality, SuperResolutionMode.natural => l10n.superResolutionNatural };
+String _superResolutionLabel(AppLocalizations l10n, SuperResolutionMode mode) =>
+    switch (mode) {
+      SuperResolutionMode.off => l10n.superResolutionOff,
+      SuperResolutionMode.efficiency => l10n.superResolutionEfficiency,
+      SuperResolutionMode.quality => l10n.superResolutionQuality,
+      SuperResolutionMode.natural => l10n.superResolutionNatural,
+    };
 
-String _aspectLabel(AppLocalizations l10n, VideoAspectRatio aspect) => switch (aspect) { VideoAspectRatio.auto => l10n.aspectAuto, VideoAspectRatio.crop => l10n.aspectCrop, VideoAspectRatio.stretch => l10n.aspectStretch, VideoAspectRatio.ratio4x3 => l10n.aspectFourThree };
+String _aspectLabel(AppLocalizations l10n, VideoAspectRatio aspect) =>
+    switch (aspect) {
+      VideoAspectRatio.auto => l10n.aspectAuto,
+      VideoAspectRatio.crop => l10n.aspectCrop,
+      VideoAspectRatio.stretch => l10n.aspectStretch,
+      VideoAspectRatio.ratio4x3 => l10n.aspectFourThree,
+    };
 
 class _Anime4KMenu extends ConsumerWidget {
   const _Anime4KMenu({required this.onSelected});
@@ -421,23 +855,38 @@ class _Anime4KMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(settingsProvider).valueOrNull?.superResolutionMode ?? SuperResolutionMode.off;
+    final mode =
+        ref.watch(settingsProvider).valueOrNull?.superResolutionMode ??
+        SuperResolutionMode.off;
     final l10n = AppLocalizations.of(context)!;
     return MenuAnchor(
-      builder: (context, menu, child) => PressScale(child: IconButton(
-        color: Colors.white,
-        tooltip: l10n.superResolution,
-        onPressed: menu.open,
-        icon: Icon(mode == SuperResolutionMode.off ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded),
-      )),
+      builder: (context, menu, child) => PressScale(
+        child: IconButton(
+          color: Colors.white,
+          tooltip: l10n.superResolution,
+          onPressed: menu.open,
+          icon: Icon(
+            mode == SuperResolutionMode.off
+                ? Symbols.auto_awesome_rounded
+                : Symbols.auto_awesome_rounded,
+          ),
+        ),
+      ),
       menuChildren: SuperResolutionMode.values.map((option) {
         final selected = option == mode;
         return MenuItemButton(
           onPressed: () => onSelected(option),
-          leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
+          leadingIcon: selected
+              ? const Icon(Symbols.check_rounded, size: 18)
+              : null,
           child: Text(
             _superResolutionLabel(l10n, option),
-            style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null,
+            style: selected
+                ? TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  )
+                : null,
           ),
         );
       }).toList(),
@@ -448,30 +897,53 @@ class _Anime4KMenu extends ConsumerWidget {
 String _formatDuration(Duration duration) {
   final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
   final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-  return duration.inHours > 0 ? '${duration.inHours}:$minutes:$seconds' : '$minutes:$seconds';
+  return duration.inHours > 0
+      ? '${duration.inHours}:$minutes:$seconds'
+      : '$minutes:$seconds';
 }
 
 class _QualityMenu extends StatelessWidget {
-  const _QualityMenu({required this.sources, required this.quality, required this.onSelected});
+  const _QualityMenu({
+    required this.sources,
+    required this.quality,
+    required this.onSelected,
+  });
   final List<VideoSource> sources;
   final ValueListenable<String?> quality;
   final ValueChanged<VideoSource> onSelected;
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<String?>(
-        valueListenable: quality,
-        builder: (context, current, _) => MenuAnchor(
-          builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.quality, onPressed: menu.open, icon: const Icon(Symbols.high_quality_rounded))),
-          menuChildren: sources.map((source) {
-            final selected = source.quality == current;
-            return MenuItemButton(
-              onPressed: () => onSelected(source),
-              leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
-              child: Text(source.quality, style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null),
-            );
-          }).toList(),
+    valueListenable: quality,
+    builder: (context, current, _) => MenuAnchor(
+      builder: (context, menu, child) => PressScale(
+        child: IconButton(
+          color: Colors.white,
+          tooltip: AppLocalizations.of(context)!.quality,
+          onPressed: menu.open,
+          icon: const Icon(Symbols.high_quality_rounded),
         ),
-      );
+      ),
+      menuChildren: sources.map((source) {
+        final selected = source.quality == current;
+        return MenuItemButton(
+          onPressed: () => onSelected(source),
+          leadingIcon: selected
+              ? const Icon(Symbols.check_rounded, size: 18)
+              : null,
+          child: Text(
+            source.quality,
+            style: selected
+                ? TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  )
+                : null,
+          ),
+        );
+      }).toList(),
+    ),
+  );
 }
 
 class _SpeedMenu extends StatelessWidget {
@@ -479,16 +951,37 @@ class _SpeedMenu extends StatelessWidget {
   final VideoPlayerController controller;
   final VoidCallback onInteraction;
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
+  Widget build(BuildContext context) =>
+      ValueListenableBuilder<VideoPlayerValue>(
         valueListenable: controller,
         builder: (context, value, _) => MenuAnchor(
-          builder: (context, menu, child) => PressScale(child: IconButton(color: Colors.white, tooltip: AppLocalizations.of(context)!.playbackSpeed, onPressed: menu.open, icon: const Icon(Symbols.speed_rounded))),
+          builder: (context, menu, child) => PressScale(
+            child: IconButton(
+              color: Colors.white,
+              tooltip: AppLocalizations.of(context)!.playbackSpeed,
+              onPressed: menu.open,
+              icon: const Icon(Symbols.speed_rounded),
+            ),
+          ),
           menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) {
             final selected = value.playbackSpeed == speed;
             return MenuItemButton(
-              onPressed: () { controller.setPlaybackSpeed(speed); onInteraction(); },
-              leadingIcon: selected ? const Icon(Symbols.check_rounded, size: 18) : null,
-              child: Text('${speed}x', style: selected ? TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700) : null),
+              onPressed: () {
+                controller.setPlaybackSpeed(speed);
+                onInteraction();
+              },
+              leadingIcon: selected
+                  ? const Icon(Symbols.check_rounded, size: 18)
+                  : null,
+              child: Text(
+                '${speed}x',
+                style: selected
+                    ? TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      )
+                    : null,
+              ),
             );
           }).toList(),
         ),
@@ -496,27 +989,74 @@ class _SpeedMenu extends StatelessWidget {
 }
 
 class VideoKeyframeDrawer extends ConsumerWidget {
-  const VideoKeyframeDrawer({required this.video, required this.controller, super.key});
+  const VideoKeyframeDrawer({
+    required this.video,
+    required this.controller,
+    super.key,
+  });
   final VideoDetail video;
   final ValueListenable<VideoPlayerController?> controller;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final keyframes = ref.watch(keyframesProvider(video.id)).valueOrNull ?? const <int>[];
-    return Drawer(child: SafeArea(child: Column(children: [
-      ListTile(title: Text(AppLocalizations.of(context)!.keyframes), subtitle: Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis)),
-      const Divider(height: 1),
-      Expanded(child: keyframes.isEmpty ? Center(child: Text(AppLocalizations.of(context)!.noKeyframes)) : ListView.separated(itemCount: keyframes.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (context, index) {
-        final position = keyframes[index];
-        return ListTile(title: Text(_formatKeyframe(position)), subtitle: Text('$position ms'), onTap: () { controller.value?.seekTo(Duration(milliseconds: position)); Navigator.of(context).pop(); }, trailing: PressScale(child: IconButton(icon: const Icon(Symbols.delete_rounded), onPressed: () => ref.read(keyframesProvider(video.id).notifier).remove(position))));
-      })),
-    ])));
+    final keyframes =
+        ref.watch(keyframesProvider(video.id)).valueOrNull ?? const <int>[];
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            ListTile(
+              title: Text(AppLocalizations.of(context)!.keyframes),
+              subtitle: Text(
+                video.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: keyframes.isEmpty
+                  ? Center(
+                      child: Text(AppLocalizations.of(context)!.noKeyframes),
+                    )
+                  : ListView.separated(
+                      itemCount: keyframes.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final position = keyframes[index];
+                        return ListTile(
+                          title: Text(_formatKeyframe(position)),
+                          subtitle: Text('$position ms'),
+                          onTap: () {
+                            controller.value?.seekTo(
+                              Duration(milliseconds: position),
+                            );
+                            Navigator.of(context).pop();
+                          },
+                          trailing: PressScale(
+                            child: IconButton(
+                              icon: const Icon(Symbols.delete_rounded),
+                              onPressed: () => ref
+                                  .read(keyframesProvider(video.id).notifier)
+                                  .remove(position),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatKeyframe(int positionMs) {
     final position = Duration(milliseconds: positionMs);
     final minutes = position.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = position.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return position.inHours > 0 ? '${position.inHours}:$minutes:$seconds' : '$minutes:$seconds';
+    return position.inHours > 0
+        ? '${position.inHours}:$minutes:$seconds'
+        : '$minutes:$seconds';
   }
 }
