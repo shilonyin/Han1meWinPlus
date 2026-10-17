@@ -1,10 +1,10 @@
-// 播放窗口顶部栏的信息桥接：标题 / 上下集可用性 / 换集回调。
+// 播放窗口顶部栏的信息桥接：标题 / 前后条可用性 / 换片回调。
 //
-// 背景：顶部栏挂在窗口级（PlayWindowApp 的 AppWindowFrame），而标题与上下集能力
+// 背景：顶部栏挂在窗口级（PlayWindowApp 的 AppWindowFrame），而标题与前后条能力
 // 属于播放页内部（VideoDetail 与它的 playlist）。两者不在同一棵子树上，所以用一张
 // 全局登记表桥接（PlayWindowTitleTarget）。
 //
-// 最容易错的是**换集时的时序**：播放页之间用 pushReplacement 互跳，Flutter 里旧路由的
+// 最容易错的是**换片时的时序**：播放页之间用 pushReplacement 互跳，Flutter 里旧路由的
 // dispose 发生在新页面 initState 之后 —— 如果 clear() 无条件清空，旧页面退出时会把
 // 新页面刚登记的标题擦掉，顶部栏变空白。所以登记表记「所有者」，只有登记它的那个
 // 页面才有权清空。
@@ -29,7 +29,7 @@ void main() {
       expect(PlayWindowTitleTarget.title.value, '第1话 某标题');
       expect(PlayWindowTitleTarget.hasPrevious.value, isFalse);
       expect(PlayWindowTitleTarget.hasNext.value, isTrue);
-      expect(PlayWindowTitleTarget.nextEpisode, isNotNull);
+      expect(PlayWindowTitleTarget.nextVideo, isNotNull);
     });
 
     test('所有者自己清空 → 全部复位', () {
@@ -45,23 +45,23 @@ void main() {
       expect(PlayWindowTitleTarget.title.value, '');
       expect(PlayWindowTitleTarget.hasPrevious.value, isFalse);
       expect(PlayWindowTitleTarget.hasNext.value, isFalse);
-      expect(PlayWindowTitleTarget.previousEpisode, isNull);
-      expect(PlayWindowTitleTarget.nextEpisode, isNull);
+      expect(PlayWindowTitleTarget.previousVideo, isNull);
+      expect(PlayWindowTitleTarget.nextVideo, isNull);
     });
 
-    test('没有上一集 / 下一集时回调为空（顶部栏据此置灰）', () {
+    test('没有上一条 / 下一条时回调为空（顶部栏据此置灰）', () {
       PlayWindowTitleTarget.register(
         owner: Object(),
         title: '单集',
         hasPrevious: false,
         hasNext: false,
       );
-      expect(PlayWindowTitleTarget.previousEpisode, isNull);
-      expect(PlayWindowTitleTarget.nextEpisode, isNull);
+      expect(PlayWindowTitleTarget.previousVideo, isNull);
+      expect(PlayWindowTitleTarget.nextVideo, isNull);
     });
   });
 
-  group('换集时的时序（pushReplacement）', () {
+  group('换片时的时序（pushReplacement）', () {
     test('旧页面 dispose 不得擦掉新页面刚登记的标题', () {
       final oldPage = Object();
       final newPage = Object();
@@ -75,7 +75,7 @@ void main() {
       );
       expect(PlayWindowTitleTarget.title.value, '第1话');
 
-      // 2) 点「下一集」：新页面 initState 先跑，登记第2话。
+      // 2) 点「下一条」：新页面 initState 先跑，登记第2话。
       PlayWindowTitleTarget.register(
         owner: newPage,
         title: '第2话',
@@ -96,7 +96,7 @@ void main() {
       expect(PlayWindowTitleTarget.hasNext.value, isFalse);
     });
 
-    test('连续换两集：只有最后一个页面的话生效', () {
+    test('连续换两条：只有最后一个页面的话生效', () {
       final p1 = Object();
       final p2 = Object();
       final p3 = Object();

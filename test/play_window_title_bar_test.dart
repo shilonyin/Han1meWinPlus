@@ -43,7 +43,7 @@ void main() {
     expect(size.height, 48);
   });
 
-  testWidgets('画出了「回到主界面」与上一集 / 下一集', (tester) async {
+  testWidgets('画出了「回到主界面」与上一条 / 下一条', (tester) async {
     await tester.pumpWidget(_host());
     expect(find.text('回到主界面'), findsOneWidget);
     expect(find.byIcon(Symbols.chevron_left_rounded), findsOneWidget);
@@ -60,7 +60,7 @@ void main() {
   });
 
   testWidgets('所有可点项的悬停高亮是同一个圆角矩形（用户报过形状不统一）', (tester) async {
-    // 之前「回到主界面」是 8px 圆角胶囊、上一集/下一集是 IconButton 的**圆形**
+    // 之前「回到主界面」是 8px 圆角胶囊、上一条/下一条是 IconButton 的**圆形**
     // 水波、置顶/画中画与窗口按钮是**直角**方块，鼠标扫过去形状一直在变。
     // 现在全部走 _BarButton，圆角半径一致。
     await tester.pumpWidget(_host());
@@ -168,7 +168,7 @@ void main() {
     expect(find.text('第1话 王令想要平静的生活'), findsOneWidget);
   });
 
-  testWidgets('没有上一集时左箭头不可点，有下一集时右箭头可点', (tester) async {
+  testWidgets('没有上一条时左箭头不可点，有下一条时右箭头可点', (tester) async {
     await tester.pumpWidget(_host());
     PlayWindowTitleTarget.register(
       owner: Object(),
@@ -200,7 +200,7 @@ void main() {
     expect(
       left.properties.enabled,
       isFalse,
-      reason: '第一集不该能点「上一集」',
+      reason: '没有上一条时不该能点左箭头',
     );
     expect(right.properties.enabled, isTrue);
   });
@@ -227,7 +227,7 @@ void main() {
     await tester.pump();
     expect(find.text('第1话'), findsOneWidget);
 
-    // 点下一集：新页面登记第2话。
+    // 点下一条：新页面登记第2话。
     PlayWindowTitleTarget.register(
       owner: Object(),
       title: '第2话',

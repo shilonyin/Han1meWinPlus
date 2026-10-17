@@ -9,7 +9,10 @@ import '../../app/app_theme.dart';
 import '../../core/play_window_title_target.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/library_repository.dart';
+import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
+import '../../domain/history_navigation.dart';
+import '../../domain/models/library.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
@@ -101,38 +104,41 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     super.dispose();
   }
 
-  /// 把当前视频的标题与上下集可用性同步给窗口顶部栏。
+  /// 把当前视频的标题与前后条可用性同步给窗口顶部栏。
   ///
   /// 放在 build 之后（数据到了才有 VideoDetail）：videoDetailProvider 冷启动时是
-  /// loading，标题要等详情回来才能填；每次详情变化都重报一次，换集时标题跟着更新。
+  /// loading，标题要等详情回来才能填；每次详情变化都重报一次，换片时标题跟着更新。
   ///
   /// 必须走 addPostFrameCallback：这些是 ValueNotifier，而顶部栏正用
   /// ValueListenableBuilder 监听它们。在 build 期间改值会同步标脏那个 builder，
   /// Flutter 会抛「setState() or markNeedsBuild() called during build」。
   ///
-  /// 用一个 id 去重：build 每帧都可能被调用，不去重就会每帧排一个回调。
-  String? _publishedVideoId;
+  /// 去重键带上前后条，不能只用视频 id：当前视频播够时长后才被写进历史
+  /// （`_watchThresholdMs`），那一刻它的邻居从「都没有」变成「有上一条」，
+  /// 只按 id 去重就不会重发，箭头会一直灰着。
+  String? _publishedTitleKey;
 
-  void _publishTitleInfo(VideoDetail video) {
-    if (_publishedVideoId == video.id) return;
-    _publishedVideoId = video.id;
-    final previous = previousEpisode(video);
-    final next = nextEpisode(video);
-    final hasPrevious = previous != null && previous.id.isNotEmpty;
-    final hasNext = next != null && next.id.isNotEmpty;
+  void _publishTitleInfo(VideoDetail video, List<WatchHistory> history) {
+    final neighbours = historyNeighbours(history, video.id);
+    final previous = neighbours.previous;
+    final next = neighbours.next;
+    final key =
+        '${video.id}|${previous?.videoCode}|${next?.videoCode}';
+    if (_publishedTitleKey == key) return;
+    _publishedTitleKey = key;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       PlayWindowTitleTarget.register(
         owner: this,
         title: video.title,
-        hasPrevious: hasPrevious,
-        hasNext: hasNext,
-        // 换集在窗口内导航（与播放页里的「下一集」行为一致）。
-        onPrevious: hasPrevious
-            ? () => context.pushReplacement('/video/${previous.id}')
+        hasPrevious: previous != null,
+        hasNext: next != null,
+        // 翻的是观看历史，在窗口内导航（pushReplacement 与播放页里换片一致）。
+        onPrevious: previous != null
+            ? () => context.pushReplacement('/video/${previous.videoCode}')
             : null,
-        onNext: hasNext
-            ? () => context.pushReplacement('/video/${next.id}')
+        onNext: next != null
+            ? () => context.pushReplacement('/video/${next.videoCode}')
             : null,
       );
     });
@@ -142,6 +148,9 @@ class _VideoPageState extends ConsumerState<VideoPage> {
   Widget build(BuildContext context) {
     final id = widget.id;
     final localVideo = widget.localVideo;
+    // 顶部栏那两个箭头翻的是观看历史，所以要跟着历史一起变：本片播够时长后
+    // 才被写进历史，那一刻前后条才出现，得重建一次才能把箭头点亮。
+    final history = ref.watch(watchProvider).valueOrNull?.histories ?? const <WatchHistory>[];
     Widget withBackButton(Widget child) => Stack(
       children: [
         child,
@@ -163,7 +172,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
                   ref
                       .read(libraryProvider.notifier)
                       .addSubscriptionVideo(video);
-                  if (widget.inPlayWindow) _publishTitleInfo(video);
+                  if (widget.inPlayWindow) _publishTitleInfo(video, history);
                   return _DetailBody(
                     video: video,
                     onBack: widget.onBack,
@@ -173,7 +182,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
                 },
               )
         : (() {
-            if (widget.inPlayWindow) _publishTitleInfo(localVideo);
+            if (widget.inPlayWindow) _publishTitleInfo(localVideo, history);
             return _DetailBody(
               video: localVideo,
               onBack: widget.onBack,

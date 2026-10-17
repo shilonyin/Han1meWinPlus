@@ -38,9 +38,9 @@ class PipOverlayControls extends StatelessWidget {
         ValueListenableBuilder<bool>(
           valueListenable: PlayWindowTitleTarget.hasPrevious,
           builder: (context, enabled, _) => PipCircleButton(
-            label: l10n.hotkeyActionPreviousEpisode,
+            label: l10n.historyPreviousVideo,
             icon: Symbols.skip_previous_rounded,
-            onPressed: enabled ? PlayWindowTitleTarget.previousEpisode : null,
+            onPressed: enabled ? PlayWindowTitleTarget.previousVideo : null,
           ),
         ),
         const SizedBox(width: gap),
@@ -57,9 +57,9 @@ class PipOverlayControls extends StatelessWidget {
         ValueListenableBuilder<bool>(
           valueListenable: PlayWindowTitleTarget.hasNext,
           builder: (context, enabled, _) => PipCircleButton(
-            label: l10n.hotkeyActionNextEpisode,
+            label: l10n.historyNextVideo,
             icon: Symbols.skip_next_rounded,
-            onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
+            onPressed: enabled ? PlayWindowTitleTarget.nextVideo : null,
           ),
         ),
       ],

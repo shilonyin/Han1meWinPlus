@@ -2022,6 +2022,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hotkeyActionNextEpisode => 'Next episode';
 
   @override
+  String get historyPreviousVideo => 'Previous in history';
+
+  @override
+  String get historyNextVideo => 'Next in history';
+
+  @override
   String get hotkeyActionToggleWindow => 'Show / hide window';
 
   @override

@@ -3686,6 +3686,18 @@ abstract class AppLocalizations {
   /// **'Next episode'**
   String get hotkeyActionNextEpisode;
 
+  /// No description provided for @historyPreviousVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous in history'**
+  String get historyPreviousVideo;
+
+  /// No description provided for @historyNextVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Next in history'**
+  String get historyNextVideo;
+
   /// No description provided for @hotkeyActionToggleWindow.
   ///
   /// In en, this message translates to:

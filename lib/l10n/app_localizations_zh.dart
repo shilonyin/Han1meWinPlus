@@ -1959,6 +1959,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hotkeyActionNextEpisode => '下一集';
 
   @override
+  String get historyPreviousVideo => '上一条（观看历史）';
+
+  @override
+  String get historyNextVideo => '下一条（观看历史）';
+
+  @override
   String get hotkeyActionToggleWindow => '显示 / 隐藏窗口';
 
   @override
@@ -4582,6 +4588,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get hotkeyActionNextEpisode => '下一集';
+
+  @override
+  String get historyPreviousVideo => '上一條（觀看紀錄）';
+
+  @override
+  String get historyNextVideo => '下一條（觀看紀錄）';
 
   @override
   String get hotkeyActionToggleWindow => '顯示 / 隱藏視窗';

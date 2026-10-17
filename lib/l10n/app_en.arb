@@ -674,6 +674,8 @@
   "hotkeyExitFullscreenFixed": "Fixed to Esc, not customizable",
   "hotkeyActionPreviousEpisode": "Previous episode",
   "hotkeyActionNextEpisode": "Next episode",
+  "historyPreviousVideo": "Previous in history",
+  "historyNextVideo": "Next in history",
   "hotkeyActionToggleWindow": "Show / hide window",
   "hotkeyPressKeys": "Press a new key combo (Esc to cancel)",
   "hotkeyConflict": "Conflicts with \"{action}\"",

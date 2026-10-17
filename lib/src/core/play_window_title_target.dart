@@ -1,28 +1,32 @@
 import 'package:flutter/foundation.dart';
 
-/// 播放窗口顶部栏要从「当前播放页」拿的三样东西：标题、是否有上一集 / 下一集。
+/// 播放窗口顶部栏要从「当前播放页」拿的三样东西：标题、有没有上一条 / 下一条。
 ///
 /// 为什么需要这层：顶部栏挂在窗口级（PlayWindowApp 的 AppWindowFrame 里），而
-/// 标题和上下集能力属于播放页内部（VideoDetail 与它的 playlist）。两者不在同一棵
+/// 标题和前后条能力属于播放页内部（VideoDetail 与它的 playlist）。两者不在同一棵
 /// 子树上，直接传参要穿过 VideoPage -> _DetailBody -> VideoPageBody 好几层。
 ///
 /// 沿用 PlaybackHotkeyTarget 那套做法：播放页 initState 登记、dispose 注销，
 /// 只暴露必要的信息（标题字符串与两个无参回调），不把 VideoDetail 泄漏到全局。
 ///
 /// 只有独立播放窗口的顶部栏会读它；主窗口用的是 AppTitleBar（不读）。
+///
+/// **两个箭头翻的是观看历史，不是剧集**：按播放记录的时间顺序取当前视频的上一条 /
+/// 下一条。同一部片子的其它集也在历史里，但它们和其它视频一样按「看过的时间」排队，
+/// 不再有「上一集」的特殊地位。
 class PlayWindowTitleTarget {
   PlayWindowTitleTarget._();
 
   /// 当前视频标题，显示在顶部栏正中。
   static final ValueNotifier<String> title = ValueNotifier('');
 
-  /// 有没有上一集 / 下一集，决定两个箭头是否可点。
+  /// 有没有上一条 / 下一条，决定两个箭头是否可点。
   static final ValueNotifier<bool> hasPrevious = ValueNotifier(false);
   static final ValueNotifier<bool> hasNext = ValueNotifier(false);
 
-  /// 换成上一集 / 下一集（没有时由注册方自己决定不响应）。
-  static VoidCallback? previousEpisode;
-  static VoidCallback? nextEpisode;
+  /// 换成历史里的上一条 / 下一条（没有时由注册方自己决定不响应）。
+  static VoidCallback? previousVideo;
+  static VoidCallback? nextVideo;
 
   /// 当前登记者的身份。
   ///
@@ -46,8 +50,8 @@ class PlayWindowTitleTarget {
     PlayWindowTitleTarget.title.value = title;
     PlayWindowTitleTarget.hasPrevious.value = hasPrevious;
     PlayWindowTitleTarget.hasNext.value = hasNext;
-    previousEpisode = onPrevious;
-    nextEpisode = onNext;
+    previousVideo = onPrevious;
+    nextVideo = onNext;
   }
 
   /// 注销。只有当前所有者能清空（见 [_owner] 的说明）。
@@ -57,8 +61,8 @@ class PlayWindowTitleTarget {
     title.value = '';
     hasPrevious.value = false;
     hasNext.value = false;
-    previousEpisode = null;
-    nextEpisode = null;
+    previousVideo = null;
+    nextVideo = null;
   }
 
   /// 无条件清空；仅测试与「整窗重置」用。
@@ -68,7 +72,7 @@ class PlayWindowTitleTarget {
     title.value = '';
     hasPrevious.value = false;
     hasNext.value = false;
-    previousEpisode = null;
-    nextEpisode = null;
+    previousVideo = null;
+    nextVideo = null;
   }
 }

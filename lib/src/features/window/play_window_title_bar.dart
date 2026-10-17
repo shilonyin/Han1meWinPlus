@@ -165,7 +165,7 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
                     onPressed: widget.onHome,
                   ),
                   const SizedBox(width: 2),
-                  // 上一集 / 下一集：能不能点由播放页登记的可用性决定。
+                  // 上一条 / 下一条（观看历史）：能不能点由播放页登记的可用性决定。
                   //
                   // 画中画小窗里这两个操作已经放大到画面中央（PipOverlayControls），
                   // 这里不再重复占位——参考实现的小窗也只留主页 / 标题 / 置顶 / 关闭。
@@ -173,23 +173,23 @@ class _PlayWindowTitleBarState extends State<PlayWindowTitleBar> {
                     ValueListenableBuilder<bool>(
                       valueListenable: PlayWindowTitleTarget.hasPrevious,
                       builder: (context, enabled, _) => _BarButton(
-                        label: l10n.hotkeyActionPreviousEpisode,
+                        label: l10n.historyPreviousVideo,
                         icon: Symbols.chevron_left_rounded,
                         iconSize: compact ? navIconSize : 22,
                         width: compact ? buttonWidth : 36,
                         onPressed: enabled
-                            ? PlayWindowTitleTarget.previousEpisode
+                            ? PlayWindowTitleTarget.previousVideo
                             : null,
                       ),
                     ),
                     ValueListenableBuilder<bool>(
                       valueListenable: PlayWindowTitleTarget.hasNext,
                       builder: (context, enabled, _) => _BarButton(
-                        label: l10n.hotkeyActionNextEpisode,
+                        label: l10n.historyNextVideo,
                         icon: Symbols.chevron_right_rounded,
                         iconSize: compact ? navIconSize : 22,
                         width: compact ? buttonWidth : 36,
-                        onPressed: enabled ? PlayWindowTitleTarget.nextEpisode : null,
+                        onPressed: enabled ? PlayWindowTitleTarget.nextVideo : null,
                       ),
                     ),
                   ],
