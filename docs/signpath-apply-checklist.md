@@ -55,9 +55,10 @@ https://github.com/shilonyin/Han1meWinPlus#隐私政策
 ```
 
 > 表单说明：*required if the software collects user data*。本项目会保存登录凭据与观看历史，
-> 属于会处理用户数据，**建议填**。目标小节是 `README.md` 的「隐私政策」（原来在
-> 「代码签名政策」节内，是 `README.md:238`；该节移除后提升为顶层节，现为 `README.md:216`），
-> GitHub 生成的锚点是 `#隐私政策`（中文锚点会保留原文，不被转写），锚点未变、链接仍有效。
+> 属于会处理用户数据，**建议填**。目标小节是 `README.md` 的「隐私政策」（删除该节前它是
+> 「代码签名政策」节下的 `### 隐私政策`，在 `4824bf4:README.md:279`；该节移除后提升为
+> 顶层节，现为 `README.md:216`），GitHub 生成的锚点是 `#隐私政策`（中文锚点会保留原文，
+> 不被转写），锚点未变、链接仍有效。
 > 若表单不接受非 ASCII 锚点，退路是填仓库地址并在 `Reputation` 里说明隐私政策位置。
 
 ### Wikipedia URL (optional)（单行文本）

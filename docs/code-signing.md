@@ -191,7 +191,8 @@ HubSpot 表单，**逐字段该填什么见 [`signpath-apply-checklist.md`](sign
 
 - **`Download URL` 有硬性要求**：表单原话 *"This page must mention that the project uses
   the SignPath Foundation for code signing."* —— 下载页必须提到 SignPath Foundation。
-  `README.md` / `README.en.md` 的下载一节已补上这句，**别删**。
+  申请时 `README.md` / `README.en.md` 的下载一节已补上这句；**申请被拒后该句已随清理删掉
+  （commit `8407bcc`），当前不满足，重申前需加回**。
 - **`Category` 下拉只有 10 个值**，没有「视频 / 媒体播放器」类，选 `Other`。
 - **`Build System` 下拉只有两个值**：`GitHub Actions` / `GitLab CI/CD`。选前者。
 - **`Tagline` 可能被公开展示**在 SignPath 官网上，写成中性准确的一句话。
