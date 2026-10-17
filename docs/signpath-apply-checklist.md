@@ -43,9 +43,10 @@ https://github.com/shilonyin/Han1meWinPlus/releases/latest
 
 > **这一项有额外的硬性要求**，表单原话：
 > *"A page where users can download your software. This page must mention that the project uses the SignPath Foundation for code signing."*
-> 即：**下载页必须提到使用了 SignPath Foundation 签名**。`README.md` 的「下载」一节与
+> 即：**下载页必须提到使用了 SignPath Foundation 签名**。申请时 `README.md` 的「下载」一节与
 > `README.en.md` 的 "Download" 一节已补上这句话，而 Releases 页面指向的默认分支 README 就是它，
-> 所以填这个 URL 满足要求。**如果以后把这句话从 README 下载区删掉，这个字段就不合格了。**
+> 所以填这个 URL 当时满足要求。**后来申请被拒、用户决定不再签名，这句话已从两份 README 的
+> 下载区删掉（commit `8407bcc`），现在这个字段不合格 —— 重申前必须先把这句话加回去。**
 
 ### Privacy Policy URL（单行文本）
 
@@ -54,8 +55,9 @@ https://github.com/shilonyin/Han1meWinPlus#隐私政策
 ```
 
 > 表单说明：*required if the software collects user data*。本项目会保存登录凭据与观看历史，
-> 属于会处理用户数据，**建议填**。目标小节是 `README.md:238` 的「隐私政策」，
-> GitHub 生成的锚点是 `#隐私政策`（中文锚点会保留原文，不被转写）。
+> 属于会处理用户数据，**建议填**。目标小节是 `README.md` 的「隐私政策」（原来在
+> 「代码签名政策」节内，是 `README.md:238`；该节移除后提升为顶层节，现为 `README.md:216`），
+> GitHub 生成的锚点是 `#隐私政策`（中文锚点会保留原文，不被转写），锚点未变、链接仍有效。
 > 若表单不接受非 ASCII 锚点，退路是填仓库地址并在 `Reputation` 里说明隐私政策位置。
 
 ### Wikipedia URL (optional)（单行文本）
@@ -254,7 +256,8 @@ Developer platforms (e.g. GitHub)
 1. **GitHub 账号已开启两步验证（2FA）。** 条款要求所有项目成员对 SignPath 与代码仓库访问
    都启用 MFA —— 这是唯一一项我无法替您核实的。
 2. **README 的下载区里有「SignPath Foundation」字样**（`Download URL` 那一栏的硬性要求），
-   且仓库已推送到 `master`。
+   且仓库已推送到 `master`。**这一项当前不满足** —— 申请被拒后该字样已从两份 README 的
+   下载区删除（commit `8407bcc`），重申前需先加回去。
 3. `Reputation` 里的下载量数字与仓库现状一致。
 
 ## 七、提交之后
