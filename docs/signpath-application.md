@@ -83,9 +83,10 @@ https://github.com/shilonyin/Han1meWinPlus/releases/latest
 
 > **这一项有硬性要求**，表单原话：*"This page must mention that the project uses the
 > SignPath Foundation for code signing."*
-> `README.md` 的「下载」一节与 `README.en.md` 的 "Download" 一节已含这句话；
-> Releases 页面指向默认分支的 README，因此该 URL 满足要求。
-> **别把下载区里那段 SignPath 说明删掉**，删了这个字段就不合格。
+> 申请时 `README.md` 的「下载」一节与 `README.en.md` 的 "Download" 一节已含这句话；
+> Releases 页面指向默认分支的 README，因此该 URL 当时满足要求。
+> **当前已不满足** —— 申请被拒后那段 SignPath 说明已从两份 README 的下载区删除
+> （commit `8407bcc`），重申前必须先把这句话加回下载区。
 
 ## 5. Privacy Policy URL / Wikipedia URL
 
