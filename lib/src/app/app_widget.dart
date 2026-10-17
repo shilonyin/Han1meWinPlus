@@ -17,6 +17,7 @@ import 'app_page_colors.dart';
 import 'app_router.dart';
 import 'app_theme.dart';
 import 'startup_effects.dart';
+import 'theme_transition.dart';
 
 class Han1meApp extends ConsumerStatefulWidget {
   const Han1meApp({super.key, this.initialLink});
@@ -56,37 +57,51 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         // `GlassHost`（g1455）：只服务它还剩下的那几个控件（开关、滑条、搜索框）。
         // 内容卡片、侧栏、顶栏的玻璃都已停用（决策见 `docs/ui-polish.md`），它们走主题
         // 自己的面。它必须挂在 navigator 之上，否则对话框 / 弹层里的控件找不到它。
-        builder: (context, child) => GlassHost(
-          // 图集上限：不声明就是规格下限 4096（未识别硬件取 `GlassHardware.unmeasured`）。
-          // Windows 走 ANGLE/D3D11，feature level 11_0 保证 16384 —— 声明真值总比
-          // 拿规格下限当上限好（`glass_host.dart:705-714`）。
-          maxTextureSide: 16384,
-          // 内容是可滚动列表与封面图 → 声明为富背景，标签按最坏情况挑色。
-          richBackdrop: true,
-          // 玻璃背后的平均底色：直接取页面底色（`AppPageColors`，即 g1455 演示站的
-          // 两个主题底色）。它同时决定「不透明档拿什么填色」和「玻璃上的文字挑黑还是白」，
-          // 所以必须和 `AppBackdrop` 真正画出来的那一层同源 —— 两处各写一个值，
-          // 就会出现「按 A 色挑文字、实际画在 B 色上」这类判定与实际不符的问题。
-          backdrop: AppPageColors.of(Theme.of(context).brightness),
-          child: BackdropGroup(
-            child: M3EThemeBridge(
-              child: AppBackdrop(
-                // AMOLED 要的是纯黑省电，铺渐变就白搭了；深色下也只在非 AMOLED 时启用。
-                enabled: !(settings.amoledMode && Theme.of(context).brightness == Brightness.dark),
-                // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
-                // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
-                opacity: settings.windowBackdrop == WindowBackdrop.none ? 1 : .78,
-                child: AppWindowFrame(
-                  child: AppStartupEffects(
-                    navigatorKey: _appRouter.navigatorKey,
-                    exitCoordinator: _exitCoordinator,
-                    initialLink: widget.initialLink,
-                    child: DownloadRequestListener(
-                      // 独立播放窗口投进来的下载意图由主窗口执行（见该组件说明）。
+        //
+        // 外面再包一层 `ThemeTransition`：亮暗切换时把旧画面截下来淡出，避免配色
+        // 插值路过中灰（理由见该组件说明）。它放在 `GlassHost` 之外，是为了让
+        // `GlassHost` 的背景采样仍按原来的层级工作，不被截图边界切断。
+        builder: (context, child) => ThemeTransition(
+          child: GlassHost(
+            // 图集上限：不声明就是规格下限 4096（未识别硬件取 `GlassHardware.unmeasured`）。
+            // Windows 走 ANGLE/D3D11，feature level 11_0 保证 16384 —— 声明真值总比
+            // 拿规格下限当上限好（`glass_host.dart:705-714`）。
+            maxTextureSide: 16384,
+            // 内容是可滚动列表与封面图 → 声明为富背景，标签按最坏情况挑色。
+            richBackdrop: true,
+            // 玻璃背后的平均底色：直接取页面底色（`AppPageColors`，即 g1455 演示站的
+            // 两个主题底色）。它同时决定「不透明档拿什么填色」和「玻璃上的文字挑黑还是白」，
+            // 所以必须和 `AppBackdrop` 真正画出来的那一层同源 —— 两处各写一个值，
+            // 就会出现「按 A 色挑文字、实际画在 B 色上」这类判定与实际不符的问题。
+            backdrop: AppPageColors.of(Theme.of(context).brightness),
+            child: BackdropGroup(
+              child: M3EThemeBridge(
+                child: AppBackdrop(
+                  // AMOLED 要的是纯黑省电，铺渐变就白搭了；深色下也只在非 AMOLED 时启用。
+                  enabled:
+                      !(settings.amoledMode &&
+                          Theme.of(context).brightness == Brightness.dark),
+                  // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
+                  // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
+                  opacity: settings.windowBackdrop == WindowBackdrop.none
+                      ? 1
+                      : .78,
+                  child: AppWindowFrame(
+                    child: AppStartupEffects(
                       navigatorKey: _appRouter.navigatorKey,
-                      child: MediaQuery(
-                        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-                        child: AppLockGate(child: child ?? const SizedBox.shrink()),
+                      exitCoordinator: _exitCoordinator,
+                      initialLink: widget.initialLink,
+                      child: DownloadRequestListener(
+                        // 独立播放窗口投进来的下载意图由主窗口执行（见该组件说明）。
+                        navigatorKey: _appRouter.navigatorKey,
+                        child: MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(settings.textScale),
+                          ),
+                          child: AppLockGate(
+                            child: child ?? const SizedBox.shrink(),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -105,13 +120,23 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         themeMode: settings.materialThemeMode,
-        // 主题切换必须瞬时生效：整套配色在深/浅之间插值时，页面、卡片、文字会一起
-        // 变成发灰的中间色（看起来像蒙了一层），用户点侧栏的主题按钮时就会看到
-        // 「底色切换异常」。
+        // 主题本身的切换保持瞬时：整套配色在深/浅之间插值时，页面、卡片、文字会一起
+        // 变成发灰的中间色（看起来像蒙了一层）。
         // 注意：`themeAnimationDuration` 的**默认值是 200ms**（kThemeAnimationDuration），
         // 所以「不写这个参数」并不等于关掉动画 —— 必须显式给 Duration.zero。
+        //
+        // 想要过渡效果不能用这个参数调大时长，那只会把中灰那段放慢。真正的过渡
+        // 由外层 `ThemeTransition` 做：截下旧画面盖在新画面上淡出，中途任何一帧都是
+        // 两个完整画面按比例混合，不经过灰。
         themeAnimationDuration: Duration.zero,
-        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces, backdrop: settings.windowBackdrop),
+        theme: appTheme(
+          settings.useMonetColors ? lightDynamic : null,
+          settings.themeColor.seedColor(settings.customThemeColor),
+          useSystemFont: settings.useSystemFont,
+          variant: settings.themeColor.schemeVariant,
+          neutralSurfaces: settings.themeColor.neutralSurfaces,
+          backdrop: settings.windowBackdrop,
+        ),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,
           settings.themeColor.seedColor(settings.customThemeColor),

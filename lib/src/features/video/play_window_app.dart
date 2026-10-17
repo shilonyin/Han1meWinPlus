@@ -10,6 +10,7 @@ import 'package:m3e_core/m3e_core.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_router.dart' show searchRouteBuilder;
 import '../../app/app_theme.dart';
+import '../../app/theme_transition.dart';
 import '../../core/app_scroll_behavior.dart';
 import '../../core/m3e_theme_bridge.dart';
 import '../../core/route_observer.dart';
@@ -49,7 +50,9 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
   /// runner → Dart：播放窗口已开着时，用户在别处点了另一个视频，runner 把
   /// 新视频 id 经 `han1me/play-window` 通道转发进来（见 windows/runner/main.cpp
   /// 的 WM_COPYDATA 处理），本窗口就地换片而不是再开一个播放窗口。
-  static const MethodChannel _loadVideoChannel = MethodChannel('han1me/play-window');
+  static const MethodChannel _loadVideoChannel = MethodChannel(
+    'han1me/play-window',
+  );
 
   late final GoRouter _router;
 
@@ -87,9 +90,21 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
           ),
         ),
         // 换集 / 相关推荐在窗口内导航，不开新窗口（同类客户端行为一致）。
-        GoRoute(path: '/video/:id/tags/:mode', builder: (context, state) => TagEditorPage(videoId: state.pathParameters['id']!, mode: state.pathParameters['mode'] == 'remove' ? TagEditorMode.remove : TagEditorMode.add)),
+        GoRoute(
+          path: '/video/:id/tags/:mode',
+          builder: (context, state) => TagEditorPage(
+            videoId: state.pathParameters['id']!,
+            mode: state.pathParameters['mode'] == 'remove'
+                ? TagEditorMode.remove
+                : TagEditorMode.add,
+          ),
+        ),
         // 视频加载遇到 Cloudflare 质询时的过验页。
-        GoRoute(path: '/cloudflare', builder: (context, state) => CloudflarePage(initialUrl: state.extra as String?)),
+        GoRoute(
+          path: '/cloudflare',
+          builder: (context, state) =>
+              CloudflarePage(initialUrl: state.extra as String?),
+        ),
         // 这里**故意没有**缓存页（`/downloads`）。
         //
         // 播放窗口是另一个进程，缓存页却整个长在 `downloadProvider` 上——它持有
@@ -173,15 +188,19 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
-        builder: (context, child) => BackdropGroup(
-          child: M3EThemeBridge(
-            child: AppWindowFrame(
-              // 播放窗口用自己那条标题栏（回到主界面 / 上下集 / 居中标题 / 置顶 /
-              // 画中画 / 窗口按钮）。主窗口那条只放 logo 与窗口按钮，在这里不够用。
-              titleBar: PlayWindowTitleBar(onHome: revealMainWindow),
-              child: MediaQuery(
-                data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-                child: child ?? const SizedBox.shrink(),
+        builder: (context, child) => ThemeTransition(
+          child: BackdropGroup(
+            child: M3EThemeBridge(
+              child: AppWindowFrame(
+                // 播放窗口用自己那条标题栏（回到主界面 / 上下集 / 居中标题 / 置顶 /
+                // 画中画 / 窗口按钮）。主窗口那条只放 logo 与窗口按钮，在这里不够用。
+                titleBar: PlayWindowTitleBar(onHome: revealMainWindow),
+                child: MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -196,9 +215,17 @@ class _PlayWindowAppState extends ConsumerState<PlayWindowApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         themeMode: settings.materialThemeMode,
-        // 与主窗口一致：主题切换必须瞬时生效（Han1meApp 里对默认 200ms 动画的说明）。
+        // 与主窗口一致：主题本身瞬时切换，过渡由外层 `ThemeTransition` 的圆形揭示负责
+        // （配色插值会路过中灰，理由见该组件说明）。
         themeAnimationDuration: Duration.zero,
-        theme: appTheme(settings.useMonetColors ? lightDynamic : null, settings.themeColor.seedColor(settings.customThemeColor), useSystemFont: settings.useSystemFont, variant: settings.themeColor.schemeVariant, neutralSurfaces: settings.themeColor.neutralSurfaces, backdrop: settings.windowBackdrop),
+        theme: appTheme(
+          settings.useMonetColors ? lightDynamic : null,
+          settings.themeColor.seedColor(settings.customThemeColor),
+          useSystemFont: settings.useSystemFont,
+          variant: settings.themeColor.schemeVariant,
+          neutralSurfaces: settings.themeColor.neutralSurfaces,
+          backdrop: settings.windowBackdrop,
+        ),
         darkTheme: appTheme(
           settings.useMonetColors ? darkDynamic : null,
           settings.themeColor.seedColor(settings.customThemeColor),
