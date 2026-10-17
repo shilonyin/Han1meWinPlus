@@ -90,12 +90,9 @@ For other platforms, use [Han1mePlus](https://github.com/1wc10086/Han1mePlus).
 > Download this one file and double-click it; no companion files are needed.
 >
 > **The installer is not code-signed**, so Properties → Digital Signatures is empty and
-> Windows shows an "Unknown publisher" prompt on first launch. It is planned to use free
-> code signing from **SignPath Foundation** (Free code signing provided by
-> [SignPath.io](https://about.signpath.io), certificate by
-> [SignPath Foundation](https://signpath.org)), but the application was not approved — see
-> the [Code signing policy](#code-signing-policy) and
-> [Available signing routes](#available-signing-routes).
+> Windows shows an "Unknown publisher" prompt on first launch. That is expected. For the
+> signing options considered and the research behind them, see
+> [docs/code-signing.md](docs/code-signing.md).
 
 Portable build: `Han1meWinPlus-windows-x64.zip` — unzip and run `han1me_win_plus.exe` ([direct download](../../releases/latest/download/Han1meWinPlus-windows-x64.zip))
 
@@ -125,7 +122,7 @@ Known limitations (stated up front so expectations are clear):
 <details>
 <summary>Windows says "Unknown publisher" or an antivirus blocks the app on first launch</summary>
 
-The installer is not code-signed yet (the free signing application was not approved; other routes are in [docs/code-signing.md](docs/code-signing.md)), so this is the normal prompt for unsigned software. Click "More info" → "Run anyway", or download the portable archive and run it directly.
+The installer is not code-signed (the reasoning is in [docs/code-signing.md](docs/code-signing.md)), so this is the normal prompt for unsigned software. Click "More info" → "Run anyway", or download the portable archive and run it directly.
 
 </details>
 
@@ -216,81 +213,9 @@ Releases are produced automatically by GitHub Actions ([`.github/workflows/build
 > Tags must start with `v` followed by a numeric version (`v1.1.9`, `v1.1.9-win.1` are both fine). The in-app update check only parses the first three numeric segments of the tag, so something like `win-v1.1.9` is read as `0.0.0` and updates would never be detected. When the tag does not match the `pubspec.yaml` version, CI fails outright, which keeps mismatched builds from being published.
 
 > [!NOTE]
-> The first choice for code signing is the free [SignPath Foundation](https://signpath.org/) open-source programme, but **the application was not approved** (the stated reason: the project lacks verifiable external reputation). No signing is in place, so Windows may show an "Unknown publisher" prompt on first launch. That is expected. Other routes are under [Available signing routes](#available-signing-routes).
+> This project's release artifacts are built automatically by GitHub Actions from this repository's sources. **They are currently unsigned**, so Windows may show an "Unknown publisher" prompt on first launch — that is expected. For the signing options considered and the research behind them, see [docs/code-signing.md](docs/code-signing.md).
 
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-> The sentence above is the exact wording SignPath requires on the download page (the
-> `Download URL` field). **This project is not currently enrolled in that programme**
-> (the application was not approved), so the sentence describes the arrangement *once
-> signing is in place*, not a fact that holds today — see "Signing status" below for the
-> current state.
-
-This project's release artifacts (`Han1meWinPlus-Setup.exe`, and `han1me_win_plus.exe`
-inside the portable archive) are built automatically by GitHub Actions from this
-repository's sources. **These artifacts are currently unsigned**: the free SignPath
-Foundation application was [rejected](#signing-status) on the grounds that the project
-lacks verifiable external reputation (stars, third-party discussion, external references).
-Once signing is in place it will cover only binaries built by this project; no pre-compiled
-third-party files are signed.
-
-### Team roles
-
-The repository is currently maintained by a single person
-([shilonyin](https://github.com/shilonyin)); all three roles are held by that person.
-
-| Role | Responsibility | Member |
-| --- | --- | --- |
-| **Authors** | May modify repository sources directly | [@shilonyin](https://github.com/shilonyin) |
-| **Reviewers** | Review changes from non-committers (PRs) | [@shilonyin](https://github.com/shilonyin) |
-| **Approvers** | Decide whether a given release may be submitted for signing | [@shilonyin](https://github.com/shilonyin) |
-
-If other maintainers join, the role split here will be updated together with the
-repository permission groups.
-
-> No signing pipeline is in place; for the other routes see "Available signing routes"
-> below, and [docs/code-signing.md](docs/code-signing.md) for the application and its
-> reference material. Until a signature is live, Windows may show an "Unknown publisher"
-> prompt on first launch. That is expected.
-
-### Signing status
-
-**All current release artifacts are unsigned** (`Get-AuthenticodeSignature` returns
-`NotSigned`). The SignPath Foundation free signing application submitted in 2026 was not
-approved. The stated reason is that the project lacks verifiable external reputation — the
-dimensions assessed are community adoption (stars, forks, contributors), independent
-references or discussion, external articles or institutional backing, and evidence of
-sustained activity and user engagement. The terms set no waiting period and no limit on the
-number of applications, so a project that gains more recognition may reapply.
-
-The "Unknown publisher" prompt at install time is therefore the real current state, not a
-missing configuration.
-
-### Available signing routes
-
-Besides the free SignPath Foundation channel, the remaining viable routes and why the
-others are ruled out (official prices, quoted terms, and the full source list are in
-[docs/research/code-signing-options.md](docs/research/code-signing-options.md)):
-
-| Route | Cost for 1 year (official price) | Assessment |
-| --- | --- | --- |
-| **Certum Open Source Code Signing in the Cloud** | €49 | **Viable first choice.** The issuer states it is `issued only for individuals`; delivered from the cloud, so no hardware and no cross-border shipping |
-| Certum Open Source Code Signing set (physical card) | €69 + €35 shipping = €104 | Viable; the price is cross-border shipping and a non-returnable card |
-| SSL.com IV (Individual Validation) | $129 | The issuer states no business entity is required; confirm first whether a $379 hardware token is mandatory |
-| OSSign | €0 | The other free co-signing programme, but applications are currently suspended and it requires at least 6 months of activity |
-| EV tier (any CA) | — | **Ruled out.** Microsoft's position: `EV certificates no longer bypass SmartScreen` — paying more buys nothing extra |
-| Azure Trusted Signing | — | **Ruled out.** Microsoft's official table reads `Individuals: USA and Canada only`, so it is unavailable to individuals in mainland China |
-| DigiCert / GlobalSign | — | **Ruled out.** DigiCert's configurator offers only OV / EV with no individual tier; GlobalSign keys its regions to the company's place of registration and will not ship tokens across regions |
-| Chinese CAs (WoSign, Shanghai CA, and others) | — | **Ruled out.** The certificate's organization field must carry the Chinese company name from a business licence, so an individual cannot pass subject validation |
-
-One caveat worth stating: **no certificate removes the SmartScreen prompt on a first
-download.** The official position is that reputation accrues over time and download volume
-(`several weeks and hundreds of clean installs`); what a certificate buys is a verifiable
-publisher identity — "Unknown publisher" becomes a recognizable name.
-
-### Privacy policy
+## Privacy policy
 
 **This program will not transfer any information to other networked systems unless
 specifically requested by the user or the person installing or operating it.**

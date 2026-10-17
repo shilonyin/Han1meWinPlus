@@ -247,8 +247,10 @@ All prerequisites from https://signpath.org/terms are already in place:
 - Actively maintained (19 releases in the first month) and already released
 - Functionality described in README, the project's download/home page
 - "Code signing policy" section on the project home page with the required wording,
-  team roles (Authors / Reviewers / Approvers) and a privacy policy:
-  https://github.com/shilonyin/Han1meWinPlus#代码签名政策
+  team roles (Authors / Reviewers / Approvers) and a privacy policy
+  (the section was removed from the README after this application was declined;
+  its full text is preserved in docs/code-signing.md and must be restored there
+  before reapplying)
 - Only our own binaries are submitted; no upstream pre-built files are signed
 - Provides uninstallation (the installer ships an uninstaller)
 - Writes only to the user's own %APPDATA% / %LOCALAPPDATA%, no silent system changes
