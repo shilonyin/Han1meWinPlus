@@ -4,20 +4,40 @@ import 'package:flutter/material.dart';
 import '../core/app_radius.dart';
 import '../core/settings.dart';
 
-/// 页面跳转过渡：淡入 + 极小的上浮。
+/// 页面跳转过渡：先出后进。
 ///
 /// 桌面端默认用的是 `ZoomPageTransitionsBuilder`（整页从 0.85 缩放进场），切换时
 /// 大块内容“弹”一下，和这个以卡片/列表为主、配色平滑的界面不搭；这里改成以淡入为主、
 /// 位移只做点缀，和主题切换（320ms easeInOut）的平滑感保持一致。
-class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
-  const _AppPageTransitionsBuilder();
+@visibleForTesting
+class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+  const AppPageTransitionsBuilder();
 
   @override
   Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    // 先出后进：旧页面在动画前段淡出，新页面在后段淡入，两段不重叠。
+    //
+    // 原来的写法只让新页面淡入、`secondaryAnimation` 完全没用，于是过渡期间旧页面
+    // 仍以**不透明**状态压在下面，新页面又是半透明的，两层内容就叠在同一块区域
+    // （新番表横幅压着首页卡片那种）。旧页面要等过渡结束、Overlay 把它标成不绘制
+    // 之后才消失，所以只在动画期间看得见，表现为「有概率重叠」。
+    //
+    // 不做交叉淡入淡出（两层同时可见）是因为页面 Scaffold 背景透明，两个页面同时
+    // 半透明会出现双重影像。这里让中间空出一小段只露 `AppBackdrop` 的平底色 ——
+    // 那块颜色本来就在 Navigator 外层，露出来很自然。
+    //
+    // `secondaryAnimation` 是「本路由被新路由覆盖」的进度：对旧页面从 0 走到 1，
+    // 对新页面恒为 0。用 Animatable 而不是 CurvedAnimation —— 后者每次 build 都会
+    // 给父动画挂状态监听，而 buildTransitions 会被反复调用。
+    const handoff = 0.35;
+    final entering = CurveTween(curve: const Interval(handoff, 1, curve: Curves.easeOutCubic)).animate(animation);
+    final leaving = Tween<double>(begin: 1, end: 0).animate(CurveTween(curve: const Interval(0, handoff, curve: Curves.easeInCubic)).animate(secondaryAnimation));
     return FadeTransition(
-      opacity: curve,
-      child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.015), end: Offset.zero).animate(curve), child: child),
+      opacity: leaving,
+      child: FadeTransition(
+        opacity: entering,
+        child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.015), end: Offset.zero).animate(entering), child: child),
+      ),
     );
   }
 }
@@ -30,8 +50,8 @@ const _pageTransitionsTheme = PageTransitionsTheme(
     TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
     TargetPlatform.fuchsia: ZoomPageTransitionsBuilder(),
     TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-    TargetPlatform.linux: _AppPageTransitionsBuilder(),
-    TargetPlatform.windows: _AppPageTransitionsBuilder(),
+    TargetPlatform.linux: AppPageTransitionsBuilder(),
+    TargetPlatform.windows: AppPageTransitionsBuilder(),
   },
 );
 
