@@ -178,4 +178,65 @@ void main() {
       }
     });
   });
+
+  group('圆心取按下的位置', () {
+    testWidgets('四角与中心换算成对应的 Alignment', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: SizedBox(key: Key('probe'), width: 200, height: 100),
+          ),
+        ),
+      );
+      final box = tester.renderObject<RenderBox>(
+        find.byKey(const Key('probe')),
+      );
+      final origin = box.localToGlobal(Offset.zero);
+
+      expect(
+        ThemeTransition.originFromPointer(origin, box),
+        const Alignment(-1, -1),
+      );
+      expect(
+        ThemeTransition.originFromPointer(origin + const Offset(200, 100), box),
+        const Alignment(1, 1),
+      );
+      expect(
+        ThemeTransition.originFromPointer(origin + const Offset(100, 50), box),
+        const Alignment(0, 0),
+      );
+      // 左上四分之一处。
+      expect(
+        ThemeTransition.originFromPointer(origin + const Offset(50, 25), box),
+        const Alignment(-0.5, -0.5),
+      );
+    });
+
+    testWidgets('点过之后切换主题，圆从点击处扩散而不是屏幕中心', (tester) async {
+      await tester.pumpWidget(_host(Brightness.light));
+      await tester.pump();
+
+      // 点在左上角附近，远离屏幕中心。
+      const tapPoint = Offset(60, 40);
+      await tester.tapAt(tapPoint);
+      await tester.pump();
+
+      await tester.pumpWidget(_host(Brightness.dark));
+      await tester.pump();
+
+      // 测试环境里 `toImageSync` 未必成功，铺不上过渡层就跳过 ——
+      // 换算本身已由上一条用例覆盖。
+      expect(_hasOverlay(tester), isTrue, reason: '过渡层没铺上，这条用例等于没跑');
+
+      final clip = tester.widget<ClipPath>(_overlayClip());
+      final clipper = clip.clipper! as ThemeRevealClipper;
+      final size = tester.getSize(find.byType(MaterialApp));
+      // 圆心落在点击处：换算回来应等于点击点相对整窗的比例。
+      final center = clipper.origin.alongSize(size);
+      expect(center.dx, closeTo(tapPoint.dx, 1));
+      expect(center.dy, closeTo(tapPoint.dy, 1));
+      // 与「默认屏幕中心」明确不同 —— 否则这条用例分不出两种实现。
+      expect(center, isNot(equals(size.center(Offset.zero))));
+    });
+  });
 }

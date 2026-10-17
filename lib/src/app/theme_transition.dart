@@ -17,8 +17,8 @@ import 'package:flutter/rendering.dart';
 ///
 /// **这里的做法**：主题本身仍然瞬时切换（`themeAnimationDuration` 保持零），
 /// 但在检测到明暗变化的那一刻，把**切换前的画面**截成一张图，盖在已经变成
-/// 新主题的内容上面，只在圆外可见（圆内挖空露出新内容）。圆从中心扩到覆盖
-/// 全屏，旧画面被一圈推开。
+/// 新主题的内容上面，只在圆外可见（圆内挖空露出新内容）。圆从**用户按下的
+/// 那个位置**扩到覆盖全屏，旧画面被一圈推开。
 ///
 /// 内容树只渲染一次（新主题那一次），旧画面只是一张位图，所以没有重复构建、
 /// 也没有两份状态。
@@ -46,8 +46,25 @@ class ThemeTransition extends StatefulWidget {
   /// 圆形扩散的时长。太短看起来像闪一下，太长用户会觉得点完没反应。
   final Duration duration;
 
-  /// 扩散圆心。默认屏幕中心；想从某个按钮位置扩散就传那个位置的相对坐标。
+  /// **没有点击时**的扩散圆心。正常由用户点击触发，圆心取那次按下的位置
+  /// （见 `_resolveOrigin`），这个值只在没有指针事件时兜底 —— 比如「跟随系统」
+  /// 时由系统主题变化引起的切换。
   final Alignment origin;
+
+  /// 把指针的全局坐标换算成相对本层尺寸的 [Alignment]。
+  ///
+  /// 单独抽出来是为了能测：`toImageSync` 在测试环境里不一定成功，过渡层可能
+  /// 压根铺不上，那样就没法从界面上反推圆心。
+  @visibleForTesting
+  static Alignment originFromPointer(Offset pointer, RenderBox box) {
+    final local = box.globalToLocal(pointer);
+    final size = box.size;
+    // Alignment 的取值是 [-1, 1]：左上角 (-1,-1)，右下角 (1,1)。
+    return Alignment(
+      (local.dx / size.width) * 2 - 1,
+      (local.dy / size.height) * 2 - 1,
+    );
+  }
 
   /// 测试用：按进度算出旧画面那一层被裁成什么样。
   ///
@@ -58,7 +75,7 @@ class ThemeTransition extends StatefulWidget {
     double progress,
     Size size, {
     Alignment origin = Alignment.center,
-  }) => _RevealClipper(progress: progress, origin: origin).getClip(size);
+  }) => ThemeRevealClipper(progress: progress, origin: origin).getClip(size);
 
   @override
   State<ThemeTransition> createState() => _ThemeTransitionState();
@@ -83,6 +100,17 @@ class _ThemeTransitionState extends State<ThemeTransition>
   /// 上一次看到的明暗。`null` 表示还没建立基线（首帧不做过渡）。
   Brightness? _lastBrightness;
 
+  /// 最后一次指针按下的全局位置。主题切换基本都由点击触发，用按下点当圆心，
+  /// 圆就从用户点的那个按钮扩散出去。
+  ///
+  /// 跟随系统时由系统主题变化触发的切换没有对应的点击，退回
+  /// [ThemeTransition.origin]（默认屏幕中心）。
+  Offset? _lastPointerDown;
+
+  /// 本次过渡的圆心，在检测到明暗变化的那一刻定下来 —— 动画期间不再改，
+  /// 否则中途点别处会让圆心跳走，看起来像画面抖了一下。
+  Alignment _origin = Alignment.center;
+
   /// 半径线性增长时，覆盖面积按平方增长 —— 观感是「先慢后快」，像突然糊上来。
   /// 用 `easeInOutCubic` 把两端都缓下来，扩散过程更均匀。
   static final Animatable<double> _revealCurve = CurveTween(
@@ -96,9 +124,33 @@ class _ThemeTransitionState extends State<ThemeTransition>
     final previous = _lastBrightness;
     _lastBrightness = brightness;
     if (previous == null || previous == brightness) return;
+    _origin = _resolveOrigin();
     if (_capturePreviousFrame()) {
       _controller.forward(from: 0);
     }
+  }
+
+  /// 把指针的全局坐标换算成相对本层尺寸的 [Alignment]。
+  ///
+  /// 单独抽出来是为了能测：`toImageSync` 在测试环境里不一定成功，过渡层可能
+  /// 压根铺不上，那样就没法从界面上反推圆心。
+  @visibleForTesting
+  static Alignment originFromPointer(Offset pointer, RenderBox box) =>
+      ThemeTransition.originFromPointer(pointer, box);
+
+  /// 把最后一次按下的全局坐标换算成圆心。
+  ///
+  /// 用掉即清空：这样「跟随系统」时由系统主题变化触发的切换（没有点击）不会
+  /// 继承上一次点别处留下的圆心，而是退回 [ThemeTransition.origin]。
+  Alignment _resolveOrigin() {
+    final pointer = _lastPointerDown;
+    _lastPointerDown = null;
+    if (pointer == null) return widget.origin;
+    final object = _boundaryKey.currentContext?.findRenderObject();
+    if (object is! RenderBox || !object.hasSize || object.size.isEmpty) {
+      return widget.origin;
+    }
+    return originFromPointer(pointer, object);
   }
 
   @override
@@ -147,45 +199,51 @@ class _ThemeTransitionState extends State<ThemeTransition>
   @override
   Widget build(BuildContext context) {
     final previous = _previousFrame;
-    return Stack(
-      // `passthrough`：非定位子项拿到与父相同的约束，不改变原有布局。
-      fit: StackFit.passthrough,
-      children: [
-        RepaintBoundary(key: _boundaryKey, child: widget.child),
-        if (previous != null)
-          Positioned.fill(
-            key: ThemeTransition.overlayKey,
-            child: IgnorePointer(
-              // 只让这一层跟着动画重建，`widget.child` 不受影响（否则每帧都要
-              // 重建整棵页面树）。
-              child: ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => ClipPath(
-                  clipper: _RevealClipper(
-                    progress: _revealCurve.transform(_controller.value),
-                    origin: widget.origin,
-                  ),
-                  child: RawImage(
-                    image: previous,
-                    // `RawImage.scale` 是「一个逻辑像素对应多少 image 像素」：截图按
-                    // `pixelRatio` 放大过，所以要乘回去才回到原来的逻辑尺寸。
-                    scale: _previousFrameRatio,
-                    fit: BoxFit.fill,
-                    // 截图与显示用同一个 DPR，是 1:1 映射，`none` 最锐利。
-                    filterQuality: FilterQuality.none,
+    return Listener(
+      // 记下按下的位置，等明暗真的变了再用它当圆心。默认的 `deferToChild` 就够：
+      // 触发点（侧栏按钮、托盘菜单项）都在子树里，命中后事件一定经过这里。
+      // 不用 `translucent`，免得整块空白区域也跟着参与命中测试。
+      onPointerDown: (event) => _lastPointerDown = event.position,
+      child: Stack(
+        // `passthrough`：非定位子项拿到与父相同的约束，不改变原有布局。
+        fit: StackFit.passthrough,
+        children: [
+          RepaintBoundary(key: _boundaryKey, child: widget.child),
+          if (previous != null)
+            Positioned.fill(
+              key: ThemeTransition.overlayKey,
+              child: IgnorePointer(
+                // 只让这一层跟着动画重建，`widget.child` 不受影响（否则每帧都要
+                // 重建整棵页面树）。
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) => ClipPath(
+                    clipper: ThemeRevealClipper(
+                      progress: _revealCurve.transform(_controller.value),
+                      origin: _origin,
+                    ),
+                    child: RawImage(
+                      image: previous,
+                      // `RawImage.scale` 是「一个逻辑像素对应多少 image 像素」：截图按
+                      // `pixelRatio` 放大过，所以要乘回去才回到原来的逻辑尺寸。
+                      scale: _previousFrameRatio,
+                      fit: BoxFit.fill,
+                      // 截图与显示用同一个 DPR，是 1:1 映射，`none` 最锐利。
+                      filterQuality: FilterQuality.none,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// 把整块区域挖掉一个圆 —— 旧画面只在圆外可见，圆内露出下层的新内容。
-class _RevealClipper extends CustomClipper<Path> {
-  const _RevealClipper({required this.progress, required this.origin});
+class ThemeRevealClipper extends CustomClipper<Path> {
+  const ThemeRevealClipper({required this.progress, required this.origin});
 
   /// 0 → 圆半径为零（旧画面铺满），1 → 圆覆盖全屏（旧画面完全消失）。
   final double progress;
@@ -221,6 +279,6 @@ class _RevealClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(_RevealClipper oldClipper) =>
+  bool shouldReclip(ThemeRevealClipper oldClipper) =>
       oldClipper.progress != progress || oldClipper.origin != origin;
 }
