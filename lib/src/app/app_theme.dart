@@ -9,9 +9,8 @@ import '../core/settings.dart';
 /// 桌面端默认用的是 `ZoomPageTransitionsBuilder`（整页从 0.85 缩放进场），切换时
 /// 大块内容“弹”一下，和这个以卡片/列表为主、配色平滑的界面不搭；这里改成以淡入为主、
 /// 位移只做点缀，和主题切换（320ms easeInOut）的平滑感保持一致。
-@visibleForTesting
-class AppPageTransitionsBuilder extends PageTransitionsBuilder {
-  const AppPageTransitionsBuilder();
+class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _AppPageTransitionsBuilder();
 
   @override
   Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
@@ -50,8 +49,8 @@ const _pageTransitionsTheme = PageTransitionsTheme(
     TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
     TargetPlatform.fuchsia: ZoomPageTransitionsBuilder(),
     TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-    TargetPlatform.linux: AppPageTransitionsBuilder(),
-    TargetPlatform.windows: AppPageTransitionsBuilder(),
+    TargetPlatform.linux: _AppPageTransitionsBuilder(),
+    TargetPlatform.windows: _AppPageTransitionsBuilder(),
   },
 );
 

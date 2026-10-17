@@ -8,10 +8,12 @@ import 'package:han1me_win_plus/src/app/app_theme.dart';
 /// `FadeTransition`，外层管旧页面淡出（吃 `secondaryAnimation`），内层管新页面
 /// 淡入（吃 `animation`）。原来的实现只有内层，旧页面在整个过渡期间都是不透明的，
 /// 于是新页面淡到 50% 时两层内容叠在同一块区域。
+///
+/// 过渡器从 `appTheme()` 里取，而不是直接 new —— 顺带验证它确实挂在了 Windows 上。
 void main() {
   /// 取 `buildTransitions` 返回树里两层 FadeTransition 的当前不透明度。
   ({double leaving, double entering}) opacitiesAt({required double animation, required double secondary}) {
-    const builder = AppPageTransitionsBuilder();
+    final builder = appTheme(null, const Color(0xFF6750A4)).pageTransitionsTheme.builders[TargetPlatform.windows]!;
     final route = MaterialPageRoute<void>(builder: (_) => const SizedBox.shrink());
     final tree = builder.buildTransitions<void>(
       route,
@@ -24,6 +26,12 @@ void main() {
     final inner = outer.child! as FadeTransition;
     return (leaving: outer.opacity.value, entering: inner.opacity.value);
   }
+
+  test('Windows 上挂的是自定义过渡', () {
+    final builder = appTheme(null, const Color(0xFF6750A4)).pageTransitionsTheme.builders[TargetPlatform.windows];
+    expect(builder, isNotNull);
+    expect(builder.runtimeType.toString(), isNot(contains('Zoom')));
+  });
 
   group('旧页面淡出', () {
     test('没被覆盖时不淡出', () {
