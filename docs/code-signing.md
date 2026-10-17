@@ -158,9 +158,9 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 | 已发布（即要签的形态已存在） | 条款 | 19 个 Release | ✅ |
 | 下载页说明功能 | 条款 | README | ✅ |
 | **下载页出现 SignPath Foundation 字样** | 表单（`Download URL` 字段说明；字段本身非必填） | README 下载一节 | ✅ |
-| **主页写明「Code signing policy」** | 条款 | README「代码签名政策」一节 | ✅ |
-| **隐私政策** | 条款 | README「代码签名政策 → 隐私政策」 | ✅ |
-| **指定 Authors / Reviewers / Approvers** | 条款 | README 角色表（单人项目，三角色同一人） | ✅ |
+| **主页写明「Code signing policy」** | 条款 | 已被移除（见下方说明） | ❌ |
+| **隐私政策** | 条款 | README「隐私政策」一节（该节保留） | ✅ |
+| **指定 Authors / Reviewers / Approvers** | 条款 | 已被移除（见下方说明） | ❌ |
 | 只签自己的项目与二进制 | 条款 | 构建产物全部来自本仓库 | ✅ |
 | 不修改系统配置而不告知 | 条款 | 只写 `%APPDATA%` / `%LOCALAPPDATA%` | ✅ |
 | 提供卸载 | 条款 | 安装包自带卸载器 | ✅ |
@@ -169,8 +169,13 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 
 > 条款原文里「Specify a code signing policy」要求主页出现 **Code signing policy** 这个词，
 > 并在同一处给出「Free code signing provided by SignPath.io, certificate by SignPath
-> Foundation」这句原话、团队角色、以及隐私政策 —— 这三样现在都在 `README.md` 的
-> 「代码签名政策」一节里。改动 README 时别把这一节删掉。
+> Foundation」这句原话、团队角色、以及隐私政策。
+>
+> **这张表记的是「要申请时该怎么做」的对照结果，不是 README 的现状。** 用户已决定不购买
+> 证书、不再申请，2026 年那次申请被拒后「代码签名政策」一节已从 README 移除（commit
+> `8407bcc`），所以「Code signing policy」与团队角色两行现在是 ❌。隐私政策一节当时提升
+> 为顶层节保留下来。**若将来要重申，需先把这一节整节恢复** —— 全文在 commit `4824bf4`
+> 的 `README.md` 里（原第 219–274 行），git 历史中可直接取回。
 
 > 另外条款提到「Approvers：每次签名请求都要由团队内被信任的成员批准」，
 > 以及「每个 release 都需要人工批准签名」。单人项目即由你自己批准每一次发布。

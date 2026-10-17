@@ -249,8 +249,7 @@ All prerequisites from https://signpath.org/terms are already in place:
 - "Code signing policy" section on the project home page with the required wording,
   team roles (Authors / Reviewers / Approvers) and a privacy policy
   (the section was removed from the README after this application was declined;
-  its full text is preserved in docs/code-signing.md and must be restored there
-  before reapplying)
+  restore it from git history — commit 4824bf4 in README.md — before reapplying)
 - Only our own binaries are submitted; no upstream pre-built files are signed
 - Provides uninstallation (the installer ships an uninstaller)
 - Writes only to the user's own %APPDATA% / %LOCALAPPDATA%, no silent system changes

@@ -623,6 +623,7 @@ SignPath 官方《Code of conduct》（https://signpath.org/terms ）全文**未
 4. **不要指望「先解压 zip」解决问题**：解压工具行为不一，写成用户指引会带来「按说明做了还是被拦」的二次摩擦。
 5. **对 SAC 用户无解**：唯一出路是签名。可在 README 中说明 SAC 用户需关闭 SAC，但需注意官方文档对「能否恢复」自相矛盾，措辞应保守。
 6. **为重申 SignPath 积累外部信号**：官方与社区证据一致指向「stars/引用/文章/持续活跃」而非代码质量。可执行的积累动作包括：争取第三方文章或视频提及、维护 CHANGELOG 与 release notes 证明持续活跃、在 README 中建设 "Code signing policy" 一节（申请表单要求下载页提及 SignPath）。
+   > 注：本节是 2026-10 调研当时给出的建议。此后用户已决定不购买证书、不再申请签名，README 里原有的「代码签名政策」一节已按该决定移除（commit `8407bcc`）。若将来要重申 SignPath，这一条仍需执行。
 
 ---
 
