@@ -116,7 +116,9 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
                       )
                     : LayoutBuilder(
                         builder: (context, constraints) {
-                          final metrics = PreviewGridMetrics.of(constraints, coverRatio: 16 / 9, detailsHeight: 40);
+                          // 这个源上方有一条整幅大横幅，本身就要占掉大半屏，
+                          // 按高度反推列数没有意义，保持按宽度算。
+                          final metrics = PreviewGridMetrics.of(constraints, coverRatio: 16 / 9, detailsHeight: 40, minRows: 1);
                           return CustomScrollView(
                             slivers: [
                               SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),

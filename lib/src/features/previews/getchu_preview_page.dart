@@ -42,7 +42,16 @@ class GetchuPreviewPage extends ConsumerWidget {
                   ? _Unavailable(onRetry: () => ref.invalidate(getchuPreviewsProvider(selectedMonth.value)))
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        final metrics = PreviewGridMetrics.of(constraints, coverRatio: 4 / 3, detailsHeight: 60);
+                        // 一屏至少露出两排海报，所以允许比默认 4 列更多列。
+                        // 44 是首个分组标题的高度（它跟着滚动区走，但首屏顶上就有一条）。
+                        final metrics = PreviewGridMetrics.of(
+                          constraints,
+                          coverRatio: 4 / 3,
+                          detailsHeight: 60,
+                          minRows: 2,
+                          maxColumns: 8,
+                          reservedHeight: 44,
+                        );
                         return CustomScrollView(
                           slivers: [
                             for (final group in feed.groups) ...[
