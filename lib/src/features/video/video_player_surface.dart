@@ -22,6 +22,7 @@ import '../../core/video_player_shutdown.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
+import 'player_overlay_surface.dart';
 import 'video_player_controls.dart';
 
 class VideoPlayerSurface extends ConsumerStatefulWidget {
@@ -639,9 +640,12 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                         return AnimatedPositioned(
                           duration: const Duration(milliseconds: 180),
                           curve: Curves.easeOut,
-                          right: 12,
+                          right: kPlayerControlsInset,
+                          // 控制条显示着的时候右下角被它占着，此时把标记抬到控制条
+                          // 上方。抬到「控制条顶边 + 8」而不是写死 104：控制条的
+                          // 高度改了这里要跟着走，否则两者会叠在一起。
                           bottom: paused && _showControls && !_locked
-                              ? 104
+                              ? kPlayerControlsInset + kPlayerControlsHeight + 8
                               : 16,
                           child: IgnorePointer(
                             child: AnimatedOpacity(
@@ -776,37 +780,40 @@ class PlayerNavCapsule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.black.withValues(alpha: 0.42),
-    borderRadius: BorderRadius.circular(AppRadius.pill),
-    clipBehavior: Clip.antiAlias,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        PressScale(child: IconButton(
-          color: Colors.white,
-          visualDensity: VisualDensity.compact,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: onBack,
-          icon: const Icon(Symbols.arrow_back_rounded),
-        )),
-        if (onHome != null) ...[
-          SizedBox(
-            height: 18,
-            child: VerticalDivider(
-              width: 1,
-              thickness: 1,
-              color: Colors.white.withValues(alpha: 0.24),
-            ),
-          ),
+    // 透明 Material 只为给 IconButton 提供 ink 宿主，材质本身由
+    // PlayerOverlaySurface 画（与其余浮层统一）。
+    color: Colors.transparent,
+    child: PlayerOverlaySurface(
+      radius: AppRadius.pill,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           PressScale(child: IconButton(
             color: Colors.white,
             visualDensity: VisualDensity.compact,
-            tooltip: AppLocalizations.of(context)!.home,
-            onPressed: onHome,
-            icon: const Icon(Symbols.home_rounded),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: onBack,
+            icon: const Icon(Symbols.arrow_back_rounded),
           )),
+          if (onHome != null) ...[
+            SizedBox(
+              height: 18,
+              child: VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: Colors.white.withValues(alpha: 0.24),
+              ),
+            ),
+            PressScale(child: IconButton(
+              color: Colors.white,
+              visualDensity: VisualDensity.compact,
+              tooltip: AppLocalizations.of(context)!.home,
+              onPressed: onHome,
+              icon: const Icon(Symbols.home_rounded),
+            )),
+          ],
         ],
-      ],
+      ),
     ),
   );
 }
@@ -1009,15 +1016,10 @@ class _AdjustmentHud extends StatelessWidget {
     ),
   };
 
-  Widget _pill(Widget child) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.88),
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: child,
-    ),
+  Widget _pill(Widget child) => PlayerOverlaySurface(
+    radius: AppRadius.pill,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    child: child,
   );
 
   Widget _seekCard() {
@@ -1058,7 +1060,10 @@ class _AdjustmentHud extends StatelessWidget {
   }
 }
 
-/// 滚轮调音量的提示：白底圆角卡片 + 喇叭图标 + 百分比。
+/// 滚轮调音量的提示：半透明圆角卡片 + 喇叭图标 + 百分比。
+///
+/// 材质与其他浮层统一走 [PlayerOverlaySurface]（原来是白底黑字，和控制条那种
+/// 深色半透明不是一套，混在画面上显得像拼过来的）。
 class _VolumeHud extends StatelessWidget {
   const _VolumeHud({required this.volume});
   final double volume;
@@ -1067,56 +1072,44 @@ class _VolumeHud extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = (volume.clamp(0.0, 1.0) * 100).round();
     return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                percent <= 0
-                    ? Symbols.volume_off_rounded
-                    : (percent < 50 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded),
-                color: Colors.black,
-                size: 26,
+      child: PlayerOverlaySurface(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              percent <= 0
+                  ? Symbols.volume_off_rounded
+                  : (percent < 50 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded),
+              color: Colors.white,
+              size: 26,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '$percent%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                height: 1,
+                fontWeight: FontWeight.w500,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
-              const SizedBox(width: 10),
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 22,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// 暂停时右下角的常驻标记：白底圆角卡片 + 黑色三角播放图标（同类客户端那种）。
+/// 暂停时右下角的常驻标记：半透明圆角卡片 + 白色三角播放图标。
 class _PausedBadge extends StatelessWidget {
   const _PausedBadge();
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.all(Radius.circular(AppRadius.sm)),
-    ),
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Icon(Symbols.play_arrow_rounded, color: Colors.black, size: 28),
-    ),
+  Widget build(BuildContext context) => const PlayerOverlaySurface(
+    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    child: Icon(Symbols.play_arrow_rounded, color: Colors.white, size: 28),
   );
 }
 

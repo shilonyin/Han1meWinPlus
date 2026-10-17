@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +16,7 @@ import '../shared/press_scale.dart';
 import 'android_cast_button.dart';
 import '../../core/app_dialog.dart';
 import '../shared/motion_icon.dart';
+import 'player_overlay_surface.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
 ///
@@ -29,7 +28,14 @@ const double _progressBarHeight = 48;
 ///
 /// 控制条不再贴底通栏，而是浮在画面上的一枚圆角条：留出这段距离才有「悬浮」
 /// 的观感，它同时也是暂停标记等浮层的定位基准。
-const double _controlsInset = 12;
+const double kPlayerControlsInset = 12;
+
+/// 悬浮控制条的整体高度（进度条 + 按钮行）。
+///
+/// 进度条固定 [_progressBarHeight] 48，按钮行是 compact 密度的 IconButton（40）
+/// 加 4 的底部内边距。给暂停标记这类「要贴在控制条上方」的浮层当基准用：
+/// 差几个像素看不出来，但少算就会和控制条叠在一起。
+const double kPlayerControlsHeight = 92;
 
 /// 音量面板的固定尺寸（大约是半尺寸，不要占满播放器）与和进度条之间的间距。
 const double _volumePanelWidth = 40;
@@ -71,26 +77,15 @@ class VideoPlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: _controlsInset,
-    right: _controlsInset,
-    bottom: _controlsInset,
+    left: kPlayerControlsInset,
+    right: kPlayerControlsInset,
+    bottom: kPlayerControlsInset,
     // 悬浮圆角条：半透明黑底 + 背景模糊，压在视频画面上而不遮满底部。
     //
     // 不再用贴底通栏的渐隐底衬（[ProgressiveFade.bottomSolid]）：那条把画面
-    // 下半截整体压暗，和「浮起来的一枚控制条」是两种观感。边框只画一圈极淡
-    // 的白线，让条子在有亮有暗的画面上都能看出边界。
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: ColoredBox(
-            color: Colors.black.withValues(alpha: .48),
-            child: ValueListenableBuilder<VideoPlayerValue>(
+    // 下半截整体压暗，和「浮起来的一枚控制条」是两种观感。
+    child: PlayerOverlaySurface(
+      child: ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
               builder: (context, value, _) {
                 final l10n = AppLocalizations.of(context)!;
@@ -337,9 +332,6 @@ class VideoPlayerControls extends StatelessWidget {
                 );
               },
             ),
-          ),
-        ),
-      ),
     ),
   );
 }
