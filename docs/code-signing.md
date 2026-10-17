@@ -175,9 +175,9 @@ SignPath 的[条款页](https://signpath.org/terms)写了**申请前就必须成
 > 证书、不再申请，2026 年那次申请被拒后「代码签名政策」一节已从 README 移除（commit
 > `8407bcc`），下载区里的 SignPath Foundation 字样也一并删掉（当时只留「当前未签名」
 > 提示），所以「下载页出现 SignPath Foundation 字样」「Code signing policy」与团队角色
-> 三行现在是 ❌。隐私政策一节当时提升为顶层节保留下来，行号由 `README.md:238` 变为
+> 三行现在是 ❌。隐私政策一节当时提升为顶层节保留下来，行号由 `README.md:279` 变为
 > `README.md:216`，锚点 `#隐私政策` 不变。**若将来要重申，需先把这个字样与这一节都恢复**
-> —— 全文在 commit `4824bf4` 的 `README.md` 里（原第 219–274 行），git 历史中可直接取回。
+> —— 该节全文在 commit `4824bf4` 的 `README.md` 原第 219–277 行，git 历史中可直接取回。
 
 > 另外条款提到「Approvers：每次签名请求都要由团队内被信任的成员批准」，
 > 以及「每个 release 都需要人工批准签名」。单人项目即由你自己批准每一次发布。
