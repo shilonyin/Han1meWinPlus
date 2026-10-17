@@ -3689,13 +3689,13 @@ abstract class AppLocalizations {
   /// No description provided for @historyPreviousVideo.
   ///
   /// In en, this message translates to:
-  /// **'Previous in history'**
+  /// **'Previous video'**
   String get historyPreviousVideo;
 
   /// No description provided for @historyNextVideo.
   ///
   /// In en, this message translates to:
-  /// **'Next in history'**
+  /// **'Next video'**
   String get historyNextVideo;
 
   /// No description provided for @hotkeyActionToggleWindow.

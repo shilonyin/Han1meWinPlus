@@ -11,9 +11,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// 只有独立播放窗口的顶部栏会读它；主窗口用的是 AppTitleBar（不读）。
 ///
-/// **两个箭头翻的是观看历史，不是剧集**：按播放记录的时间顺序取当前视频的上一条 /
-/// 下一条。同一部片子的其它集也在历史里，但它们和其它视频一样按「看过的时间」排队，
-/// 不再有「上一集」的特殊地位。
+/// **两个箭头翻的是本窗口里「我点开过哪些视频」的顺序**（[PlayWindowNavHistory]），
+/// 不是剧集列表、也不是全局观看历史。用户点开 B 看完想回 A，左箭头就该回 A。
 class PlayWindowTitleTarget {
   PlayWindowTitleTarget._();
 

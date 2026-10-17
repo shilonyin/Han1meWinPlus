@@ -6,13 +6,11 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
+import '../../core/play_window_nav_history.dart';
 import '../../core/play_window_title_target.dart';
 import '../../core/window_chrome.dart';
 import '../../data/local/library_repository.dart';
-import '../../data/local/watch_repository.dart';
 import '../../data/remote/han1me_api.dart';
-import '../../domain/history_navigation.dart';
-import '../../domain/models/library.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
@@ -113,17 +111,29 @@ class _VideoPageState extends ConsumerState<VideoPage> {
   /// ValueListenableBuilder 监听它们。在 build 期间改值会同步标脏那个 builder，
   /// Flutter 会抛「setState() or markNeedsBuild() called during build」。
   ///
-  /// 去重键带上前后条，不能只用视频 id：当前视频播够时长后才被写进历史
-  /// （`_watchThresholdMs`），那一刻它的邻居从「都没有」变成「有上一条」，
-  /// 只按 id 去重就不会重发，箭头会一直灰着。
+  /// **翻的是本窗口里「我点开过哪些视频」的顺序**（[PlayWindowNavHistory]），不是
+  /// 全局观看历史。用户点开 B 看完想回 A，左箭头就该回 A —— 观看历史做不到这件事：
+  /// 它只在播满时长后才写，同一部片子的多条记录还会按「看过的时间」重排。
   String? _publishedTitleKey;
 
-  void _publishTitleInfo(VideoDetail video, List<WatchHistory> history) {
-    final neighbours = historyNeighbours(history, video.id);
-    final previous = neighbours.previous;
-    final next = neighbours.next;
-    final key =
-        '${video.id}|${previous?.videoCode}|${next?.videoCode}';
+  /// 本页是否已经往导航栈里记过。
+  ///
+  /// 只记一次：`_publishTitleInfo` 每次 build 都会被调用，而换片走
+  /// `pushReplacement` 时旧页面会晚一步销毁——旧页若在这期间重建又记一遍，
+  /// 会把刚回退到的位置截断、在栈尾重新追加自己，等于「退不回去」。
+  bool _recordedInNav = false;
+
+  void _publishTitleInfo(VideoDetail video) {
+    final nav = PlayWindowNavHistory.instance;
+    if (!_recordedInNav) {
+      _recordedInNav = true;
+      // 详情到达才算一次「打开」：这里标题已经可用，栈里存得下完整条目。
+      nav.record(PlayWindowNavEntry(videoCode: video.id, title: video.title));
+    }
+
+    final previous = nav.previous;
+    final next = nav.next;
+    final key = '${video.id}|${previous?.videoCode}|${next?.videoCode}';
     if (_publishedTitleKey == key) return;
     _publishedTitleKey = key;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -133,24 +143,22 @@ class _VideoPageState extends ConsumerState<VideoPage> {
         title: video.title,
         hasPrevious: previous != null,
         hasNext: next != null,
-        // 翻的是观看历史，在窗口内导航（pushReplacement 与播放页里换片一致）。
-        onPrevious: previous != null
-            ? () => context.pushReplacement('/video/${previous.videoCode}')
-            : null,
-        onNext: next != null
-            ? () => context.pushReplacement('/video/${next.videoCode}')
-            : null,
+        // 先把游标移到目标再跳，新页面 record 时认领这一步，不会在栈尾追加。
+        onPrevious: previous != null ? () => _goToNavEntry(previous) : null,
+        onNext: next != null ? () => _goToNavEntry(next) : null,
       );
     });
+  }
+
+  void _goToNavEntry(PlayWindowNavEntry target) {
+    if (!PlayWindowNavHistory.instance.goTo(target)) return;
+    context.pushReplacement('/video/${target.videoCode}');
   }
 
   @override
   Widget build(BuildContext context) {
     final id = widget.id;
     final localVideo = widget.localVideo;
-    // 顶部栏那两个箭头翻的是观看历史，所以要跟着历史一起变：本片播够时长后
-    // 才被写进历史，那一刻前后条才出现，得重建一次才能把箭头点亮。
-    final history = ref.watch(watchProvider).valueOrNull?.histories ?? const <WatchHistory>[];
     Widget withBackButton(Widget child) => Stack(
       children: [
         child,
@@ -172,7 +180,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
                   ref
                       .read(libraryProvider.notifier)
                       .addSubscriptionVideo(video);
-                  if (widget.inPlayWindow) _publishTitleInfo(video, history);
+                  if (widget.inPlayWindow) _publishTitleInfo(video);
                   return _DetailBody(
                     video: video,
                     onBack: widget.onBack,
@@ -182,7 +190,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
                 },
               )
         : (() {
-            if (widget.inPlayWindow) _publishTitleInfo(localVideo, history);
+            if (widget.inPlayWindow) _publishTitleInfo(localVideo);
             return _DetailBody(
               video: localVideo,
               onBack: widget.onBack,
@@ -234,23 +242,30 @@ class _VideoError extends ConsumerWidget {
         children: [
           Text('$error', textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          PressScale(child: FilledButton(
-            onPressed: () => ref.invalidate(videoDetailProvider(id)),
-            child: Text(AppLocalizations.of(context)!.retry),
-          )),
+          PressScale(
+            child: FilledButton(
+              onPressed: () => ref.invalidate(videoDetailProvider(id)),
+              child: Text(AppLocalizations.of(context)!.retry),
+            ),
+          ),
           // 硬封锁时不给「完成验证」入口：那种 403 没有可点的挑战页，进去也是白跑。
-          if (error case CloudflareChallengeException(blocked: false, :final url))
-            PressScale(child: TextButton(
-              onPressed: () async {
-                if (await context.push<bool>('/cloudflare', extra: url) ==
-                    true) {
-                  ref.invalidate(videoDetailProvider(id));
-                }
-              },
-              child: Text(
-                AppLocalizations.of(context)!.completeCloudflareVerification,
+          if (error case CloudflareChallengeException(
+            blocked: false,
+            :final url,
+          ))
+            PressScale(
+              child: TextButton(
+                onPressed: () async {
+                  if (await context.push<bool>('/cloudflare', extra: url) ==
+                      true) {
+                    ref.invalidate(videoDetailProvider(id));
+                  }
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.completeCloudflareVerification,
+                ),
               ),
-            )),
+            ),
         ],
       ),
     ),
