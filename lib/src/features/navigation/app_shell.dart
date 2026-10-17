@@ -18,6 +18,7 @@ import '../shared/app_image_cache.dart';
 import '../shared/app_toast.dart';
 import '../shared/press_scale.dart';
 import 'exit_coordinator.dart';
+import 'shell_destination.dart';
 import '../../core/app_motion.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -181,19 +182,9 @@ Widget _drawerSectionTitle(BuildContext context, String title) => Padding(
       child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
     );
 
-/// 打开抽屉项对应的页面（分支页切分支，其余 push）。
-void _openDrawerLocation(BuildContext context, StatefulNavigationShell navigationShell, String location) {
-  switch (location) {
-    case '/':
-      navigationShell.goBranch(0, initialLocation: navigationShell.currentIndex == 0);
-    case '/settings':
-      navigationShell.goBranch(3, initialLocation: navigationShell.currentIndex == 3);
-    case '/cache':
-      navigationShell.goBranch(2, initialLocation: navigationShell.currentIndex == 2);
-    default:
-      context.push(location);
-  }
-}
+/// 打开抽屉项对应的页面（分支页切分支，其余 go）。
+void _openDrawerLocation(BuildContext context, StatefulNavigationShell navigationShell, String location) =>
+    openShellDestination(context, navigationShell, location);
 
 int _selectedDrawerIndex(BuildContext context, List<_DrawerItem> items) {
   final path = GoRouterState.of(context).uri.path;
