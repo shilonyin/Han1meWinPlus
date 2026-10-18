@@ -27,7 +27,6 @@ import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_error.dart';
 import '../shared/app_image_cache.dart';
-import '../shared/page_colors_fade.dart';
 import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
@@ -89,18 +88,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _searchFieldKey = GlobalKey();
   final _topBarKey = GlobalKey();
   final _bodyStackKey = GlobalKey();
-
-  /// 顶栏底下那条淡出带的强度：内容滚到顶栏高度时到 1，停在顶部是 0。
-  /// 连续给值而不是过阈值才翻面，往下滚时它是渐渐显出来的。
-  var _barProgress = 0.0;
-
-  /// 滚动通知的入口。按 0.05 一档量化，避免每一像素都触发一次重建。
-  bool _onScrollNotification(ScrollNotification notification) {
-    final raw = (notification.metrics.pixels / _homeBarHeight).clamp(0.0, 1.0);
-    final next = (raw * 20).round() / 20;
-    if (next != _barProgress) setState(() => _barProgress = next);
-    return false;
-  }
 
   @override
   void initState() {
@@ -173,10 +160,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
       // 处在同一个坐标系里，面板能跟搜索框严格对齐。
-      // 滚动位置决定顶栏底下要不要铺那条画布色淡出带：内容停在顶部时它不该出现。
-      body: NotificationListener<ScrollNotification>(
-        onNotification: _onScrollNotification,
-        child: Stack(
+      body: Stack(
         key: _bodyStackKey,
         children: [
           // 列表铺满整块 body：它不再被顶栏挤下去，顶部让开的地方由它自己第一个
@@ -201,37 +185,27 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index),
             ),
           ),
-          // 顶栏浮在内容之上，底下带一条 scroll edge：内容滚到它下面时
-          // 会淡进画布色，也就是 iOS 26 那条「滚动边缘」。
-          //
-          // 这条边缘由 `PageColorsFade` 自己画，不用 g1455 的 `GlassScrollEdge`：
-          // 后者的 tint 在浅色模式下恒为 0.85 的白，会把顶栏那 56 像素推成近纯白
-          // （实测 253,253,254，而画布是 242,242,247），只有首页看着底色和别页不同。
-          // 淡出带要夹在内容与顶栏之间：它从画布色往下淡出，上半截由下面那层
-          // 不透明的顶栏盖住，露出来的只有顶栏底边之外那一段。
+          // 顶栏浮在内容之上，底下带一条 scroll edge（g1455）：内容滚到它下面时
+          // 会被模糊并淡出，也就是 iOS 26 那条「滚动边缘」。
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: PageColorsFade(
+            child: GlassScrollEdge(
+              side: GlassScrollEdgeSide.top,
               extent: _homeBarHeight,
-              progress: _barProgress,
-              blurSigma: 8,
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            // 顶栏与画布同色。别的页面 AppBar 透明，露出来的就是画布色。
-            child: Material(
-                // 顶栏必须不透明：内容是从它底下滚过去的（body 铺满整块，顶栏浮在上面），
-                // 让它透明就能看到卡片与顶栏文字叠在一起。用画布色而不是主色面，
-                // 别页面的透明 AppBar 露出来的正是这个色。
+              // 模糊用 g1455 的实测值（σ 1.6）。自己放大到 8 会把滚过去的卡片
+              // 糊成一片色块，看着像整条被「液化」了。
+              blurSigma: kGlassScrollEdgeSigma,
+              // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。玻璃材质（磨砂的模糊、
+              // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
+              // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
+              child: Material(
+                // 顶栏与画布同色。别的页面 AppBar 透明，露出来的就是画布色。
                 //
-                // surfaceTintColor 必须清掉：Material 会按 elevation 把 surfaceTint 混进
-                // color，实测铺出来是 249,249,251，比画布的 242,242,247 亮 7 阶，
-                // 顶上仍有一道能看出边界的横条。
+                // 不能用 appBarTheme.backgroundColor 或 colorScheme.surface：前者在
+                // 本应用里是主色面，后者会被 elevation 的 surfaceTint 混成 249,249,251，
+                // 比画布的 242,242,247 亮 7 阶，顶上会多出一道能看出边界的横条。
                 color: AppPageColors.of(Theme.of(context).brightness),
                 surfaceTintColor: Colors.transparent,
                 child: SizedBox(
@@ -313,8 +287,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ),
       ),
-                ),
-            ),
+    ),
+  ),
+),
           // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
           IgnorePointer(
             ignoring: !_searchPanelOpen,
@@ -330,7 +305,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
           _buildSearchPanel(context),
         ],
-        ),
       ),
     );
   }

@@ -72,6 +72,9 @@ class Han1meApi {
   String? _cookie;
   final _resolvedOrigins = <String, String>{};
 
+  /// 首页推荐位的条数上限。站点横幅只有一条，不够翻页，用首页各行的视频补到这里为止。
+  static const int _featuredLimit = 5;
+
   /// WebView / 播放器请求头用的浏览器 UA —— 都是真正需要「像浏览器」的场景。
   /// 桌面 Dart 请求不要用它，原因见 [Han1meHttpClient.userAgentFor]。
   static String get userAgent => Han1meHttpClient.browserUserAgent;
@@ -105,17 +108,30 @@ class Han1meApi {
     final bannerMeta = banner?.querySelector('h4')?.text.trim();
     final bannerCover = _absolute(baseUrl, bannerImage?.attributes['src']);
     final bannerId = RegExp(r'thumbnail/(\d+)').firstMatch(bannerCover)?.group(1) ?? '';
-    final featured = bannerTitle == null || bannerTitle.isEmpty
-        ? <VideoCard>[]
-        : <VideoCard>[
-            VideoCard(
-              id: bannerId,
-              title: bannerTitle,
-              coverUrl: bannerCover,
-              artist: bannerMeta?.split('•').first.trim(),
-              views: bannerMeta?.split('•').skip(1).firstOrNull?.trim(),
-            ),
-          ];
+    // 站点的首页横幅只有一条，照搬过来轮播就只有一屏、翻不动。
+    // 这里用首页各行的视频补到 5 条：它们本来就是最新上架的那批，
+    // 按 id 与封面去重，避免和横幅本身重复。
+    final featured = <VideoCard>[];
+    if (bannerTitle != null && bannerTitle.isNotEmpty) {
+      featured.add(
+        VideoCard(
+          id: bannerId,
+          title: bannerTitle,
+          coverUrl: bannerCover,
+          artist: bannerMeta?.split('•').first.trim(),
+          views: bannerMeta?.split('•').skip(1).firstOrNull?.trim(),
+        ),
+      );
+    }
+    for (final section in sections) {
+      if (featured.length >= _featuredLimit) break;
+      for (final video in section.videos) {
+        if (featured.length >= _featuredLimit) break;
+        if (video.id.isEmpty) continue;
+        if (featured.any((item) => item.id == video.id || (item.coverUrl.isNotEmpty && item.coverUrl == video.coverUrl))) continue;
+        featured.add(video);
+      }
+    }
     return HomeFeed(sections: sections, featured: featured);
   }
 
