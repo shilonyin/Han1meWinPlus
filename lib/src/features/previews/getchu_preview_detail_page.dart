@@ -412,6 +412,18 @@ class _GalleryTab extends StatelessWidget {
   }
 }
 
+/// 系列商品封面比例（宽 / 高）。Getchu 的 `package.jpg` 绝大多数是 500×715，
+/// 少数是 700×500；按竖版算卡高，横版那张会被裁掉一点，但整行卡片的
+/// 封面比例是一致的。
+const double _kSeriesCoverRatio = 0.7;
+
+/// 封面下方文字区的固定高度：标题一行 + 间距 + 价格一行 + 底距。
+///
+/// 卡高由「封面按比例算出的高度 + 这个值」组成，不用 `childAspectRatio`：
+/// 后者约束的是整卡的高宽比，而文字区是固定像素高，窗口一变宽封面比例
+/// 就跟着变，一排封面的高矮会不齐。
+const double _kSeriesDetailsHeight = 56;
+
 /// 系列商品页签：网格。
 class _SeriesGrid extends StatelessWidget {
   const _SeriesGrid({required this.items, required this.isWide});
@@ -421,18 +433,28 @@ class _SeriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isWide ? 5 : 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: .56,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) => _SeriesCard(item: items[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontal = 20.0;
+        const spacing = 12.0;
+        final columns = isWide ? 5 : 2;
+        final usable = constraints.maxWidth - horizontal * 2;
+        final cardWidth = (usable - spacing * (columns - 1)) / columns;
+        final cardHeight = cardWidth / _kSeriesCoverRatio + _kSeriesDetailsHeight;
+        return GridView.builder(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(horizontal: horizontal, vertical: 16),
+          physics: const BouncingScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: spacing,
+            mainAxisExtent: cardHeight,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) => _SeriesCard(item: items[index]),
+        );
+      },
     );
   }
 }
@@ -445,33 +467,47 @@ class _SeriesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: PressScale(
-        child: InkWell(
-          onTap: () => context.push('/previews/getchu/detail/${item.id}'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: item.coverUrl == null
-                    ? const ColoredBox(color: Colors.black12, child: Icon(Symbols.image_not_supported_rounded))
-                    : AppCachedNetworkImage(imageUrl: item.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelLarge),
-                    if (item.price != null) ...[
-                      const SizedBox(height: 4),
-                      Text(item.price!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
-                    ],
-                  ],
+    // 与首页卡片同一套结构：封面是独立的一块圆角，文字直接落在内容底色上。
+    // 不再套 Card 底板 —— 那样封面和文字同属一块白色，看着是两层；
+    // 首页的卡片本来就没有底板。
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Material(
+        type: MaterialType.transparency,
+        child: PressScale(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            // 灰罩在无底卡片上只能从文字区透出来，看着像「选中时下面变暗」。
+            hoverColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            // 上面三个都关了，焦点态得单独给，否则键盘 Tab 到卡片上毫无反应。
+            focusColor: theme.colorScheme.primary.withValues(alpha: .16),
+            onTap: () => context.push('/previews/getchu/detail/${item.id}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: item.coverUrl == null
+                        ? ColoredBox(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: const Icon(Symbols.image_not_supported_rounded),
+                          )
+                        : AppCachedNetworkImage(imageUrl: item.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
+                // 价格落在不同高度上。
+                Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                if (item.price != null) ...[
+                  const SizedBox(height: 4),
+                  Text(item.price!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ],
+            ),
           ),
         ),
       ),
