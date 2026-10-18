@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../app/app_page_colors.dart';
 import '../../core/app_radius.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,7 +78,10 @@ class _DetailContentState extends State<_DetailContent> {
     final dark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final isWide = MediaQuery.sizeOf(context).width > kGetchuWideBreakpoint;
-    final surface = theme.scaffoldBackgroundColor;
+    // 用页面底色，不能用 theme.scaffoldBackgroundColor —— 后者在本应用里是
+    // Colors.transparent（底色交给 AppBackdrop 画），拿它当正文底色等于没底，
+    // 背景图会直接透到正文和吸顶页签栏底下。
+    final surface = AppPageColors.of(theme.brightness);
     final titleColor = dark ? Colors.white : Colors.black;
     final subtitleColor = dark ? Colors.white54 : const Color(0xFF8E8E93);
     final dividerColor = dark ? Colors.white.withValues(alpha: .08) : Colors.black.withValues(alpha: .05);

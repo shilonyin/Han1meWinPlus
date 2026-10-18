@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_page_colors.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../shared/app_image_cache.dart';
@@ -28,7 +29,10 @@ class GetchuBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final surface = theme.scaffoldBackgroundColor;
+    // 必须用页面底色，不能用 theme.scaffoldBackgroundColor：
+    // 后者在本应用里是 Colors.transparent（底色交给 AppBackdrop 画），
+    // 拿它做遮罩等于没有遮罩，背景图会直接压在正文下面。
+    final surface = AppPageColors.of(theme.brightness);
     final source = imageUrl;
     final fallback = ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
     return SizedBox(
