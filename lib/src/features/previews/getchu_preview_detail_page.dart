@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +13,7 @@ import '../../domain/models/getchu_preview.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
 import 'getchu_preview_controller.dart';
+import 'getchu_detail_hero.dart';
 
 const _getchuImageHeaders = {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'};
 
@@ -48,12 +48,19 @@ class _DetailContent extends StatelessWidget {
         ? [GetchuPreviewSection(title: '商品紹介', body: detail.description!)]
         : detail.sections;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      padding: EdgeInsets.zero,
       children: [
-        _ProductSummary(detail: detail),
+        _DetailHero(detail: detail),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: _InfoRow(detail: detail),
+        ),
         for (final section in sections) ...[
           const SizedBox(height: 24),
-          _TextSection(section: section),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _TextSection(section: section),
+          ),
         ],
         if (detail.sampleImages.isNotEmpty) ...[
           const SizedBox(height: 24),
@@ -68,70 +75,73 @@ class _DetailContent extends StatelessWidget {
   }
 }
 
-class _ProductSummary extends StatelessWidget {
-  const _ProductSummary({required this.detail});
+/// 顶部：整宽背景图 + 浮在上面的竖版封面、标题与按钮。
+///
+/// 侧栏 / 窄窗口下横排放不下，自动改成封面在上、文字在下。
+class _DetailHero extends StatelessWidget {
+  const _DetailHero({required this.detail});
 
   final GetchuPreviewDetail detail;
 
+  static const double _backdropHeight = 220;
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final metadata = [detail.brand, detail.releaseDate, detail.price].whereType<String>().toList();
-    return GlassPanel(
-      solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 520;
-          final cover = detail.coverUrl == null
-              ? null
-              : AppCachedNetworkImage(imageUrl: detail.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, alignment: Alignment.topCenter, fadeInDuration: Duration.zero);
-          final information = Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final coverWidth = width >= 420 ? 132.0 : 96.0;
+        // 扣掉左右内边距与封面、间距后，文字区至少要留 180
+        final horizontal = width - 32 - coverWidth - 16 >= 180;
+        final text = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(detail.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(detail.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                if (metadata.isNotEmpty) ...[const SizedBox(height: 12), Text(metadata.join('\n'))],
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (detail.trailers.isNotEmpty)
-                      PressScale(child: FilledButton.icon(onPressed: () => _play(context, 0), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playTrailer))),
-                    PressScale(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse(detail.productUrl), mode: LaunchMode.externalApplication), icon: const Icon(Symbols.open_in_new_rounded), label: Text(l10n.openGetchu))),
-                  ],
-                ),
-                if (detail.trailers.length > 1) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (var index = 1; index < detail.trailers.length; index++)
-                        PressScale(child: TextButton.icon(onPressed: () => _play(context, index), icon: const Icon(Symbols.play_circle_rounded), label: Text(l10n.trailerNumber(index + 1)))),
-                    ],
-                  ),
-                ],
+                if (detail.trailers.isNotEmpty)
+                  PressScale(child: FilledButton.icon(onPressed: () => _play(context, detail, 0), icon: const Icon(Symbols.play_arrow_rounded), label: Text(l10n.playTrailer))),
+                PressScale(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse(detail.productUrl), mode: LaunchMode.externalApplication), icon: const Icon(Symbols.open_in_new_rounded), label: Text(l10n.openGetchu))),
               ],
             ),
-          );
-          if (compact) {
-            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [if (cover != null) AspectRatio(aspectRatio: 4 / 3, child: cover), information]);
-          }
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [if (cover != null) SizedBox(width: 220, child: cover), Expanded(child: information)],
+            if (detail.trailers.length > 1) ...[
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (var index = 1; index < detail.trailers.length; index++)
+                    PressScale(child: TextButton.icon(onPressed: () => _play(context, detail, index), icon: const Icon(Symbols.play_circle_rounded), label: Text(l10n.trailerNumber(index + 1)))),
+                ],
+              ),
+            ],
+          ],
+        );
+        final cover = GetchuCover(imageUrl: detail.coverUrl, width: coverWidth, httpHeaders: _getchuImageHeaders);
+        return Stack(
+          children: [
+            GetchuBackdrop(imageUrl: detail.coverUrl, height: _backdropHeight, httpHeaders: _getchuImageHeaders),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 56, 16, 0),
+                child: horizontal
+                    ? Row(crossAxisAlignment: CrossAxisAlignment.end, children: [cover, const SizedBox(width: 16), Expanded(child: text)])
+                    : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [cover, const SizedBox(height: 12), text]),
+              ),
             ),
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
   }
 
-  void _play(BuildContext context, int index) {
+  void _play(BuildContext context, GetchuPreviewDetail detail, int index) {
     final trailer = detail.trailers[index];
     final video = VideoDetail(
       id: 'getchu-${detail.id}-$index',
@@ -146,6 +156,30 @@ class _ProductSummary extends StatelessWidget {
       related: const [],
     );
     context.push('/video/${video.id}', extra: video);
+  }
+}
+
+/// 标题下面那行元信息：厂商 · 发售日 · 价格
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.detail});
+
+  final GetchuPreviewDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = [detail.brand, detail.releaseDate, detail.price].whereType<String>().where((value) => value.isNotEmpty).toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        for (final (index, item) in items.indexed) ...[
+          if (index > 0) Text('·', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+          Text(item, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ],
+      ],
+    );
   }
 }
 
