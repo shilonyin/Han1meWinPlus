@@ -1533,6 +1533,12 @@ abstract class AppLocalizations {
   /// **'Series Products'**
   String get getchuSeries;
 
+  /// No description provided for @getchuNotYetReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet released'**
+  String get getchuNotYetReleased;
+
   /// No description provided for @overview.
   ///
   /// In en, this message translates to:

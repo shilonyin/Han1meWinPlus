@@ -798,6 +798,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get getchuSeries => '系列商品';
 
   @override
+  String get getchuNotYetReleased => '尚未发售';
+
+  @override
   String get overview => '概览';
 
   @override
@@ -3466,6 +3469,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get getchuSeries => '系列商品';
+
+  @override
+  String get getchuNotYetReleased => '尚未發售';
 
   @override
   String get overview => '概覽';

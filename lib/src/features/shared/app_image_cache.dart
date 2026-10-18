@@ -130,6 +130,7 @@ class AppCachedNetworkImage extends StatelessWidget {
     this.httpHeaders,
     this.placeholder,
     this.errorWidget,
+    this.imageBuilder,
     this.fadeInDuration = Duration.zero,
     this.fadeOutDuration = Duration.zero,
     super.key,
@@ -144,6 +145,10 @@ class AppCachedNetworkImage extends StatelessWidget {
   final Map<String, String>? httpHeaders;
   final PlaceholderWidgetBuilder? placeholder;
   final LoadingErrorWidgetBuilder? errorWidget;
+
+  /// 自定义图片层。加载完成后才会被调用，所以可以用它把「图到齐了」这件事
+  /// 转告外层的其它内容（例如让标题和价格跟封面同时出现）。
+  final ImageWidgetBuilder? imageBuilder;
   final Duration fadeInDuration;
   final Duration fadeOutDuration;
 
@@ -160,6 +165,7 @@ class AppCachedNetworkImage extends StatelessWidget {
         httpHeaders: httpHeaders,
         placeholder: placeholder,
         errorWidget: errorWidget,
+        imageBuilder: imageBuilder,
         fadeInDuration: fadeInDuration,
         fadeOutDuration: fadeOutDuration,
       );

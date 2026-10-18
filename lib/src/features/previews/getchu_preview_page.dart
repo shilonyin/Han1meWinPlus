@@ -54,7 +54,10 @@ class GetchuPreviewPage extends ConsumerWidget {
                         // 44 是首个分组标题的高度（它跟着滚动区走，但首屏顶上就有一条）。
                         final metrics = PreviewGridMetrics.of(
                           constraints,
-                          coverRatio: kGetchuCoverRatio,
+                          // 这里的 coverRatio 是「高 / 宽」，与 kGetchuCoverRatio
+                          // 的「宽 / 高」互为倒数。传错会让行高只有实际的一半，
+                          // 封面溢到下一排上。
+                          coverRatio: 1 / kGetchuCoverRatio,
                           detailsHeight: kGetchuDetailsHeight,
                           minRows: 2,
                           maxColumns: 8,

@@ -831,6 +831,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get getchuSeries => 'Series Products';
 
   @override
+  String get getchuNotYetReleased => 'Not yet released';
+
+  @override
   String get overview => 'Overview';
 
   @override

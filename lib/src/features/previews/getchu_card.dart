@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../shared/app_image_cache.dart';
@@ -13,6 +14,9 @@ import 'getchu_detail_hero.dart';
 ///
 /// `package.jpg` 绝大多数是 500×715，少数是 700×500；按竖版统一，
 /// 横版那张会被裁掉一点，但整行卡片的封面比例一致。
+///
+/// 注意这是**宽 / 高**。`PreviewGridMetrics.coverRatio` 要的是**高 / 宽**，
+/// 传进去的时候得取倒数，否则算出的行高只有实际的一半。
 const double kGetchuCoverRatio = 0.7;
 
 /// 封面下方文字区的固定高度：标题一行 + 间距 + 价格一行 + 底距。
@@ -31,14 +35,35 @@ double getchuCardHeight(double cardWidth) =>
 ///
 /// 结构照首页卡片：封面是独立的一块圆角（带阴影），标题与价格直接落在
 /// 内容底色上，不套底板 —— 封面和文字同属一块白色看着像两层。
-class GetchuCard extends StatelessWidget {
+///
+/// 封面没到位之前整张卡只留一块中性底：阴影和文字都跟着封面一起出现，
+/// 不然会先看到「一块空白的虚影 + 已经排好的标题」，等图补上再跳一下。
+class GetchuCard extends StatefulWidget {
   const GetchuCard({super.key, required this.item});
 
   final GetchuPreviewItem item;
 
   @override
+  State<GetchuCard> createState() => _GetchuCardState();
+}
+
+class _GetchuCardState extends State<GetchuCard> {
+  /// 没有封面的条目（站方尚未发售）一上来就算就绪 —— 它要显示的是那行说明字。
+  late bool _coverReady = widget.item.coverUrl == null;
+
+  void _markCoverReady() {
+    if (_coverReady) return;
+    // 这个回调在 build 途中被调起，不能就地 setState。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _coverReady) return;
+      setState(() => _coverReady = true);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final item = widget.item;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Material(
@@ -67,60 +92,119 @@ class GetchuCard extends StatelessWidget {
                     // 白底封面压在白色卡片上，两者同色，不补阴影就看不出边界在哪。
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: theme.brightness == Brightness.dark
-                                ? .38
-                                : .16,
-                          ),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      boxShadow: _coverReady
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? .38
+                                      : .16,
+                                ),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
-                      child: item.coverUrl == null
-                          ? ColoredBox(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              child: const Icon(
-                                Symbols.image_not_supported_rounded,
-                              ),
-                            )
-                          : AppCachedNetworkImage(
-                              imageUrl: item.coverUrl!,
-                              httpHeaders: kGetchuImageHeaders,
-                              fit: BoxFit.cover,
-                              fadeInDuration: Duration.zero,
-                            ),
+                      child: _cover(context),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
-                // 价格落在不同高度上。
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                // 文字与封面同进同退；用 Opacity 而不是条件插入，
+                // 这样加载前后卡片高度不变，网格不会跟着跳。
+                Opacity(
+                  opacity: _coverReady ? 1 : 0,
+                  // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
+                  // 价格落在不同高度上。
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (item.price != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.price!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (item.price != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    item.price!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cover(BuildContext context) {
+    final theme = Theme.of(context);
+    final url = widget.item.coverUrl;
+    if (url == null) {
+      return _NoCover(label: AppLocalizations.of(context)!.getchuNotYetReleased);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 图没到之前只留一层中性底，连阴影都不画（阴影由调用处一起关掉）。
+        ColoredBox(color: theme.colorScheme.surfaceContainerLow),
+        AppCachedNetworkImage(
+          imageUrl: url,
+          httpHeaders: kGetchuImageHeaders,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => const SizedBox.expand(),
+          errorWidget: (context, url, error) {
+            // 失败了也得把文字放出来，否则这张卡永远是一片空白。
+            _markCoverReady();
+            return const Center(
+              child: Icon(Symbols.image_not_supported_rounded),
+            );
+          },
+          imageBuilder: (context, provider) {
+            // 只有图真的解码出帧，imageBuilder 才会被调起 —— 这是「图到齐了」
+            // 唯一可靠的信号，用它把阴影和文字一起放出来。
+            _markCoverReady();
+            return Image(image: provider, fit: BoxFit.cover);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// 站方还没给这张商品出封面时的占位：中性底 + 一行说明。
+class _NoCover extends StatelessWidget {
+  const _NoCover({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ),
