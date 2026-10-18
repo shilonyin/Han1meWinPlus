@@ -2289,54 +2289,6 @@ abstract class AppLocalizations {
   /// **'Description'**
   String get description;
 
-  /// No description provided for @siteLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Site'**
-  String get siteLabel;
-
-  /// No description provided for @releaseDateLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Released'**
-  String get releaseDateLabel;
-
-  /// No description provided for @genreLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Genre'**
-  String get genreLabel;
-
-  /// No description provided for @viewsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Views'**
-  String get viewsLabel;
-
-  /// No description provided for @durationLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration'**
-  String get durationLabel;
-
-  /// No description provided for @basicInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Information'**
-  String get basicInfo;
-
-  /// No description provided for @detailsSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Details'**
-  String get detailsSection;
-
-  /// No description provided for @score.
-  ///
-  /// In en, this message translates to:
-  /// **'Rating'**
-  String get score;
-
   /// No description provided for @commentsLoadFailed.
   ///
   /// In en, this message translates to:

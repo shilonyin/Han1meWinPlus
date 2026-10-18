@@ -24,7 +24,6 @@ import '../shared/app_image_cache.dart';
 import 'play_window.dart';
 import 'video_actions.dart';
 import 'video_controller.dart';
-import 'video_detail_hero.dart';
 import '../../core/app_motion.dart';
 
 class VideoDescriptionView extends ConsumerStatefulWidget {
@@ -54,33 +53,17 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
     void toggleDescription() => setState(() => _descriptionExpanded = !_descriptionExpanded);
     return CustomScrollView(
       slivers: [
-        // 顶部：整宽背景图 + 浮在上面的封面 / 标题。背景做成 sliver 而不是固定在
-        // 后面，滚动时跟着上去，正文才有完整宽度可用。
-        SliverToBoxAdapter(
-          child: _DetailHero(
-            video: video,
-            title: translation?.title,
-            hasDetails: hasDetails,
-            expanded: _descriptionExpanded,
-            onToggleDescription: toggleDescription,
-          ),
-        ),
         SliverToBoxAdapter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 侧栏内容顺序：作者 → 标题（带展开/收起）→ 数据 → 简介 → 标签 → 系列 → 翻译
               _ArtistRow(video: video),
+              _TitleBlock(video: video, title: translation?.title, hasDetails: hasDetails, expanded: _descriptionExpanded, onToggleDescription: toggleDescription),
+              // 操作排放在标题/数据下面
               VideoActionRow(video: video),
-              // 展开详情后走两栏：左边简介正文，右边基本信息表。窄栏放不下一对，
-              // 会自动退回单列（见 _DetailColumns）。
-              if (_descriptionExpanded)
-                _DetailColumns(
-                  description: _DescriptionBody(video: video, captionTitle: translation?.captionTitle, description: translation?.description, onToggle: toggleDescription),
-                  info: _BasicInfo(video: video, captionTitle: translation?.captionTitle),
-                )
-              else
-                _TagList(video: video),
-              if (_descriptionExpanded) _TagList(video: video),
+              if (_descriptionExpanded) _Description(video: video, captionTitle: translation?.captionTitle, description: translation?.description, onToggle: toggleDescription),
+              _TagList(video: video),
               if (video.playlist.isNotEmpty) _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
               _TranslateButton(video: video),
             ],
@@ -114,87 +97,8 @@ List<VideoCard> visibleRelatedVideos(WidgetRef ref, List<VideoCard> videos) {
   return videos.where((video) => !titles.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase())) && !authors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase())) && !tags.any((blockedTag) => video.tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())))).toList();
 }
 
-/// 详情页顶部：整宽背景图 + 浮在上面的竖版封面、标题与元信息。
-///
-/// 侧栏很窄（280~336），所以封面尺寸随可用宽度收缩；横排不够时退回竖排
-/// （封面在上、文字在下），免得标题被挤成一条缝。
-class _DetailHero extends StatelessWidget {
-  const _DetailHero({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription, this.title});
-
-  final VideoDetail video;
-  final String? title;
-  final bool hasDetails;
-  final bool expanded;
-  final VoidCallback onToggleDescription;
-
-  /// 背景图至少要留这么高，否则标题区就压到遮罩最浓的那一段上了。
-  static const double _backdropHeight = 200;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        // 竖排阈值：扣掉左右内边距与封面、间距后，文字区至少要留 140。
-        final coverWidth = width >= 260 ? 96.0 : 72.0;
-        final horizontal = width - 32 - coverWidth - 16 >= 140;
-        final text = _HeroText(video: video, title: title, hasDetails: hasDetails, expanded: expanded, onToggleDescription: onToggleDescription);
-        final cover = VideoDetailCover(imageUrl: video.coverUrl, width: coverWidth);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Stack(
-              children: [
-                VideoDetailBackdrop(imageUrl: video.coverUrl, height: _backdropHeight),
-                // 内容叠在遮罩之上：底部那段遮罩已经接近页面底色，文字读得清
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 48, 16, 0),
-                    child: horizontal
-                        ? Row(crossAxisAlignment: CrossAxisAlignment.end, children: [cover, const SizedBox(width: 16), Expanded(child: text)])
-                        : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [cover, const SizedBox(height: 12), text]),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // 标签要紧跟标题，放进 hero 才不会被下面的操作行隔开
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  if (video.rating case final rating? when rating.isNotEmpty) _MetaText(icon: Symbols.star_rounded, label: rating),
-                  if (video.views != null) _MetaText(icon: Symbols.visibility_rounded, label: video.views!),
-                  if (video.commentCount != null) _MetaText(icon: Symbols.mode_comment_rounded, label: '${video.commentCount}'),
-                  if (video.uploadDate != null) _MetaText(icon: Symbols.calendar_today_rounded, label: video.uploadDate!),
-                  if (video.genre != null) _MetaText(icon: Symbols.local_offer_rounded, label: video.genre!),
-                  if (video.duration != null) _MetaText(icon: Symbols.schedule_rounded, label: video.duration!),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-              child: Text(
-                video.artist ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// hero 里的标题与展开/收起按钮
-class _HeroText extends StatelessWidget {
-  const _HeroText({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription, this.title});
+class _TitleBlock extends StatelessWidget {
+  const _TitleBlock({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription, this.title});
 
   final VideoDetail video;
   final String? title;
@@ -206,18 +110,42 @@ class _HeroText extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _TitleText(text: title ?? video.title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800) ?? const TextStyle(), expanded: expanded),
-        if (hasDetails)
-          PressScale(child: TextButton(
-            onPressed: onToggleDescription,
-            style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero, minimumSize: const Size(0, 28), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded, size: 18)]),
-          )),
-      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TitleText(text: title ?? video.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700) ?? const TextStyle(), expanded: expanded),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (video.views != null) _MetaText(icon: Symbols.visibility_rounded, label: video.views!),
+                    if (video.commentCount != null) _MetaText(icon: Symbols.mode_comment_rounded, label: '${video.commentCount}'),
+                    if (video.uploadDate != null) _MetaText(icon: Symbols.calendar_today_rounded, label: video.uploadDate!),
+                    if (video.genre != null) _MetaText(icon: Symbols.local_offer_rounded, label: video.genre!),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // 标题右侧的展开/收起（收起后整块详情都不占位置）
+          if (hasDetails)
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: PressScale(child: TextButton(
+                onPressed: onToggleDescription,
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8), minimumSize: const Size(0, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded, size: 18)]),
+              )),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -296,9 +224,8 @@ class _ArtistRow extends ConsumerWidget {
   }
 }
 
-/// 简介正文：上传者 / 字幕标题 / 正文本身
-class _DescriptionBody extends StatelessWidget {
-  const _DescriptionBody({required this.video, required this.onToggle, this.captionTitle, this.description});
+class _Description extends StatelessWidget {
+  const _Description({required this.video, required this.onToggle, this.captionTitle, this.description});
 
   final VideoDetail video;
   final VoidCallback onToggle;
@@ -307,127 +234,36 @@ class _DescriptionBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final description = this.description ?? video.description ?? '';
     final l10n = AppLocalizations.of(context)!;
     if (description.isEmpty) return const SizedBox.shrink();
-    return GlassPanel(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      solidColor: theme.colorScheme.surfaceContainerLow,
-      child: PressScale(child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: AnimatedSize(
+        duration: AppMotion.standard,
+        alignment: Alignment.topCenter,
+        child: GlassPanel(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onToggle,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (video.uploader case final uploader?) ...[
-                Text('${l10n.uploader}: $uploader', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-                const SizedBox(height: 8),
-              ],
-              if (captionTitle ?? video.captionTitle case final title?) ...[
-                Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-              ],
-              Text(description),
-            ],
-          ),
-        ),
-      )),
-    );
-  }
-}
-
-/// 基本信息表：标签 + 值的键值对，分隔线缩进到值那一列
-class _BasicInfo extends StatelessWidget {
-  const _BasicInfo({required this.video, this.captionTitle});
-
-  final VideoDetail video;
-  final String? captionTitle;
-
-  static const double _labelWidth = 72;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final rows = <(String, String)>[
-      if (video.artist case final artist? when artist.isNotEmpty) (l10n.studio, artist),
-      if (video.uploader case final uploader? when uploader.isNotEmpty) (l10n.uploader, uploader),
-      if (captionTitle ?? video.captionTitle case final caption? when caption.isNotEmpty) (l10n.detailsSection, caption),
-      if (video.uploadDate case final date? when date.isNotEmpty) (l10n.releaseDateLabel, date),
-      if (video.genre case final genre? when genre.isNotEmpty) (l10n.genreLabel, genre),
-      if (video.duration case final duration? when duration.isNotEmpty) (l10n.durationLabel, duration),
-      if (video.views case final views? when views.isNotEmpty) (l10n.viewsLabel, views),
-      if (video.rating case final rating? when rating.isNotEmpty) (l10n.score, rating),
-      if (video.playlist.isNotEmpty) (l10n.seriesVideos, '${video.playlist.length}'),
-    ];
-    if (rows.isEmpty) return const SizedBox.shrink();
-    return GlassPanel(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      solidColor: theme.colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.basicInfo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            for (final (index, row) in rows.indexed) ...[
-              if (index > 0) Divider(height: 1, thickness: .5, indent: _labelWidth + 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: _labelWidth, child: Text(row.$1, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))),
-                    const SizedBox(width: 16),
-                    Expanded(child: Text(row.$2, style: theme.textTheme.bodySmall)),
-                  ],
-                ),
+        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          child: PressScale(child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (video.uploader case final uploader?) ...[Text('${l10n.uploader}: $uploader', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)), const SizedBox(height: 8)],
+                  if (captionTitle ?? video.captionTitle case final title?) ...[Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)), const SizedBox(height: 8)],
+                  Text(description),
+                ],
               ),
-            ],
-          ],
+            ),
+          )),
         ),
       ),
     );
   }
-}
-
-/// 两栏布局：左边简介、右边基本信息。窄栏放不下就退回单列。
-class _DetailColumns extends StatelessWidget {
-  const _DetailColumns({required this.description, required this.info});
-
-  final Widget description;
-  final Widget info;
-
-  /// 两栏至少需要这么宽：左 160 + 间距 12 + 右 160
-  static const double _breakpoint = 340;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final padding = const EdgeInsets.fromLTRB(16, 8, 16, 8);
-          if (constraints.maxWidth < _breakpoint) {
-            return Padding(
-              padding: padding,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [description, const SizedBox(height: 12), info]),
-            );
-          }
-          return Padding(
-            padding: padding,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 3, child: description),
-                const SizedBox(width: 12),
-                Expanded(flex: 2, child: info),
-              ],
-            ),
-          );
-        },
-      );
 }
 
 /// 标签区：一排 4 个 + 折叠时显示的行数
