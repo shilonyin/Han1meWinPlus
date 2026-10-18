@@ -788,6 +788,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get getchuSeries => '系列商品';
 
   @override
+  String get overview => '概览';
+
+  @override
+  String get trailers => '预告片';
+
+  @override
+  String get gallery => '图集';
+
+  @override
+  String get basicInfo => '基本信息';
+
+  @override
+  String get priceLabel => '价格';
+
+  @override
+  String get releaseDateLabel => '发售日';
+
+  @override
+  String seriesItemCount(int count) {
+    return '$count 个';
+  }
+
+  @override
+  String imageCount(int count) {
+    return '$count 张';
+  }
+
+  @override
   String previewMonth(Object month) {
     return '$month 新番表';
   }
@@ -3418,6 +3446,34 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get getchuSeries => '系列商品';
+
+  @override
+  String get overview => '概覽';
+
+  @override
+  String get trailers => '預告片';
+
+  @override
+  String get gallery => '圖集';
+
+  @override
+  String get basicInfo => '基本資訊';
+
+  @override
+  String get priceLabel => '價格';
+
+  @override
+  String get releaseDateLabel => '發售日';
+
+  @override
+  String seriesItemCount(int count) {
+    return '$count 個';
+  }
+
+  @override
+  String imageCount(int count) {
+    return '$count 張';
+  }
 
   @override
   String previewMonth(Object month) {

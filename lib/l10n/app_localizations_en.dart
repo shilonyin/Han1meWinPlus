@@ -820,6 +820,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get getchuSeries => 'Series Products';
 
   @override
+  String get overview => 'Overview';
+
+  @override
+  String get trailers => 'Trailers';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get basicInfo => 'Details';
+
+  @override
+  String get priceLabel => 'Price';
+
+  @override
+  String get releaseDateLabel => 'Release';
+
+  @override
+  String seriesItemCount(int count) {
+    return '$count items';
+  }
+
+  @override
+  String imageCount(int count) {
+    return '$count images';
+  }
+
+  @override
   String previewMonth(Object month) {
     return '$month Release Schedule';
   }

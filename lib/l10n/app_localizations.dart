@@ -1515,6 +1515,54 @@ abstract class AppLocalizations {
   /// **'Series Products'**
   String get getchuSeries;
 
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @trailers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trailers'**
+  String get trailers;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get basicInfo;
+
+  /// No description provided for @priceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get priceLabel;
+
+  /// No description provided for @releaseDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Release'**
+  String get releaseDateLabel;
+
+  /// No description provided for @seriesItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String seriesItemCount(int count);
+
+  /// No description provided for @imageCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} images'**
+  String imageCount(int count);
+
   /// No description provided for @previewMonth.
   ///
   /// In en, this message translates to:
