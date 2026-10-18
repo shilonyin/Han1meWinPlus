@@ -1263,6 +1263,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get description => 'Description';
 
   @override
+  String get siteLabel => 'Site';
+
+  @override
+  String get releaseDateLabel => 'Released';
+
+  @override
+  String get genreLabel => 'Genre';
+
+  @override
+  String get viewsLabel => 'Views';
+
+  @override
+  String get durationLabel => 'Duration';
+
+  @override
+  String get basicInfo => 'Information';
+
+  @override
+  String get detailsSection => 'Details';
+
+  @override
+  String get score => 'Rating';
+
+  @override
   String get commentsLoadFailed => 'Failed to load comments';
 
   @override

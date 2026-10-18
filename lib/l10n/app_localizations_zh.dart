@@ -1221,6 +1221,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get description => '简介';
 
   @override
+  String get siteLabel => '站点';
+
+  @override
+  String get releaseDateLabel => '发布日期';
+
+  @override
+  String get genreLabel => '类型';
+
+  @override
+  String get viewsLabel => '播放量';
+
+  @override
+  String get durationLabel => '时长';
+
+  @override
+  String get basicInfo => '基本信息';
+
+  @override
+  String get detailsSection => '详情';
+
+  @override
+  String get score => '评分';
+
+  @override
   String get commentsLoadFailed => '评论加载失败';
 
   @override
@@ -3851,6 +3875,30 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get description => '簡介';
+
+  @override
+  String get siteLabel => '站點';
+
+  @override
+  String get releaseDateLabel => '發布日期';
+
+  @override
+  String get genreLabel => '類型';
+
+  @override
+  String get viewsLabel => '播放量';
+
+  @override
+  String get durationLabel => '時長';
+
+  @override
+  String get basicInfo => '基本資訊';
+
+  @override
+  String get detailsSection => '詳情';
+
+  @override
+  String get score => '評分';
 
   @override
   String get commentsLoadFailed => '評論載入失敗';
