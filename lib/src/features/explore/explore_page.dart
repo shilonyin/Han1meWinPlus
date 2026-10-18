@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1036,24 +1037,39 @@ class _FeaturedCarousel extends StatelessWidget {
 
   final List<VideoCard> videos;
 
-  /// 卡片高度。16:5 比横幅再矮一档 —— 高度按内容宽度算出来往往有五六百像素，
-  /// 一屏就只剩下一排卡片可看，收在这里才让下面的两排露出来。
-  static const double _maxHeight = 320;
-  static const double _minHeight = 150;
+  /// 比例照 AniBaka 首页横幅量出来的宽扁条：约 5:1。
+  ///
+  /// 关键是**铺满内容区**，左右只留常规边距，不再设宽度上限居中 ——
+  /// Baka 的横幅就是撑满可用宽度的，两侧留白一多，整块就变成居中一块
+  /// 窄卡片，跟下面一列列卡片对不齐。宽度随窗口走，高度按比例跟出来，
+  /// 只留一道「别把首屏吃掉」的视口高度保险。
+  static const double _ratio = 1 / 5;
+  static const double _minHeight = 120;
+  static const double _maxViewportShare = 0.55;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final desktop = constraints.maxWidth >= 700;
           final horizontal = desktop ? 24.0 : 16.0;
-          final width = constraints.maxWidth - horizontal * 2;
-          final height = (width * 5 / 16).clamp(_minHeight, _maxHeight);
+          final available = constraints.maxWidth - horizontal * 2;
+          final maxHeight = math.max(MediaQuery.sizeOf(context).height * _maxViewportShare, _minHeight);
+          var width = available;
+          var height = width * _ratio;
+          // 窗口很矮时高度顶到视口上限，宽度按同一比例缩回来，比例始终不变。
+          if (height > maxHeight) {
+            height = maxHeight;
+            width = height / _ratio;
+          }
           return Padding(
             padding: EdgeInsets.fromLTRB(horizontal, desktop ? 8 : 4, horizontal, 16),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: videos.length > 1 ? _FeaturedSwiper(videos: videos) : _FeaturedVideoSurface(video: videos.first),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: width,
+                height: height,
+                child: _FeaturedSwiper(videos: videos),
+              ),
             ),
           );
         },
@@ -1074,12 +1090,25 @@ class _FeaturedSwiperState extends State<_FeaturedSwiper> {
   /// 自动翻页间隔。抄 AniBaka 的 6 秒，用户手动翻过之后重新计时。
   static const Duration _interval = Duration(seconds: 6);
 
-  final _controller = CarouselController();
-  final _current = ValueNotifier<int>(0);
+  /// 翻页动画时长与曲线，抄 AniBaka：600ms + fastOutSlowIn。
+  static const Duration _slide = Duration(milliseconds: 600);
+  static const Curve _slideCurve = Curves.fastOutSlowIn;
+
+  /// 标题交叉切换。Baka 是 400ms，画面滑得慢、字换得快，读起来才跟得上。
+  static const Duration _titleSwap = Duration(milliseconds: 400);
+
+  /// 无限循环靠「起始页放在很后面」实现：PageView 的负方向有尽头，
+  /// 从第 0 页开始就没法往回翻，所以从第 1000 圈起步，两边都够滑。
+  late final PageController _controller = PageController(
+    initialPage: widget.videos.length > 1 ? widget.videos.length * 1000 : 0,
+  );
+  final ValueNotifier<int> _index = ValueNotifier<int>(0);
   Timer? _timer;
 
   /// 手指按在轮播上时暂停自动翻页，否则想拖的时候它正自己滑走。
   bool _interacting = false;
+
+  int get _count => widget.videos.length;
 
   @override
   void initState() {
@@ -1090,34 +1119,33 @@ class _FeaturedSwiperState extends State<_FeaturedSwiper> {
   @override
   void dispose() {
     _timer?.cancel();
-    _current.dispose();
+    _controller.dispose();
+    _index.dispose();
     super.dispose();
   }
 
   void _restartTimer() {
     _timer?.cancel();
-    if (widget.videos.length < 2) return;
+    if (_count < 2) return;
     _timer = Timer.periodic(_interval, (_) => _advance(1));
   }
 
-  /// 自动翻页。卡片被滚出屏幕（用户在看下面的列表）时停下，
-  /// 免得在用户看不见的地方一直重建图片。
+  /// 翻到相邻一条。首尾相接，所以「上一张」在第一条上也能落脚。
   void _advance(int delta) {
     if (!mounted || _interacting) return;
-    final position = Scrollable.maybeOf(context)?.position;
-    if (position != null && position.isScrollingNotifier.value) return;
+    _restartTimer();
+    if (!_controller.hasClients) return;
     // 首页自己往上滚走了就不再自动翻，回到顶部由用户重新触发。
     final sliver = context.findAncestorRenderObjectOfType<RenderSliver>();
     if (sliver?.geometry?.visible != true) return;
-    final next = (_current.value + delta) % widget.videos.length;
-    _controller.animateToItem(next, duration: const Duration(milliseconds: 600), curve: Curves.fastOutSlowIn);
-    _restartTimer();
+    final current = _controller.page?.round() ?? 0;
+    _controller.animateToPage(current + delta, duration: _slide, curve: _slideCurve);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final total = widget.videos.length;
+    final total = _count;
     return Listener(
       onPointerDown: (_) {
         _interacting = true;
@@ -1131,61 +1159,108 @@ class _FeaturedSwiperState extends State<_FeaturedSwiper> {
         _interacting = false;
         _restartTimer();
       },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          CarouselView.builder(
-            controller: _controller,
-            itemExtent: double.infinity,
-            itemSnapping: true,
-            onIndexChanged: (index) => _current.value = index,
-            itemCount: total,
-            itemBuilder: (context, index) => _FeaturedVideoSurface(video: widget.videos[index]),
-          ),
-          // 卡片底下已经压了一层渐变，这里只补按钮与指示点的可读性。
-          Positioned(
-            right: 14,
-            bottom: 14,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _SwiperButton(icon: Symbols.chevron_left_rounded, tooltip: MaterialLocalizations.of(context).previousPageTooltip, onTap: () => _advance(-1)),
-                const SizedBox(width: 8),
-                _SwiperButton(icon: Symbols.chevron_right_rounded, tooltip: MaterialLocalizations.of(context).nextPageTooltip, onTap: () => _advance(1)),
-              ],
+      // 结构照 AniBaka 的 swiper_banner.dart：轮播本体铺满整个画框，
+      // 圆角与裁切交给外层 ClipRRect —— 图在框里横向推入，框本身一动不动，
+      // 所以看不到「连圆角一起滑走」。
+      child: ClipRRect(
+        borderRadius: AppRadius.all(AppRadius.md),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 用 PageView 而不是 CarouselView：Material 3 的轮播在滚动过半时
+            // 会把当前页压成半宽给下一页腾地方（_RenderSliverFixedExtentCarousel
+            // 的 effectiveMinExtent 就是剩余绘制宽度），全屏时两页并排各占一半，
+            // 看着像两张图同时贴在一个画框里。PageView 是纯位移，一页就是一整屏。
+            PageView.builder(
+              controller: _controller,
+              // itemCount 传 null 即无限：index 取模落回真实条目。
+              itemCount: total > 1 ? null : total,
+              onPageChanged: (index) => _index.value = index % total,
+              itemBuilder: (context, index) => _FeaturedVideoSurface(
+                key: ValueKey<int>(index % total),
+                video: widget.videos[index % total],
+              ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 20,
-            child: IgnorePointer(
-              child: Center(
-                child: ValueListenableBuilder<int>(
-                  valueListenable: _current,
-                  builder: (context, index, _) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < total; i++)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutQuart,
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          height: 4,
-                          width: i == index ? 18 : 6,
-                          decoration: BoxDecoration(
-                            color: i == index ? theme.colorScheme.primary : Colors.white.withValues(alpha: .45),
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: i == index ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: .5), blurRadius: 8, spreadRadius: 1)] : null,
-                          ),
-                        ),
-                    ],
+            // 底部暗渐变。放在轮播外面，翻页时它不动 —— 跟着动会在卡片
+            // 边缘抖出一条亮边。
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 120,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x00000000), Color(0xD9000000)],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            // 标题与指示点同一行（Baka 就是这么排的）：标题换页时自己淡入上滑，
+            // 指示点跟着当前页变长，右侧是左右按钮。
+            Positioned(
+              left: 20,
+              right: 14,
+              bottom: 12,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: IgnorePointer(
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _index,
+                        builder: (context, index, _) => _FeaturedCaption(
+                          video: widget.videos[index % total],
+                          duration: _titleSwap,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 只有一条时不画轮播控件：没得翻，画出来只是噪声。
+                  if (total > 1) ...[
+                    const SizedBox(width: 16),
+                    IgnorePointer(
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _index,
+                        builder: (context, index, _) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var i = 0; i < total; i++)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOutQuart,
+                                margin: const EdgeInsets.only(left: 4, bottom: 8),
+                                height: 4,
+                                width: i == index ? 18 : 6,
+                                decoration: BoxDecoration(
+                                  color: i == index ? theme.colorScheme.primary : Colors.white.withValues(alpha: .4),
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: i == index ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: .5), blurRadius: 8, spreadRadius: 1)] : null,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _SwiperButton(icon: Symbols.chevron_left_rounded, tooltip: MaterialLocalizations.of(context).previousPageTooltip, onTap: () => _advance(-1)),
+                        const SizedBox(width: 8),
+                        _SwiperButton(icon: Symbols.chevron_right_rounded, tooltip: MaterialLocalizations.of(context).nextPageTooltip, onTap: () => _advance(1)),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1220,10 +1295,48 @@ class _SwiperButton extends StatelessWidget {
       );
 }
 
+/// 推荐位里的一屏画面：只有封面，点了就播。
+///
+/// 标题、作者、指示点、按钮都在轮播外面单独叠着（见 `_FeaturedSwiperState.build`），
+/// 这样翻页时只有封面在动，标题自己走 `AnimatedSwitcher` 淡入上滑 ——
+/// 和 AniBaka 的横幅一个分工。
 class _FeaturedVideoSurface extends ConsumerWidget {
-  const _FeaturedVideoSurface({required this.video});
+  const _FeaturedVideoSurface({super.key, required this.video});
 
   final VideoCard video;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cover = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return PressScale(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: AppRadius.all(AppRadius.md),
+          // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+          onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
+          child: AppCachedNetworkImage(
+            imageUrl: video.coverUrl,
+            fit: BoxFit.cover,
+            memCacheWidth: 1280,
+            fadeInDuration: Duration.zero,
+            errorWidget: (_, __, ___) => ColoredBox(color: cover),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 轮播左下角的标题与作者信息。
+///
+/// 单独抽出来是因为它用 `AnimatedSwitcher` 只换文字：翻页时新字从下方 30% 处
+/// 淡入上滑、旧字淡出，而不是整块跟着封面一起推走。
+class _FeaturedCaption extends StatelessWidget {
+  const _FeaturedCaption({required this.video, required this.duration});
+
+  final VideoCard video;
+  final Duration duration;
 
   /// 标题样式抄 AniBaka：斜体、特粗、带投影 —— 卡片里压着图，不投影糊在亮画面上就散。
   static const TextStyle _titleStyle = TextStyle(
@@ -1237,69 +1350,41 @@ class _FeaturedVideoSurface extends ConsumerWidget {
   );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cover = Theme.of(context).colorScheme.surfaceContainerHighest;
+  Widget build(BuildContext context) {
     final meta = [video.artist, video.views]
         .whereType<String>()
         .map((value) => value.trim())
         .where((value) => value.isNotEmpty)
         .join(' • ');
-    return Material(
-      clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: PressScale(
-        child: InkWell(
-          // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
-          onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              AppCachedNetworkImage(
-                imageUrl: video.coverUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 1280,
-                fadeInDuration: Duration.zero,
-                errorWidget: (_, __, ___) => ColoredBox(color: cover),
-              ),
-              // 只压底部 140：整张图压黑会看不出是什么片子。
-              const Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 140,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0x00000000), Color(0xD9000000)],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 18,
-                child: IgnorePointer(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _titleStyle),
-                      if (meta.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(animation),
+          child: child,
         ),
+      ),
+      // 默认布局是 Stack(alignment: center)，会把这块左对齐的标题拽到卡片正中；
+      // 靠左下角对齐，换标题时新旧两份也叠在同一处。
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        alignment: AlignmentDirectional.bottomStart,
+        children: <Widget>[...previousChildren, if (currentChild != null) currentChild],
+      ),
+      // 用条目本身当 key：换到另一条才触发切换，同一条重绘不重置动画。
+      child: Column(
+        key: ObjectKey(video),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _titleStyle),
+          if (meta.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ],
       ),
     );
   }
