@@ -9,6 +9,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_price_colors.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
@@ -374,7 +375,7 @@ class _DetailContentState extends State<_DetailContent> {
 
   /// 基本信息键值对，空值自动跳过。
   ///
-  /// 第三位标记这一行是不是价格 —— 价格要用主色加粗，与卡片和标签行
+  /// 第三位标记这一行是不是价格 —— 价格要用红色加粗，与卡片和标签行
   /// 保持同一套口径。
   List<(String, String, bool)> _infoEntries(
     GetchuPreviewDetail detail,
@@ -529,7 +530,7 @@ class _InfoCard extends StatelessWidget {
                             entry.$2,
                             style: TextStyle(
                               color: entry.$3
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? AppPriceColors.of(Theme.of(context).brightness)
                                   : titleColor,
                               fontSize: 14,
                               height: 1.5,

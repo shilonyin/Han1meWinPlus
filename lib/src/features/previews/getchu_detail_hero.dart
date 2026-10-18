@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_page_colors.dart';
+import '../../app/app_price_colors.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
@@ -272,7 +273,7 @@ class GetchuTags extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 价格单列出来：同一个 Wrap 里只有它用主色，其它两枚保持中性灰。
+    // 价格单列出来：同一个 Wrap 里只有它用红色，其它两枚保持中性灰。
     final pills = <(String, bool)>[
       if (detail.brand != null && detail.brand!.trim().isNotEmpty) (detail.brand!, false),
       if (detail.releaseDate != null && detail.releaseDate!.trim().isNotEmpty) (detail.releaseDate!, false),
@@ -284,7 +285,7 @@ class GetchuTags extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.xs),
     );
     final style = TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: .2, color: isDark ? Colors.white70 : const Color(0xFF3A3A3C));
-    final priceStyle = style.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700);
+    final priceStyle = style.copyWith(color: AppPriceColors.of(Theme.of(context).brightness), fontWeight: FontWeight.w700);
     return Wrap(
       spacing: 6,
       runSpacing: 6,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_price_colors.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../shared/app_image_cache.dart';
@@ -139,14 +140,14 @@ class _GetchuCardState extends State<GetchuCard> {
                         ),
                         if (item.price != null) ...[
                           const SizedBox(height: 4),
-                          // 价格走主色加粗，与详情页、标签行保持一致：整套界面里
-                          // 只有价格和选中态用主色，一眼能扫到。
+                          // 价格用红，取站点自己的 `.redb` 那个色（#C00）。
+                          // 整套界面里只有价格是红的，一眼能扫到。
                           Text(
                             item.price!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
-                              color: theme.colorScheme.primary,
+                              color: AppPriceColors.of(theme.brightness),
                               fontWeight: FontWeight.w700,
                             ),
                           ),
