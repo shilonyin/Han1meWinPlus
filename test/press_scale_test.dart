@@ -109,9 +109,13 @@ int _lineOf(String text, int index) => '\n'.allMatches(text.substring(0, index))
 /// 按钮调用点所在行的前缀里，紧挨着它的就是 `PressScale(` + `child:`。
 final _pressScaleHead = RegExp(r'PressScale\(\s*child:\s*$');
 
-/// 往前 300 字符内能找到 `PressScale(` + `child:`（中间隔着 `SizedBox(` 之类也算，
+/// 往前 300 字符内能找到 `PressScale(...child:`（中间隔着 `SizedBox(` 之类也算，
 /// 那种情况下按外层同样会缩）。
-final _pressScaleBefore = RegExp(r'PressScale\(\s*child:');
+///
+/// 括号内允许任意不带括号的内容：`PressScale` 除了 `child:` 还有 `scale:` /
+/// `enabled:` 这些具名参数（禁用按钮要传 `enabled: false`），把它们的出现
+/// 判成「没包住」是误报。
+final _pressScaleBefore = RegExp(r'PressScale\([^()]*child:');
 
 void main() {
   testWidgets('按下缩到 0.96，抬起回到 1', (tester) async {

@@ -15,12 +15,19 @@ import '../../core/app_motion.dart';
 ///
 /// 系统开了「减少动画」时 [motionDuration] 归零，缩放直接跳变。
 class PressScale extends StatefulWidget {
-  const PressScale({super.key, required this.child, this.scale = .96});
+  const PressScale({super.key, required this.child, this.scale = .96, this.enabled = true});
 
   final Widget child;
 
   /// 按下时的缩放比例。
   final double scale;
+
+  /// 关掉后完全不响应按下。
+  ///
+  /// 禁用的按钮必须传 `false`：不然按下去照样缩一下，等于给了一个「点了有
+  /// 反应」的假信号 —— 用起来就是「悬停不动、点了却会动」，比完全没反馈
+  /// 更让人以为它其实是能点的。
+  final bool enabled;
 
   @override
   State<PressScale> createState() => _PressScaleState();
@@ -37,9 +44,9 @@ class _PressScaleState extends State<PressScale> {
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (_) => _setPressed(true),
-      onPointerUp: (_) => _setPressed(false),
-      onPointerCancel: (_) => _setPressed(false),
+      onPointerDown: widget.enabled ? (_) => _setPressed(true) : null,
+      onPointerUp: widget.enabled ? (_) => _setPressed(false) : null,
+      onPointerCancel: widget.enabled ? (_) => _setPressed(false) : null,
       child: AnimatedScale(
         scale: _pressed ? widget.scale : 1,
         duration: motionDuration(context, AppMotion.brief),

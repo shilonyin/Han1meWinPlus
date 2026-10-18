@@ -334,6 +334,8 @@ class _HeaderActionButtonState extends State<_HeaderActionButton> {
         duration: duration,
         curve: AppMotion.standardCurve,
         child: PressScale(
+          // 禁用时不响应按下：不然悬停不动、点了却会缩，反而更像能点。
+          enabled: enabled,
           child: InkWell(
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(AppRadius.md),
