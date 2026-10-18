@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_page_colors.dart';
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../shared/app_image_cache.dart';
@@ -30,9 +31,12 @@ const Map<String, String> kGetchuImageHeaders = {
 /// 顶部两角与下方内容卡片共用 [kGetchuContentTopRadius]，
 /// 图与内容拼起来才像同一个容器。
 class GetchuBackdrop extends StatelessWidget {
-  const GetchuBackdrop({super.key, required this.imageUrl, required this.height, this.surfaceColor});
+  const GetchuBackdrop({super.key, required this.imageUrl, required this.height, this.fallbackImageUrl, this.surfaceColor});
 
   final String? imageUrl;
+
+  /// 主图取不到时的备用图（通常是竖版封面）。
+  final String? fallbackImageUrl;
   final double height;
 
   /// 遮罩渐变的收尾颜色。详情页传内容卡片的底色，图的末端与卡片无缝接上；
@@ -46,8 +50,24 @@ class GetchuBackdrop extends StatelessWidget {
     // 后者在本应用里是 Colors.transparent（底色交给 AppBackdrop 画），
     // 拿它做遮罩等于没有遮罩，背景图会直接压在正文下面。
     final surface = surfaceColor ?? AppPageColors.of(theme.brightness);
-    final source = imageUrl;
-    final fallback = ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
+    final fallbackBox = ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
+
+    Widget network(String? url, Widget onError) {
+      if (url == null || url.isEmpty) return onError;
+      return AppCachedNetworkImage(
+        imageUrl: url,
+        httpHeaders: kGetchuImageHeaders,
+        fit: BoxFit.cover,
+        // 居中而不是顶对齐：横版样张里角色是全身构图，顶对齐会切掉腿，
+        // 用户说的「看着不全」正是这个。竖版封面退到备用图时也一样。
+        alignment: Alignment.center,
+        memCacheWidth: 1600,
+        fadeInDuration: Duration.zero,
+        placeholder: (context, url) => fallbackBox,
+        errorWidget: (context, url, error) => onError,
+      );
+    }
+
     return ClipRRect(
       borderRadius: kGetchuContentTopRadius,
       child: SizedBox(
@@ -56,19 +76,7 @@ class GetchuBackdrop extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (source == null || source.isEmpty)
-              fallback
-            else
-              AppCachedNetworkImage(
-                imageUrl: source,
-                httpHeaders: kGetchuImageHeaders,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                memCacheWidth: 1280,
-                fadeInDuration: Duration.zero,
-                placeholder: (context, url) => fallback,
-                errorWidget: (context, url, error) => fallback,
-              ),
+            network(imageUrl, network(fallbackImageUrl, fallbackBox)),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -283,7 +291,10 @@ class GetchuTags extends StatelessWidget {
 }
 
 /// 顶部按钮：主按钮实底、次按钮浅底；高 44、圆角 12。
-class _HeaderActionButton extends StatelessWidget {
+///
+/// 悬停时整块放大一档、底色提亮、鼠标变手型 —— 桌面端没有触摸的按下感，
+/// 光靠静态颜色说不清「这个能点」。按下仍有 [PressScale] 的缩回反馈。
+class _HeaderActionButton extends StatefulWidget {
   const _HeaderActionButton({required this.isPrimary, required this.icon, required this.label, required this.onTap});
 
   final bool isPrimary;
@@ -292,34 +303,60 @@ class _HeaderActionButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<_HeaderActionButton> createState() => _HeaderActionButtonState();
+}
+
+class _HeaderActionButtonState extends State<_HeaderActionButton> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final isPrimary = widget.isPrimary;
     final background = isPrimary ? (dark ? Colors.white : Colors.black) : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7));
     final foreground = isPrimary ? (dark ? Colors.black : Colors.white) : (dark ? Colors.white : Colors.black);
-    final enabled = onTap != null;
+    final enabled = widget.onTap != null;
+    final hovered = _hovered && enabled;
     // 禁用态只压到 7 成，别压到 4 成：主按钮是黑底，压到 4 成就成了半透明的灰，
     // 配上卡片白底看起来像「两个都不能点」。文字降到 7 成足够表达不可用。
     final tint = enabled ? foreground : foreground.withValues(alpha: .7);
-    return PressScale(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: enabled ? background : background.withValues(alpha: .7),
+    // 悬停时底色往前景色偏一点：黑底提亮成深灰、浅底压成更明显的灰，
+    // 两种按钮都看得出「亮了」。
+    final hoverBackground = Color.alphaBlend(foreground.withValues(alpha: isPrimary ? .12 : .06), background);
+    const duration = Duration(milliseconds: 140);
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+      onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+      child: AnimatedScale(
+        // 只放大一点点：1.04 在 44 高的按钮上约 1.8px，能感觉到但不跳。
+        scale: hovered ? 1.04 : 1,
+        duration: duration,
+        curve: AppMotion.standardCurve,
+        child: PressScale(
+          child: InkWell(
+            onTap: widget.onTap,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            // 次按钮压在白色卡片上，只靠浅灰底分不出边界，看起来就是一块白。
-            // 补一圈描边把它托出来 —— 主按钮本来就有实底，不需要。
-            border: isPrimary ? null : Border.all(color: foreground.withValues(alpha: dark ? .14 : .1), width: 1),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: tint),
-              const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: .5, color: tint)),
-            ],
+            child: AnimatedContainer(
+              duration: duration,
+              curve: AppMotion.standardCurve,
+              height: 44,
+              decoration: BoxDecoration(
+                color: !enabled ? background.withValues(alpha: .7) : (hovered ? hoverBackground : background),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                // 次按钮压在白色卡片上，只靠浅灰底分不出边界，看起来就是一块白。
+                // 补一圈描边把它托出来 —— 主按钮本来就有实底，不需要。
+                border: isPrimary ? null : Border.all(color: foreground.withValues(alpha: hovered ? (dark ? .26 : .2) : (dark ? .14 : .1)), width: 1),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(widget.icon, size: 20, color: tint),
+                  const SizedBox(width: 6),
+                  Text(widget.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: .5, color: tint)),
+                ],
+              ),
+            ),
           ),
         ),
       ),

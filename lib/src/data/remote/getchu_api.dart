@@ -307,7 +307,14 @@ class GetchuApi {
     if (link == null || id == null) return null;
     final image = element.querySelector('img');
     final title = _clean(image?.attributes['alt']?.replaceAll('パッケージ画像', '') ?? link.text);
-    final cover = _absolute(image?.attributes['src']);
+    // 系列商品列表给的是 100×100 的 package_100 缩略图，铺到卡片上是放大
+    // 两三倍的糊图。同目录下还有一张 package.jpg（实测 500×715 或 700×500），
+    // 换成它。_previewItem 里对列表页的 package_s 也是同样的换法。
+    final source = image?.attributes['src'];
+    // 列表只给 package_100.jpg（100×100），铺到卡片上就是放大两三倍的糊图。
+    // 同目录的 package.jpg 实测 500×715 或 700×500，6/6 个系列商品都有。
+    final full = source?.replaceFirst(RegExp(r'package_100\.jpg$'), 'package.jpg');
+    final cover = _absolute((full != null && full != source) ? full : source);
     return GetchuPreviewItem(
       id: id,
       title: title,

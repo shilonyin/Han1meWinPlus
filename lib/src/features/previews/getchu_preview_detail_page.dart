@@ -120,7 +120,16 @@ class _DetailContentState extends State<_DetailContent> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
-              child: GetchuBackdrop(imageUrl: detail.coverUrl, height: isWide ? 560 : 420, surfaceColor: cardSurface),
+              child: GetchuBackdrop(
+                // 封面是竖版（500×715，比例 0.7），铺进 1400×560 的横条要放大
+                // 2.8 倍、只留中间 28%，角色被裁得只剩一截。图集样张是横版
+                // （710×400，比例 1.78），同一块地方能留到 71%，角色是全身构图。
+                // 取不到样张时退回封面。
+                imageUrl: detail.sampleImages.isNotEmpty ? detail.sampleImages.first : detail.coverUrl,
+                fallbackImageUrl: detail.coverUrl,
+                height: isWide ? 560 : 420,
+                surfaceColor: cardSurface,
+              ),
             ),
           ),
         ),
