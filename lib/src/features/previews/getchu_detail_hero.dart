@@ -297,7 +297,9 @@ class _HeaderActionButton extends StatelessWidget {
     final background = isPrimary ? (dark ? Colors.white : Colors.black) : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7));
     final foreground = isPrimary ? (dark ? Colors.black : Colors.white) : (dark ? Colors.white : Colors.black);
     final enabled = onTap != null;
-    final tint = enabled ? foreground : foreground.withValues(alpha: .5);
+    // 禁用态只压到 7 成，别压到 4 成：主按钮是黑底，压到 4 成就成了半透明的灰，
+    // 配上卡片白底看起来像「两个都不能点」。文字降到 7 成足够表达不可用。
+    final tint = enabled ? foreground : foreground.withValues(alpha: .7);
     return PressScale(
       child: InkWell(
         onTap: onTap,
@@ -305,8 +307,11 @@ class _HeaderActionButton extends StatelessWidget {
         child: Container(
           height: 44,
           decoration: BoxDecoration(
-            color: enabled ? background : background.withValues(alpha: .4),
+            color: enabled ? background : background.withValues(alpha: .7),
             borderRadius: BorderRadius.circular(AppRadius.md),
+            // 次按钮压在白色卡片上，只靠浅灰底分不出边界，看起来就是一块白。
+            // 补一圈描边把它托出来 —— 主按钮本来就有实底，不需要。
+            border: isPrimary ? null : Border.all(color: foreground.withValues(alpha: dark ? .14 : .1), width: 1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

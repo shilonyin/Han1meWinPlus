@@ -71,7 +71,11 @@ class GetchuApi {
       ...jsonImages.skip(1).map(_absolute).whereType<String>(),
     }.map(_withGc).toList(growable: false);
     final trailers = await _trailers(document, body);
-    final inlineSeries = document.querySelectorAll('div.item-series-content, div[class*="item-series"], section.related-products li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>();
+    // 只认真正的条目容器。别用 div[class*="item-series"] —— 它会连
+    // item-series-img / item-series-info 一起命中，而 info 是纯文字块、
+    // 内部没有 img；按 id 去重是「后覆盖前」，info 排在 img 之后，
+    // 于是每条商品的封面都被覆盖成 null，网格里全是占位破图。
+    final inlineSeries = document.querySelectorAll('div.item-series-content, section.related-products li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>();
     final parentId = RegExp('["\']parent_id_array["\']\\s*:\\s*["\']([^"\']+)["\']', caseSensitive: false).firstMatch(body)?.group(1);
     final ajaxSeries = parentId == null ? const <GetchuPreviewItem>[] : await _seriesItems(parentId);
     final seriesItems = {for (final item in [...inlineSeries, ...ajaxSeries]) if (item.id != id) item.id: item}.values.toList(growable: false);
@@ -135,7 +139,8 @@ class GetchuApi {
       );
       if (response.statusCode < 200 || response.statusCode >= 300) return const [];
       final document = html_parser.parse(response.body, sourceUrl: _baseUrl);
-      return document.querySelectorAll('div.item-series-content, div[class*="item-series"], li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>().toList(growable: false);
+      // 同 _inlineSeries：只认条目容器，别用 div[class*=]。见那里的说明。
+      return document.querySelectorAll('div.item-series-content, li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>().toList(growable: false);
     } catch (_) {
       return const [];
     }

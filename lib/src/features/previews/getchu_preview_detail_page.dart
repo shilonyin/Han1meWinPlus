@@ -130,38 +130,43 @@ class _DetailContentState extends State<_DetailContent> {
             child: ConstrainedBox(
               // 内容区宽度上限。比例子里的 1200 再宽一档，正文行宽才撑得开。
               constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
-              child: DefaultTabController(
-                length: tabs.length,
-                child: NestedScrollView(
-                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                  headerSliverBuilder: (context, innerBoxIsScrolled) => [
-                    SliverAppBar(
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      pinned: false,
-                      foregroundColor: titleColor,
-                      title: Text(l10n.getchuPreviewDetail, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -.5, color: titleColor)),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                      sliver: SliverToBoxAdapter(
-                        child: GetchuHeader(
-                          detail: detail,
-                          onPlayTrailer: detail.trailers.isEmpty ? null : () => _playTrailer(0),
-                          onOpenProduct: _openProduct,
+              // 裁在卡片圆角内：页签吸顶后正文还在往上滚，不裁的话内容会
+              // 从顶部圆角两侧的直角处顶出来，看着像滚动跑出了容器。
+              child: ClipRRect(
+                borderRadius: kGetchuContentTopRadius,
+                child: DefaultTabController(
+                  length: tabs.length,
+                  child: NestedScrollView(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                      SliverAppBar(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        pinned: false,
+                        foregroundColor: titleColor,
+                        title: Text(l10n.getchuPreviewDetail, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -.5, color: titleColor)),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        sliver: SliverToBoxAdapter(
+                          child: GetchuHeader(
+                            detail: detail,
+                            onPlayTrailer: detail.trailers.isEmpty ? null : () => _playTrailer(0),
+                            onOpenProduct: _openProduct,
+                          ),
                         ),
                       ),
-                    ),
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _TabBarDelegate(tabBar: tabBar, backgroundColor: cardSurface, borderColor: dividerColor, isWide: isWide),
-                    ),
-                  ],
-                  body: Container(
-                    color: cardSurface,
-                    child: TabBarView(
-                      physics: const BouncingScrollPhysics(),
-                      children: [for (final tab in tabs) Builder(key: PageStorageKey((detail.id, tab.$1)), builder: tab.$2)],
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _TabBarDelegate(tabBar: tabBar, backgroundColor: cardSurface, borderColor: dividerColor, isWide: isWide),
+                      ),
+                    ],
+                    body: Container(
+                      color: cardSurface,
+                      child: TabBarView(
+                        physics: const BouncingScrollPhysics(),
+                        children: [for (final tab in tabs) Builder(key: PageStorageKey((detail.id, tab.$1)), builder: tab.$2)],
+                      ),
                     ),
                   ),
                 ),
