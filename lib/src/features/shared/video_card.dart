@@ -26,16 +26,16 @@ int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
 /// 避免几处各写一个数字后慢慢走样。
 const videoCardRadius = 8.0;
 
-/// 封面下方详情区的预留高度：标题两行(40) + 间隙(6) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2)。
+/// 封面下方详情区的预留高度：标题一行(20) + 间隙(8) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2)。
 ///
 /// 原值是 120，比实际内容高出 40 多像素 —— 卡片底部会空出一大块，
 /// 加上投影之后看起来像"卡片下面还有一层"。这里收到贴近实际内容的高度，
 /// 卡片按真实内容收口（`_details` 自身 overflow 由外层 ClipRect 兜底）。
-/// 行间距从 2/2 放宽到 6/4、并加了 2px 内边距之后，这个值同步抬高，否则会裁掉评分行。
-const _horizontalCardMetaHeight = 92.0;
+/// 标题由两行改一行后同步减掉一行的高度，否则每张卡下面都会空出一条。
+const _horizontalCardMetaHeight = 72.0;
 
-/// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出两行空间。
-const _horizontalCardCompactMetaHeight = 84.0;
+/// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出作者/评分那些行。
+const _horizontalCardCompactMetaHeight = 64.0;
 
 /// 该卡片是否带作者 / 评分 / 上传时间。
 bool hasVideoCardMeta(VideoCard video) =>
@@ -643,22 +643,22 @@ class VideoCardTile extends ConsumerWidget {
     );
   }
 
-  /// 标题区的高度：**固定两行**，与同类客户端一样 —— 标题短也占两排空间。
+  /// 标题区的高度：**固定一行**，标题超出就省略。
   ///
   /// 为什么不能按标题实际行数留高：标题一行还是两行会改变卡片内容区的高度，于是同一行里
   /// 封面下沿、作者行、评分行全都跟着错位（用户截图反馈"视频封面怎么也是没对齐的"）。
-  /// 标题本体仍是 `maxLines: 2` + 省略号，太长的标题第三行就被截成「…」。
+  /// 所以高度是固定值，只是这个值取一行 —— 标题再长也只用一行加省略号。
   ///
   /// 为什么不拿标题本身去量行高：标题里带 emoji 时行高比纯文字更高，量出来会比别的卡多
-  /// 一截，封面又对不齐 —— 这里固定用代表字符「国A」按同一套样式（含文字缩放）量一行高
-  /// 再乘 2，每张卡拿到完全相同的高度。
+  /// 一截，封面又对不齐 —— 这里固定用代表字符「国A」按同一套样式（含文字缩放）量一行高，
+  /// 每张卡拿到完全相同的高度。
   double _titleBoxHeight(BuildContext context, TextStyle? style) {
     final painter = TextPainter(
       text: TextSpan(text: '国A', style: style),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    return painter.height * 2;
+    return painter.height;
   }
 
   /// 作者名做成可点的链接：点进作者页（`/search?query=<作者>`，与详情页作者卡同一条路径）。
@@ -743,7 +743,7 @@ class VideoCardTile extends ConsumerWidget {
             fontWeight: FontWeight.w600,
             color: accentTitle,
           );
-          // 标题区固定两行高（见 `_titleBoxHeight`）：封面下沿、作者行、评分行才会对齐。
+          // 标题区固定一行高（见 `_titleBoxHeight`）：封面下沿、作者行、评分行才会对齐。
           final titleHeight = _titleBoxHeight(context, titleStyle);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,13 +767,13 @@ class VideoCardTile extends ConsumerWidget {
                   height: titleHeight,
                   child: Text(
                     video.title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: titleStyle,
                   ),
                 ),
             if (hasMeta) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               // 作者名 + 上传时间同一行：作者可点（进作者页），日期靠右（用户要求
               // "作者名右边加个视频上传时间，这样看着更平衡"）。这一行给**固定高度**：
               // 作者缺失时行高会塌成 0，评分行就会比其他卡片高一截。

@@ -9,6 +9,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../app/app_page_colors.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
 import '../../data/assets/search_option_catalog.dart';
@@ -20,7 +21,6 @@ import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../../domain/video_metrics.dart';
 import '../../data/local/library_repository.dart';
-import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
@@ -190,15 +190,20 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             top: 0,
             left: 0,
             right: 0,
-            child: GlassScrollEdge(
-              side: GlassScrollEdgeSide.top,
-              extent: _homeBarHeight,
-              // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。玻璃材质（磨砂的模糊、
-              // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
-              // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
-              child: Material(
-                // 顶栏回到不透明的主色面（玻璃已停用，决策见 `docs/ui-polish.md`）。
-                color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+            // 顶栏与画布同色。别的页面 AppBar 透明，露出来的就是画布色；首页原来
+            // 套了一层 GlassScrollEdge，它在浅色模式下用 0.85 的白做 erf 渐变，
+            // 把那 56 像素推成近纯白（实测 253,253,254，画布 242,242,247），
+            // 于是只有首页看着底色不一样。
+            child: Material(
+                // 顶栏必须不透明：内容是从它底下滚过去的（body 铺满整块，顶栏浮在上面），
+                // 让它透明就能看到卡片与顶栏文字叠在一起。用画布色而不是主色面，
+                // 别页面的透明 AppBar 露出来的正是这个色。
+                //
+                // surfaceTintColor 必须清掉：Material 会按 elevation 把 surfaceTint 混进
+                // color，实测铺出来是 249,249,251，比画布的 242,242,247 亮 7 阶，
+                // 顶上仍有一道能看出边界的横条。
+                color: AppPageColors.of(Theme.of(context).brightness),
+                surfaceTintColor: Colors.transparent,
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
@@ -280,7 +285,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       ),
     ),
     ),
-          ),
           // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
           IgnorePointer(
             ignoring: !_searchPanelOpen,
@@ -1021,27 +1025,30 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
 
 /// 首页分区的标题行（半粗标题 + 右侧「换一批」）已随「首页使用收起式分类」开关一起删除：
 /// 首页现在固定只画当前分类，分区名由顶栏那个下拉菜单承担，页面上不再有第二处标题。
-/// 需要重拉这一行时用悬停/下拉刷新或右下角的刷新按钮（`ScrollActions`）。
+/// 首页顶部的大卡片。比例和文字层按 AniBaka 首页横幅（`swiper_banner.dart`）来：
+/// 宽扁的 16:6、左下角斜体粗标题压一条底部暗渐变，而不是原先固定 320 高 +
+/// 整块压黑 + 常规字号 —— 整块压黑会把封面盖掉大半，只有底部渐变压暗时
+/// 图看得清、字又压得住。
 class _FeaturedVideo extends StatelessWidget {
   const _FeaturedVideo({required this.video});
+
   final VideoCard video;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final desktop = constraints.maxWidth >= 700;
+          final horizontal = desktop ? 24.0 : 16.0;
+          final width = constraints.maxWidth - horizontal * 2;
+          // 16:6 比原先的固定高度更扁；窄窗口下限量到 180，否则两行标题会盖住封面主体。
+          final height = (width * 6 / 16).clamp(180.0, 400.0);
           return Padding(
-            padding: EdgeInsets.fromLTRB(desktop ? 24 : 16, 4, desktop ? 24 : 16, 16),
-            child: desktop
-                ? SizedBox(
-                    width: double.infinity,
-                    height: 320,
-                    child: _FeaturedVideoSurface(video: video),
-                  )
-                : AspectRatio(
-                    aspectRatio: 16 / 8,
-                    child: _FeaturedVideoSurface(video: video),
-                  ),
+            padding: EdgeInsets.fromLTRB(horizontal, desktop ? 8 : 4, horizontal, 16),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: _FeaturedVideoSurface(video: video),
+            ),
           );
         },
       );
@@ -1052,11 +1059,30 @@ class _FeaturedVideoSurface extends ConsumerWidget {
 
   final VideoCard video;
 
+  /// 标题样式抄 AniBaka：斜体、特粗、带投影 —— 卡片里压着图，不投影糊在亮画面上就散。
+  static const TextStyle _titleStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 22,
+    height: 1.2,
+    fontWeight: FontWeight.w900,
+    fontStyle: FontStyle.italic,
+    letterSpacing: 0.5,
+    shadows: [Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2))],
+  );
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Material(
-        clipBehavior: Clip.antiAlias,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: PressScale(child: InkWell(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cover = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final meta = [video.artist, video.views]
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .join(' • ');
+    return Material(
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: PressScale(
+        child: InkWell(
           // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
           onTap: video.id.isEmpty ? null : () => openVideo(context, ref, video.id),
           child: Stack(
@@ -1065,28 +1091,50 @@ class _FeaturedVideoSurface extends ConsumerWidget {
               AppCachedNetworkImage(
                 imageUrl: video.coverUrl,
                 fit: BoxFit.cover,
-                memCacheWidth: 960,
+                memCacheWidth: 1280,
                 fadeInDuration: Duration.zero,
-                errorWidget: (_, __, ___) => ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+                errorWidget: (_, __, ___) => ColoredBox(color: cover),
               ),
-              DecoratedBox(
-                // 大卡片封面下的文字压暗：两阶线性在标题上方会留下一道可见的
-                // 过渡边，改用非线性停靠点后压暗区域与画面自然衔接。
-                decoration: BoxDecoration(
-                  gradient: ProgressiveFade.bottomSolid(Colors.black87),
+              // 只压底部 140：整张图压黑会看不出是什么片子。
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 140,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x00000000), Color(0xD9000000)],
+                      ),
+                    ),
+                  ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-                    Text(AppLocalizations.of(context)!.featured, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white70)),
-                    const SizedBox(height: 4),
-                    Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-                    if (video.artist != null) Text(video.artist!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                  ]),
+              ),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 18,
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _titleStyle),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-        )),
-      );
+        ),
+      ),
+    );
+  }
 }
