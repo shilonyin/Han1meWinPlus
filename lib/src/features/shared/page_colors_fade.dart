@@ -1,150 +1,215 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../../app/app_page_colors.dart';
 
-/// 顶栏下方那条「内容滚过来就淡进画布」的边缘。
+/// 顶栏底下那条「内容滚过来就融进画布」的边缘，连带顶栏自己的底色。
 ///
-/// 形状照抄 g1455 的 `GlassScrollEdge`（soft / top）：alpha 随距离按
-/// `1 - Φ((d - centre) / sigma)` 衰减 —— Apple 那条 ramp 在读数分辨率内就是
-/// erf（(y75-y25)/(y90-y10) 实测 0.50–0.55，erf 是 0.526，smoothstep 是 0.572）。
+/// 结构照 BiliPai（`feature/home/components/ProgressiveTopChrome.kt` 的
+/// `BiliPaiImmersiveTopBar` + `design-system/.../blur/ProgressiveFade.kt`）：
 ///
-/// **为什么不直接用 `GlassScrollEdge`**：它的 tint 在浅色模式下恒为
-/// `rgba(255,255,255,.85)`，会把顶栏那 56 像素推成近纯白（实测 253,253,254，
-/// 而画布是 242,242,247），于是只有首页看着底色和别的页面不一样。它的
-/// `appearance` 只有 light / dark 两个枚举，改不了颜色，所以在这里重画一遍，
-/// 唯一区别是 tint 取画布色。
+/// 1. 顶栏那 [extent] 像素是一段**实色平台**，内容滚到它下面完全看不见；
+/// 2. 平台之下接一段下沿延伸，alpha 按 Telegram / Nagram 那套 5 阶非线性
+///    停靠点衰减（1.0 → 232/255 → 176/255 → 96/255 → 0）；
+/// 3. 整块底边两角圆角 28（BiliPai 的 `BiliPaiProgressiveTopBlurShape`），
+///    嵌在画布上时能看出这是一块浮起的带子，而不是一条通栏色带。
 ///
-/// 玻璃质感靠 [blurSigma] 那层 `BackdropFilter`：先模糊底下滚过来的内容，
-/// 再叠上画布色渐变。淡出带只覆盖顶栏下沿下面那几十像素，模糊代价有限。
+/// 为什么要 5 阶而不是线性：线性渐变在感知亮度上变化不均，会出现马赫带，
+/// 滚过去时看着像一道生硬的切面。
+///
+/// 模糊半径必须小。BiliPai 能用 10dp 是因为它的模糊**随高度衰减**（顶部最强、
+/// 底部归零）；Flutter 的 `BackdropFilter` 只有统一 sigma，照抄会把整条带子
+/// 糊成一块色斑 —— 那就是上一版被说成「液化」的样子。这里取 5，配合下面
+/// 那段渐隐遮罩，只有贴着顶栏的一窄条能看到磨砂。
 class PageColorsFade extends StatelessWidget {
   const PageColorsFade({
     super.key,
     required this.extent,
     required this.progress,
-    this.reach,
-    this.blurSigma = 0,
+    this.blurSigma = 5,
+    this.child,
   });
 
-  /// 顶栏自身的高度：从屏幕顶端到这里是完全遮住的区域。
+  /// 顶栏高度。这一段是实色平台，不会透出底下的内容。
   final double extent;
 
-  /// 淡出带与模糊的强度，0 完全透明、1 完全显出。
-  ///
-  /// 由滚动位置线性给出（滚到顶栏高度时为 1），所以往下滚是渐渐显出来，
-  /// 不是越过某个阈值才「啪」地出现。
+  /// 0 = 完全不显示，1 = 完整强度。由滚动位置线性给出。
   final double progress;
 
-  /// 淡出带总高度（含 [extent]）。缺省按 `GlassScrollEdge` 的 soft 上沿公式。
-  final double? reach;
-
-  /// 毛玻璃模糊半径。0 表示只画渐变。
+  /// 模糊半径（逻辑像素）。保持小值，理由见类文档。
   final double blurSigma;
 
-  static const double _tintCentre = -10.5;
-  static const double _tintSigma = 17;
+  /// 顶栏内容。它压在实色平台之上，高度应当等于 [extent]。
+  final Widget? child;
 
-  double get _effectiveReach =>
-      reach ?? extent + math.max(13.8, _tintCentre + 3 * _tintSigma);
+  /// 下沿延伸量：BiliPai 从 20dp 起步，渐隐满了再加 28dp。
+  static const double _minExtension = 20;
+  static const double _extraExtension = 28;
+
+  /// 底角圆角，与 BiliPai 的 `BiliPaiProgressiveTopBlurShape` 一致。
+  static const double _radius = 28;
+
+  /// 整块的总高度（实色平台 + 下沿延伸）。
+  static double totalHeight(double extent, double progress) =>
+      extent + extensionOf(progress);
+
+  /// 下沿延伸的高度。
+  static double extensionOf(double progress) =>
+      _minExtension + _extraExtension * progress.clamp(0.0, 1.0);
+
+  /// Telegram 原生 alpha 阶梯（255 基准）。
+  static const List<double> _alphaFactors = [
+    1.0,
+    232 / 255,
+    176 / 255,
+    96 / 255,
+    0.0,
+  ];
+  static const List<double> _positions = [0.0, 0.25, 0.5, 0.75, 1.0];
+
+  /// 下沿延伸分成几段做递减模糊。
+  ///
+  /// Flutter 的 `BackdropFilter` 只有统一 sigma，而 BiliPai 的模糊是「顶部最强、
+  /// 到底归零」。整条用同一个 sigma，滚过去的内容会被糊成一整块色斑 ——
+  /// 那就是「液化」。这里把延伸段切成几档，逐档换更小的 sigma 逼近那条曲线。
+  static const int _segments = 6;
+
+  /// 平台段的不透明度。
+  ///
+  /// 不给 1.0：留一点缝，滚到下面去的内容会以糊化的影子透出来，这才是玻璃。
+  /// 给 1.0 就是一条实色通栏，与没有顶栏底色的区别只剩下面那道渐隐。
+  /// 也不能再低：低于 0.8 内容轮廓会清晰地游过去，压不住顶栏上的字。
+  static const double _platformAlpha = 0.9;
 
   @override
   Widget build(BuildContext context) {
     final t = progress.clamp(0.0, 1.0);
-    if (t <= 0) return const SizedBox.shrink();
-    Widget band = SizedBox(
-      height: _effectiveReach,
+    if (t <= 0) {
+      return SizedBox(height: extent, child: child);
+    }
+    final total = totalHeight(extent, t);
+    // 平台在整块里的占比。BiliPai 的 createStops 把这个钳到 0.85。
+    final plateau = (extent / total).clamp(0.0, 0.85);
+    final platformHeight = total * plateau;
+    final colour = AppPageColors.of(Theme.of(context).brightness);
+    return SizedBox(
+      height: total,
       width: double.infinity,
-      child: CustomPaint(
-        painter: _ErfFadePainter(
-          colour: AppPageColors.of(Theme.of(context).brightness),
-          centre: extent + _tintCentre,
-          sigma: _tintSigma,
-          strength: t,
-        ),
+      child: Stack(
+        children: [
+          // 模糊层：平台段用满强度，延伸段按 [t] 分段递减。
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(_radius),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: platformHeight,
+                      child: _blur(blurSigma * t),
+                    ),
+                    for (var i = 0; i < _segments; i++)
+                      if (blurSigma * t * (1 - i / _segments) > 0.05)
+                        Positioned(
+                          top: platformHeight + (total - platformHeight) * i / _segments,
+                          left: 0,
+                          right: 0,
+                          height: (total - platformHeight) / _segments + 0.5,
+                          child: _blur(blurSigma * t * (1 - i / _segments)),
+                        ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 渐隐遮罩：压在模糊层之上，把带子下沿按 5 阶非线性 alpha 溶进画布。
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(_radius),
+                ),
+                child: CustomPaint(
+                  painter: _ProgressiveFadePainter(
+                    colour: colour,
+                    strength: t,
+                    plateau: plateau,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (child != null)
+            SizedBox(height: extent, child: child),
+        ],
       ),
     );
-    if (blurSigma > 0) {
-      band = ClipRect(
+  }
+
+  Widget _blur(double sigma) => ClipRect(
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(
-            sigmaX: blurSigma * t,
-            sigmaY: blurSigma * t,
-          ),
-          child: band,
+          filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+          child: const SizedBox.expand(),
         ),
       );
-    }
-    return IgnorePointer(child: band);
-  }
 }
 
-/// alpha 按 `1 - Φ((d - centre) / sigma)` 随距离 d（从屏幕顶端算起）衰减。
-class _ErfFadePainter extends CustomPainter {
-  const _ErfFadePainter({
+/// 在 [plateau] 之前保持纯色，之后按 5 阶非线性 alpha 衰减到 0。
+class _ProgressiveFadePainter extends CustomPainter {
+  const _ProgressiveFadePainter({
     required this.colour,
-    required this.centre,
-    required this.sigma,
     required this.strength,
+    required this.plateau,
   });
 
   final Color colour;
-  final double centre;
-  final double sigma;
 
   /// 整体不透明度系数，跟着滚动进度从 0 长到 1。
   final double strength;
 
-  static const int _stops = 17;
+  /// 纯色平台在整块高度里的占比（0–0.85）。
+  final double plateau;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (colour.a <= 0 || sigma <= 0 || strength <= 0) return;
-    final double near = math.max(0, centre - 3 * sigma);
-    final double far = centre + 3 * sigma;
-    final colours = <Color>[];
-    final stops = <double>[];
-    for (var i = 0; i < _stops; i++) {
-      final double t = i / (_stops - 1);
-      final double d = near + (far - near) * t;
-      colours.add(
-        colour.withValues(
-          alpha:
-              colour.a * strength * (1 - _phi((d - centre) / sigma)),
-        ),
+    if (size.height <= 0 || colour.a <= 0 || strength <= 0) return;
+    final p = plateau.clamp(0.0, 0.85);
+    // 平台段整段同一档不透明度，剩下 4 个停靠点重映射到 [p, 1]。
+    final positions = <double>[0, p];
+    final alphas = <double>[
+      PageColorsFade._platformAlpha,
+      PageColorsFade._platformAlpha,
+    ];
+    for (var i = 1; i < PageColorsFade._positions.length; i++) {
+      positions.add(p + (1 - p) * PageColorsFade._positions[i]);
+      alphas.add(
+        PageColorsFade._alphaFactors[i] * PageColorsFade._platformAlpha,
       );
-      stops.add(t);
     }
     canvas.drawRect(
       Offset.zero & size,
       Paint()
         ..shader = ui.Gradient.linear(
-          Offset(0, near),
-          Offset(0, far),
-          colours,
-          stops,
+          Offset.zero,
+          Offset(0, size.height),
+          [
+            for (final a in alphas)
+              colour.withValues(alpha: colour.a * strength * a),
+          ],
+          positions,
         ),
     );
   }
 
-  /// 标准正态分布的 CDF，Abramowitz & Stegun 7.1.26（|error| < 1.5e-7）。
-  static double _phi(double x) {
-    final double z = x.abs() / math.sqrt2;
-    final double t = 1 / (1 + 0.3275911 * z);
-    final double erf = 1 -
-        (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t -
-                    0.284496736) *
-                t +
-            0.254829592) *
-            t *
-            math.exp(-z * z);
-    return x >= 0 ? 0.5 * (1 + erf) : 0.5 * (1 - erf);
-  }
-
   @override
-  bool shouldRepaint(_ErfFadePainter oldDelegate) =>
+  bool shouldRepaint(_ProgressiveFadePainter oldDelegate) =>
       oldDelegate.colour != colour ||
-      oldDelegate.centre != centre ||
-      oldDelegate.sigma != sigma;
+      oldDelegate.strength != strength ||
+      oldDelegate.plateau != plateau;
 }
