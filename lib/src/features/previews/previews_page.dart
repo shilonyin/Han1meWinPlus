@@ -14,6 +14,7 @@ import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_toast.dart';
+import '../shared/hover_zoom.dart';
 import '../shared/press_scale.dart';
 import '../video/play_window.dart';
 import 'preview_grid.dart';
@@ -338,7 +339,8 @@ class _PreviewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return GlassPanel(
+    return CardHover(
+      builder: (context, hovered) => GlassPanel(
           solidColor: theme.colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: PressScale(child: InkWell(
@@ -348,39 +350,49 @@ class _PreviewCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
-                  // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.center,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
-                        stops: [0.62, 0.86, 1],
+              // 自带一层裁切：推近后多出来的图必须裁在封面框里，
+              // 否则会盖住下面的文字区。
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppRadius.lg),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ZoomOnHover(
+                      hovered: hovered,
+                      child: AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                    ),
+                    // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.center,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
+                          stops: [0.62, 0.86, 1],
+                        ),
                       ),
                     ),
-                  ),
-                  if (item.releaseDate != null) Positioned(top: 8, right: 8, child: _PreviewBadge(text: item.releaseDate!)),
-                  Positioned(
-                    left: 10,
-                    right: 10,
-                    bottom: 8,
-                    child: Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        height: 1.25,
-                        shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
+                    if (item.releaseDate != null) Positioned(top: 8, right: 8, child: _PreviewBadge(text: item.releaseDate!)),
+                    Positioned(
+                      left: 10,
+                      right: 10,
+                      bottom: 8,
+                      child: Text(
+                        item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                          shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -400,6 +412,7 @@ class _PreviewCard extends ConsumerWidget {
           ],
         ),
       )),
+    ),
     );
   }
 }

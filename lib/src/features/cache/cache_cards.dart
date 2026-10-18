@@ -10,6 +10,7 @@ import '../../core/app_radius.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/hover_zoom.dart';
 import '../shared/press_scale.dart';
 import '../video/play_window.dart';
 import 'cache_format.dart';
@@ -23,18 +24,32 @@ class CacheCoverBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .55), borderRadius: BorderRadius.circular(AppRadius.xs)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[Icon(icon, size: 12, color: Colors.white), const SizedBox(width: 3)],
-              Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2)),
-            ],
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: .55),
+      borderRadius: BorderRadius.circular(AppRadius.xs),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: Colors.white),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 /// 单条已完成缓存的卡片：与文件夹卡同一套版式，只是没有叠层、角标显示时长。
@@ -42,7 +57,12 @@ class CacheCoverBadge extends StatelessWidget {
 /// 没有归入任何分组的影片用这张卡直接铺在网格里（对应离线缓存里那些不属于
 /// 任何合集的单个视频），点一下就能播；归入分组的则聚成 [CacheFolderCard]。
 class CacheVideoCard extends StatelessWidget {
-  const CacheVideoCard({super.key, required this.task, required this.onTap, this.onLongPress});
+  const CacheVideoCard({
+    super.key,
+    required this.task,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   final DownloadTask task;
   final VoidCallback onTap;
@@ -54,43 +74,82 @@ class CacheVideoCard extends StatelessWidget {
     final cover = localCoverImage(task);
     final bytes = task.totalBytes > 0 ? task.totalBytes : task.downloadedBytes;
     final duration = task.duration;
-    return PressScale(child: InkWell(
-      // 之前这里是 `GestureDetector(onLongPress: ...)` 且**没有** onTap ——
-      // 传入的播放回调被完全忽略，卡片点上去毫无反应（长按却能进多选）。
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (cover != null)
-                    Image(image: cover, fit: BoxFit.cover)
-                  else
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 32, color: theme.colorScheme.onSurfaceVariant)),
-                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
-                  if (duration != null && duration.isNotEmpty) Positioned(right: 6, bottom: 6, child: CacheCoverBadge(text: duration)),
-                ],
+    return CardHover(
+      builder: (context, hovered) => PressScale(
+        child: InkWell(
+          // 之前这里是 `GestureDetector(onLongPress: ...)` 且**没有** onTap ——
+          // 传入的播放回调被完全忽略，卡片点上去毫无反应（长按却能进多选）。
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // 推近只包图，角标留在外面：角标跟着放大会糊，还会溢出卡边。
+                      ZoomOnHover(
+                        hovered: hovered,
+                        child: cover != null
+                            ? Image(image: cover, fit: BoxFit.cover)
+                            : ColoredBox(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                child: Icon(
+                                  Symbols.movie_rounded,
+                                  size: 32,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                      ),
+                      if (bytes > 0)
+                        Positioned(
+                          left: 6,
+                          bottom: 6,
+                          child: CacheCoverBadge(
+                            icon: Symbols.save_alt_rounded,
+                            text: formatBytes(bytes),
+                          ),
+                        ),
+                      if (duration != null && duration.isNotEmpty)
+                        Positioned(
+                          right: 6,
+                          bottom: 6,
+                          child: CacheCoverBadge(text: duration),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                task.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                task.quality.isEmpty
+                    ? formatBytes(bytes)
+                    : '${task.quality} · ${formatBytes(bytes)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(task.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(
-            task.quality.isEmpty ? formatBytes(bytes) : '${task.quality} · ${formatBytes(bytes)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
-          ),
-        ],
+        ),
       ),
-    ));
+    );
   }
 }
 
@@ -107,9 +166,17 @@ ImageProvider? localCoverImage(DownloadTask task) {
 ///
 /// 文件夹卡与集合内页的头部封面都要这个判断，抽出来共用。
 ImageProvider? folderCoverImage(List<DownloadTask> tasks) {
-  final local = tasks.map((task) => task.localCoverPath).whereType<String>().where((path) => File(path).existsSync()).firstOrNull;
+  final local = tasks
+      .map((task) => task.localCoverPath)
+      .whereType<String>()
+      .where((path) => File(path).existsSync())
+      .firstOrNull;
   if (local != null) return FileImage(File(local));
-  final remote = tasks.map((task) => task.coverUrl).whereType<String>().where((url) => url.isNotEmpty).firstOrNull;
+  final remote = tasks
+      .map((task) => task.coverUrl)
+      .whereType<String>()
+      .where((url) => url.isNotEmpty)
+      .firstOrNull;
   return remote == null ? null : appCachedImage(remote);
 }
 
@@ -145,67 +212,127 @@ class CacheEpisodeCard extends StatelessWidget {
     final cover = localCoverImage(task);
     final bytes = task.totalBytes > 0 ? task.totalBytes : task.downloadedBytes;
     final duration = task.duration;
-    return Material(
-      color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      clipBehavior: Clip.antiAlias,
-      child: PressScale(child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: cover != null
-                        ? Image(image: cover, fit: BoxFit.cover)
-                        : ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 28, color: theme.colorScheme.onSurfaceVariant)),
-                  ),
-                  // 下载中/暂停的在封面底部画一条进度，未完成的也一眼能看出状态。
-                  if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.paused)
-                    Align(alignment: Alignment.bottomCenter, child: LinearProgressIndicator(value: task.progress <= 0 ? null : task.progress, minHeight: 3)),
-                  if (bytes > 0) Positioned(left: 6, bottom: 6, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
-                  if (duration != null && duration.isNotEmpty) Positioned(right: 6, bottom: 6, child: CacheCoverBadge(text: duration)),
-                  // 未下完的状态角标（排队/暂停/失败）放左上角，别和体积撞在一起。
-                  if (task.status != DownloadStatus.completed)
-                    Positioned(left: 6, top: 6, child: CacheCoverBadge(text: taskStatusLabel(l10n, task.status))),
-                  if (selecting) Positioned(right: 6, top: 6, child: Icon(selected ? Symbols.check_circle_rounded : Symbols.radio_button_unchecked_rounded, fill: selected ? 1 : 0, size: 20, color: Colors.white)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
+    return CardHover(
+      // 多选态下不给悬停反馈：这时点卡片是「勾选」而不是「进去看」。
+      enabled: !selecting,
+      builder: (context, hovered) => Material(
+        color: selected
+            ? theme.colorScheme.secondaryContainer.withValues(alpha: .5)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        clipBehavior: Clip.antiAlias,
+        child: PressScale(
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    task.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        // 推近包在裁切框里：多出来的图被裁掉，角标与进度条留在外面。
+                        child: ZoomOnHover(
+                          hovered: hovered,
+                          child: cover != null
+                              ? Image(image: cover, fit: BoxFit.cover)
+                              : ColoredBox(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    Symbols.movie_rounded,
+                                    size: 28,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      // 下载中/暂停的在封面底部画一条进度，未完成的也一眼能看出状态。
+                      if (task.status == DownloadStatus.downloading ||
+                          task.status == DownloadStatus.paused)
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: LinearProgressIndicator(
+                            value: task.progress <= 0 ? null : task.progress,
+                            minHeight: 3,
+                          ),
+                        ),
+                      if (bytes > 0)
+                        Positioned(
+                          left: 6,
+                          bottom: 6,
+                          child: CacheCoverBadge(
+                            icon: Symbols.save_alt_rounded,
+                            text: formatBytes(bytes),
+                          ),
+                        ),
+                      if (duration != null && duration.isNotEmpty)
+                        Positioned(
+                          right: 6,
+                          bottom: 6,
+                          child: CacheCoverBadge(text: duration),
+                        ),
+                      // 未下完的状态角标（排队/暂停/失败）放左上角，别和体积撞在一起。
+                      if (task.status != DownloadStatus.completed)
+                        Positioned(
+                          left: 6,
+                          top: 6,
+                          child: CacheCoverBadge(
+                            text: taskStatusLabel(l10n, task.status),
+                          ),
+                        ),
+                      if (selecting)
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: Icon(
+                            selected
+                                ? Symbols.check_circle_rounded
+                                : Symbols.radio_button_unchecked_rounded,
+                            fill: selected ? 1 : 0,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                // ⋮ 菜单：把单条操作收起来，标题不至于被一排按钮挤短。
-                SizedBox(
-                  width: 28,
-                  height: 24,
-                  child: IconButton(
-                    tooltip: l10n.more,
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 18,
-                    onPressed: onMenu,
-                    icon: const Icon(Symbols.more_vert_rounded),
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    // ⋮ 菜单：把单条操作收起来，标题不至于被一排按钮挤短。
+                    SizedBox(
+                      width: 28,
+                      height: 24,
+                      child: IconButton(
+                        tooltip: l10n.more,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        onPressed: onMenu,
+                        icon: const Icon(Symbols.more_vert_rounded),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }
@@ -216,7 +343,13 @@ class CacheEpisodeCard extends StatelessWidget {
 /// 标题下一行写「N 个内容」，点进去才是分集列表。分组内的进度也会汇总显示，
 /// 这样在网格上一眼能看出这个系列下了多少。
 class CacheFolderCard extends StatelessWidget {
-  const CacheFolderCard({super.key, required this.group, required this.tasks, required this.onTap, this.onLongPress});
+  const CacheFolderCard({
+    super.key,
+    required this.group,
+    required this.tasks,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   final DownloadGroup group;
   final List<DownloadTask> tasks;
@@ -229,69 +362,129 @@ class CacheFolderCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final cover = folderCoverImage(tasks);
     final bytes = totalBytesOf(tasks);
-    final active = tasks.where((task) => task.status == DownloadStatus.downloading).toList();
+    final active = tasks
+        .where((task) => task.status == DownloadStatus.downloading)
+        .toList();
     final progress = active.isEmpty ? null : active.first.progress;
-    return PressScale(child: InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                // 底下错开的两层"纸"：做出文件夹里叠着多份内容的感觉（同款处理）。
-                Positioned(left: 8, right: 8, top: 0, bottom: 8, child: _StackSheet(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .55))),
-                Positioned(left: 4, right: 4, top: 4, bottom: 4, child: _StackSheet(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .8))),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 8,
-                  bottom: 0,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (cover != null)
-                          Image(image: cover, fit: BoxFit.cover)
-                        else
-                          ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.folder_rounded, size: 36, color: theme.colorScheme.onSurfaceVariant)),
-                        if (progress != null)
-                          Align(alignment: Alignment.bottomCenter, child: LinearProgressIndicator(value: progress <= 0 ? null : progress, minHeight: 3)),
-                        Positioned(
-                          right: 6,
-                          bottom: 8,
-                          child: CacheCoverBadge(icon: Symbols.folder_rounded, text: l10n.folderContents(tasks.length)),
-                        ),
-                        if (bytes > 0)
-                          Positioned(left: 6, bottom: 8, child: CacheCoverBadge(icon: Symbols.save_alt_rounded, text: formatBytes(bytes))),
-                      ],
+    return CardHover(
+      builder: (context, hovered) => PressScale(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    // 底下错开的两层"纸"：做出文件夹里叠着多份内容的感觉（同款处理）。
+                    Positioned(
+                      left: 8,
+                      right: 8,
+                      top: 0,
+                      bottom: 8,
+                      child: _StackSheet(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: .55),
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      left: 4,
+                      right: 4,
+                      top: 4,
+                      bottom: 4,
+                      child: _StackSheet(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: .8),
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 8,
+                      bottom: 0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // 只推近最上面那张图；底下两层"纸"不动，否则文件夹的厚度
+                            // 会跟着放大，看着像整摞都被拉伸了。
+                            ZoomOnHover(
+                              hovered: hovered,
+                              child: cover != null
+                                  ? Image(image: cover, fit: BoxFit.cover)
+                                  : ColoredBox(
+                                      color: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: Icon(
+                                        Symbols.folder_rounded,
+                                        size: 36,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                            ),
+                            if (progress != null)
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: LinearProgressIndicator(
+                                  value: progress <= 0 ? null : progress,
+                                  minHeight: 3,
+                                ),
+                              ),
+                            Positioned(
+                              right: 6,
+                              bottom: 8,
+                              child: CacheCoverBadge(
+                                icon: Symbols.folder_rounded,
+                                text: l10n.folderContents(tasks.length),
+                              ),
+                            ),
+                            if (bytes > 0)
+                              Positioned(
+                                left: 6,
+                                bottom: 8,
+                                child: CacheCoverBadge(
+                                  icon: Symbols.save_alt_rounded,
+                                  text: formatBytes(bytes),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                group.id == 'default' ? l10n.cachedDownloads : group.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                // 有任务在跑时显示进度，否则显示体积（与封面角标互补）。
+                active.isEmpty
+                    ? formatBytes(bytes)
+                    : '${(progress! * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            group.id == 'default' ? l10n.cachedDownloads : group.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            // 有任务在跑时显示进度，否则显示体积（与封面角标互补）。
-            active.isEmpty ? formatBytes(bytes) : '${(progress! * 100).clamp(0, 100).toStringAsFixed(0)}%',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
-          ),
-        ],
+        ),
       ),
-    ));
+    );
   }
 }
 
@@ -301,7 +494,12 @@ class _StackSheet extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(AppRadius.sm)));
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+    ),
+  );
 }
 
 /// 缓存在下载中的任务是否是「暂停/失败」这类**需要用户再点一下才会动**的状态。
@@ -348,92 +546,163 @@ class CacheTaskCard extends ConsumerWidget {
     final primary = !_needsPrimaryAction(task.status)
         ? null
         : switch (task.status) {
-            DownloadStatus.paused => (label: l10n.startCache, action: () => controller.resumeTasks({task.id})),
-            DownloadStatus.failed => (label: l10n.retry, action: () => controller.retry(task.id)),
+            DownloadStatus.paused => (
+              label: l10n.startCache,
+              action: () => controller.resumeTasks({task.id}),
+            ),
+            DownloadStatus.failed => (
+              label: l10n.retry,
+              action: () => controller.retry(task.id),
+            ),
             _ => null,
           };
-    return Material(
-      color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: .5) : Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      clipBehavior: Clip.antiAlias,
-      child: PressScale(child: InkWell(
-        onTap: selecting ? onSelect : () => openVideo(context, ref, task.videoCode),
-        onLongPress: onSelect,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 封面自己守住 16:9：格子高度是按宽度估的，字号或状态行一变就不准。
-            // 让 AspectRatio 直接定高，文字紧跟在下面，比例永远是准的；
-            // 格子给的那点富余高度留在卡片底部，不至于把画面拉扁。
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                child: Stack(
-                  fit: StackFit.expand,
+    return CardHover(
+      // 多选态下不给悬停反馈：这时点卡片是「勾选」而不是「进去看」。
+      enabled: !selecting,
+      builder: (context, hovered) => Material(
+        color: selected
+            ? theme.colorScheme.secondaryContainer.withValues(alpha: .5)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        clipBehavior: Clip.antiAlias,
+        child: PressScale(
+          child: InkWell(
+            onTap: selecting
+                ? onSelect
+                : () => openVideo(context, ref, task.videoCode),
+            onLongPress: onSelect,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 封面自己守住 16:9：格子高度是按宽度估的，字号或状态行一变就不准。
+                // 让 AspectRatio 直接定高，文字紧跟在下面，比例永远是准的；
+                // 格子给的那点富余高度留在卡片底部，不至于把画面拉扁。
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // 封面推近，压在封面上的胶囊按钮与勾选圈不跟着放大。
+                        ZoomOnHover(
+                          hovered: hovered,
+                          child: cover != null
+                              ? Image(image: cover, fit: BoxFit.cover)
+                              : ColoredBox(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    Symbols.movie_rounded,
+                                    size: 32,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                        ),
+                        if (selecting)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Icon(
+                              selected
+                                  ? Symbols.check_circle_rounded
+                                  : Symbols.radio_button_unchecked_rounded,
+                              fill: selected ? 1 : 0,
+                              size: 22,
+                              color: Colors.white,
+                            ),
+                          )
+                        else
+                          // 有中央主操作时，右上角只留一个箭头图标：网格里一张卡可能只有
+                          // 一百多逻辑像素宽，两个胶囊并排会直接叠在一起（实测过）。
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: _CoverChip(
+                              icon: Symbols.chevron_right_rounded,
+                              label: primary == null ? l10n.goToDetail : null,
+                              tooltip: l10n.goToDetail,
+                              onTap: () =>
+                                  openVideo(context, ref, task.videoCode),
+                            ),
+                          ),
+                        if (!selecting && primary != null)
+                          Center(
+                            child: _CoverChip(
+                              label: primary.label,
+                              onTap: primary.action,
+                              prominent: true,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    if (cover != null)
-                      Image(image: cover, fit: BoxFit.cover)
-                    else
-                      ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.movie_rounded, size: 32, color: theme.colorScheme.onSurfaceVariant)),
-                    if (selecting)
-                      Positioned(right: 8, top: 8, child: Icon(selected ? Symbols.check_circle_rounded : Symbols.radio_button_unchecked_rounded, fill: selected ? 1 : 0, size: 22, color: Colors.white))
-                    else
-                      // 有中央主操作时，右上角只留一个箭头图标：网格里一张卡可能只有
-                      // 一百多逻辑像素宽，两个胶囊并排会直接叠在一起（实测过）。
-                      Positioned(right: 8, top: 8, child: _CoverChip(icon: Symbols.chevron_right_rounded, label: primary == null ? l10n.goToDetail : null, tooltip: l10n.goToDetail, onTap: () => openVideo(context, ref, task.videoCode))),
-                    if (!selecting && primary != null)
-                      Center(child: _CoverChip(label: primary.label, onTap: primary.action, prominent: true)),
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    // ⋮ 把单条操作收起来，标题不至于被一排按钮挤短（与文件夹内页一致）。
+                    SizedBox(
+                      width: 28,
+                      height: 24,
+                      child: _TaskMenu(task: task),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: Text(task.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
-                // ⋮ 把单条操作收起来，标题不至于被一排按钮挤短（与文件夹内页一致）。
-                SizedBox(
-                  width: 28,
-                  height: 24,
-                  child: _TaskMenu(task: task),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _statusLine(l10n),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: task.status == DownloadStatus.failed
-                    ? theme.colorScheme.error
-                    : task.status == DownloadStatus.queued
+                const SizedBox(height: 4),
+                Text(
+                  _statusLine(l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: task.status == DownloadStatus.failed
+                        ? theme.colorScheme.error
+                        : task.status == DownloadStatus.queued
                         ? theme.colorScheme.outline
                         : theme.colorScheme.primary,
-              ),
+                  ),
+                ),
+                if (task.status == DownloadStatus.downloading ||
+                    task.status == DownloadStatus.paused) ...[
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                    child: LinearProgressIndicator(
+                      value: task.progress <= 0 ? null : task.progress,
+                      minHeight: 3,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.paused) ...[
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: LinearProgressIndicator(value: task.progress <= 0 ? null : task.progress, minHeight: 3),
-              ),
-            ],
-          ],
+          ),
         ),
-      )),
+      ),
     );
   }
 
   /// 状态行：正在跑的带速度与已下/总量，暂停的只报已下/总量。
   String _statusLine(AppLocalizations l10n) => switch (task.status) {
-        DownloadStatus.downloading => l10n.downloadProgressFull(formatSpeed(task.speedBytesPerSecond), formatBytes(task.downloadedBytes), task.totalBytes > 0 ? formatBytes(task.totalBytes) : '--'),
-        DownloadStatus.paused => l10n.paused,
-        DownloadStatus.queued => l10n.queued,
-        DownloadStatus.failed => task.errorMessage ?? l10n.failed,
-        DownloadStatus.completed => l10n.completed,
-      };
+    DownloadStatus.downloading => l10n.downloadProgressFull(
+      formatSpeed(task.speedBytesPerSecond),
+      formatBytes(task.downloadedBytes),
+      task.totalBytes > 0 ? formatBytes(task.totalBytes) : '--',
+    ),
+    DownloadStatus.paused => l10n.paused,
+    DownloadStatus.queued => l10n.queued,
+    DownloadStatus.failed => task.errorMessage ?? l10n.failed,
+    DownloadStatus.completed => l10n.completed,
+  };
 }
 
 /// 封面上的浮层胶囊：半透明黑底 + 白字，带可选图标。
@@ -444,7 +713,13 @@ class CacheTaskCard extends ConsumerWidget {
 /// [label] 可以为空：窄卡上两个胶囊并排会叠字，此时右上角退化成只有箭头的圆钮，
 /// 文案改由 [tooltip] 承担。
 class _CoverChip extends StatelessWidget {
-  const _CoverChip({required this.onTap, this.label, this.icon, this.tooltip, this.prominent = false});
+  const _CoverChip({
+    required this.onTap,
+    this.label,
+    this.icon,
+    this.tooltip,
+    this.prominent = false,
+  });
 
   final String? label;
   final VoidCallback onTap;
@@ -456,24 +731,40 @@ class _CoverChip extends StatelessWidget {
   Widget build(BuildContext context) {
     // 和全应用其它按钮一样包一层 PressScale：封面上的胶囊也是按钮，
     // 按下时同样该缩到 .96（test/press_scale_test.dart 会把裸 InkWell 挑出来）。
-    final chip = PressScale(child: Material(
-      color: Colors.black.withValues(alpha: prominent ? .52 : .42),
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: prominent ? 20 : 10, vertical: prominent ? 10 : 5),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (label != null) Text(label!, style: TextStyle(color: Colors.white, fontSize: prominent ? 14 : 12, fontWeight: prominent ? FontWeight.w600 : FontWeight.w500)),
-              if (icon != null) ...[if (label != null) const SizedBox(width: 2), Icon(icon, size: prominent ? 18 : 14, color: Colors.white)],
-            ],
+    final chip = PressScale(
+      child: Material(
+        color: Colors.black.withValues(alpha: prominent ? .52 : .42),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: prominent ? 20 : 10,
+              vertical: prominent ? 10 : 5,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (label != null)
+                  Text(
+                    label!,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: prominent ? 14 : 12,
+                      fontWeight: prominent ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                if (icon != null) ...[
+                  if (label != null) const SizedBox(width: 2),
+                  Icon(icon, size: prominent ? 18 : 14, color: Colors.white),
+                ],
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
     return tooltip == null ? chip : Tooltip(message: tooltip!, child: chip);
   }
 }
@@ -498,16 +789,60 @@ class _TaskMenu extends ConsumerWidget {
       iconSize: 18,
       icon: const Icon(Symbols.more_vert_rounded),
       itemBuilder: (context) => [
-        if (task.status == DownloadStatus.downloading || task.status == DownloadStatus.queued)
-          PopupMenuItem<void>(height: 40, onTap: () => controller.pauseTasks({task.id}), child: Row(children: [const Icon(Symbols.pause_rounded, size: 18), const SizedBox(width: 10), Text(l10n.pause)])),
+        if (task.status == DownloadStatus.downloading ||
+            task.status == DownloadStatus.queued)
+          PopupMenuItem<void>(
+            height: 40,
+            onTap: () => controller.pauseTasks({task.id}),
+            child: Row(
+              children: [
+                const Icon(Symbols.pause_rounded, size: 18),
+                const SizedBox(width: 10),
+                Text(l10n.pause),
+              ],
+            ),
+          ),
         if (task.status == DownloadStatus.paused)
-          PopupMenuItem<void>(height: 40, onTap: () => controller.resumeTasks({task.id}), child: Row(children: [const Icon(Symbols.play_arrow_rounded, size: 18), const SizedBox(width: 10), Text(l10n.resume)])),
+          PopupMenuItem<void>(
+            height: 40,
+            onTap: () => controller.resumeTasks({task.id}),
+            child: Row(
+              children: [
+                const Icon(Symbols.play_arrow_rounded, size: 18),
+                const SizedBox(width: 10),
+                Text(l10n.resume),
+              ],
+            ),
+          ),
         if (task.status == DownloadStatus.failed)
-          PopupMenuItem<void>(height: 40, onTap: () => controller.retry(task.id), child: Row(children: [const Icon(Symbols.refresh_rounded, size: 18), const SizedBox(width: 10), Text(l10n.retry)])),
+          PopupMenuItem<void>(
+            height: 40,
+            onTap: () => controller.retry(task.id),
+            child: Row(
+              children: [
+                const Icon(Symbols.refresh_rounded, size: 18),
+                const SizedBox(width: 10),
+                Text(l10n.retry),
+              ],
+            ),
+          ),
         PopupMenuItem<void>(
           height: 40,
           onTap: () => _confirmDelete(context, ref),
-          child: Row(children: [Icon(Symbols.delete_rounded, size: 18, color: theme.colorScheme.error), const SizedBox(width: 10), Text(l10n.deleteCache, style: TextStyle(color: theme.colorScheme.error))]),
+          child: Row(
+            children: [
+              Icon(
+                Symbols.delete_rounded,
+                size: 18,
+                color: theme.colorScheme.error,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.deleteCache,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -521,8 +856,18 @@ class _TaskMenu extends ConsumerWidget {
         title: Text(l10n.deleteCache),
         content: Text(l10n.deleteCacheConfirmation(task.title)),
         actions: [
-          PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(l10n.cancel))),
-          PressScale(child: FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(l10n.delete))),
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.cancel),
+            ),
+          ),
+          PressScale(
+            child: FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(l10n.delete),
+            ),
+          ),
         ],
       ),
     );

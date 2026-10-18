@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
 import 'press_scale.dart';
 import 'app_image_cache.dart';
+import 'hover_zoom.dart';
 
 import '../../domain/models/video.dart';
 import '../video/play_window.dart';
@@ -25,53 +26,58 @@ class CompactVideoCard extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cacheWidth = videoCardCacheWidth(constraints.maxWidth, MediaQuery.devicePixelRatioOf(context));
-        return Material(
-          color: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
-          clipBehavior: Clip.antiAlias,
-          child: PressScale(child: InkWell(
-            // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
-            onTap: onTap ?? (video.id.isEmpty ? null : () => openVideo(context, ref, video.id)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 网格给的是固定高度，封面吃掉剩余空间（图片裁切而不是溢出）
-                Expanded(child: _cover(theme, cacheWidth)),
-                const SizedBox(height: 6),
-                SizedBox(
-                  height: 40,
-                  child: Text(
-                    video.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        return CardHover(
+          builder: (context, hovered) => Material(
+            color: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+            clipBehavior: Clip.antiAlias,
+            child: PressScale(child: InkWell(
+              // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+              onTap: onTap ?? (video.id.isEmpty ? null : () => openVideo(context, ref, video.id)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 网格给的是固定高度，封面吃掉剩余空间（图片裁切而不是溢出）
+                  Expanded(child: _cover(theme, cacheWidth, hovered)),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 40,
+                    child: Text(
+                      video.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          )),
+                ],
+              ),
+            )),
+          ),
         );
       },
     );
   }
 
-  Widget _cover(ThemeData theme, int cacheWidth) => ClipRRect(
+  Widget _cover(ThemeData theme, int cacheWidth, bool hovered) => ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AppCachedNetworkImage(
-              imageUrl: video.coverUrl,
-              fit: BoxFit.cover,
-              memCacheWidth: cacheWidth,
-              fadeInDuration: Duration.zero,
-              fadeOutDuration: Duration.zero,
-              placeholder: (context, url) => ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-              errorWidget: (context, url, error) => ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: const Center(child: Icon(Symbols.broken_image_rounded)),
+            ZoomOnHover(
+              hovered: hovered,
+              child: AppCachedNetworkImage(
+                imageUrl: video.coverUrl,
+                fit: BoxFit.cover,
+                memCacheWidth: cacheWidth,
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
+                placeholder: (context, url) => ColoredBox(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                ),
+                errorWidget: (context, url, error) => ColoredBox(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  child: const Center(child: Icon(Symbols.broken_image_rounded)),
+                ),
               ),
             ),
             if (video.duration != null)

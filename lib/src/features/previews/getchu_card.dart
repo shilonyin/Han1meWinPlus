@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/hover_zoom.dart';
 import '../shared/press_scale.dart';
 import 'getchu_detail_hero.dart';
 
@@ -64,91 +65,97 @@ class _GetchuCardState extends State<GetchuCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final item = widget.item;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        type: MaterialType.transparency,
-        child: PressScale(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            // 灰罩在无底卡片上只能从文字区透出来，看着像「选中时下面变暗」。
-            hoverColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            // 上面三个都关了，焦点态得单独给，否则键盘 Tab 到卡片上毫无反应。
-            focusColor: theme.colorScheme.primary.withValues(alpha: .16),
-            onTap: () => context.push('/previews/getchu/detail/${item.id}'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 封面用 AspectRatio 定高，不用 Expanded。
-                //
-                // Expanded 吃的是「卡高减去文字区实际高度」，而文字区高度不固定：
-                // 没价格的条目少一行，封面就跟着变高一截，同一排的封面底边对不上、
-                // 标题落在不同高度。AspectRatio 只由卡片宽度决定，跟下方文字无关。
-                AspectRatio(
-                  aspectRatio: kGetchuCoverRatio,
-                  child: DecoratedBox(
-                    // 白底封面压在白色卡片上，两者同色，不补阴影就看不出边界在哪。
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      boxShadow: _coverReady
-                          ? [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: theme.brightness == Brightness.dark
-                                      ? .38
-                                      : .16,
+    return CardHover(
+      builder: (context, hovered) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Material(
+          type: MaterialType.transparency,
+          child: PressScale(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              // 灰罩在无底卡片上只能从文字区透出来，看着像「选中时下面变暗」。
+              hoverColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              // 上面三个都关了，焦点态得单独给，否则键盘 Tab 到卡片上毫无反应。
+              focusColor: theme.colorScheme.primary.withValues(alpha: .16),
+              onTap: () => context.push('/previews/getchu/detail/${item.id}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 封面用 AspectRatio 定高，不用 Expanded。
+                  //
+                  // Expanded 吃的是「卡高减去文字区实际高度」，而文字区高度不固定：
+                  // 没价格的条目少一行，封面就跟着变高一截，同一排的封面底边对不上、
+                  // 标题落在不同高度。AspectRatio 只由卡片宽度决定，跟下方文字无关。
+                  AspectRatio(
+                    aspectRatio: kGetchuCoverRatio,
+                    child: DecoratedBox(
+                      // 白底封面压在白色卡片上，两者同色，不补阴影就看不出边界在哪。
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        boxShadow: _coverReady
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: theme.brightness == Brightness.dark
+                                        ? .38
+                                        : .16,
+                                  ),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
                                 ),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      child: _cover(context),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // 文字与封面同进同退；用 Opacity 而不是条件插入，
-                // 这样加载前后卡片高度不变，网格不会跟着跳。
-                Opacity(
-                  opacity: _coverReady ? 1 : 0,
-                  // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
-                  // 价格落在不同高度上。
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                              ]
+                            : null,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        // 推近放在裁切框里面：多出来的部分被裁掉，不会盖到邻卡。
+                        child: ZoomOnHover(
+                          hovered: hovered,
+                          child: _cover(context),
                         ),
                       ),
-                      if (item.price != null) ...[
-                        const SizedBox(height: 4),
-                        // 价格走主色加粗，与详情页、标签行保持一致：整套界面里
-                        // 只有价格和选中态用主色，一眼能扫到。
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 文字与封面同进同退；用 Opacity 而不是条件插入，
+                  // 这样加载前后卡片高度不变，网格不会跟着跳。
+                  Opacity(
+                    opacity: _coverReady ? 1 : 0,
+                    // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
+                    // 价格落在不同高度上。
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          item.price!,
+                          item.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w700,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                        if (item.price != null) ...[
+                          const SizedBox(height: 4),
+                          // 价格走主色加粗，与详情页、标签行保持一致：整套界面里
+                          // 只有价格和选中态用主色，一眼能扫到。
+                          Text(
+                            item.price!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
