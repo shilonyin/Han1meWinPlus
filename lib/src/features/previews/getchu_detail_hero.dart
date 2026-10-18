@@ -11,20 +11,33 @@ import '../shared/press_scale.dart';
 /// 宽窄屏分界，与 AniBaka 详情页一致。
 const double kGetchuWideBreakpoint = 800;
 
+/// 详情页内容区最大宽度。比 AniBaka 的 1200 再宽一档 —— 卡片太窄时正文行宽
+/// 撑不开，一屏能读到的字太少。
+const double kGetchuContentMaxWidth = 1400;
+
+/// 内容卡片顶部圆角。背景图与页签栏共用，两处对上才像一个容器。
+const BorderRadius kGetchuContentTopRadius = BorderRadius.vertical(top: Radius.circular(AppRadius.xl));
+
 /// Getchu 的图片有防盗链，取图时必须带上这两个头。
 const Map<String, String> kGetchuImageHeaders = {
   'Referer': 'https://www.getchu.com/',
   'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc',
 };
 
-/// 顶部整宽背景图 + 渐变遮罩。
+/// 顶部背景图 + 渐变遮罩。
 ///
 /// 这一层要留在滚动视图外面（页面根 Stack 里），滚动时大图才不动。
+/// 顶部两角与下方内容卡片共用 [kGetchuContentTopRadius]，
+/// 图与内容拼起来才像同一个容器。
 class GetchuBackdrop extends StatelessWidget {
-  const GetchuBackdrop({super.key, required this.imageUrl, required this.height});
+  const GetchuBackdrop({super.key, required this.imageUrl, required this.height, this.surfaceColor});
 
   final String? imageUrl;
   final double height;
+
+  /// 遮罩渐变的收尾颜色。详情页传内容卡片的底色，图的末端与卡片无缝接上；
+  /// 不传则用页面画布色，背景图自己就是一块独立底板。
+  final Color? surfaceColor;
 
   @override
   Widget build(BuildContext context) {
@@ -32,39 +45,46 @@ class GetchuBackdrop extends StatelessWidget {
     // 必须用页面底色，不能用 theme.scaffoldBackgroundColor：
     // 后者在本应用里是 Colors.transparent（底色交给 AppBackdrop 画），
     // 拿它做遮罩等于没有遮罩，背景图会直接压在正文下面。
-    final surface = AppPageColors.of(theme.brightness);
+    final surface = surfaceColor ?? AppPageColors.of(theme.brightness);
     final source = imageUrl;
     final fallback = ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
-    return SizedBox(
-      height: height,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (source == null || source.isEmpty)
-            fallback
-          else
-            AppCachedNetworkImage(
-              imageUrl: source,
-              httpHeaders: kGetchuImageHeaders,
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              memCacheWidth: 1280,
-              fadeInDuration: Duration.zero,
-              placeholder: (context, url) => fallback,
-              errorWidget: (context, url, error) => fallback,
-            ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [surface.withValues(alpha: .2), surface.withValues(alpha: .8), surface],
-                stops: const [0, .5, 1],
+    return ClipRRect(
+      borderRadius: kGetchuContentTopRadius,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (source == null || source.isEmpty)
+              fallback
+            else
+              AppCachedNetworkImage(
+                imageUrl: source,
+                httpHeaders: kGetchuImageHeaders,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                memCacheWidth: 1280,
+                fadeInDuration: Duration.zero,
+                placeholder: (context, url) => fallback,
+                errorWidget: (context, url, error) => fallback,
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  // 遮罩往页面底色走，而不是往黑走：浅色模式下底色是近白，
+                  // 顶部 55% 底色的图就够淡，黑字压得住；深色模式下反过来把图压深，
+                  // 白字又压得住。早先顶部只有 20% 底色，图像素直接顶到文字上，
+                  // 粉紫背景配黑标题、稀灰厂商名，两行都读不清。
+                  colors: [surface.withValues(alpha: .55), surface.withValues(alpha: .88), surface],
+                  stops: const [0, .55, 1],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -131,7 +151,9 @@ class GetchuHeader extends StatelessWidget {
     final dark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final textColor = dark ? Colors.white : Colors.black;
-    final subtitleColor = dark ? Colors.white54 : const Color(0xFF8E8E93);
+    // 厂商名压在背景图上，用了一档比常规次级文字更实的灰：
+    // 早先是 #8E8E93，在浅色模式的浅粉背景上只有 3:1，读不出来。
+    final subtitleColor = dark ? Colors.white70 : const Color(0xFF5C5C63);
 
     return LayoutBuilder(
       builder: (context, constraints) {

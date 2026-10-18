@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
-import '../../app/app_page_colors.dart';
 import '../../core/app_radius.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,10 +77,13 @@ class _DetailContentState extends State<_DetailContent> {
     final dark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final isWide = MediaQuery.sizeOf(context).width > kGetchuWideBreakpoint;
-    // 用页面底色，不能用 theme.scaffoldBackgroundColor —— 后者在本应用里是
+    // 内容卡片的底色。不能用 theme.scaffoldBackgroundColor —— 后者在本应用里是
     // Colors.transparent（底色交给 AppBackdrop 画），拿它当正文底色等于没底，
     // 背景图会直接透到正文和吸顶页签栏底下。
-    final surface = AppPageColors.of(theme.brightness);
+    //
+    // 也不能直接用页面画布色（AppPageColors）：两者同色时卡片和画布连成一片，
+    // 圆角轮廓完全看不见，看着就是一整面白底。这里比画布亮一档把它们分开。
+    final cardSurface = dark ? const Color(0xFF141A26) : Colors.white;
     final titleColor = dark ? Colors.white : Colors.black;
     final subtitleColor = dark ? Colors.white54 : const Color(0xFF8E8E93);
     final dividerColor = dark ? Colors.white.withValues(alpha: .08) : Colors.black.withValues(alpha: .05);
@@ -108,19 +110,26 @@ class _DetailContentState extends State<_DetailContent> {
 
     return Stack(
       children: [
-        // 背景层留在滚动视图外，滚动时大图不动
+        // 背景层留在滚动视图外，滚动时大图不动。
+        // 与下方内容同宽同圆角：两者拼起来才像一个容器，两侧露出画布底色。
         Positioned(
           top: 0,
           left: 0,
           right: 0,
           height: isWide ? 560 : 420,
-          child: GetchuBackdrop(imageUrl: detail.coverUrl, height: isWide ? 560 : 420),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
+              child: GetchuBackdrop(imageUrl: detail.coverUrl, height: isWide ? 560 : 420, surfaceColor: cardSurface),
+            ),
+          ),
         ),
         SafeArea(
           bottom: false,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
+              // 内容区宽度上限。比例子里的 1200 再宽一档，正文行宽才撑得开。
+              constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
               child: DefaultTabController(
                 length: tabs.length,
                 child: NestedScrollView(
@@ -145,11 +154,11 @@ class _DetailContentState extends State<_DetailContent> {
                     ),
                     SliverPersistentHeader(
                       pinned: true,
-                      delegate: _TabBarDelegate(tabBar: tabBar, backgroundColor: surface, borderColor: dividerColor, isWide: isWide),
+                      delegate: _TabBarDelegate(tabBar: tabBar, backgroundColor: cardSurface, borderColor: dividerColor, isWide: isWide),
                     ),
                   ],
                   body: Container(
-                    color: surface,
+                    color: cardSurface,
                     child: TabBarView(
                       physics: const BouncingScrollPhysics(),
                       children: [for (final tab in tabs) Builder(key: PageStorageKey((detail.id, tab.$1)), builder: tab.$2)],
