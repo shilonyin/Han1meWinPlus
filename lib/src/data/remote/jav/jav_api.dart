@@ -88,7 +88,7 @@ class JavApi {
     // 首页顶部大图（对应 hanime1 的 home-banner）：AV 站点没有独立的横幅元素，
     // 用第一个分区里最新的一条充当 —— 首页版式（大图 + 下方分区）才和 hanime1 一致。
     final heroVideos = usable.first.videos;
-    return HomeFeed(sections: sections, featured: heroVideos.isEmpty ? null : heroVideos.first);
+    return HomeFeed(sections: sections, featured: heroVideos.isEmpty ? const <VideoCard>[] : <VideoCard>[heroVideos.first]);
   }
 
   /// 搜索。

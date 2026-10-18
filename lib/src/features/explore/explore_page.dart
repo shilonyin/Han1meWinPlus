@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,7 @@ import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_error.dart';
 import '../shared/app_image_cache.dart';
+import '../shared/page_colors_fade.dart';
 import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
@@ -87,6 +89,18 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _searchFieldKey = GlobalKey();
   final _topBarKey = GlobalKey();
   final _bodyStackKey = GlobalKey();
+
+  /// 顶栏底下那条淡出带的强度：内容滚到顶栏高度时到 1，停在顶部是 0。
+  /// 连续给值而不是过阈值才翻面，往下滚时它是渐渐显出来的。
+  var _barProgress = 0.0;
+
+  /// 滚动通知的入口。按 0.05 一档量化，避免每一像素都触发一次重建。
+  bool _onScrollNotification(ScrollNotification notification) {
+    final raw = (notification.metrics.pixels / _homeBarHeight).clamp(0.0, 1.0);
+    final next = (raw * 20).round() / 20;
+    if (next != _barProgress) setState(() => _barProgress = next);
+    return false;
+  }
 
   @override
   void initState() {
@@ -159,7 +173,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
       // 处在同一个坐标系里，面板能跟搜索框严格对齐。
-      body: Stack(
+      // 滚动位置决定顶栏底下要不要铺那条画布色淡出带：内容停在顶部时它不该出现。
+      body: NotificationListener<ScrollNotification>(
+        onNotification: _onScrollNotification,
+        child: Stack(
         key: _bodyStackKey,
         children: [
           // 列表铺满整块 body：它不再被顶栏挤下去，顶部让开的地方由它自己第一个
@@ -184,16 +201,29 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index),
             ),
           ),
-          // 顶栏浮在内容之上，底下带一条 scroll edge（g1455）：内容滚到它下面时
-          // 会被模糊并淡出，也就是 iOS 26 那条「滚动边缘」。
+          // 顶栏浮在内容之上，底下带一条 scroll edge：内容滚到它下面时
+          // 会淡进画布色，也就是 iOS 26 那条「滚动边缘」。
+          //
+          // 这条边缘由 `PageColorsFade` 自己画，不用 g1455 的 `GlassScrollEdge`：
+          // 后者的 tint 在浅色模式下恒为 0.85 的白，会把顶栏那 56 像素推成近纯白
+          // （实测 253,253,254，而画布是 242,242,247），只有首页看着底色和别页不同。
+          // 淡出带要夹在内容与顶栏之间：它从画布色往下淡出，上半截由下面那层
+          // 不透明的顶栏盖住，露出来的只有顶栏底边之外那一段。
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            // 顶栏与画布同色。别的页面 AppBar 透明，露出来的就是画布色；首页原来
-            // 套了一层 GlassScrollEdge，它在浅色模式下用 0.85 的白做 erf 渐变，
-            // 把那 56 像素推成近纯白（实测 253,253,254，画布 242,242,247），
-            // 于是只有首页看着底色不一样。
+            child: PageColorsFade(
+              extent: _homeBarHeight,
+              progress: _barProgress,
+              blurSigma: 8,
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            // 顶栏与画布同色。别的页面 AppBar 透明，露出来的就是画布色。
             child: Material(
                 // 顶栏必须不透明：内容是从它底下滚过去的（body 铺满整块，顶栏浮在上面），
                 // 让它透明就能看到卡片与顶栏文字叠在一起。用画布色而不是主色面，
@@ -283,8 +313,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ),
       ),
-    ),
-    ),
+                ),
+            ),
           // 点搜索框展开的建议面板：底部铺一层透明遮罩，点它或点一条建议都会收起。
           IgnorePointer(
             ignoring: !_searchPanelOpen,
@@ -300,6 +330,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
           _buildSearchPanel(context),
         ],
+        ),
       ),
     );
   }
@@ -402,7 +433,7 @@ class _FeedCategory {
 class _HomeFeedBody extends ConsumerWidget {
   const _HomeFeedBody({required this.featured, required this.sections, required this.index});
 
-  final VideoCard? featured;
+  final List<VideoCard> featured;
   final List<HomeSection> sections;
   final int index;
 
@@ -584,8 +615,8 @@ bool _visible(VideoCard video, AppSettings? settings, Set<String> subscribed) {
 }
 
 class _HomeScroll extends ConsumerStatefulWidget {
-  const _HomeScroll({this.featured, required this.sections});
-  final VideoCard? featured;
+  const _HomeScroll({required this.featured, required this.sections});
+  final List<VideoCard> featured;
   final List<HomeSection> sections;
 
   @override
@@ -604,16 +635,21 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
   @override
   void didUpdateWidget(_HomeScroll oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.featured?.coverUrl != widget.featured?.coverUrl) _prefetchFeatured();
+    if (!listEquals(oldWidget.featured.map((video) => video.coverUrl).toList(), widget.featured.map((video) => video.coverUrl).toList())) {
+      _prefetchFeatured();
+    }
   }
 
-  /// 首屏推荐位是一张大图（`memCacheWidth: 960`），不预热的话刷新后第一眼就是一个大灰块。
+  /// 首屏推荐位是一张大图（`memCacheWidth: 1280`），不预热的话刷新后第一眼就是一个大灰块。
+  /// 轮播里的每一张都要预热，翻页时才不会白一下。
   void _prefetchFeatured() {
-    final url = widget.featured?.coverUrl;
-    if (url == null || url.isEmpty) return;
+    final urls = [for (final video in widget.featured) video.coverUrl].where((url) => url.isNotEmpty).toList();
+    if (urls.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(precacheCover(url, 960, context));
+      for (final url in urls) {
+        unawaited(precacheCover(url, 1280, context));
+      }
     });
   }
 
@@ -643,7 +679,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
               // 内容的一部分，往上滚就跟着走，后面的内容才会真的滚到顶栏后面 ——
               // 顶栏底下那条 scroll edge 要的就是这个。
               const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
-              if (widget.featured != null) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedVideo(video: widget.featured!))),
+              if (widget.featured.isNotEmpty) SliverToBoxAdapter(child: RepaintBoundary(child: _FeaturedCarousel(videos: widget.featured))),
               for (final section in widget.sections) _HomeSection(section: section),
               // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
               // （见 `floatingActionsClearance`），再叠加系统安全区。
@@ -1029,10 +1065,16 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
 /// 宽扁的 16:6、左下角斜体粗标题压一条底部暗渐变，而不是原先固定 320 高 +
 /// 整块压黑 + 常规字号 —— 整块压黑会把封面盖掉大半，只有底部渐变压暗时
 /// 图看得清、字又压得住。
-class _FeaturedVideo extends StatelessWidget {
-  const _FeaturedVideo({required this.video});
+/// 首屏推荐位。只有一条时不带轮播控件，多条时给出自动轮播、左右按钮与下方指示点。
+class _FeaturedCarousel extends StatelessWidget {
+  const _FeaturedCarousel({required this.videos});
 
-  final VideoCard video;
+  final List<VideoCard> videos;
+
+  /// 卡片高度。16:5 比横幅再矮一档 —— 高度按内容宽度算出来往往有五六百像素，
+  /// 一屏就只剩下一排卡片可看，收在这里才让下面的两排露出来。
+  static const double _maxHeight = 320;
+  static const double _minHeight = 150;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -1040,17 +1082,176 @@ class _FeaturedVideo extends StatelessWidget {
           final desktop = constraints.maxWidth >= 700;
           final horizontal = desktop ? 24.0 : 16.0;
           final width = constraints.maxWidth - horizontal * 2;
-          // 16:6 比原先的固定高度更扁；窄窗口下限量到 180，否则两行标题会盖住封面主体。
-          final height = (width * 6 / 16).clamp(180.0, 400.0);
+          final height = (width * 5 / 16).clamp(_minHeight, _maxHeight);
           return Padding(
             padding: EdgeInsets.fromLTRB(horizontal, desktop ? 8 : 4, horizontal, 16),
             child: SizedBox(
               width: width,
               height: height,
-              child: _FeaturedVideoSurface(video: video),
+              child: videos.length > 1 ? _FeaturedSwiper(videos: videos) : _FeaturedVideoSurface(video: videos.first),
             ),
           );
         },
+      );
+}
+
+/// 多条推荐位的轮播：底部压一层渐变，左下是标题与作者，右下是左右按钮，最下面一排指示点。
+class _FeaturedSwiper extends StatefulWidget {
+  const _FeaturedSwiper({required this.videos});
+
+  final List<VideoCard> videos;
+
+  @override
+  State<_FeaturedSwiper> createState() => _FeaturedSwiperState();
+}
+
+class _FeaturedSwiperState extends State<_FeaturedSwiper> {
+  /// 自动翻页间隔。抄 AniBaka 的 6 秒，用户手动翻过之后重新计时。
+  static const Duration _interval = Duration(seconds: 6);
+
+  final _controller = CarouselController();
+  final _current = ValueNotifier<int>(0);
+  Timer? _timer;
+
+  /// 手指按在轮播上时暂停自动翻页，否则想拖的时候它正自己滑走。
+  bool _interacting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _current.dispose();
+    super.dispose();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    if (widget.videos.length < 2) return;
+    _timer = Timer.periodic(_interval, (_) => _advance(1));
+  }
+
+  /// 自动翻页。卡片被滚出屏幕（用户在看下面的列表）时停下，
+  /// 免得在用户看不见的地方一直重建图片。
+  void _advance(int delta) {
+    if (!mounted || _interacting) return;
+    final position = Scrollable.maybeOf(context)?.position;
+    if (position != null && position.isScrollingNotifier.value) return;
+    // 首页自己往上滚走了就不再自动翻，回到顶部由用户重新触发。
+    final sliver = context.findAncestorRenderObjectOfType<RenderSliver>();
+    if (sliver?.geometry?.visible != true) return;
+    final next = (_current.value + delta) % widget.videos.length;
+    _controller.animateToItem(next, duration: const Duration(milliseconds: 600), curve: Curves.fastOutSlowIn);
+    _restartTimer();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = widget.videos.length;
+    return Listener(
+      onPointerDown: (_) {
+        _interacting = true;
+        _timer?.cancel();
+      },
+      onPointerUp: (_) {
+        _interacting = false;
+        _restartTimer();
+      },
+      onPointerCancel: (_) {
+        _interacting = false;
+        _restartTimer();
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CarouselView.builder(
+            controller: _controller,
+            itemExtent: double.infinity,
+            itemSnapping: true,
+            onIndexChanged: (index) => _current.value = index,
+            itemCount: total,
+            itemBuilder: (context, index) => _FeaturedVideoSurface(video: widget.videos[index]),
+          ),
+          // 卡片底下已经压了一层渐变，这里只补按钮与指示点的可读性。
+          Positioned(
+            right: 14,
+            bottom: 14,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _SwiperButton(icon: Symbols.chevron_left_rounded, tooltip: MaterialLocalizations.of(context).previousPageTooltip, onTap: () => _advance(-1)),
+                const SizedBox(width: 8),
+                _SwiperButton(icon: Symbols.chevron_right_rounded, tooltip: MaterialLocalizations.of(context).nextPageTooltip, onTap: () => _advance(1)),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 20,
+            child: IgnorePointer(
+              child: Center(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _current,
+                  builder: (context, index, _) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < total; i++)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutQuart,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          height: 4,
+                          width: i == index ? 18 : 6,
+                          decoration: BoxDecoration(
+                            color: i == index ? theme.colorScheme.primary : Colors.white.withValues(alpha: .45),
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: i == index ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: .5), blurRadius: 8, spreadRadius: 1)] : null,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 轮播上的圆形翻页按钮。
+class _SwiperButton extends StatelessWidget {
+  const _SwiperButton({required this.icon, required this.tooltip, required this.onTap});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => PressScale(
+        child: Material(
+          color: Colors.black.withValues(alpha: .38),
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Tooltip(
+              message: tooltip,
+              child: SizedBox(
+                width: 34,
+                height: 34,
+                child: Icon(icon, size: 20, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
       );
 }
 

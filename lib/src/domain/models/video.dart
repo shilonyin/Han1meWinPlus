@@ -38,13 +38,27 @@ class HomeSection {
 }
 
 class HomeFeed {
-  const HomeFeed({required this.sections, this.featured});
+  const HomeFeed({required this.sections, this.featured = const <VideoCard>[]});
 
-  final VideoCard? featured;
+  /// 首屏推荐位，按站点给的顺序排。站点通常只给一个，首页据此决定要不要做轮播。
+  final List<VideoCard> featured;
   final List<HomeSection> sections;
 
-  Map<String, dynamic> toJson() => {'featured': featured?.toJson(), 'sections': sections.map((section) => section.toJson()).toList()};
-  factory HomeFeed.fromJson(Map<String, dynamic> json) => HomeFeed(featured: json['featured'] is Map ? VideoCard.fromJson(Map<String, dynamic>.from(json['featured'] as Map)) : null, sections: ((json['sections'] as List?) ?? const []).whereType<Map>().map((item) => HomeSection.fromJson(Map<String, dynamic>.from(item))).toList());
+  Map<String, dynamic> toJson() => {'featured': featured.map((video) => video.toJson()).toList(), 'sections': sections.map((section) => section.toJson()).toList()};
+
+  factory HomeFeed.fromJson(Map<String, dynamic> json) {
+    // 老缓存里 featured 是单个对象，这里一并兼容，省得用户升级后首屏空着。
+    final rawFeatured = json['featured'];
+    final featured = switch (rawFeatured) {
+      final Map item => <VideoCard>[VideoCard.fromJson(Map<String, dynamic>.from(item))],
+      final List items => items.whereType<Map>().map((item) => VideoCard.fromJson(Map<String, dynamic>.from(item))).toList(),
+      _ => const <VideoCard>[],
+    };
+    return HomeFeed(
+      featured: featured,
+      sections: ((json['sections'] as List?) ?? const []).whereType<Map>().map((item) => HomeSection.fromJson(Map<String, dynamic>.from(item))).toList(),
+    );
+  }
 }
 
 class PreviewItem {

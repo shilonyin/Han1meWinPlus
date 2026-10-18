@@ -106,14 +106,16 @@ class Han1meApi {
     final bannerCover = _absolute(baseUrl, bannerImage?.attributes['src']);
     final bannerId = RegExp(r'thumbnail/(\d+)').firstMatch(bannerCover)?.group(1) ?? '';
     final featured = bannerTitle == null || bannerTitle.isEmpty
-        ? null
-        : VideoCard(
-            id: bannerId,
-            title: bannerTitle,
-            coverUrl: bannerCover,
-            artist: bannerMeta?.split('•').first.trim(),
-            views: bannerMeta?.split('•').skip(1).firstOrNull?.trim(),
-          );
+        ? <VideoCard>[]
+        : <VideoCard>[
+            VideoCard(
+              id: bannerId,
+              title: bannerTitle,
+              coverUrl: bannerCover,
+              artist: bannerMeta?.split('•').first.trim(),
+              views: bannerMeta?.split('•').skip(1).firstOrNull?.trim(),
+            ),
+          ];
     return HomeFeed(sections: sections, featured: featured);
   }
 
