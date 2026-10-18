@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path/path.dart' as path;
+
+import '../../core/face/face_crop.dart';
+import '../../core/face/face_focus_service.dart';
 
 /// 图片缓存索引文件的路径（`<应用数据目录>/han1me_images.json`）。
 ///
@@ -127,6 +131,8 @@ class AppCachedNetworkImage extends StatelessWidget {
     this.height,
     this.memCacheWidth,
     this.alignment = Alignment.center,
+    this.faceFocus = false,
+    this.faceCropMethod = CropMethod.mostFaces,
     this.httpHeaders,
     this.placeholder,
     this.errorWidget,
@@ -142,6 +148,18 @@ class AppCachedNetworkImage extends StatelessWidget {
   final double? height;
   final int? memCacheWidth;
   final Alignment alignment;
+
+  /// 是否按检出的人脸决定 [alignment]。
+  ///
+  /// 打开后：检测到脸 → 把脸圈进裁切窗口；没检到 → 顶部居中兜底
+  /// （海报主体绝大多数压在上半张，居中裁常把脑袋切一半）。还没算完时
+  /// 先用 [alignment]，算完自动刷新。
+  ///
+  /// 默认关闭：头像、漫画页这类不该按脸对齐的地方保持原样，只有明确的
+  /// 「封面/海报」位置才打开。
+  final bool faceFocus;
+  final CropMethod faceCropMethod;
+
   final Map<String, String>? httpHeaders;
   final PlaceholderWidgetBuilder? placeholder;
   final LoadingErrorWidgetBuilder? errorWidget;
@@ -153,7 +171,15 @@ class AppCachedNetworkImage extends StatelessWidget {
   final Duration fadeOutDuration;
 
   @override
-  Widget build(BuildContext context) => CachedNetworkImage(
+  Widget build(BuildContext context) {
+    if (!faceFocus) return _build(alignment);
+    return _FaceFocusedImage(
+      key: ValueKey<String>(imageUrl),
+      image: this,
+    );
+  }
+
+  Widget _build(Alignment resolved) => CachedNetworkImage(
         imageUrl: imageUrl,
         cacheKey: imageCacheKey(imageUrl),
         cacheManager: appImageCacheManager,
@@ -161,7 +187,7 @@ class AppCachedNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         memCacheWidth: memCacheWidth,
-        alignment: alignment,
+        alignment: resolved,
         httpHeaders: httpHeaders,
         placeholder: placeholder,
         errorWidget: errorWidget,
@@ -169,4 +195,93 @@ class AppCachedNetworkImage extends StatelessWidget {
         fadeInDuration: fadeInDuration,
         fadeOutDuration: fadeOutDuration,
       );
+}
+
+/// [AppCachedNetworkImage.faceFocus] 的实现：按检出的人脸挑对齐方式。
+///
+/// 单独拆出来是为了让它**有状态** —— 人脸检测是异步的，结果回来时要能重建
+/// 自己。直接在 [AppCachedNetworkImage] 里做会让所有封面（含头像、漫画页）
+/// 都变成有状态组件，那些地方根本用不到。
+class _FaceFocusedImage extends StatefulWidget {
+  const _FaceFocusedImage({required this.image, super.key});
+
+  final AppCachedNetworkImage image;
+
+  @override
+  State<_FaceFocusedImage> createState() => _FaceFocusedImageState();
+}
+
+class _FaceFocusedImageState extends State<_FaceFocusedImage> {
+  final FaceFocusService _service = FaceFocusService.instance;
+
+  Alignment _alignment = Alignment.center;
+
+  /// 上次算对齐用的目标尺寸。尺寸变了（窗口缩放、卡片变宽）要重算。
+  Size? _alignedFor;
+
+  /// 这张图是否已经有检测结果（不管是「有人脸」还是「确认没人脸」）。
+  bool _hasResult = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _alignment = widget.image.alignment;
+    _service.addListener(_onResult);
+    // 首次走到这里就把模型和磁盘缓存预热起来；重复调用是幂等的。
+    unawaited(_service.warmUp());
+    _service.request(widget.image.imageUrl);
+  }
+
+  @override
+  void dispose() {
+    _service.removeListener(_onResult);
+    super.dispose();
+  }
+
+  void _onResult() {
+    if (!mounted) return;
+    // 服务是全局单例，任何一张图算完都会广播。这里只在**自己这张**刚从
+    // 「没算过」变成「算完了」时重建一次，别让整屏封面互相触发。
+    final has = _service.resultFor(widget.image.imageUrl) != null;
+    if (has == _hasResult) return;
+    setState(() {
+      _hasResult = has;
+      _alignedFor = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        // 用布局约束而不是 findRenderObject：首帧还没布局时拿不到尺寸，
+        // 而 LayoutBuilder 一上来就有可用空间，不会漏掉第一次计算。
+        builder: (context, constraints) {
+          final image = widget.image;
+          final size = _targetSize(image, constraints);
+          if (size != null && size != _alignedFor) {
+            _alignedFor = size;
+            _alignment = faceAlignmentFor(
+              image.imageUrl,
+              size,
+              method: image.faceCropMethod,
+            ) ??
+                image.alignment;
+          }
+          return image._build(_alignment);
+        },
+      );
+}
+
+/// 图片实际会占据的尺寸。
+///
+/// 优先用组件自己给的宽高；没给（封面常见的「撑满父级」写法）就用布局给的空间。
+/// 都拿不到时返回 null —— 猜一个尺寸去算裁切只会算出错的框。
+Size? _targetSize(AppCachedNetworkImage image, BoxConstraints constraints) {
+  var width = image.width;
+  var height = image.height;
+  width ??= constraints.maxWidth.isFinite ? constraints.maxWidth : null;
+  height ??= constraints.maxHeight.isFinite ? constraints.maxHeight : null;
+  if (width == null || height == null || width <= 0 || height <= 0) return null;
+  // 裁切窗口只跟宽高比有关，所以传显示尺寸即可；memCacheWidth 只影响解码
+  // 精度，不影响取景。
+  return Size(width, height);
 }

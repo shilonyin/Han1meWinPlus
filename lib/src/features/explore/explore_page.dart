@@ -1319,6 +1319,8 @@ class _FeaturedVideoSurface extends ConsumerWidget {
             imageUrl: video.coverUrl,
             fit: BoxFit.cover,
             memCacheWidth: 1280,
+            // 推荐位是宽横幅，竖版封面进来会被裁得很狠，交给人脸决定取景。
+            faceFocus: true,
             fadeInDuration: Duration.zero,
             errorWidget: (_, __, ___) => ColoredBox(color: cover),
           ),

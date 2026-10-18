@@ -555,6 +555,9 @@ class VideoCardTile extends ConsumerWidget {
                         imageUrl: video.coverUrl,
                         fit: BoxFit.cover,
                         memCacheWidth: cacheWidth,
+                        // 主封面按检出的人脸决定取景：竖版海报塞进宽卡片时，
+                        // 默认居中裁切常常把人头切掉。
+                        faceFocus: true,
                         fadeInDuration: Duration.zero,
                         fadeOutDuration: Duration.zero,
                         placeholder: (context, url) => ColoredBox(

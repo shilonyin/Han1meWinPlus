@@ -69,6 +69,7 @@ class CompactVideoCard extends ConsumerWidget {
                 imageUrl: video.coverUrl,
                 fit: BoxFit.cover,
                 memCacheWidth: cacheWidth,
+                faceFocus: true,
                 fadeInDuration: Duration.zero,
                 fadeOutDuration: Duration.zero,
                 placeholder: (context, url) => ColoredBox(

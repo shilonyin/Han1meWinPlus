@@ -361,7 +361,7 @@ class _PreviewCard extends ConsumerWidget {
                   children: [
                     ZoomOnHover(
                       hovered: hovered,
-                      child: AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, fadeInDuration: Duration.zero),
+                      child: AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, faceFocus: true, fadeInDuration: Duration.zero),
                     ),
                     // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
                     const DecoratedBox(
