@@ -272,19 +272,25 @@ class GetchuTags extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pills = [detail.brand, detail.releaseDate, detail.price].whereType<String>().where((value) => value.trim().isNotEmpty).toList();
+    // 价格单列出来：同一个 Wrap 里只有它用主色，其它两枚保持中性灰。
+    final pills = <(String, bool)>[
+      if (detail.brand != null && detail.brand!.trim().isNotEmpty) (detail.brand!, false),
+      if (detail.releaseDate != null && detail.releaseDate!.trim().isNotEmpty) (detail.releaseDate!, false),
+      if (detail.price != null && detail.price!.trim().isNotEmpty) (detail.price!, true),
+    ];
     if (pills.isEmpty) return const SizedBox.shrink();
     final decoration = BoxDecoration(
       color: isDark ? Colors.white.withValues(alpha: .08) : const Color(0xFFF2F2F7),
       borderRadius: BorderRadius.circular(AppRadius.xs),
     );
     final style = TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: .2, color: isDark ? Colors.white70 : const Color(0xFF3A3A3C));
+    final priceStyle = style.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700);
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final pill in pills)
-          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: decoration, child: Text(pill, style: style)),
+        for (final (text, isPrice) in pills)
+          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: decoration, child: Text(text, style: isPrice ? priceStyle : style)),
       ],
     );
   }

@@ -373,21 +373,24 @@ class _DetailContentState extends State<_DetailContent> {
   }
 
   /// 基本信息键值对，空值自动跳过。
-  List<(String, String)> _infoEntries(
+  ///
+  /// 第三位标记这一行是不是价格 —— 价格要用主色加粗，与卡片和标签行
+  /// 保持同一套口径。
+  List<(String, String, bool)> _infoEntries(
     GetchuPreviewDetail detail,
     AppLocalizations l10n,
   ) {
     return [
       if (detail.brand != null && detail.brand!.trim().isNotEmpty)
-        (l10n.studio, detail.brand!),
+        (l10n.studio, detail.brand!, false),
       if (detail.releaseDate != null && detail.releaseDate!.trim().isNotEmpty)
-        (l10n.releaseDateLabel, detail.releaseDate!),
+        (l10n.releaseDateLabel, detail.releaseDate!, false),
       if (detail.price != null && detail.price!.trim().isNotEmpty)
-        (l10n.priceLabel, detail.price!),
+        (l10n.priceLabel, detail.price!, true),
       if (detail.seriesItems.isNotEmpty)
-        (l10n.getchuSeries, l10n.seriesItemCount(detail.seriesItems.length)),
+        (l10n.getchuSeries, l10n.seriesItemCount(detail.seriesItems.length), false),
       if (detail.sampleImages.isNotEmpty)
-        (l10n.gallery, l10n.imageCount(detail.sampleImages.length)),
+        (l10n.gallery, l10n.imageCount(detail.sampleImages.length), false),
     ];
   }
 
@@ -467,7 +470,7 @@ class _InfoCard extends StatelessWidget {
     required this.dividerColor,
   });
 
-  final List<(String, String)> entries;
+  final List<(String, String, bool)> entries;
   final Color titleColor;
   final Color subtitleColor;
   final Color cardColor;
@@ -525,10 +528,14 @@ class _InfoCard extends StatelessWidget {
                           child: Text(
                             entry.$2,
                             style: TextStyle(
-                              color: titleColor,
+                              color: entry.$3
+                                  ? Theme.of(context).colorScheme.primary
+                                  : titleColor,
                               fontSize: 14,
                               height: 1.5,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: entry.$3
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               letterSpacing: .2,
                             ),
                           ),

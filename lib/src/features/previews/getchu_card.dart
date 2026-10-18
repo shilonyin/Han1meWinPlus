@@ -133,12 +133,15 @@ class _GetchuCardState extends State<GetchuCard> {
                       ),
                       if (item.price != null) ...[
                         const SizedBox(height: 4),
+                        // 价格走主色加粗，与详情页、标签行保持一致：整套界面里
+                        // 只有价格和选中态用主色，一眼能扫到。
                         Text(
                           item.price!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
