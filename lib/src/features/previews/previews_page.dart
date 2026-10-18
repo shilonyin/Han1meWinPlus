@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/han1me_repository.dart';
+import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_toast.dart';
@@ -53,7 +54,6 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
     final selectedMonth = _PreviewMonth.parse(widget.month);
     final result = ref.watch(previewsProvider(widget.month));
     final auto = (ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto') == 'auto';
-    const fallbackPlaceholder = Center(child: M3EContainedLoadingIndicator());
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.previews),
@@ -93,7 +93,9 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
               error: (error, _) {
                 if (auto) {
                   _scheduleGetchuFallback();
-                  return fallbackPlaceholder;
+                  // 这里不能只给转圈：默认站点失败后要等 Getchu 那边响应，
+                  // 遇到慢响应（实测月份页 3.8s）用户分不清是在加载还是已经失败。
+                  return _SwitchingSource(error: error);
                 }
                 return _PreviewUnavailable(
                   title: l10n.previewUnavailable,
@@ -105,7 +107,7 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
               data: (feed) {
                 if (feed.items.isEmpty && auto) {
                   _scheduleGetchuFallback();
-                  return fallbackPlaceholder;
+                  return _SwitchingSource(detail: l10n.previewNoItems);
                 }
                 return feed.items.isEmpty
                     ? _PreviewUnavailable(
@@ -205,6 +207,66 @@ class _MonthNavigation extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// 默认站点取不到预告、正要换用 Getchu 时的等待界面。
+///
+/// 它和纯转圈的区别是把「为什么在等」写出来：默认站点失败后还要等 Getchu
+/// 整页响应（实测月份页 3.8 秒），只给一个转圈的话，用户分不清是在加载
+/// 还是已经失败了。
+class _SwitchingSource extends StatelessWidget {
+  const _SwitchingSource({this.error, this.detail});
+
+  /// 默认站点这次的失败原因，有就一并显示。
+  final Object? error;
+
+  /// 没有异常对象时的说明（例如接口通了但一条都没返回）。
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final reason = detail ?? _describe(error);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const M3EContainedLoadingIndicator(),
+            const SizedBox(height: 20),
+            Text(l10n.previewSwitchingSource, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              l10n.previewSwitchingSourceDetail,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
+            ),
+            if (reason != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                reason,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 把异常压成一行人话。CF 硬拦和普通超时要能分开看 —— 前者换网络才有救，
+  /// 后者重试就行，混成一句「加载失败」用户没法判断该怎么办。
+  static String? _describe(Object? error) {
+    if (error == null) return null;
+    if (error is CloudflareChallengeException) {
+      return error.blocked ? 'Cloudflare 拒绝了当前网络的出口 IP' : '需要先通过 Cloudflare 验证';
+    }
+    final text = error.toString();
+    return text.length <= 160 ? text : '${text.substring(0, 160)}…';
   }
 }
 

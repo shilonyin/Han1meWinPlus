@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import '../../core/app_logger.dart';
 import '../../domain/models/getchu_preview.dart';
 import 'han1me_http_client.dart';
 
@@ -33,6 +34,12 @@ class GetchuApi {
       final items = container.querySelectorAll('div.div_product').map(_previewItem).whereType<GetchuPreviewItem>();
       final uniqueItems = {for (final item in items) item.id: item}.values.toList(growable: false);
       if (uniqueItems.isNotEmpty) groups.add(GetchuPreviewGroup(releaseDate: _clean(header.text.replaceAll('発売タイトル', '')), items: uniqueItems));
+    }
+    final total = groups.fold<int>(0, (sum, group) => sum + group.items.length);
+    // 这条最要紧：此前 Getchu 全链路一行日志都没有，出问题时只能靠手工 curl 猜。
+    AppLogger.instance.info('Getchu 预告 $month: ${groups.length} 组 / $total 条', tag: 'getchu');
+    if (groups.isEmpty) {
+      AppLogger.instance.warning('Getchu 预告 $month 取到了页面但没有条目（category_anime_t2 匹配到 ${page.document.querySelectorAll('div.category_anime_t2').length} 个）', tag: 'getchu');
     }
     return GetchuPreviewFeed(month: month, groups: groups);
   }
@@ -137,19 +144,39 @@ class GetchuApi {
         headers: _headers,
         responseCharset: 'EUC-JP',
       );
-      if (response.statusCode < 200 || response.statusCode >= 300) return const [];
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        AppLogger.instance.warning('Getchu 系列商品列表失败: parent=$parentId | HTTP ${response.statusCode}', tag: 'getchu');
+        return const [];
+      }
       final document = html_parser.parse(response.body, sourceUrl: _baseUrl);
       // 同 _inlineSeries：只认条目容器，别用 div[class*=]。见那里的说明。
-      return document.querySelectorAll('div.item-series-content, li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>().toList(growable: false);
-    } catch (_) {
+      final items = document.querySelectorAll('div.item-series-content, li.product-item').map(_relatedItem).whereType<GetchuPreviewItem>().toList(growable: false);
+      AppLogger.instance.info('Getchu 系列商品列表: parent=$parentId -> ${items.length} 条', tag: 'getchu');
+      return items;
+    } catch (error) {
+      // 这个分支原来直接吞掉异常，系列商品空白时完全无从下手。
+      AppLogger.instance.warning('Getchu 系列商品列表异常: parent=$parentId | $error', tag: 'getchu');
       return const [];
     }
   }
 
   Future<_GetchuPage> _page(String url) async {
-    final response = await _http.get(url, responseCharset: 'EUC-JP', headers: _headers);
-    if (response.statusCode < 200 || response.statusCode >= 300) throw StateError('Getchu request failed: HTTP ${response.statusCode}');
-    return _GetchuPage(response.body, html_parser.parse(response.body, sourceUrl: url));
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await _http.get(url, responseCharset: 'EUC-JP', headers: _headers);
+      stopwatch.stop();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        AppLogger.instance.warning('Getchu 请求失败: $url | HTTP ${response.statusCode} (${stopwatch.elapsedMilliseconds}ms)', tag: 'getchu');
+        throw StateError('Getchu request failed: HTTP ${response.statusCode}');
+      }
+      // 耗时要记下来：月份页实测 3.8 秒，慢到会被当成卡死。
+      AppLogger.instance.debug('Getchu 取页面: $url | HTTP ${response.statusCode} ${response.body.length} 字节 ${stopwatch.elapsedMilliseconds}ms', tag: 'getchu');
+      return _GetchuPage(response.body, html_parser.parse(response.body, sourceUrl: url));
+    } catch (error) {
+      stopwatch.stop();
+      AppLogger.instance.warning('Getchu 请求异常: $url | $error (${stopwatch.elapsedMilliseconds}ms)', tag: 'getchu');
+      rethrow;
+    }
   }
 
   Map<String, dynamic>? _productJsonLd(dom.Document document, String body) {

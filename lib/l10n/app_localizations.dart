@@ -1443,6 +1443,24 @@ abstract class AppLocalizations {
   /// **'Default site previews are unavailable, switched to Getchu'**
   String get previewSourceSwitched;
 
+  /// No description provided for @previewSwitchingSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching to the Getchu preview source'**
+  String get previewSwitchingSource;
+
+  /// No description provided for @previewSwitchingSourceDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The default site returned no preview table, so Getchu is being used instead. This can take a few seconds.'**
+  String get previewSwitchingSourceDetail;
+
+  /// No description provided for @previewNoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'The default site returned no preview entries for this month'**
+  String get previewNoItems;
+
   /// No description provided for @getchuPreviews.
   ///
   /// In en, this message translates to:

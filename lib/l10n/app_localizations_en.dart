@@ -779,6 +779,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Default site previews are unavailable, switched to Getchu';
 
   @override
+  String get previewSwitchingSource => 'Switching to the Getchu preview source';
+
+  @override
+  String get previewSwitchingSourceDetail =>
+      'The default site returned no preview table, so Getchu is being used instead. This can take a few seconds.';
+
+  @override
+  String get previewNoItems =>
+      'The default site returned no preview entries for this month';
+
+  @override
   String get getchuPreviews => 'Getchu Season Previews';
 
   @override

@@ -748,6 +748,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get previewSourceSwitched => '默认站点的预告暂不可用，已改用 Getchu';
 
   @override
+  String get previewSwitchingSource => '正在改用 Getchu 预告源';
+
+  @override
+  String get previewSwitchingSourceDetail =>
+      '默认站点的预告表取不到，正在换用 Getchu，这一步可能要几秒。';
+
+  @override
+  String get previewNoItems => '默认站点这个月没有返回预告条目';
+
+  @override
   String get getchuPreviews => 'Getchu 新番预告';
 
   @override
@@ -3406,6 +3416,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get previewSourceSwitched => '預設站點的預告暫時無法使用，已改用 Getchu';
+
+  @override
+  String get previewSwitchingSource => '正在改用 Getchu 預告來源';
+
+  @override
+  String get previewSwitchingSourceDetail =>
+      '預設站點的預告表取不到，正在換用 Getchu，這一步可能要幾秒。';
+
+  @override
+  String get previewNoItems => '預設站點這個月沒有回傳預告條目';
 
   @override
   String get getchuPreviews => 'Getchu 新番預告';
