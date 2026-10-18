@@ -26,7 +26,6 @@ import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
 import '../shared/app_error.dart';
 import '../shared/app_image_cache.dart';
-import '../shared/page_colors_fade.dart';
 import '../shared/press_scale.dart';
 import '../shared/scroll_actions.dart';
 import '../shared/underline_tab_strip.dart';
@@ -88,9 +87,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _searchFieldKey = GlobalKey();
   final _topBarKey = GlobalKey();
   final _bodyStackKey = GlobalKey();
-
-  /// 顶栏下沿渐隐的强度，0→1。按列表滚过的距离线性给出。
-  double _barProgress = 0;
 
   @override
   void initState() {
@@ -163,11 +159,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     return Scaffold(
       // 顶栏自己画在 body 的 Stack 里（不用 Scaffold.appBar）：这样搜索框与下方的建议面板
       // 处在同一个坐标系里，面板能跟搜索框严格对齐。
-      body: NotificationListener<ScrollNotification>(
-        onNotification: _onScrollNotification,
-        child: Stack(
-          key: _bodyStackKey,
-          children: [
+      body: Stack(
+        key: _bodyStackKey,
+        children: [
           // 列表铺满整块 body：它不再被顶栏挤下去，顶部让开的地方由它自己第一个
           // sliver 的占位给出 —— 只有这样内容才会滚到顶栏后面。它排在顶栏**之前**，
           // 因为 Stack 里后画的在上面，顶栏必须压在它上面才不会滚没了。
@@ -190,22 +184,21 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               data: (value) => _HomeFeedBody(featured: value.featured, sections: sections, index: index),
             ),
           ),
-          // 顶栏浮在内容之上。它自己不铺底色，下面那条 [PageColorsFade] 一边
-          // 画平台色一边把下沿渐隐掉，内容滚过来时先被模糊再融进画布。
+          // 顶栏浮在内容之上，底下带一条 scroll edge（g1455）：内容滚到它下面时
+          // 会被模糊并淡出，也就是 iOS 26 那条「滚动边缘」。
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: PageColorsFade(
+            child: GlassScrollEdge(
+              side: GlassScrollEdgeSide.top,
               extent: _homeBarHeight,
-              progress: _barProgress,
-              // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。
+              // 顶栏是导航层，而且它**不动**：内容从它底下滚过去。玻璃材质（磨砂的模糊、
+              // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
+              // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
               child: Material(
-                // 顶栏不铺实色：实色平台由 PageColorsFade 画，它同时负责
-                // 下沿延伸与 5 阶渐隐。这里铺色会把那 56 像素封死，
-                // 底下什么都透不出来。
-                color: Colors.transparent,
-                surfaceTintColor: Colors.transparent,
+                // 顶栏回到不透明的主色面（玻璃已停用，决策见 `docs/ui-polish.md`）。
+                color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
@@ -302,22 +295,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
           ),
           _buildSearchPanel(context),
-          ],
-        ),
+        ],
       ),
     );
-  }
-
-  /// 列表滚到顶栏高度时，下沿渐隐长到满。只在跨过阈值时重建，
-  /// 中间过程由 [PageColorsFade] 自己按 progress 插值。
-  bool _onScrollNotification(ScrollNotification notification) {
-    final next = (notification.metrics.pixels / _homeBarHeight).clamp(0.0, 1.0);
-    // 量化到 0.05，避免每个像素都 setState。
-    final quantised = (next * 20).roundToDouble() / 20;
-    if (quantised != _barProgress && mounted) {
-      setState(() => _barProgress = quantised);
-    }
-    return false;
   }
 
   /// 建议面板按搜索框的实际位置摆放（宽度、水平位置都与搜索框一致），
