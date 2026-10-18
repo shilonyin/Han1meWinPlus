@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
-import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../shared/glass/glass_panel.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../domain/models/getchu_preview.dart';
 import '../shared/press_scale.dart';
+import 'getchu_card.dart';
 import 'getchu_preview_controller.dart';
 import 'preview_grid.dart';
 
@@ -36,18 +35,27 @@ class GetchuPreviewPage extends ConsumerWidget {
           ),
           Expanded(
             child: result.when(
-              loading: () => const Center(child: M3EContainedLoadingIndicator()),
-              error: (error, _) => _Unavailable(error: error, onRetry: () => ref.invalidate(getchuPreviewsProvider(selectedMonth.value))),
+              loading: () =>
+                  const Center(child: M3EContainedLoadingIndicator()),
+              error: (error, _) => _Unavailable(
+                error: error,
+                onRetry: () =>
+                    ref.invalidate(getchuPreviewsProvider(selectedMonth.value)),
+              ),
               data: (feed) => feed.groups.isEmpty
-                  ? _Unavailable(onRetry: () => ref.invalidate(getchuPreviewsProvider(selectedMonth.value)))
+                  ? _Unavailable(
+                      onRetry: () => ref.invalidate(
+                        getchuPreviewsProvider(selectedMonth.value),
+                      ),
+                    )
                   : LayoutBuilder(
                       builder: (context, constraints) {
                         // 一屏至少露出两排海报，所以允许比默认 4 列更多列。
                         // 44 是首个分组标题的高度（它跟着滚动区走，但首屏顶上就有一条）。
                         final metrics = PreviewGridMetrics.of(
                           constraints,
-                          coverRatio: 4 / 3,
-                          detailsHeight: 60,
+                          coverRatio: kGetchuCoverRatio,
+                          detailsHeight: kGetchuDetailsHeight,
                           minRows: 2,
                           maxColumns: 8,
                           reservedHeight: 44,
@@ -55,17 +63,25 @@ class GetchuPreviewPage extends ConsumerWidget {
                         return CustomScrollView(
                           slivers: [
                             for (final group in feed.groups) ...[
-                              SliverToBoxAdapter(child: _GroupHeader(title: group.releaseDate)),
+                              SliverToBoxAdapter(
+                                child: _GroupHeader(title: group.releaseDate),
+                              ),
                               SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: PreviewGridMetrics.horizontalPadding),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal:
+                                      PreviewGridMetrics.horizontalPadding,
+                                ),
                                 sliver: SliverGrid.builder(
                                   gridDelegate: metrics.delegate,
                                   itemCount: group.items.length,
-                                  itemBuilder: (context, index) => _PreviewCard(item: group.items[index]),
+                                  itemBuilder: (context, index) =>
+                                      GetchuCard(item: group.items[index]),
                                 ),
                               ),
                             ],
-                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 24),
+                            ),
                           ],
                         );
                       },
@@ -77,12 +93,24 @@ class GetchuPreviewPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _selectMonth(BuildContext context, GetchuPreviewMonth month) async {
-    final selected = await showDatePicker(context: context, initialDate: month.date, firstDate: DateTime(1990), lastDate: DateTime(DateTime.now().year + 2, 12), initialDatePickerMode: DatePickerMode.year);
-    if (selected != null && context.mounted) _replaceMonth(context, GetchuPreviewMonth(selected.year, selected.month));
+  Future<void> _selectMonth(
+    BuildContext context,
+    GetchuPreviewMonth month,
+  ) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: month.date,
+      firstDate: DateTime(1990),
+      lastDate: DateTime(DateTime.now().year + 2, 12),
+      initialDatePickerMode: DatePickerMode.year,
+    );
+    if (selected != null && context.mounted) {
+      _replaceMonth(context, GetchuPreviewMonth(selected.year, selected.month));
+    }
   }
 
-  void _replaceMonth(BuildContext context, GetchuPreviewMonth month) => context.replace('/previews/getchu/${month.value}');
+  void _replaceMonth(BuildContext context, GetchuPreviewMonth month) =>
+      context.replace('/previews/getchu/${month.value}');
 }
 
 class GetchuPreviewMonth {
@@ -93,10 +121,14 @@ class GetchuPreviewMonth {
 
   factory GetchuPreviewMonth.parse(String value) {
     final now = DateTime.now();
-    if (!RegExp(r'^\d{6}$').hasMatch(value)) return GetchuPreviewMonth(now.year, now.month);
+    if (!RegExp(r'^\d{6}$').hasMatch(value)) {
+      return GetchuPreviewMonth(now.year, now.month);
+    }
     final year = int.tryParse(value.substring(0, 4));
     final month = int.tryParse(value.substring(4));
-    return year == null || month == null || month < 1 || month > 12 ? GetchuPreviewMonth(now.year, now.month) : GetchuPreviewMonth(year, month);
+    return year == null || month == null || month < 1 || month > 12
+        ? GetchuPreviewMonth(now.year, now.month)
+        : GetchuPreviewMonth(year, month);
   }
 
   DateTime get date => DateTime(year, month);
@@ -104,11 +136,17 @@ class GetchuPreviewMonth {
   GetchuPreviewMonth get previous => _fromDate(DateTime(year, month - 1));
   GetchuPreviewMonth get next => _fromDate(DateTime(year, month + 1));
 
-  static GetchuPreviewMonth _fromDate(DateTime value) => GetchuPreviewMonth(value.year, value.month);
+  static GetchuPreviewMonth _fromDate(DateTime value) =>
+      GetchuPreviewMonth(value.year, value.month);
 }
 
 class _MonthNavigation extends StatelessWidget {
-  const _MonthNavigation({required this.month, required this.onPrevious, required this.onNext, required this.onSelect});
+  const _MonthNavigation({
+    required this.month,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onSelect,
+  });
 
   final GetchuPreviewMonth month;
   final VoidCallback onPrevious;
@@ -119,15 +157,35 @@ class _MonthNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return GlassPanel(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            PressScale(child: IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded))),
-            Expanded(child: PressScale(child: TextButton.icon(onPressed: onSelect, icon: const Icon(Symbols.calendar_month_rounded, size: 18), label: Text(l10n.getchuPreviewMonth(month.value))))),
-            PressScale(child: IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded))),
+            PressScale(
+              child: IconButton(
+                tooltip: l10n.previousMonth,
+                onPressed: onPrevious,
+                icon: const Icon(Symbols.chevron_left_rounded),
+              ),
+            ),
+            Expanded(
+              child: PressScale(
+                child: TextButton.icon(
+                  onPressed: onSelect,
+                  icon: const Icon(Symbols.calendar_month_rounded, size: 18),
+                  label: Text(l10n.getchuPreviewMonth(month.value)),
+                ),
+              ),
+            ),
+            PressScale(
+              child: IconButton(
+                tooltip: l10n.nextMonth,
+                onPressed: onNext,
+                icon: const Icon(Symbols.chevron_right_rounded),
+              ),
+            ),
           ],
         ),
       ),
@@ -142,88 +200,14 @@ class _GroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-        child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-      );
-}
-
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.item});
-
-  final GetchuPreviewItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GlassPanel(
-          solidColor: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: PressScale(child: InkWell(
-        onTap: () => context.push('/previews/getchu/detail/${item.id}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (item.coverUrl == null)
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Symbols.image_not_supported_rounded))
-                  else
-                    AppCachedNetworkImage(
-                      imageUrl: item.coverUrl!,
-                      httpHeaders: const {'Referer': 'https://www.getchu.com/', 'Cookie': 'getchu_adalt_flag=getchu.com; gc=gc'},
-                      fit: BoxFit.cover,
-                      memCacheWidth: 480,
-                      fadeInDuration: Duration.zero,
-                    ),
-                  // 只在标题所占的底部区域做深色底：原来从 45% 就开始淡淡压暗，
-                  // 到底部也只有 70% 黑 —— 海报上半部分被洗淡、标题压在亮色画面上仍不清楚。
-                  // 现在把渐变收短、末尾加深，上半张画完全不受影响。
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.center,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
-                        stops: [0.62, 0.86, 1],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 10,
-                    right: 10,
-                    bottom: 8,
-                    child: Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        height: 1.25,
-                        shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.brand ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
-                  if (item.price != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(item.price!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700))),
-                ],
-              ),
-            ),
-          ],
-        ),
-      )),
-    );
-  }
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+    child: Text(
+      title,
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    ),
+  );
 }
 
 class _Unavailable extends StatelessWidget {
@@ -243,9 +227,21 @@ class _Unavailable extends StatelessWidget {
           children: [
             const Icon(Symbols.event_busy_rounded, size: 56),
             const SizedBox(height: 16),
-            Text(error == null ? l10n.noGetchuPreviews : l10n.getchuPreviewUnavailable, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+            Text(
+              error == null
+                  ? l10n.noGetchuPreviews
+                  : l10n.getchuPreviewUnavailable,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
-            PressScale(child: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload))),
+            PressScale(
+              child: OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Symbols.refresh_rounded),
+                label: Text(l10n.reload),
+              ),
+            ),
           ],
         ),
       ),

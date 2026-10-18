@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../domain/models/getchu_preview.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
+import 'getchu_card.dart';
 import 'getchu_detail_hero.dart';
 import 'getchu_preview_controller.dart';
 
@@ -29,7 +30,15 @@ class GetchuPreviewDetailPage extends ConsumerWidget {
     return Scaffold(
       body: result.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => Center(child: PressScale(child: OutlinedButton.icon(onPressed: () => ref.invalidate(getchuPreviewDetailProvider(id)), icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload)))),
+        error: (error, _) => Center(
+          child: PressScale(
+            child: OutlinedButton.icon(
+              onPressed: () => ref.invalidate(getchuPreviewDetailProvider(id)),
+              icon: const Icon(Symbols.refresh_rounded),
+              label: Text(l10n.reload),
+            ),
+          ),
+        ),
         data: (detail) => _DetailContent(detail: detail),
       ),
     );
@@ -55,12 +64,21 @@ class _DetailContentState extends State<_DetailContent> {
     final trailer = detail.trailers[index];
     final video = VideoDetail(
       id: 'getchu-${detail.id}-$index',
-      title: detail.trailers.length == 1 ? detail.title : '${detail.title} ${index + 1}',
+      title: detail.trailers.length == 1
+          ? detail.title
+          : '${detail.title} ${index + 1}',
       coverUrl: trailer.posterUrl ?? detail.coverUrl,
       artist: detail.brand,
       uploadDate: detail.releaseDate,
       description: detail.description,
-      sources: [for (final source in trailer.sources) VideoSource(quality: source.quality ?? 'Trailer', url: source.url, type: 'video/mp4')],
+      sources: [
+        for (final source in trailer.sources)
+          VideoSource(
+            quality: source.quality ?? 'Trailer',
+            url: source.url,
+            type: 'video/mp4',
+          ),
+      ],
       tags: const [],
       playlist: const [],
       related: const [],
@@ -68,7 +86,10 @@ class _DetailContentState extends State<_DetailContent> {
     context.push('/video/${video.id}', extra: video);
   }
 
-  void _openProduct() => launchUrl(Uri.parse(widget.detail.productUrl), mode: LaunchMode.externalApplication);
+  void _openProduct() => launchUrl(
+    Uri.parse(widget.detail.productUrl),
+    mode: LaunchMode.externalApplication,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +107,23 @@ class _DetailContentState extends State<_DetailContent> {
     final cardSurface = dark ? const Color(0xFF141A26) : Colors.white;
     final titleColor = dark ? Colors.white : Colors.black;
     final subtitleColor = dark ? Colors.white54 : const Color(0xFF8E8E93);
-    final dividerColor = dark ? Colors.white.withValues(alpha: .08) : Colors.black.withValues(alpha: .05);
-    final cardColor = dark ? Colors.white.withValues(alpha: .05) : const Color(0xFFF2F2F7);
+    final dividerColor = dark
+        ? Colors.white.withValues(alpha: .08)
+        : Colors.black.withValues(alpha: .05);
+    final cardColor = dark
+        ? Colors.white.withValues(alpha: .05)
+        : const Color(0xFFF2F2F7);
 
-    final tabs = _buildTabs(detail: detail, l10n: l10n, isWide: isWide, isDark: dark, titleColor: titleColor, subtitleColor: subtitleColor, cardColor: cardColor, dividerColor: dividerColor);
+    final tabs = _buildTabs(
+      detail: detail,
+      l10n: l10n,
+      isWide: isWide,
+      isDark: dark,
+      titleColor: titleColor,
+      subtitleColor: subtitleColor,
+      cardColor: cardColor,
+      dividerColor: dividerColor,
+    );
 
     final tabBar = TabBar(
       isScrollable: true,
@@ -100,8 +134,16 @@ class _DetailContentState extends State<_DetailContent> {
       indicatorWeight: 3,
       indicatorPadding: const EdgeInsets.only(top: 44),
       labelPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0),
-      unselectedLabelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0),
+      labelStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+      ),
       dividerColor: Colors.transparent,
       splashFactory: NoSplash.splashFactory,
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -119,13 +161,17 @@ class _DetailContentState extends State<_DetailContent> {
           height: isWide ? 560 : 420,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
+              constraints: const BoxConstraints(
+                maxWidth: kGetchuContentMaxWidth,
+              ),
               child: GetchuBackdrop(
                 // 封面是竖版（500×715，比例 0.7），铺进 1400×560 的横条要放大
                 // 2.8 倍、只留中间 28%，角色被裁得只剩一截。图集样张是横版
                 // （710×400，比例 1.78），同一块地方能留到 71%，角色是全身构图。
                 // 取不到样张时退回封面。
-                imageUrl: detail.sampleImages.isNotEmpty ? detail.sampleImages.first : detail.coverUrl,
+                imageUrl: detail.sampleImages.isNotEmpty
+                    ? detail.sampleImages.first
+                    : detail.coverUrl,
                 fallbackImageUrl: detail.coverUrl,
                 height: isWide ? 560 : 420,
                 surfaceColor: cardSurface,
@@ -138,7 +184,9 @@ class _DetailContentState extends State<_DetailContent> {
           child: Center(
             child: ConstrainedBox(
               // 内容区宽度上限。比例子里的 1200 再宽一档，正文行宽才撑得开。
-              constraints: const BoxConstraints(maxWidth: kGetchuContentMaxWidth),
+              constraints: const BoxConstraints(
+                maxWidth: kGetchuContentMaxWidth,
+              ),
               // 裁在卡片圆角内：页签吸顶后正文还在往上滚，不裁的话内容会
               // 从顶部圆角两侧的直角处顶出来，看着像滚动跑出了容器。
               child: ClipRRect(
@@ -146,35 +194,58 @@ class _DetailContentState extends State<_DetailContent> {
                 child: DefaultTabController(
                   length: tabs.length,
                   child: NestedScrollView(
-                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
                     headerSliverBuilder: (context, innerBoxIsScrolled) => [
                       SliverAppBar(
                         backgroundColor: Colors.transparent,
                         elevation: 0,
                         pinned: false,
                         foregroundColor: titleColor,
-                        title: Text(l10n.getchuPreviewDetail, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -.5, color: titleColor)),
+                        title: Text(
+                          l10n.getchuPreviewDetail,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            letterSpacing: -.5,
+                            color: titleColor,
+                          ),
+                        ),
                       ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                         sliver: SliverToBoxAdapter(
                           child: GetchuHeader(
                             detail: detail,
-                            onPlayTrailer: detail.trailers.isEmpty ? null : () => _playTrailer(0),
+                            onPlayTrailer: detail.trailers.isEmpty
+                                ? null
+                                : () => _playTrailer(0),
                             onOpenProduct: _openProduct,
                           ),
                         ),
                       ),
                       SliverPersistentHeader(
                         pinned: true,
-                        delegate: _TabBarDelegate(tabBar: tabBar, backgroundColor: cardSurface, borderColor: dividerColor, isWide: isWide),
+                        delegate: _TabBarDelegate(
+                          tabBar: tabBar,
+                          backgroundColor: cardSurface,
+                          borderColor: dividerColor,
+                          isWide: isWide,
+                        ),
                       ),
                     ],
                     body: Container(
                       color: cardSurface,
                       child: TabBarView(
                         physics: const BouncingScrollPhysics(),
-                        children: [for (final tab in tabs) Builder(key: PageStorageKey((detail.id, tab.$1)), builder: tab.$2)],
+                        children: [
+                          for (final tab in tabs)
+                            Builder(
+                              key: PageStorageKey((detail.id, tab.$1)),
+                              builder: tab.$2,
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -198,14 +269,21 @@ class _DetailContentState extends State<_DetailContent> {
     required Color cardColor,
     required Color dividerColor,
   }) {
-    final sections = detail.sections.isEmpty && detail.description != null ? [GetchuPreviewSection(title: '商品紹介', body: detail.description!)] : detail.sections;
+    final sections = detail.sections.isEmpty && detail.description != null
+        ? [GetchuPreviewSection(title: '商品紹介', body: detail.description!)]
+        : detail.sections;
     final info = _infoEntries(detail, l10n);
 
     final tabs = <(String, WidgetBuilder)>[
       (
         l10n.overview,
         (_) {
-          final summary = _SummarySection(sections: sections, l10n: l10n, titleColor: titleColor, isDark: isDark);
+          final summary = _SummarySection(
+            sections: sections,
+            l10n: l10n,
+            titleColor: titleColor,
+            isDark: isDark,
+          );
           if (!isWide) {
             return _wrapTabContent(
               Column(
@@ -214,7 +292,13 @@ class _DetailContentState extends State<_DetailContent> {
                   summary,
                   if (info.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    _InfoCard(entries: info, titleColor: titleColor, subtitleColor: subtitleColor, cardColor: cardColor, dividerColor: dividerColor),
+                    _InfoCard(
+                      entries: info,
+                      titleColor: titleColor,
+                      subtitleColor: subtitleColor,
+                      cardColor: cardColor,
+                      dividerColor: dividerColor,
+                    ),
                   ],
                 ],
               ),
@@ -227,7 +311,16 @@ class _DetailContentState extends State<_DetailContent> {
                 Expanded(flex: 2, child: summary),
                 if (info.isNotEmpty) ...[
                   const SizedBox(width: 32),
-                  Expanded(flex: 1, child: _InfoCard(entries: info, titleColor: titleColor, subtitleColor: subtitleColor, cardColor: cardColor, dividerColor: dividerColor)),
+                  Expanded(
+                    flex: 1,
+                    child: _InfoCard(
+                      entries: info,
+                      titleColor: titleColor,
+                      subtitleColor: subtitleColor,
+                      cardColor: cardColor,
+                      dividerColor: dividerColor,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -270,7 +363,9 @@ class _DetailContentState extends State<_DetailContent> {
     if (detail.seriesItems.isNotEmpty) {
       tabs.add((
         l10n.getchuSeries,
-        (_) => _wrapTabContent(_SeriesGrid(items: detail.seriesItems, isWide: isWide)),
+        (_) => _wrapTabContent(
+          _SeriesGrid(items: detail.seriesItems, isWide: isWide),
+        ),
       ));
     }
 
@@ -278,13 +373,21 @@ class _DetailContentState extends State<_DetailContent> {
   }
 
   /// 基本信息键值对，空值自动跳过。
-  List<(String, String)> _infoEntries(GetchuPreviewDetail detail, AppLocalizations l10n) {
+  List<(String, String)> _infoEntries(
+    GetchuPreviewDetail detail,
+    AppLocalizations l10n,
+  ) {
     return [
-      if (detail.brand != null && detail.brand!.trim().isNotEmpty) (l10n.studio, detail.brand!),
-      if (detail.releaseDate != null && detail.releaseDate!.trim().isNotEmpty) (l10n.releaseDateLabel, detail.releaseDate!),
-      if (detail.price != null && detail.price!.trim().isNotEmpty) (l10n.priceLabel, detail.price!),
-      if (detail.seriesItems.isNotEmpty) (l10n.getchuSeries, l10n.seriesItemCount(detail.seriesItems.length)),
-      if (detail.sampleImages.isNotEmpty) (l10n.gallery, l10n.imageCount(detail.sampleImages.length)),
+      if (detail.brand != null && detail.brand!.trim().isNotEmpty)
+        (l10n.studio, detail.brand!),
+      if (detail.releaseDate != null && detail.releaseDate!.trim().isNotEmpty)
+        (l10n.releaseDateLabel, detail.releaseDate!),
+      if (detail.price != null && detail.price!.trim().isNotEmpty)
+        (l10n.priceLabel, detail.price!),
+      if (detail.seriesItems.isNotEmpty)
+        (l10n.getchuSeries, l10n.seriesItemCount(detail.seriesItems.length)),
+      if (detail.sampleImages.isNotEmpty)
+        (l10n.gallery, l10n.imageCount(detail.sampleImages.length)),
     ];
   }
 
@@ -297,7 +400,12 @@ class _DetailContentState extends State<_DetailContent> {
 
 /// 概览左栏：各个文本小节（商品介绍 / 故事 / 制作人员）。
 class _SummarySection extends StatelessWidget {
-  const _SummarySection({required this.sections, required this.l10n, required this.titleColor, required this.isDark});
+  const _SummarySection({
+    required this.sections,
+    required this.l10n,
+    required this.titleColor,
+    required this.isDark,
+  });
 
   final List<GetchuPreviewSection> sections;
   final AppLocalizations l10n;
@@ -306,7 +414,9 @@ class _SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bodyColor = isDark ? Colors.white.withValues(alpha: .8) : const Color(0xFF3A3A3C);
+    final bodyColor = isDark
+        ? Colors.white.withValues(alpha: .8)
+        : const Color(0xFF3A3A3C);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -314,9 +424,25 @@ class _SummarySection extends StatelessWidget {
         children: [
           for (final (index, section) in sections.indexed) ...[
             if (index > 0) const SizedBox(height: 24),
-            Text(_localizedTitle(section.title), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: titleColor, letterSpacing: -.4)),
+            Text(
+              _localizedTitle(section.title),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: titleColor,
+                letterSpacing: -.4,
+              ),
+            ),
             const SizedBox(height: 12),
-            SelectableText(section.body, style: TextStyle(color: bodyColor, fontSize: 15, height: 1.65, letterSpacing: .2)),
+            SelectableText(
+              section.body,
+              style: TextStyle(
+                color: bodyColor,
+                fontSize: 15,
+                height: 1.65,
+                letterSpacing: .2,
+              ),
+            ),
           ],
         ],
       ),
@@ -333,7 +459,13 @@ class _SummarySection extends StatelessWidget {
 
 /// 概览右栏那张基本信息卡片。
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.entries, required this.titleColor, required this.subtitleColor, required this.cardColor, required this.dividerColor});
+  const _InfoCard({
+    required this.entries,
+    required this.titleColor,
+    required this.subtitleColor,
+    required this.cardColor,
+    required this.dividerColor,
+  });
 
   final List<(String, String)> entries;
   final Color titleColor;
@@ -346,26 +478,61 @@ class _InfoCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(AppRadius.lg)),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(l10n.basicInfo, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: titleColor))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              l10n.basicInfo,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: titleColor,
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               children: [
                 for (final (index, entry) in entries.indexed) ...[
-                  if (index > 0) Divider(color: dividerColor, height: 1, thickness: .5),
+                  if (index > 0)
+                    Divider(color: dividerColor, height: 1, thickness: .5),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(width: 90, child: Text(entry.$1, style: TextStyle(color: subtitleColor, fontSize: 14, fontWeight: FontWeight.w500))),
+                        SizedBox(
+                          width: 90,
+                          child: Text(
+                            entry.$1,
+                            style: TextStyle(
+                              color: subtitleColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: Text(entry.$2, style: TextStyle(color: titleColor, fontSize: 14, height: 1.5, fontWeight: FontWeight.w500, letterSpacing: .2))),
+                        Expanded(
+                          child: Text(
+                            entry.$2,
+                            style: TextStyle(
+                              color: titleColor,
+                              fontSize: 14,
+                              height: 1.5,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: .2,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -401,28 +568,25 @@ class _GalleryTab extends StatelessWidget {
       itemBuilder: (context, index) => PressScale(
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.sm),
-          onTap: () => showDialog<void>(context: context, barrierColor: Colors.black87, builder: (_) => _ImageViewer(images: images, initialIndex: index)),
+          onTap: () => showDialog<void>(
+            context: context,
+            barrierColor: Colors.black87,
+            builder: (_) => _ImageViewer(images: images, initialIndex: index),
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.sm),
-            child: AppCachedNetworkImage(imageUrl: images[index], httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
+            child: AppCachedNetworkImage(
+              imageUrl: images[index],
+              httpHeaders: _getchuImageHeaders,
+              fit: BoxFit.cover,
+              fadeInDuration: Duration.zero,
+            ),
           ),
         ),
       ),
     );
   }
 }
-
-/// 系列商品封面比例（宽 / 高）。Getchu 的 `package.jpg` 绝大多数是 500×715，
-/// 少数是 700×500；按竖版算卡高，横版那张会被裁掉一点，但整行卡片的
-/// 封面比例是一致的。
-const double _kSeriesCoverRatio = 0.7;
-
-/// 封面下方文字区的固定高度：标题一行 + 间距 + 价格一行 + 底距。
-///
-/// 卡高由「封面按比例算出的高度 + 这个值」组成，不用 `childAspectRatio`：
-/// 后者约束的是整卡的高宽比，而文字区是固定像素高，窗口一变宽封面比例
-/// 就跟着变，一排封面的高矮会不齐。
-const double _kSeriesDetailsHeight = 56;
 
 /// 系列商品页签：网格。
 class _SeriesGrid extends StatelessWidget {
@@ -440,77 +604,23 @@ class _SeriesGrid extends StatelessWidget {
         final columns = isWide ? 5 : 2;
         final usable = constraints.maxWidth - horizontal * 2;
         final cardWidth = (usable - spacing * (columns - 1)) / columns;
-        final cardHeight = cardWidth / _kSeriesCoverRatio + _kSeriesDetailsHeight;
         return GridView.builder(
           shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(horizontal: horizontal, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: horizontal,
+            vertical: 16,
+          ),
           physics: const BouncingScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: 16,
             crossAxisSpacing: spacing,
-            mainAxisExtent: cardHeight,
+            mainAxisExtent: getchuCardHeight(cardWidth),
           ),
           itemCount: items.length,
-          itemBuilder: (context, index) => _SeriesCard(item: items[index]),
+          itemBuilder: (context, index) => GetchuCard(item: items[index]),
         );
       },
-    );
-  }
-}
-
-class _SeriesCard extends StatelessWidget {
-  const _SeriesCard({required this.item});
-
-  final GetchuPreviewItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // 与首页卡片同一套结构：封面是独立的一块圆角，文字直接落在内容底色上。
-    // 不再套 Card 底板 —— 那样封面和文字同属一块白色，看着是两层；
-    // 首页的卡片本来就没有底板。
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        type: MaterialType.transparency,
-        child: PressScale(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            // 灰罩在无底卡片上只能从文字区透出来，看着像「选中时下面变暗」。
-            hoverColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            // 上面三个都关了，焦点态得单独给，否则键盘 Tab 到卡片上毫无反应。
-            focusColor: theme.colorScheme.primary.withValues(alpha: .16),
-            onTap: () => context.push('/previews/getchu/detail/${item.id}'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: item.coverUrl == null
-                        ? ColoredBox(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(Symbols.image_not_supported_rounded),
-                          )
-                        : AppCachedNetworkImage(imageUrl: item.coverUrl!, httpHeaders: _getchuImageHeaders, fit: BoxFit.cover, fadeInDuration: Duration.zero),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // 标题只占一行：两行标题会把价格行往下推，同一排卡片的
-                // 价格落在不同高度上。
-                Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                if (item.price != null) ...[
-                  const SizedBox(height: 4),
-                  Text(item.price!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -526,7 +636,9 @@ class _ImageViewer extends StatefulWidget {
 }
 
 class _ImageViewerState extends State<_ImageViewer> {
-  late final PageController _controller = PageController(initialPage: widget.initialIndex);
+  late final PageController _controller = PageController(
+    initialPage: widget.initialIndex,
+  );
   late var _index = widget.initialIndex;
 
   @override
@@ -544,10 +656,36 @@ class _ImageViewerState extends State<_ImageViewer> {
           controller: _controller,
           itemCount: widget.images.length,
           onPageChanged: (value) => setState(() => _index = value),
-          itemBuilder: (context, index) => InteractiveViewer(child: Center(child: AppCachedNetworkImage(imageUrl: widget.images[index], httpHeaders: _getchuImageHeaders, fit: BoxFit.contain, fadeInDuration: Duration.zero))),
+          itemBuilder: (context, index) => InteractiveViewer(
+            child: Center(
+              child: AppCachedNetworkImage(
+                imageUrl: widget.images[index],
+                httpHeaders: _getchuImageHeaders,
+                fit: BoxFit.contain,
+                fadeInDuration: Duration.zero,
+              ),
+            ),
+          ),
         ),
-        SafeArea(child: PressScale(child: IconButton(onPressed: () => Navigator.pop(context), color: Colors.white, icon: const Icon(Symbols.close_rounded)))),
-        Positioned(left: 0, right: 0, bottom: 24, child: Text('${_index + 1} / ${widget.images.length}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
+        SafeArea(
+          child: PressScale(
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              color: Colors.white,
+              icon: const Icon(Symbols.close_rounded),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 24,
+          child: Text(
+            '${_index + 1} / ${widget.images.length}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
       ],
     ),
   );
@@ -555,7 +693,12 @@ class _ImageViewerState extends State<_ImageViewer> {
 
 /// 吸顶 Tab 栏：宽屏顶部两个圆角，底下一条细线。
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  _TabBarDelegate({required this.tabBar, required this.backgroundColor, required this.borderColor, this.isWide = false});
+  _TabBarDelegate({
+    required this.tabBar,
+    required this.backgroundColor,
+    required this.borderColor,
+    this.isWide = false,
+  });
 
   final TabBar tabBar;
   final Color backgroundColor;
@@ -569,15 +712,25 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => Container(
     decoration: BoxDecoration(
       color: backgroundColor,
-      borderRadius: isWide ? const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)) : null,
+      borderRadius: isWide
+          ? const BorderRadius.vertical(top: Radius.circular(AppRadius.xl))
+          : null,
       border: Border(bottom: BorderSide(color: borderColor, width: .5)),
     ),
     child: tabBar,
   );
 
   @override
-  bool shouldRebuild(covariant _TabBarDelegate oldDelegate) => tabBar != oldDelegate.tabBar || backgroundColor != oldDelegate.backgroundColor || borderColor != oldDelegate.borderColor || isWide != oldDelegate.isWide;
+  bool shouldRebuild(covariant _TabBarDelegate oldDelegate) =>
+      tabBar != oldDelegate.tabBar ||
+      backgroundColor != oldDelegate.backgroundColor ||
+      borderColor != oldDelegate.borderColor ||
+      isWide != oldDelegate.isWide;
 }
