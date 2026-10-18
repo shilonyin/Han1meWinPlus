@@ -17,6 +17,7 @@ import '../../domain/models/library.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
+import '../shared/hover_zoom.dart';
 import '../shared/video_card.dart';
 import '../shared/app_image_cache.dart';
 import '../account/account_controller.dart';
@@ -566,17 +567,19 @@ class _PlaylistGridCard extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => CardHover(
+        builder: (context, hovered) => Card(
         clipBehavior: Clip.antiAlias,
         child: PressScale(child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? AppCachedNetworkImage(imageUrl: playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 480) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
+            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? ClipRRect(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sm)), child: ZoomOnHover(hovered: hovered, child: AppCachedNetworkImage(imageUrl: playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 480))) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
             Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 2), child: Text(playlist.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 8), child: Text(AppLocalizations.of(context)!.videoCount(playlist.count), style: Theme.of(context).textTheme.bodySmall)),
           ]),
         )),
+        ),
       );
 }
 
