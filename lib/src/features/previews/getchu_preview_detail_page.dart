@@ -314,12 +314,17 @@ class _DetailContentState extends State<_DetailContent> {
                   const SizedBox(width: 32),
                   Expanded(
                     flex: 1,
-                    child: _InfoCard(
-                      entries: info,
-                      titleColor: titleColor,
-                      subtitleColor: subtitleColor,
-                      cardColor: cardColor,
-                      dividerColor: dividerColor,
+                    child: Padding(
+                      // 右栏不能贴到内容区右边——卡片是灰底，贴边会显得整个
+                      // 页面被挤满，右侧留一档呼吸空间。
+                      padding: const EdgeInsets.only(right: 24),
+                      child: _InfoCard(
+                        entries: info,
+                        titleColor: titleColor,
+                        subtitleColor: subtitleColor,
+                        cardColor: cardColor,
+                        dividerColor: dividerColor,
+                      ),
                     ),
                   ),
                 ],
