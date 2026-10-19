@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -379,53 +380,69 @@ class Han1meHttpClient {
       statusCode == HttpStatus.temporaryRedirect ||
       statusCode == HttpStatus.permanentRedirect;
 
+  /// 整条桌面端请求链的总时限。
+  ///
+  /// 只设 `connectionTimeout` 是不够的：那个只管「TCP 连上要多久」，一旦连上之后
+  /// 服务端迟迟不回包（TLS 握手卡住、慢速滴流），`request.close()` 与
+  /// `response.fold()` 会一直挂着 —— 界面永远停在转圈，而且一行日志都不会有。
+  /// 实测 www.getchu.com 的备用地址出现过 TLS 握手卡 21 秒，没有这层兜底就是整页等死。
+  static const Duration _requestTimeout = Duration(seconds: 30);
+
   Future<Han1meHttpResponse> _desktopRequest(String url, {required String method, Map<String, String>? data, Map<String, String>? headers, String? responseCharset, required bool json, bool followRedirects = true}) async {
     final client = _desktopClient();
     try {
-      var currentMethod = method;
-      var currentUri = Uri.parse(url);
-      var sendBody = data != null;
-      for (var hop = 0; ; hop++) {
-        final request = await client.openUrl(currentMethod, currentUri);
-        // 重定向由下面手动处理，原因见 [_maxRedirects] 的注释：交给 Dart 会丢 cookie。
-        request.followRedirects = false;
-        request.headers.set(HttpHeaders.userAgentHeader, userAgentFor(currentUri.host));
-        final cookie = _cookiesFor(currentUri);
-        if (cookie.isNotEmpty) request.headers.set(HttpHeaders.cookieHeader, cookie);
-        headers?.forEach(request.headers.set);
-        if (data != null && sendBody) {
-          if (json) {
-            request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
-            request.write(jsonEncode(data));
-          } else {
-            request.headers.contentType = ContentType('application', 'x-www-form-urlencoded', charset: 'utf-8');
-            request.write(data.entries.map((entry) => '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}').join('&'));
-          }
-        }
-        final response = await request.close();
-        _saveResponseCookies(currentUri, response.cookies);
-        final location = response.headers.value(HttpHeaders.locationHeader);
-        if (followRedirects && _isRedirectStatus(response.statusCode) && location != null && hop < _maxRedirects) {
-          await response.drain<void>();
-          // 303 一律转 GET；301/302 按惯例只把 POST 转 GET（保住 DELETE 等语义）；
-          // 307/308 保持方法并重发 body。
-          if (response.statusCode == HttpStatus.seeOther ||
-              ((response.statusCode == HttpStatus.movedPermanently || response.statusCode == HttpStatus.found) && currentMethod == 'POST')) {
-            currentMethod = 'GET';
-            sendBody = false;
-          }
-          currentUri = currentUri.resolve(location);
-          continue;
-        }
-        final bytes = await response.fold<List<int>>([], (value, chunk) => value..addAll(chunk));
-        final responseHeaders = <String, List<String>>{};
-        response.headers.forEach((name, values) => responseHeaders[name] = values);
-        return Han1meHttpResponse(statusCode: response.statusCode, body: _decode(bytes, responseCharset), headers: responseHeaders, url: currentUri.toString());
-      }
+      return await _runHops(client, url, method: method, data: data, headers: headers, responseCharset: responseCharset, json: json, followRedirects: followRedirects).timeout(_requestTimeout);
+    } on TimeoutException {
+      // 超时了但那条链还挂在 socket 上，交给 finally 的 close 把它掐断。
+      throw HttpException('Request timed out after ${_requestTimeout.inSeconds}s', uri: Uri.parse(url));
     } finally {
       client.close(force: true);
     }
   }
+
+  Future<Han1meHttpResponse> _runHops(HttpClient client, String url, {required String method, Map<String, String>? data, Map<String, String>? headers, String? responseCharset, required bool json, bool followRedirects = true}) async {
+    var currentMethod = method;
+    var currentUri = Uri.parse(url);
+    var sendBody = data != null;
+    for (var hop = 0; ; hop++) {
+      final request = await client.openUrl(currentMethod, currentUri);
+      // 重定向由下面手动处理，原因见 [_maxRedirects] 的注释：交给 Dart 会丢 cookie。
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.userAgentHeader, userAgentFor(currentUri.host));
+      final cookie = _cookiesFor(currentUri);
+      if (cookie.isNotEmpty) request.headers.set(HttpHeaders.cookieHeader, cookie);
+      headers?.forEach(request.headers.set);
+      if (data != null && sendBody) {
+        if (json) {
+          request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+          request.write(jsonEncode(data));
+        } else {
+          request.headers.contentType = ContentType('application', 'x-www-form-urlencoded', charset: 'utf-8');
+          request.write(data.entries.map((entry) => '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}').join('&'));
+        }
+      }
+      final response = await request.close();
+      _saveResponseCookies(currentUri, response.cookies);
+      final location = response.headers.value(HttpHeaders.locationHeader);
+      if (followRedirects && _isRedirectStatus(response.statusCode) && location != null && hop < _maxRedirects) {
+        await response.drain<void>();
+        // 303 一律转 GET；301/302 按惯例只把 POST 转 GET（保住 DELETE 等语义）；
+        // 307/308 保持方法并重发 body。
+        if (response.statusCode == HttpStatus.seeOther ||
+            ((response.statusCode == HttpStatus.movedPermanently || response.statusCode == HttpStatus.found) && currentMethod == 'POST')) {
+          currentMethod = 'GET';
+          sendBody = false;
+        }
+        currentUri = currentUri.resolve(location);
+        continue;
+      }
+      final bytes = await response.fold<List<int>>([], (value, chunk) => value..addAll(chunk));
+      final responseHeaders = <String, List<String>>{};
+      response.headers.forEach((name, values) => responseHeaders[name] = values);
+      return Han1meHttpResponse(statusCode: response.statusCode, body: _decode(bytes, responseCharset), headers: responseHeaders, url: currentUri.toString());
+    }
+  }
+
 
   String _decode(List<int> bytes, String? charset) {
     if (charset?.toLowerCase() case 'euc-jp' || 'euc_jp') return eucJp.decode(bytes);

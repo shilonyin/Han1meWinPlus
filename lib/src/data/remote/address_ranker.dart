@@ -120,7 +120,10 @@ class AddressRanker {
       plain = await Socket.connect(address, port, timeout: probeTimeout);
       // 保持 SNI = 域名：只按 IP 连上并不代表这个节点能服务该站点（实测过一批只回
       // Cloudflare 1034 的地址），握手带上域名才算真正可用。
-      final secure = await SecureSocket.secure(plain, host: host, onBadCertificate: allowBadCertificate ? (_) => true : null);
+      // TLS 握手同样要限时：TCP 连上不等于站点可用，实测 www.getchu.com 的备用地址
+      // TCP 100ms 就连上了，握手却卡了 21 秒 —— 不设限它会被当作「可用但很慢」记进
+      // 排序表，之后每次请求轮到它都要白等这么久。
+      final secure = await SecureSocket.secure(plain, host: host, onBadCertificate: allowBadCertificate ? (_) => true : null).timeout(probeTimeout);
       stopwatch.stop();
       final milliseconds = stopwatch.elapsedMilliseconds;
       secure.destroy();

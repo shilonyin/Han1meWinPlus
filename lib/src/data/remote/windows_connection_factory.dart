@@ -143,11 +143,14 @@ class WindowsConnectionFactory {
         // 逐个候选探测用短超时：候选里只要有一个黑洞地址，长超时就会让整次请求
         // 卡满设置里的秒数（默认 10s）才轮到下一个——实测内置列表里就踩过这种坑。
         plain = await Socket.connect(address, port, timeout: AddressRanker.probeTimeout);
+        // 握手也要限时：TCP 连上不代表能服务该站点，而且有的节点握手会卡很久
+        // （实测 21 秒）。不设限的话这一次连接就把整条请求拖死，TimeoutException
+        // 会走下面的 catch 把该地址记成失败、继续试下一个。
         final secure = await SecureSocket.secure(
           plain,
           host: uri.host,
           onBadCertificate: allowBadCertificate ? (_) => true : null,
-        );
+        ).timeout(AddressRanker.probeTimeout);
         // 真实耗时比后台探测更贴近当前时刻，直接喂回去当这次的最优证据。
         ranker.recordSuccess(uri.host, address, stopwatch.elapsed);
         return ConnectionTask.fromSocket(Future.value(secure), secure.destroy);
