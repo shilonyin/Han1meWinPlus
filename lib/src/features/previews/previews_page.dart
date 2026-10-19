@@ -320,7 +320,7 @@ class _PreviewHeader extends StatelessWidget {
           if (feed.coverUrl != null && feed.coverUrl!.isNotEmpty)
             AspectRatio(
               aspectRatio: 16 / 8,
-              child: AppCachedNetworkImage(imageUrl: feed.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, fadeInDuration: Duration.zero),
+              child: AppCachedNetworkImage(imageUrl: feed.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, faceFocus: true, fadeInDuration: Duration.zero),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

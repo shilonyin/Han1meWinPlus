@@ -574,7 +574,7 @@ class _PlaylistGridCard extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? ClipRRect(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sm)), child: ZoomOnHover(hovered: hovered, child: AppCachedNetworkImage(imageUrl: playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 480))) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
+            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? ClipRRect(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sm)), child: ZoomOnHover(hovered: hovered, child: AppCachedNetworkImage(imageUrl: playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 480, faceFocus: true))) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
             Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 2), child: Text(playlist.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 8), child: Text(AppLocalizations.of(context)!.videoCount(playlist.count), style: Theme.of(context).textTheme.bodySmall)),
           ]),
@@ -635,7 +635,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: AppCachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960))),
+              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: AppCachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, faceFocus: true))),
               const SizedBox(height: 16),
               Text(playlist.playlist.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),

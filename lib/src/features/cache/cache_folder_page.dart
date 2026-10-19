@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../data/local/download_repository.dart';
 import '../../domain/models/download.dart';
+import '../shared/app_image_cache.dart';
 import '../shared/press_scale.dart';
 import 'cache_cards.dart';
 import 'cache_format.dart';
@@ -314,7 +315,7 @@ class _HeaderCover extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (cover != null)
-                    Image(image: cover, fit: BoxFit.cover)
+                    FaceAlignedImage(provider: cover.image, faceUrl: cover.faceUrl, fit: BoxFit.cover)
                   else
                     ColoredBox(color: theme.colorScheme.surfaceContainerHighest, child: Icon(Symbols.folder_rounded, size: 40, color: theme.colorScheme.onSurfaceVariant)),
                   Positioned(right: 8, bottom: 8, child: CacheCoverBadge(icon: Symbols.folder_rounded, text: l10n.folderContents(tasks.length))),

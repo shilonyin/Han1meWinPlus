@@ -133,6 +133,7 @@ class GetchuCover extends StatelessWidget {
                 imageUrl: source,
                 httpHeaders: kGetchuImageHeaders,
                 fit: BoxFit.cover,
+                faceFocus: true,
                 memCacheWidth: (width * 2).round(),
                 fadeInDuration: Duration.zero,
                 placeholder: (context, url) => fallback,

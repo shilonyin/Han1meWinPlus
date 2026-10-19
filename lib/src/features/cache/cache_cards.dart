@@ -95,7 +95,7 @@ class CacheVideoCard extends StatelessWidget {
                       ZoomOnHover(
                         hovered: hovered,
                         child: cover != null
-                            ? Image(image: cover, fit: BoxFit.cover)
+                            ? FaceAlignedImage(provider: cover.image, faceUrl: cover.faceUrl, fit: BoxFit.cover)
                             : ColoredBox(
                                 color:
                                     theme.colorScheme.surfaceContainerHighest,
@@ -153,31 +153,49 @@ class CacheVideoCard extends StatelessWidget {
   }
 }
 
+/// 一张卡片的封面：可能是本地已经下好的文件，也可能是网络封面。
+///
+/// [faceUrl] 是这张封面「来自哪张网络图」，人脸取景（[FaceAlignedImage]）要用它
+/// 去查检测结果；本地文件没有可查的来源时为 null，按居中处理。
+@immutable
+class CoverImage {
+  const CoverImage({required this.image, this.faceUrl});
+
+  final ImageProvider image;
+  final String? faceUrl;
+}
+
 /// 取一条任务可用的本地封面（没有本地图就退回网络封面）。
-ImageProvider? localCoverImage(DownloadTask task) {
+CoverImage? localCoverImage(DownloadTask task) {
   final local = task.localCoverPath;
-  if (local != null && File(local).existsSync()) return FileImage(File(local));
+  if (local != null && File(local).existsSync()) {
+    return CoverImage(image: FileImage(File(local)), faceUrl: task.coverUrl);
+  }
   final remote = task.coverUrl;
   if (remote == null || remote.isEmpty) return null;
-  return appCachedImage(remote);
+  return CoverImage(image: appCachedImage(remote), faceUrl: remote);
 }
 
 /// 一组任务可用的封面：优先本地已下好的图，否则退回第一条的网络封面。
 ///
 /// 文件夹卡与集合内页的头部封面都要这个判断，抽出来共用。
-ImageProvider? folderCoverImage(List<DownloadTask> tasks) {
-  final local = tasks
-      .map((task) => task.localCoverPath)
-      .whereType<String>()
-      .where((path) => File(path).existsSync())
+CoverImage? folderCoverImage(List<DownloadTask> tasks) {
+  final localTask = tasks
+      .where((task) => task.localCoverPath != null)
+      .where((task) => File(task.localCoverPath!).existsSync())
       .firstOrNull;
-  if (local != null) return FileImage(File(local));
   final remote = tasks
       .map((task) => task.coverUrl)
       .whereType<String>()
       .where((url) => url.isNotEmpty)
       .firstOrNull;
-  return remote == null ? null : appCachedImage(remote);
+  if (localTask != null) {
+    return CoverImage(
+      image: FileImage(File(localTask.localCoverPath!)),
+      faceUrl: localTask.coverUrl,
+    );
+  }
+  return remote == null ? null : CoverImage(image: appCachedImage(remote), faceUrl: remote);
 }
 
 /// 集合内页的剧集卡片：16:9 封面（左下体积、右下时长）+ 标题一行 + ⋮ 菜单。
@@ -238,7 +256,7 @@ class CacheEpisodeCard extends StatelessWidget {
                         child: ZoomOnHover(
                           hovered: hovered,
                           child: cover != null
-                              ? Image(image: cover, fit: BoxFit.cover)
+                              ? FaceAlignedImage(provider: cover.image, faceUrl: cover.faceUrl, fit: BoxFit.cover)
                               : ColoredBox(
                                   color:
                                       theme.colorScheme.surfaceContainerHighest,
@@ -414,7 +432,7 @@ class CacheFolderCard extends StatelessWidget {
                             ZoomOnHover(
                               hovered: hovered,
                               child: cover != null
-                                  ? Image(image: cover, fit: BoxFit.cover)
+                                  ? FaceAlignedImage(provider: cover.image, faceUrl: cover.faceUrl, fit: BoxFit.cover)
                                   : ColoredBox(
                                       color: theme
                                           .colorScheme
@@ -588,7 +606,7 @@ class CacheTaskCard extends ConsumerWidget {
                         ZoomOnHover(
                           hovered: hovered,
                           child: cover != null
-                              ? Image(image: cover, fit: BoxFit.cover)
+                              ? FaceAlignedImage(provider: cover.image, faceUrl: cover.faceUrl, fit: BoxFit.cover)
                               : ColoredBox(
                                   color:
                                       theme.colorScheme.surfaceContainerHighest,

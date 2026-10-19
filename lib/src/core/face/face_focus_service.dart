@@ -49,8 +49,26 @@ class FaceFocusService extends ChangeNotifier {
   /// 已排队或正在算的 key，防止同一张封面被重复提交。
   final Set<String> _pending = <String>{};
 
-  /// 串行队列：宁可慢一点，也不要几个 isolate 同时啃图片把 CPU 打满。
-  Future<void> _queue = Future<void>.value();
+  /// 这次会话里下载/解码失败的 key。
+  ///
+  /// 失败的封面**不能**当成「没有人脸」写进磁盘缓存：那会把一次临时网络错误
+  /// 永久固化成 0x0 尺寸的条目，之后这张图再也拿不到人脸对齐，也没有任何
+  /// 重试机会。同理也不能不加限制地重排 —— 图真的挂了就是每次 build 都重试。
+  /// 折中：只在本次会话内记住失败，下次启动再试一遍。
+  final Set<String> _failed = <String>{};
+
+  /// 待检测的封面，按提交顺序排队；[urgent] 的排在前面。
+  ///
+  /// 以前是纯串行的单链队列：首页一屏几十张封面排下来要几十秒，翻到第二张
+  /// 时它还在队尾没轮到 —— 表现就是「人脸取景只有第一张生效」。现在两路
+  /// 并发，并且允许插队：首屏一眼就能看到的大图（轮播横幅）先算。
+  final List<_FaceJob> _jobs = <_FaceJob>[];
+
+  /// 同时跑几个检测 isolate。两个已经能喂满常见四核；再多只是跟界面抢 CPU，
+  /// 单张的耗时并不会变短。
+  static const int _concurrency = 2;
+
+  int _running = 0;
 
   Future<void>? _warmUp;
   String? _cascadeXml;
@@ -105,24 +123,82 @@ class FaceFocusService extends ChangeNotifier {
   }
 
   /// 请求检测某张封面。已缓存或已在队列中的会被忽略。
-  void request(String url) {
+  ///
+  /// [urgent] 给首屏就能看到的大图（轮播横幅）用：插到待办队首，优先算完。
+  void request(
+    String url, {
+    bool urgent = false,
+    Map<String, String>? httpHeaders,
+  }) {
     if (_unavailable) return;
     if (!_loaded) {
       // 模型还没加载完就来请求：等加载完再补排这一次。
       unawaited(warmUp().then((_) {
-        if (_loaded) request(url);
+        if (_loaded) request(url, urgent: urgent, httpHeaders: httpHeaders);
       }));
       return;
     }
     final key = imageCacheKey(url);
-    if (_cache.containsKey(key) || _pending.contains(key)) return;
+    if (_cache.containsKey(key) ||
+        _pending.contains(key) ||
+        _failed.contains(key)) {
+      return;
+    }
     _pending.add(key);
-    _queue = _queue.then((_) => _analyze(url, key)).catchError((Object error) {
-      debugPrint('人脸检测失败：$error');
-    });
+    final job = _FaceJob(url, key, urgent: urgent, httpHeaders: httpHeaders);
+    if (urgent) {
+      // 插在最后一个 urgent 之后，同一批预排保持原本的顺序。
+      var index = 0;
+      while (index < _jobs.length && _jobs[index].urgent) {
+        index++;
+      }
+      _jobs.insert(index, job);
+    } else {
+      _jobs.add(job);
+    }
+    _pump();
   }
 
-  Future<void> _analyze(String url, String key) async {
+  /// 预约一批封面，全部按插队处理。
+  ///
+  /// 轮播横幅要用的 —— 它一次只把**当前一屏**建出来（PageView 默认不预建
+  /// 邻页），于是第二张起的封面要等用户真的翻过去才发起检测，再排在半屏
+  /// 网格封面后面，翻过去时看到的还是居中裁切。开头就把这一批全排进去，
+  /// 翻到第几张都已经算好了。
+  void prefetch(
+    Iterable<String> urls, {
+    Map<String, String>? httpHeaders,
+  }) {
+    for (final url in urls) {
+      request(url, urgent: true, httpHeaders: httpHeaders);
+    }
+  }
+
+  /// 在并发额度内把待办的检测都拉起来。
+  void _pump() {
+    while (_running < _concurrency && _jobs.isNotEmpty) {
+      final job = _jobs.removeAt(0);
+      _running++;
+      unawaited(
+        _analyze(job.url, job.key, job.httpHeaders).catchError((Object error) {
+          // _analyze 自己会吞掉异常；能走到这里的只有它没料到的错误。
+          // 不清掉 _pending 的话这张封面会被永久标记为"在算"，再也不会重试。
+          _pending.remove(job.key);
+          debugPrint('人脸检测失败：$error');
+        }).whenComplete(() {
+          _running--;
+          // 这一张算完可能又有新图入队，继续把额度填满。
+          _pump();
+        }),
+      );
+    }
+  }
+
+  Future<void> _analyze(
+    String url,
+    String key,
+    Map<String, String>? httpHeaders,
+  ) async {
     // 级联模型文本要先取到局部变量：`Isolate.run` 的闭包只允许捕获可发送
     // 的对象，直接读实例字段 `_cascadeXml` 会把整个 service 一起捕获进去。
     final xml = _cascadeXml;
@@ -135,10 +211,24 @@ class FaceFocusService extends ChangeNotifier {
       // 在内存里是几十 MB，而检测只需要 1024 以内。缩放在解码器里做，比先
       // 解全尺寸再拷贝出来省得多。
       // 宽高都给上限：只给 maxWidth 的话竖图（宽度本来就小于它）不会缩。
-      final provider = appCachedImage(url, maxWidth: _maxEdge, maxHeight: _maxEdge);
+      // headers 必须和显示层完全一致：Getchu 这类防盗链站点在缺 Referer 时
+      // 直接 403，检测这边拿不到图就会把这张封面错记成「没有人脸」。
+      //
+      // cacheKeySuffix 也必须给：检测和显示共用同一条 cacheKey 时会撞进
+      // flutter_cache_manager 的并发队列竞态（详细说明见 appCachedImage 的注释），
+      // 结果是显示层那张图永远停在占位态。加后缀＝各走各的缓存条目。
+      final provider = appCachedImage(
+        url,
+        maxWidth: _maxEdge,
+        maxHeight: _maxEdge,
+        httpHeaders: httpHeaders,
+        cacheKeySuffix: '#face',
+      );
       final image = await _decode(provider);
       if (image == null) {
-        _remember(key, _FaceFocusEntry.empty(Size.zero));
+        // 拿不到图 ≠ 没有人脸。只记失败、不落盘，下次启动再来。
+        _failed.add(key);
+        _pending.remove(key);
         return;
       }
       final width = image.width;
@@ -146,7 +236,8 @@ class FaceFocusService extends ChangeNotifier {
       final imageSize = Size(width.toDouble(), height.toDouble());
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (data == null) {
-        _remember(key, _FaceFocusEntry.empty(imageSize));
+        // 解码成功但没有像素：当作「确认没有人脸」，用真实尺寸兜底。
+        _remember(key, _FaceFocusEntry(imageSize: imageSize, faces: const []));
         return;
       }
       // 原图位图已经拷出来了，这份全尺寸解码结果没必要继续占着 ImageCache ——
@@ -181,9 +272,16 @@ class FaceFocusService extends ChangeNotifier {
       );
     } catch (error, stack) {
       debugPrint('人脸检测异常：$error\n$stack');
+      _failed.add(key);
       _pending.remove(key);
     }
   }
+
+  /// 解码上限。超过就按「这次没算成」处理，绝不写进缓存。
+  ///
+  /// 没有超时的话，一次卡住的下载会让这张封面永远停在「排队中」，后面的
+  /// 封面跟着堵（每张都在等一个可能永远不回来的 Future）。
+  static const Duration _decodeTimeout = Duration(seconds: 20);
 
   Future<ui.Image?> _decode(ImageProvider provider) {
     final completer = Completer<ui.Image?>();
@@ -200,12 +298,17 @@ class FaceFocusService extends ChangeNotifier {
       },
     );
     stream.addListener(listener);
-    return completer.future;
+    // 超时后补完成 null 并摘掉监听，避免这条流一直挂着。
+    return completer.future.timeout(_decodeTimeout, onTimeout: () {
+      stream.removeListener(listener);
+      return null;
+    });
   }
 
   void _remember(String key, _FaceFocusEntry entry) {
     _cache[key] = entry;
     _pending.remove(key);
+
     notifyListeners();
     unawaited(_persist());
   }
@@ -222,6 +325,23 @@ class FaceFocusService extends ChangeNotifier {
   }
 }
 
+/// 排队中的一次检测。
+class _FaceJob {
+  const _FaceJob(
+    this.url,
+    this.key, {
+    this.urgent = false,
+    this.httpHeaders,
+  });
+
+  final String url;
+  final String key;
+  final Map<String, String>? httpHeaders;
+
+  /// 首屏就能看到的大图，插队优先算。
+  final bool urgent;
+}
+
 /// [FaceFocusService.resultFor] 的返回值。
 @immutable
 class FaceFocusResult {
@@ -233,14 +353,19 @@ class FaceFocusResult {
 
 /// 算好某张封面在 [targetSize] 里该用的对齐方式。
 ///
-/// 返回 null 表示「没有人脸」或「还没算完」，调用方沿用原来的居中。
+/// 返回 null 只表示「这张还没算完」，调用方先沿用原来的居中、算完再刷。
+///
+/// **算完确认没有人脸时不再返回 null** —— 那时走 [CropMethod.mostFaces] 内部的
+/// 兜底 [FaceCrop.topMiddleCrop]，顶部对齐。之前的写法在这里提前 return，把
+/// 「多半张海报主体压在上半部分」这个信息一起丢了：没人脸的封面于是永远居中，
+/// 跟没开这个功能一模一样。
 Alignment? faceAlignmentFor(
   String url,
   Size targetSize, {
   CropMethod method = CropMethod.mostFaces,
 }) {
   final result = FaceFocusService.instance.resultFor(url);
-  if (result == null || result.faces.isEmpty) return null;
+  if (result == null) return null;
   if (targetSize.width <= 0 || targetSize.height <= 0) return null;
   if (result.imageSize.width <= 0 || result.imageSize.height <= 0) return null;
   return FaceCrop.alignmentForFaces(
@@ -257,9 +382,6 @@ Alignment? faceAlignmentFor(
 class _FaceFocusEntry {
   const _FaceFocusEntry({required this.imageSize, required this.faces});
 
-  factory _FaceFocusEntry.empty(Size imageSize) =>
-      _FaceFocusEntry(imageSize: imageSize, faces: const <FaceRect>[]);
-
   final Size imageSize;
   final List<FaceRect> faces;
 
@@ -268,6 +390,9 @@ class _FaceFocusEntry {
     final width = value['w'];
     final height = value['h'];
     if (width is! num || height is! num) return null;
+    // 0x0 是旧版本在「图没取到」时写下的错误条目。它会让 faceAlignmentFor
+    // 一直返回 null（当作还没算完），这张封面从此再也拿不到对齐，直接丢掉。
+    if (width <= 0 || height <= 0) return null;
     final faces = <FaceRect>[];
     final raw = value['f'];
     if (raw is List) {

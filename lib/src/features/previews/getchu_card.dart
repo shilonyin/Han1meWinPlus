@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:go_router/go_router.dart';
@@ -53,11 +55,42 @@ class _GetchuCardState extends State<GetchuCard> {
   /// 没有封面的条目（站方尚未发售）一上来就算就绪 —— 它要显示的是那行说明字。
   late bool _coverReady = widget.item.coverUrl == null;
 
+  /// 等不到「图到齐」时的兜底计时器。
+  ///
+  /// 封面既不出图也不报错（下载卡住、或同一 cacheKey 的请求被别人的失败带进
+  /// 去）时，[imageBuilder] 和 [errorWidget] 都不会被调起，卡片就永远是那块
+  /// 中性底板 —— 连标题和价格一起看不见。文字比封面重要，所以到点直接放出来。
+  Timer? _readyTimer;
+
+  static const Duration _readyFallback = Duration(seconds: 4);
+
+  @override
+  void initState() {
+    super.initState();
+    _armReadyTimer();
+  }
+
+  void _armReadyTimer() {
+    if (_coverReady) return;
+    _readyTimer?.cancel();
+    _readyTimer = Timer(_readyFallback, () {
+      if (!mounted || _coverReady) return;
+      setState(() => _coverReady = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _readyTimer?.cancel();
+    super.dispose();
+  }
+
   void _markCoverReady() {
     if (_coverReady) return;
     // 这个回调在 build 途中被调起，不能就地 setState。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _coverReady) return;
+      _readyTimer?.cancel();
       setState(() => _coverReady = true);
     });
   }
@@ -187,6 +220,12 @@ class _GetchuCardState extends State<GetchuCard> {
               child: Icon(Symbols.image_not_supported_rounded),
             );
           },
+          // 这里**不开** faceFocus。
+          //
+          // 列表卡用的 package.jpg 多是 500×715 的竖版海报，卡片的 0.7 比例
+          // 跟它几乎一致，本来就裁不到什么；而开了以后要走「检测完再造一个
+          // Image」的路径，同一张图被解析两次，实测有相当一部分封面会永远停在
+          // 占位态，只剩一块白板。详情页的 GetchuCover 仍然开着。
           imageBuilder: (context, provider) {
             // 只有图真的解码出帧，imageBuilder 才会被调起 —— 这是「图到齐了」
             // 唯一可靠的信号，用它把阴影和文字一起放出来。

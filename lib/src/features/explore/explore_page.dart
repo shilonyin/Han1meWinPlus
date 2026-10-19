@@ -13,6 +13,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_shell.dart';
+import '../../core/face/face_focus_service.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/video_meta_cache.dart';
@@ -1114,6 +1115,31 @@ class _FeaturedSwiperState extends State<_FeaturedSwiper> {
   void initState() {
     super.initState();
     _restartTimer();
+    _prefetchFaces();
+  }
+
+  @override
+  void didUpdateWidget(_FeaturedSwiper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 换了一批推荐位（刷新、切 tab）时要重新预约：只写在 initState 里的话，
+    // State 被复用、initState 不再跑，新一批封面就无人过问。
+    if (!listEquals(
+      oldWidget.videos.map((video) => video.coverUrl).toList(),
+      widget.videos.map((video) => video.coverUrl).toList(),
+    )) {
+      _prefetchFaces();
+    }
+  }
+
+  /// 把整批推荐位封面的人脸检测一次预约上。
+  ///
+  /// PageView 只建当前这一屏，邻页要等滑过去才 build —— 那样邻页的封面到
+  /// 翻页那一刻才开始检测，还排在半屏网格封面后面，翻过去看到的仍是居中
+  /// 裁切。开头就全排进队首，翻到哪张都已经算完。
+  void _prefetchFaces() {
+    FaceFocusService.instance.prefetch(
+      widget.videos.map((video) => video.coverUrl),
+    );
   }
 
   @override
