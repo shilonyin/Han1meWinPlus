@@ -17,12 +17,24 @@ import 'android_cast_button.dart';
 import '../../core/app_dialog.dart';
 import '../shared/motion_icon.dart';
 import 'player_overlay_surface.dart';
+import 'player_menu_style.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
 ///
 /// 这里的两个滑块在深色控制条上要自己盖一套白轨道（见
 /// [AppSurfaceTokens.darkTrackTheme]）。
-const double _progressBarHeight = 48;
+const double _progressBarHeight = 28;
+
+/// 悬浮控制条的最大宽度。
+///
+/// 控制条铺满整个画面宽度时，那条进度条会横穿底边（1280 宽窗口下约 1256px），
+/// 压着画面又难看出「这是一枚浮起来的条」。给它一个上限并居中：窄窗口
+/// （画中画、小窗）仍然占满可用宽度，宽窗口则收成一枚居中的圆角条。
+///
+/// 680 是实测出来的：按钮行内容最少要 620px（左侧四个 40px 按钮 + 197px 时间
+/// 文本 ≈ 272，右侧六个菜单按钮 + 全屏/画中画 ≈ 240–320），而 `roomy` 的阈值
+/// 就是 620 —— 再往下压，右侧那排菜单会被收进「更多」，用户会看到按钮凭空少掉。
+const double kPlayerControlsMaxWidth = 680;
 
 /// 悬浮控制条离画面左右边与底边的距离。
 ///
@@ -30,14 +42,34 @@ const double _progressBarHeight = 48;
 /// 的观感，它同时也是暂停标记等浮层的定位基准。
 const double kPlayerControlsInset = 12;
 
+/// 按钮行里每个按钮的**实际**边长，以及整行的底部内边距。
+///
+/// 这一行的高度不是画出来的，是每个 IconButton 把它撑开的：默认 `minimumSize`
+/// 是 40×40、点击区 48，整行就顶到 48 高，光改常量压不下去。真正生效的是 build
+/// 收口处那个 `IconButtonTheme`，这里只声明「我们要多高」。
+const double _buttonRowHeight = 30;
+const double _buttonRowPadding = 2;
+
+/// `VisualDensity.compact` 从 `minimumSize` 每边收掉的像素。
+///
+/// 行内按钮都带 compact，实测 `minimumSize: 38` 出来的是 30 —— 想要
+/// [_buttonRowHeight] 这个真实尺寸，主题里得写成 `_buttonRowHeight + 8`。
+const double _compactDensityInset = 8;
+
 /// 悬浮控制条的整体高度（进度条 + 按钮行）。
 ///
-/// 进度条固定 [_progressBarHeight] 48，按钮行是 compact 密度的 IconButton（40）
-/// 加 4 的底部内边距。给暂停标记这类「要贴在控制条上方」的浮层当基准用：
-/// 差几个像素看不出来，但少算就会和控制条叠在一起。
-const double kPlayerControlsHeight = 92;
+/// 由 [_progressBarHeight] 与按钮行推出来，不要再手写数字：需要避让控制条的
+/// 浮层（曾经是暂停标记）用它当基准，差几个像素看不出来，少算就会和控制条叠在一起。
+const double kPlayerControlsHeight =
+    _progressBarHeight + _buttonRowHeight + _buttonRowPadding;
 
 /// 音量面板的固定尺寸（大约是半尺寸，不要占满播放器）与和进度条之间的间距。
+/// 选集面板最多露出的高度（四集）。
+///
+/// 每项高度由 TextButton 的 `minimumSize` 40 撑开，四集 160 正好。
+/// 超出的集数在面板内部滚动，滚出圆角的部分由 `ClipRRect` 裁掉。
+const double _episodeMenuMaxHeight = 160;
+
 const double _volumePanelWidth = 40;
 const double _volumePanelHeight = 100;
 const double _volumePanelGap = 8;
@@ -77,15 +109,21 @@ class VideoPlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: kPlayerControlsInset,
-    right: kPlayerControlsInset,
+    left: 0,
+    right: 0,
     bottom: kPlayerControlsInset,
     // 悬浮圆角条：半透明黑底 + 背景模糊，压在视频画面上而不遮满底部。
     //
     // 不再用贴底通栏的渐隐底衬（[ProgressiveFade.bottomSolid]）：那条把画面
     // 下半截整体压暗，和「浮起来的一枚控制条」是两种观感。
-    child: PlayerOverlaySurface(
-      child: ValueListenableBuilder<VideoPlayerValue>(
+    // 居中并限宽：宽窗口下它是一枚居中的条，窄窗口下仍占满可用宽度。
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kPlayerControlsMaxWidth),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: kPlayerControlsInset),
+          child: PlayerOverlaySurface(
+            child: ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
               builder: (context, value, _) {
                 final l10n = AppLocalizations.of(context)!;
@@ -146,7 +184,12 @@ class VideoPlayerControls extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                      padding: const EdgeInsets.fromLTRB(
+                        8,
+                        0,
+                        8,
+                        _buttonRowPadding,
+                      ),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           // 窄窗口下把冷门操作收进「更多」，避免图标行溢出
@@ -310,14 +353,19 @@ class VideoPlayerControls extends StatelessWidget {
                               ),
                             ],
                           );
-                          if (!tight) return row;
+                          // 整行统一套一遍尺寸：IconButton 默认 40 的框 + 48 的点击区，
+                          // 这一行就被撑到 48 高，压不下去。compact 还会每边再收 8，
+                          // 所以 minimumSize 要写 edge + 8，出来的实际边长才等于 edge。
+                          // `tight`（画中画 380px）再紧一档，否则 7 个按钮加时间文本必然溢出。
+                          final edge = tight ? 24.0 : _buttonRowHeight;
+                          final box = edge + _compactDensityInset;
                           return IconButtonTheme(
-                            data: const IconButtonThemeData(
+                            data: IconButtonThemeData(
                               style: ButtonStyle(
                                 minimumSize: WidgetStatePropertyAll(
-                                  Size(32, 32),
+                                  Size(box, box),
                                 ),
-                                padding: WidgetStatePropertyAll(
+                                padding: const WidgetStatePropertyAll(
                                   EdgeInsets.zero,
                                 ),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -332,6 +380,9 @@ class VideoPlayerControls extends StatelessWidget {
                 );
               },
             ),
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -412,77 +463,70 @@ class VideoPlayerVolumeButton extends StatelessWidget {
     builder: (context, value, _) => MenuAnchor(
       // 控制条贴在播放器底部，音量面板固定弹在按钮正上方（对齐按钮左上角）
       // 半透明圆角面板，压在进度条上方而不是盖住它
-      style: const MenuStyle(
-        alignment: Alignment.topLeft,
-        padding: WidgetStatePropertyAll(EdgeInsets.zero),
-        backgroundColor: WidgetStatePropertyAll(Color(0x99000000)),
-        surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-        elevation: WidgetStatePropertyAll(0),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
-          ),
-        ),
-      ),
-      menuChildren: [
-        SizedBox(
-          width: _volumePanelWidth,
-          height: _volumePanelHeight,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 6, 5, 6),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  height: _volumeSliderLength,
-                  // 旋转 270° 让滑杆变成下小上大的竖条
-                  child: RotatedBox(
-                    quarterTurns: 3,
-                    child: SizedBox(
-                      width: _volumeSliderLength,
-                      height: _volumeSliderThickness,
-                      child: ValueListenableBuilder<VideoPlayerValue>(
-                        valueListenable: controller,
-                        builder: (context, current, _) => SliderTheme(
-                          data: AppSurfaceTokens.darkTrackTheme.copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 5,
+      style: playerMenuPanelStyle(alignment: Alignment.topLeft),
+      menuChildren: playerMenuPanel(
+        [
+          SizedBox(
+            width: _volumePanelWidth,
+            height: _volumePanelHeight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 6, 5, 6),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    height: _volumeSliderLength,
+                    // 旋转 270° 让滑杆变成下小上大的竖条
+                    child: RotatedBox(
+                      quarterTurns: 3,
+                      child: SizedBox(
+                        width: _volumeSliderLength,
+                        height: _volumeSliderThickness,
+                        child: ValueListenableBuilder<VideoPlayerValue>(
+                          valueListenable: controller,
+                          builder: (context, current, _) => SliderTheme(
+                            data: AppSurfaceTokens.darkTrackTheme.copyWith(
+                              trackHeight: 3,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 5,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 10,
+                              ),
+                              inactiveTrackColor: Colors.white30,
+                              year2023: true,
                             ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 10,
+                            child: Slider(
+                              value: current.volume.clamp(0.0, 1.0).toDouble(),
+                              onChanged: (next) {
+                                controller.setVolume(next);
+                                onInteraction();
+                              },
                             ),
-                            inactiveTrackColor: Colors.white30,
-                            year2023: true,
-                          ),
-                          child: Slider(
-                            value: current.volume.clamp(0.0, 1.0).toDouble(),
-                            onChanged: (next) {
-                              controller.setVolume(next);
-                              onInteraction();
-                            },
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                ValueListenableBuilder<VideoPlayerValue>(
-                  valueListenable: controller,
-                  builder: (context, current, _) => Text(
-                    '${(current.volume.clamp(0.0, 1.0) * 100).round()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                  ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: controller,
+                    builder: (context, current, _) => Text(
+                      '${(current.volume.clamp(0.0, 1.0) * 100).round()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+        radius: AppRadius.md,
+        padding: EdgeInsets.zero,
+      ),
       builder: (context, menu, child) => PressScale(
         child: IconButton(
           color: Colors.white,
@@ -493,7 +537,7 @@ class VideoPlayerVolumeButton extends StatelessWidget {
               ? menu.close()
               : menu.open(
                   position: const Offset(
-                    (40 - _volumePanelWidth) / 2,
+                    (_buttonRowHeight - _volumePanelWidth) / 2,
                     -(_volumePanelHeight +
                         _progressBarHeight +
                         _volumePanelGap),
@@ -618,6 +662,7 @@ class _AspectMenu extends ConsumerWidget {
         ref.watch(settingsProvider).valueOrNull?.videoAspectRatio ??
         VideoAspectRatio.auto;
     return MenuAnchor(
+      style: playerMenuPanelStyle(),
       builder: (context, controller, child) => PressScale(
         child: IconButton(
           color: Colors.white,
@@ -626,21 +671,21 @@ class _AspectMenu extends ConsumerWidget {
           icon: const Icon(Symbols.aspect_ratio_rounded),
         ),
       ),
-      menuChildren: VideoAspectRatio.values
-          .map(
-            (item) => MenuItemButton(
-              onPressed: () => ref
-                  .read(settingsProvider.notifier)
-                  .saveChanges(
-                    (settings) => settings.copyWith(videoAspectRatio: item),
-                  ),
-              leadingIcon: item == aspect
-                  ? const Icon(Symbols.check_rounded, size: 18)
-                  : null,
-              child: Text(_aspectLabel(AppLocalizations.of(context)!, item)),
-            ),
-          )
-          .toList(),
+      menuChildren: playerMenuPanel(
+        VideoAspectRatio.values
+            .map(
+              (item) => playerMenuItem(
+                onPressed: () => ref
+                    .read(settingsProvider.notifier)
+                    .saveChanges(
+                      (settings) => settings.copyWith(videoAspectRatio: item),
+                    ),
+                selected: item == aspect,
+                child: Text(_aspectLabel(AppLocalizations.of(context)!, item)),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }
@@ -652,6 +697,7 @@ class _EpisodeMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
+    style: playerMenuPanelStyle(),
     builder: (context, controller, child) => PressScale(
       child: IconButton(
         color: Colors.white,
@@ -660,26 +706,31 @@ class _EpisodeMenu extends StatelessWidget {
         icon: const Icon(Symbols.view_list_rounded),
       ),
     ),
-    menuChildren: video.playlist
-        .map(
-          (episode) => MenuItemButton(
-            onPressed: episode.id == video.id
-                ? null
-                : () => onSelected(episode),
-            leadingIcon: episode.id == video.id
-                ? const Icon(Symbols.play_arrow_rounded)
-                : null,
-            child: SizedBox(
-              width: 280,
-              child: Text(
-                episode.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    menuChildren: playerMenuPanel(
+      // 一集 40 高（TextButton 的 minimumSize），露出四集就够翻页了；
+      // 集数多的番有几十集，不限高会一路长到屏幕外。
+      maxHeight: _episodeMenuMaxHeight,
+      video.playlist
+          .map(
+            (episode) => playerMenuItem(
+              onPressed: episode.id == video.id
+                  ? null
+                  : () => onSelected(episode),
+              selected: episode.id == video.id,
+              // 标题自己顶宽把整个面板撑到画外去了：给个上限，短的按内容宽，
+              // 长的截断。上限取原来 280 的一半。
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Text(
+                  episode.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-          ),
-        )
-        .toList(),
+          )
+          .toList(),
+    ),
   );
 }
 
@@ -699,77 +750,97 @@ class VideoPlayerPortraitMoreMenu extends ConsumerWidget {
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => MenuAnchor(
-    builder: (context, menu, child) => PressScale(
-      child: IconButton(
-        color: Colors.white,
-        tooltip: AppLocalizations.of(context)!.more,
-        onPressed: menu.open,
-        icon: const Icon(Symbols.more_vert_rounded),
-      ),
-    ),
-    menuChildren: [
-      SubmenuButton(
-        menuChildren: VideoAspectRatio.values
-            .map(
-              (aspect) => MenuItemButton(
-                onPressed: () => ref
-                    .read(settingsProvider.notifier)
-                    .saveChanges(
-                      (settings) => settings.copyWith(videoAspectRatio: aspect),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final aspect = settings?.videoAspectRatio ?? VideoAspectRatio.auto;
+    final superResolution =
+        settings?.superResolutionMode ?? SuperResolutionMode.off;
+    // 画质和倍速在外面是 ValueListenable：子菜单展开后改这两项，
+    // 这里不跟着重建的话高亮那一行会留在旧值上。
+    return ListenableBuilder(
+      listenable: Listenable.merge([controller, quality]),
+      builder: (context, _) => MenuAnchor(
+        style: playerMenuPanelStyle(),
+        builder: (context, menu, child) => PressScale(
+          child: IconButton(
+            color: Colors.white,
+            tooltip: AppLocalizations.of(context)!.more,
+            onPressed: menu.open,
+            icon: const Icon(Symbols.more_vert_rounded),
+          ),
+        ),
+        menuChildren: playerMenuPanel([
+          playerSubmenu(
+            menuChildren: VideoAspectRatio.values
+                .map(
+                  (item) => playerMenuItem(
+                    onPressed: () => ref
+                        .read(settingsProvider.notifier)
+                        .saveChanges(
+                          (settings) =>
+                              settings.copyWith(videoAspectRatio: item),
+                        ),
+                    selected: item == aspect,
+                    child: Text(
+                      _aspectLabel(AppLocalizations.of(context)!, item),
                     ),
-                child: Text(
-                  _aspectLabel(AppLocalizations.of(context)!, aspect),
-                ),
-              ),
-            )
-            .toList(),
-        child: Text(AppLocalizations.of(context)!.videoAspectRatio),
+                  ),
+                )
+                .toList(),
+            child: Text(AppLocalizations.of(context)!.videoAspectRatio),
+          ),
+          playerSubmenu(
+            menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3]
+                .map(
+                  (speed) => playerMenuItem(
+                    onPressed: () => controller.setPlaybackSpeed(speed),
+                    selected: controller.value.playbackSpeed == speed,
+                    child: Text('${speed}x'),
+                  ),
+                )
+                .toList(),
+            child: Text(AppLocalizations.of(context)!.playbackSpeed),
+          ),
+          playerSubmenu(
+            menuChildren: SuperResolutionMode.values
+                .map(
+                  (mode) => playerMenuItem(
+                    onPressed: () => onSuperResolutionSelected(mode),
+                    selected: mode == superResolution,
+                    child: Text(
+                      _superResolutionLabel(
+                        AppLocalizations.of(context)!,
+                        mode,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+            child: Text(AppLocalizations.of(context)!.superResolution),
+          ),
+          if (video.sources.isNotEmpty)
+            playerSubmenu(
+              menuChildren: video.sources
+                  .map(
+                    (source) => playerMenuItem(
+                      onPressed: () => onQualitySelected(source),
+                      selected: source.quality == quality.value,
+                      child: Text(source.quality),
+                    ),
+                  )
+                  .toList(),
+              child: Text(AppLocalizations.of(context)!.quality),
+            ),
+          if (video.sources.isNotEmpty)
+            playerMenuItem(
+              onPressed: () => _openExternal(video.sources, quality.value),
+              leadingIcon: const Icon(Symbols.open_in_new_rounded),
+              child: Text(AppLocalizations.of(context)!.externalPlayback),
+            ),
+        ]),
       ),
-      SubmenuButton(
-        menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3]
-            .map(
-              (speed) => MenuItemButton(
-                onPressed: () => controller.setPlaybackSpeed(speed),
-                child: Text('${speed}x'),
-              ),
-            )
-            .toList(),
-        child: Text(AppLocalizations.of(context)!.playbackSpeed),
-      ),
-      SubmenuButton(
-        menuChildren: SuperResolutionMode.values
-            .map(
-              (mode) => MenuItemButton(
-                onPressed: () => onSuperResolutionSelected(mode),
-                child: Text(
-                  _superResolutionLabel(AppLocalizations.of(context)!, mode),
-                ),
-              ),
-            )
-            .toList(),
-        child: Text(AppLocalizations.of(context)!.superResolution),
-      ),
-      if (video.sources.isNotEmpty)
-        SubmenuButton(
-          menuChildren: video.sources
-              .map(
-                (source) => MenuItemButton(
-                  onPressed: () => onQualitySelected(source),
-                  child: Text(source.quality),
-                ),
-              )
-              .toList(),
-          child: Text(AppLocalizations.of(context)!.quality),
-        ),
-      if (video.sources.isNotEmpty)
-        MenuItemButton(
-          onPressed: () => _openExternal(video.sources, quality.value),
-          leadingIcon: const Icon(Symbols.open_in_new_rounded),
-          child: Text(AppLocalizations.of(context)!.externalPlayback),
-        ),
-    ],
-  );
+    );
+  }
 
   Future<void> _openExternal(List<VideoSource> sources, String? current) async {
     final source =
@@ -793,6 +864,7 @@ class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
+    style: playerMenuPanelStyle(),
     builder: (context, menu, child) => PressScale(
       child: IconButton(
         color: Colors.white,
@@ -801,14 +873,14 @@ class VideoPlayerFullscreenMoreMenu extends StatelessWidget {
         icon: const Icon(Symbols.more_vert_rounded),
       ),
     ),
-    menuChildren: [
+    menuChildren: playerMenuPanel([
       if (sources.isNotEmpty)
-        MenuItemButton(
+        playerMenuItem(
           onPressed: () => _openExternal(),
           leadingIcon: const Icon(Symbols.open_in_new_rounded),
           child: Text(AppLocalizations.of(context)!.externalPlayback),
         ),
-    ],
+    ]),
   );
 
   Future<void> _openExternal() async {
@@ -852,6 +924,7 @@ class _Anime4KMenu extends ConsumerWidget {
         SuperResolutionMode.off;
     final l10n = AppLocalizations.of(context)!;
     return MenuAnchor(
+      style: playerMenuPanelStyle(),
       builder: (context, menu, child) => PressScale(
         child: IconButton(
           color: Colors.white,
@@ -864,24 +937,16 @@ class _Anime4KMenu extends ConsumerWidget {
           ),
         ),
       ),
-      menuChildren: SuperResolutionMode.values.map((option) {
-        final selected = option == mode;
-        return MenuItemButton(
-          onPressed: () => onSelected(option),
-          leadingIcon: selected
-              ? const Icon(Symbols.check_rounded, size: 18)
-              : null,
-          child: Text(
-            _superResolutionLabel(l10n, option),
-            style: selected
-                ? TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  )
-                : null,
-          ),
-        );
-      }).toList(),
+      menuChildren: playerMenuPanel(
+        SuperResolutionMode.values.map((option) {
+          final selected = option == mode;
+          return playerMenuItem(
+            onPressed: () => onSelected(option),
+            selected: selected,
+            child: Text(_superResolutionLabel(l10n, option)),
+          );
+        }).toList(),
+      ),
     );
   }
 }
@@ -908,6 +973,7 @@ class _QualityMenu extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<String?>(
     valueListenable: quality,
     builder: (context, current, _) => MenuAnchor(
+      style: playerMenuPanelStyle(),
       builder: (context, menu, child) => PressScale(
         child: IconButton(
           color: Colors.white,
@@ -916,24 +982,16 @@ class _QualityMenu extends StatelessWidget {
           icon: const Icon(Symbols.high_quality_rounded),
         ),
       ),
-      menuChildren: sources.map((source) {
-        final selected = source.quality == current;
-        return MenuItemButton(
-          onPressed: () => onSelected(source),
-          leadingIcon: selected
-              ? const Icon(Symbols.check_rounded, size: 18)
-              : null,
-          child: Text(
-            source.quality,
-            style: selected
-                ? TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  )
-                : null,
-          ),
-        );
-      }).toList(),
+      menuChildren: playerMenuPanel(
+        sources.map((source) {
+          final selected = source.quality == current;
+          return playerMenuItem(
+            onPressed: () => onSelected(source),
+            selected: selected,
+            child: Text(source.quality),
+          );
+        }).toList(),
+      ),
     ),
   );
 }
@@ -947,6 +1005,7 @@ class _SpeedMenu extends StatelessWidget {
       ValueListenableBuilder<VideoPlayerValue>(
         valueListenable: controller,
         builder: (context, value, _) => MenuAnchor(
+          style: playerMenuPanelStyle(),
           builder: (context, menu, child) => PressScale(
             child: IconButton(
               color: Colors.white,
@@ -955,27 +1014,19 @@ class _SpeedMenu extends StatelessWidget {
               icon: const Icon(Symbols.speed_rounded),
             ),
           ),
-          menuChildren: <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) {
-            final selected = value.playbackSpeed == speed;
-            return MenuItemButton(
-              onPressed: () {
-                controller.setPlaybackSpeed(speed);
-                onInteraction();
-              },
-              leadingIcon: selected
-                  ? const Icon(Symbols.check_rounded, size: 18)
-                  : null,
-              child: Text(
-                '${speed}x',
-                style: selected
-                    ? TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      )
-                    : null,
-              ),
-            );
-          }).toList(),
+          menuChildren: playerMenuPanel(
+            <double>[.5, .75, 1, 1.25, 1.5, 2, 3].map((speed) {
+              final selected = value.playbackSpeed == speed;
+              return playerMenuItem(
+                onPressed: () {
+                  controller.setPlaybackSpeed(speed);
+                  onInteraction();
+                },
+                selected: selected,
+                child: Text('${speed}x'),
+              );
+            }).toList(),
+          ),
         ),
       );
 }

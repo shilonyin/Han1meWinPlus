@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
@@ -23,6 +24,7 @@ import '../../domain/models/video.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
 import 'player_overlay_surface.dart';
+import 'player_wheel_guard.dart';
 import 'video_player_controls.dart';
 
 class VideoPlayerSurface extends ConsumerStatefulWidget {
@@ -110,21 +112,58 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   void initState() {
     super.initState();
     unawaited(PlaybackSpeedPolicy.initialize());
+    PlayerWheelGuard.instance.addListener(_onGuardChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _restartTimer());
   }
 
   @override
   void dispose() {
+    PlayerWheelGuard.instance.removeListener(_onGuardChanged);
     _focusNode.dispose();
     _hideTimer?.cancel();
     _volumeHudTimer?.cancel();
     super.dispose();
   }
 
+  /// 有弹层挂着时把控制条钉住，没有弹层了才恢复隐藏计时。
+  ///
+  /// 弹层是从控制条上的按钮开出来的（`MenuAnchor` 就挂在控制条里）。鼠标一
+  /// 离开画面挪到弹层上，`MouseRegion.onExit` 就把 `_pointerInside` 置回 false，
+  /// 4 秒倒计时照常跑，时间到 `_showControls` 一变 false，控制条整棵子树从树里
+  /// 消失，`MenuAnchor` 跟着卸载，弹层被顺手关掉 —— 用户看到的就是「选集自己
+  /// 收回去」。所以只要有面板在，就不许开始倒计时。
+  void _onGuardChanged() {
+    if (!mounted) return;
+    // 通知可能由别的 widget 的 build / dispose 阶段发出（面板被卸载时就是），
+    // 那时直接 setState 会撞「setState() called during build」，推到帧末再改。
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _applyGuardState();
+      });
+      WidgetsBinding.instance.scheduleFrame();
+      return;
+    }
+    _applyGuardState();
+  }
+
+  void _applyGuardState() {
+    if (PlayerWheelGuard.instance.hasRegions) {
+      _hideTimer?.cancel();
+      if (!_showControls && !_locked) setState(() => _showControls = true);
+      return;
+    }
+    _restartTimer();
+  }
+
   void _restartTimer() {
     _hideTimer?.cancel();
-    // 鼠标还在画面上（包括停在控制按钮附近）时不安排隐藏，避免刚要去点按钮就消失
+    // 鼠标还在画面上（包括停在控制按钮附近）时不安排隐藏，避免刚要去点按钮就消失；
+    // 弹层开着的期间同样不安排 —— 控制条一消失，挂在它上面的菜单就跟着没了。
     if (!_showControls || _locked || _pointerInside) return;
+    if (PlayerWheelGuard.instance.hasRegions) return;
     final seconds =
         ref.read(settingsProvider).valueOrNull?.playerControlsTimeoutSeconds ??
         4;
@@ -156,6 +195,11 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
     if (_locked) return;
+    // 指针落在弹层（选集、清晰度……）上时整只让开：弹层是 Overlay 里的独立
+    // 子树，不走这里的 hit test，但滚轮事件仍会顺着画面这张 Listener 过来。
+    // 按区域判比抢 pointerSignalResolver 稳 —— 弹层内的列表滚到底后自己就
+    // 不再注册了，那时抢的赢家会变成这里。
+    if (PlayerWheelGuard.instance.blocks(event.position)) return;
     final controller = widget.controller.value;
     if (controller == null || !controller.value.isInitialized) return;
     GestureBinding.instance.pointerSignalResolver.register(event, (resolved) {
@@ -506,7 +550,9 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                                       color: Colors.black.withValues(
                                         alpha: 0.88,
                                       ),
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.pill,
+                                      ),
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -561,15 +607,17 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     if (_locked)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: PressScale(child: IconButton(
-                          color: Colors.white,
-                          tooltip: l10n.unlockControls,
-                          onPressed: () {
-                            setState(() => _locked = false);
-                            _restartTimer();
-                          },
-                          icon: const Icon(Symbols.lock_rounded),
-                        )),
+                        child: PressScale(
+                          child: IconButton(
+                            color: Colors.white,
+                            tooltip: l10n.unlockControls,
+                            onPressed: () {
+                              setState(() => _locked = false);
+                              _restartTimer();
+                            },
+                            icon: const Icon(Symbols.lock_rounded),
+                          ),
+                        ),
                       ),
                     // 顶部：返回 / 标题 / 次要操作；底部：进度 + 播放控制，和参考实现一致
                     //
@@ -604,12 +652,14 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     if (_showControls && widget.fullscreen && !_locked)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: PressScale(child: IconButton(
-                          color: Colors.white,
-                          tooltip: l10n.lockControls,
-                          onPressed: () => setState(() => _locked = true),
-                          icon: const Icon(Symbols.lock_open_rounded),
-                        )),
+                        child: PressScale(
+                          child: IconButton(
+                            color: Colors.white,
+                            tooltip: l10n.lockControls,
+                            onPressed: () => setState(() => _locked = true),
+                            icon: const Icon(Symbols.lock_open_rounded),
+                          ),
+                        ),
                       ),
                     if (widget.fullscreen && widget.keyframes.isNotEmpty)
                       _KeyframeCountdown(
@@ -628,30 +678,29 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     // 滚轮调音量的白底提示：固定在画面正中，独立于控制条的显示/隐藏
                     if (_volumeHud != null)
                       Center(child: _VolumeHud(volume: _volumeHud!)),
-                    // 暂停时右下角常驻一个标记：白底圆角 + 黑色暂停图标。
-                    // 控制条显示着的时候右下角被它占着，所以此时把标记抬到控制条上方。
+                    // 暂停时画面正中浮出一个播放标记，位置不受控制条影响。
                     ValueListenableBuilder<VideoPlayerValue>(
                       valueListenable: controller,
                       builder: (context, value, _) {
+                        // 滚轮调音量时的 HUD 也在画面正中，两者同时出现会叠成一团；
+                        // 音量提示是临时反馈，让它优先，暂停标记先退场。
                         final paused =
                             !value.isPlaying &&
                             !value.isCompleted &&
-                            value.duration > Duration.zero;
-                        return AnimatedPositioned(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          right: kPlayerControlsInset,
-                          // 控制条显示着的时候右下角被它占着，此时把标记抬到控制条
-                          // 上方。抬到「控制条顶边 + 8」而不是写死 104：控制条的
-                          // 高度改了这里要跟着走，否则两者会叠在一起。
-                          bottom: paused && _showControls && !_locked
-                              ? kPlayerControlsInset + kPlayerControlsHeight + 8
-                              : 16,
+                            value.duration > Duration.zero &&
+                            _volumeHud == null &&
+                            _adjustment == null;
+                        return Center(
                           child: IgnorePointer(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 180),
-                              opacity: paused ? 1 : 0,
-                              child: const _PausedBadge(),
+                            child: AnimatedScale(
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.easeOut,
+                              scale: paused ? 1 : .82,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 160),
+                                opacity: paused ? 1 : 0,
+                                child: const _PausedBadge(),
+                              ),
                             ),
                           ),
                         );
@@ -711,31 +760,37 @@ class _PlayerTopBar extends StatelessWidget {
         child: Row(
           children: [
             if (onBack != null)
-              PressScale(child: IconButton(
-                color: Colors.white,
-                visualDensity: VisualDensity.compact,
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                onPressed: onBack,
-                icon: const Icon(Symbols.arrow_back_rounded),
-              )),
+              PressScale(
+                child: IconButton(
+                  color: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: onBack,
+                  icon: const Icon(Symbols.arrow_back_rounded),
+                ),
+              ),
             if (onHome != null)
-              PressScale(child: IconButton(
-                color: Colors.white,
-                visualDensity: VisualDensity.compact,
-                tooltip: l10n.home,
-                onPressed: onHome,
-                icon: const Icon(Symbols.home_rounded),
-              )),
+              PressScale(
+                child: IconButton(
+                  color: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: l10n.home,
+                  onPressed: onHome,
+                  icon: const Icon(Symbols.home_rounded),
+                ),
+              ),
             const SizedBox(width: 6),
             Expanded(child: _MarqueeTitle(title: video.title)),
             if (Platform.isAndroid)
-              PressScale(child: IconButton(
-                color: Colors.white,
-                visualDensity: VisualDensity.compact,
-                tooltip: l10n.pictureInPicture,
-                onPressed: onPictureInPicture,
-                icon: const Icon(Symbols.picture_in_picture_rounded),
-              )),
+              PressScale(
+                child: IconButton(
+                  color: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: l10n.pictureInPicture,
+                  onPressed: onPictureInPicture,
+                  icon: const Icon(Symbols.picture_in_picture_rounded),
+                ),
+              ),
             if (onKeyframes != null)
               Tooltip(
                 message: l10n.longPressAddKeyframe,
@@ -788,13 +843,15 @@ class PlayerNavCapsule extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PressScale(child: IconButton(
-            color: Colors.white,
-            visualDensity: VisualDensity.compact,
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: onBack,
-            icon: const Icon(Symbols.arrow_back_rounded),
-          )),
+          PressScale(
+            child: IconButton(
+              color: Colors.white,
+              visualDensity: VisualDensity.compact,
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: onBack,
+              icon: const Icon(Symbols.arrow_back_rounded),
+            ),
+          ),
           if (onHome != null) ...[
             SizedBox(
               height: 18,
@@ -804,13 +861,15 @@ class PlayerNavCapsule extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.24),
               ),
             ),
-            PressScale(child: IconButton(
-              color: Colors.white,
-              visualDensity: VisualDensity.compact,
-              tooltip: AppLocalizations.of(context)!.home,
-              onPressed: onHome,
-              icon: const Icon(Symbols.home_rounded),
-            )),
+            PressScale(
+              child: IconButton(
+                color: Colors.white,
+                visualDensity: VisualDensity.compact,
+                tooltip: AppLocalizations.of(context)!.home,
+                onPressed: onHome,
+                icon: const Icon(Symbols.home_rounded),
+              ),
+            ),
           ],
         ],
       ),
@@ -1031,7 +1090,9 @@ class _AdjustmentHud extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            delta >= 0 ? Symbols.fast_forward_rounded : Symbols.fast_rewind_rounded,
+            delta >= 0
+                ? Symbols.fast_forward_rounded
+                : Symbols.fast_rewind_rounded,
             color: Colors.white,
             size: 28,
           ),
@@ -1080,7 +1141,9 @@ class _VolumeHud extends StatelessWidget {
             Icon(
               percent <= 0
                   ? Symbols.volume_off_rounded
-                  : (percent < 50 ? Symbols.volume_down_rounded : Symbols.volume_up_rounded),
+                  : (percent < 50
+                        ? Symbols.volume_down_rounded
+                        : Symbols.volume_up_rounded),
               color: Colors.white,
               size: 26,
             ),
@@ -1102,14 +1165,19 @@ class _VolumeHud extends StatelessWidget {
   }
 }
 
-/// 暂停时右下角的常驻标记：半透明圆角卡片 + 白色三角播放图标。
+/// 暂停时画面正中的标记：半透明圆角卡片 + 白色三角播放图标。
+///
+/// 它只是「已暂停」的提示，不是按钮 —— 点击穿透由外层的 [IgnorePointer] 负责，
+/// 真正的播放/暂停仍然交给控制条与双击画面。
 class _PausedBadge extends StatelessWidget {
   const _PausedBadge();
 
   @override
   Widget build(BuildContext context) => const PlayerOverlaySurface(
-    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    child: Icon(Symbols.play_arrow_rounded, color: Colors.white, size: 28),
+    radius: AppRadius.xl,
+    blurSigma: 12,
+    padding: EdgeInsets.all(18),
+    child: Icon(Symbols.play_arrow_rounded, color: Colors.white, size: 44),
   );
 }
 

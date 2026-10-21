@@ -126,7 +126,9 @@ void main() {
     String controlsRowSource() {
       final start = source.indexOf('final row = Row(');
       expect(start, greaterThanOrEqualTo(0), reason: '找不到底部按钮行的定义，测试需要跟着结构更新');
-      final end = source.indexOf('if (!tight) return row;', start);
+      // 收口处（tight 与否套不同尺寸的 IconButtonTheme）已经不再有
+      // `if (!tight) return row;`，锚点挂到那一行的尺寸计算上。
+      final end = source.indexOf('final edge = tight', start);
       expect(end, greaterThan(start), reason: '找不到按钮行的结束位置，测试需要跟着结构更新');
       return source.substring(start, end);
     }
