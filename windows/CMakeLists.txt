@@ -20,6 +20,11 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 
 add_definitions(-DUNICODE -D_UNICODE)
 
+# 较新的 MSVC（VS 17.10+/18）把 <experimental/coroutine> 从警告升级成了
+# static_assert 硬错误（STL1011），而 flutter_inappwebview_windows 这类插件仍
+# 在用 C++/WinRT 的 /await。不定义这个开关，只要插件被重新编译就会整包构建失败。
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_17)
   target_compile_options(${TARGET} PRIVATE /W4 /WX /wd4100 /EHsc)
