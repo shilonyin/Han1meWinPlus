@@ -10,7 +10,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/l10n/app_localizations.dart';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:han1me_win_plus/src/data/remote/han1me_api.dart' show CloudflareChallengeException;
+import 'package:han1me_win_plus/src/data/remote/network_exceptions.dart';
 import 'package:han1me_win_plus/src/features/shared/app_error.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -65,6 +69,24 @@ void main() {
     test('认不出的错误不给建议，而不是猜一个', () {
       expect(appErrorSuggestion(l10n, StateError('boom')), isNull);
       expect(appErrorSuggestion(l10n, _dio(statusCode: 404)), isNull);
+    });
+
+    test('候选全耗尽给的是「去改线路」，不是笼统的超时', () {
+      const error = NetworkUnreachableException(host: 'hanime1.me', attempts: 7);
+      expect(appErrorSuggestion(l10n, error), l10n.networkUnreachableSuggestion);
+      expect(appErrorIcon(error), Symbols.wifi_off_rounded);
+      // 标题和正文都走 l10n：异常自己的 toString 只给调试看，不能上屏。
+      expect(appErrorTitle(l10n, error), l10n.networkUnreachableTitle);
+      expect(appErrorBody(l10n, error), l10n.networkUnreachableDetail('hanime1.me', 7));
+      expect(appErrorNeedsNetworkSettings(error), isTrue);
+      // 只有这一类给「网络设置」入口：Cloudflare 挑战和 5xx 改代理没用。
+      expect(appErrorNeedsNetworkSettings(_dio(statusCode: 503)), isFalse);
+      expect(appErrorNeedsNetworkSettings(CloudflareChallengeException('u')), isFalse);
+    });
+
+    test('没有专用标题的错误仍然显示原始文本', () {
+      expect(appErrorTitle(l10n, StateError('boom')), isNull);
+      expect(appErrorBody(l10n, StateError('boom')), contains('boom'));
     });
 
     test('图标按种类分档', () {
@@ -122,6 +144,25 @@ void main() {
       // 但要说清楚该怎么办（换网络 / 关代理），不能只丢一句原始错误。
       expect(find.textContaining('已被 Cloudflare 封锁'), findsOneWidget);
       // 重试仍然保留：换个网络后点重试是有效的。
+      expect(find.text('重试'), findsOneWidget);
+    });
+
+    // 用户看到的原文曾是 `HTTP connection timed out after 0:00:20.000000, host: ...`，
+    // 既不知道是候选全挂，也不知道该去哪里改。现在换成「标题 + 候选数 + 改线路入口」。
+    testWidgets('候选全耗尽时给出站点、候选数，并带「网络设置」入口', (tester) async {
+      await tester.pumpWidget(_host(AppErrorView(
+        error: const NetworkUnreachableException(host: 'hanime1.me', attempts: 7),
+        onRetry: () {},
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('这个站点连不上'), findsOneWidget);
+      expect(find.textContaining('hanime1.me'), findsOneWidget);
+      expect(find.textContaining('7'), findsOneWidget);
+      expect(find.text('网络设置'), findsOneWidget);
+      // 调试串不能漏到界面上。
+      expect(find.textContaining('NetworkUnreachableException'), findsNothing);
+      // 重试仍然在：改完代理回来点一下就能恢复。
       expect(find.text('重试'), findsOneWidget);
     });
 

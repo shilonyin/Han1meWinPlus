@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'address_ranker.dart';
+import 'network_exceptions.dart';
 
 class WindowsConnectionFactory {
   static const hanimeHosts = {'hanime1.me', 'hanime1.com', 'hanimeone.me'};
@@ -35,12 +36,24 @@ class WindowsConnectionFactory {
   /// 2026-09-15 实测 `.166` 直连 0.5s（`.145` 超时），到 09-21 就完全反了过来 —— `.166`
   /// 直接连不上、`.145` 能通但整页要 8.2s，而**走代理只要 1.79s**。所以两个都放进来，
   /// 交给 `AddressRanker` 按实测延迟挑，别再手工判断哪个快（判断一次就过期一次）。
+  /// AV 源站点的候选地址。
+  ///
+  /// 五个内置 AV 源里只有 xHamster 的边缘地址在**直连**下真的能服务
+  /// （2026-10-23 实测 `104.16.3.81` → 200 4.8s、`104.16.4.81` → 200 5.9s）。
+  /// missav.ai / jable.tv / supjav.com / kissjav.li 的 Cloudflare 地址直连全部
+  /// 超时或被按 IP 拒绝（403），必须走代理 —— 往候选池里塞这些地址等于每次都
+  /// 先烧掉几个 4 秒超时，所以它们不列地址，请求直接回退到系统解析。
+  static const javAddresses = <String, List<String>>{
+    'zh.xhamster.com': ['104.16.3.81', '104.16.4.81'],
+  };
+
   static const builtInHosts = <String, List<String>>{
     'hanime1.me': builtInAddresses,
     'hanime1.com': builtInAddresses,
     'hanimeone.me': builtInAddresses,
     'www.getchu.com': ['210.155.150.145', '210.155.150.166'],
     'vdownload.hembed.com': imageCdnAddresses,
+    ...javAddresses,
   };
 
   WindowsConnectionFactory({
@@ -60,6 +73,19 @@ class WindowsConnectionFactory {
   final int dohTimeoutSeconds;
 
   Duration get _timeout => Duration(seconds: dohTimeoutSeconds);
+
+  /// 域名兜底那一跳的等待上限。
+  ///
+  /// 比 [AddressRanker.probeTimeout] 宽（要走一次系统 DNS），但比 HttpClient 的
+  /// 20s 连接超时窄：候选全挂时用户能早 12 秒看到「这个站点连不上」并直接去改代理。
+  static const _hostFallbackTimeout = Duration(seconds: 8);
+
+  /// 一次连接总共能花多久。
+  ///
+  /// 候选表最多 9 项、每项各自 4s 超时，最坏要 36 秒才轮完 —— 比改之前卡满 20s 还糟，
+  /// 而且期间界面什么都不说。这里给个总预算：能用的节点在 4s 内就握手完了，轮过三个
+  /// 都没好就说明线路本身不通，早点把结论交给界面。
+  static const _connectBudget = Duration(seconds: 12);
 
   Future<ConnectionTask<Socket>> call(Uri uri, String? proxyHost, int? proxyPort) async {
     if (proxyHost != null) return Socket.startConnect(proxyHost, proxyPort ?? uri.port);
@@ -124,6 +150,17 @@ class WindowsConnectionFactory {
   }
 
   Future<ConnectionTask<Socket>> _connect(Uri uri, List<String> addresses, int port) async {
+    // 候选全挂时抛 [NetworkUnreachableException] 而不是最后那个 SocketException：
+    // 界面据此说清「这个站点的节点全不通」并直接给出改代理的入口（见 app_error.dart）。
+    // 其它异常（比如握手期崩了）原样上抛，别拿「网络不通」遮住真正的 bug。
+    return NetworkUnreachableException.guard(
+      uri.host,
+      addresses.length,
+      () => _connectCandidates(uri, addresses, port).timeout(_connectBudget),
+    );
+  }
+
+  Future<ConnectionTask<Socket>> _connectCandidates(Uri uri, List<String> addresses, int port) async {
     final allowBadCertificate = useBuiltInHosts && hanimeHosts.contains(uri.host);
     final ranker = AddressRanker.instance;
     Object? lastError;
@@ -136,10 +173,22 @@ class WindowsConnectionFactory {
       Socket? plain;
       final stopwatch = Stopwatch()..start();
       try {
-        // 兜底项（`uri.host` 本身）由 AddressRanker.order 恒定排在候选末尾，所以这里的
-        // await 不会挡住后面的候选；不 await 的话它抛的错会绕过 catch、不走
-        // recordFailure（lint: unawaited_return_in_try_block）。
-        if (address == uri.host) return await _startConnect(uri.host, port);
+        // 兜底项（`uri.host` 本身）由 AddressRanker.order 恒定排在候选末尾，所以这里多等
+        // 一会儿也不会挡住其他候选。
+        //
+        // 必须自己 await 出 socket：`SecureSocket.startConnect` 是**延迟连接**，直接返回
+        // 的话它的失败发生在 HttpClient 内部，绕过本层 catch —— 界面只能看到一句
+        // `HTTP connection timed out after 0:00:20`，既不知道候选全挂也拿不到改代理的入口。
+        if (address == uri.host) {
+          final task = await _startConnect(uri.host, port);
+          try {
+            final socket = await task.socket.timeout(_hostFallbackTimeout);
+            return ConnectionTask.fromSocket(Future.value(socket), socket.destroy);
+          } catch (_) {
+            task.cancel();
+            rethrow;
+          }
+        }
         // 逐个候选探测用短超时：候选里只要有一个黑洞地址，长超时就会让整次请求
         // 卡满设置里的秒数（默认 10s）才轮到下一个——实测内置列表里就踩过这种坑。
         plain = await Socket.connect(address, port, timeout: AddressRanker.probeTimeout);
@@ -166,6 +215,48 @@ class WindowsConnectionFactory {
   }
 
   Future<ConnectionTask<Socket>> _startConnect(String host, int port) => SecureSocket.startConnect(host, port);
+
+  /// 单独测一个 DoH 端点能不能真的解析出地址。
+  ///
+  /// 设置里那一栏原来只能「配了就祈祷」：选错端点（比如在 DNS 被污染的网络里选了
+  /// 需要 bootstrap 的 Cloudflare）只能等到真正断网时才发现。这里给一个显式入口 ——
+  /// 用当前填的 preset／自定义地址／bootstrap IP 真发一次查询，把耗时和地址数返回。
+  ///
+  /// 探测域名用 `example.com`：它必然有 A 记录，而且不会命中 `resolve` 里按真实站点
+  /// 写下的那批缓存。
+  static Future<DohProbeResult> probeDohEndpoint({
+    required String preset,
+    required String customUrl,
+    required String bootstrapIps,
+    required Duration timeout,
+    String host = 'example.com',
+  }) async {
+    final resolver = _DohResolver(preset: preset, customUrl: customUrl, bootstrapIps: bootstrapIps, timeout: timeout);
+    if (resolver._endpoint == null) {
+      return DohProbeResult(host: host, addresses: const [], milliseconds: 0, error: 'invalid-endpoint');
+    }
+    final watch = Stopwatch()..start();
+    try {
+      final addresses = await resolver.resolve(host).timeout(timeout);
+      return DohProbeResult(host: host, addresses: addresses, milliseconds: watch.elapsedMilliseconds);
+    } catch (error) {
+      return DohProbeResult(host: host, addresses: const [], milliseconds: watch.elapsedMilliseconds, error: error.toString());
+    }
+  }
+}
+
+/// [WindowsConnectionFactory.probeDohEndpoint] 的结果。
+class DohProbeResult {
+  const DohProbeResult({required this.host, required this.addresses, required this.milliseconds, this.error});
+
+  final String host;
+  final List<String> addresses;
+  final int milliseconds;
+
+  /// 非 null 表示这次解析失败（端点不可达／被污染／超时）。
+  final String? error;
+
+  bool get ok => error == null && addresses.isNotEmpty;
 }
 
 class _DohResolver {

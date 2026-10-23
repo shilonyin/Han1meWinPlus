@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../data/remote/han1me_api.dart' show CloudflareChallengeException;
+import '../../data/remote/network_exceptions.dart';
 import 'press_scale.dart';
 
 /// 出错时贴在顶部的一条提示：左边说原因，右边给「重试」和「关闭」。
@@ -45,6 +47,9 @@ VoidCallback showAppErrorBar(
 /// 分档跟 `site_diagnostics_page` 的 `_suggestion` 保持一致（403 判 Cloudflare、
 /// 5xx 判站点、DNS/连接判网络），免得同一个错误在诊断页和这里给出两种说法。
 String? appErrorSuggestion(AppLocalizations l10n, Object error) {
+  if (error is NetworkUnreachableException) {
+    return l10n.networkUnreachableSuggestion;
+  }
   if (error is CloudflareChallengeException) {
     // 硬封锁没有可点的挑战页，让用户去「完成验证」只会白试，直接说清是网络被拦。
     return error.blocked
@@ -69,8 +74,35 @@ String? appErrorSuggestion(AppLocalizations l10n, Object error) {
   return null;
 }
 
+/// 错误该显示成什么标题；返回 null 表示没有更好的说法，直接用原始异常文本。
+///
+/// 只给「原始文本对用户毫无意义、但原因已经确定」的错误配标题 —— 目前就是
+/// [NetworkUnreachableException]：它的 `toString()` 是调试串，直接上屏没人看得懂。
+String? appErrorTitle(AppLocalizations l10n, Object error) {
+  if (error is NetworkUnreachableException) {
+    return l10n.networkUnreachableTitle;
+  }
+  return null;
+}
+
+/// 错误的正文行：有专用标题时给一句人话（含站点和候选数），否则回落到原始异常。
+String appErrorBody(AppLocalizations l10n, Object error) {
+  if (error is NetworkUnreachableException) {
+    return l10n.networkUnreachableDetail(error.host, error.attempts);
+  }
+  return '$error';
+}
+
+/// 有没有「去网络设置」这条恢复路径可以给。
+///
+/// 只有候选地址全耗尽才需要用户动手改线路；Cloudflare 挑战、5xx 这些改代理没用，
+/// 多给一个入口反而分散注意。
+bool appErrorNeedsNetworkSettings(Object error) =>
+    error is NetworkUnreachableException;
+
 /// 按错误种类挑图标：网络类的用断网图标，其余用通用错误图标。
 IconData appErrorIcon(Object error) {
+  if (error is NetworkUnreachableException) return Symbols.wifi_off_rounded;
   if (error is CloudflareChallengeException) return Symbols.gpp_maybe_rounded;
   if (error is SocketException || error is HttpException) {
     return Symbols.wifi_off_rounded;
@@ -85,6 +117,16 @@ IconData appErrorIcon(Object error) {
     };
   }
   return Symbols.error_outline_rounded;
+}
+
+/// 跳到网络设置页。
+///
+/// 用 `maybeOf` 而不是 `of`：这条错误态也会出现在没有 GoRouter 的测试/预览环境里，
+/// 那里没有路由可跳，按钮就不该炸。
+void _openNetworkSettings(BuildContext context) {
+  final router = GoRouter.maybeOf(context);
+  if (router == null) return;
+  router.push('/settings/network');
 }
 
 /// 整页错误态：内容区加载失败、且没有旧数据可显示时占满整块区域。
@@ -110,6 +152,7 @@ class AppErrorView extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final suggestion = appErrorSuggestion(l10n, error);
+    final title = appErrorTitle(l10n, error);
     // 硬封锁（`Attention Required!`）不给「完成验证」入口：那种 403 根本不返回挑战页，
     // 用户点进去只会看到一个没有可点内容的页面，白跑一趟。
     final needsChallenge = switch (error) {
@@ -117,6 +160,7 @@ class AppErrorView extends StatelessWidget {
         onCloudflareVerified != null,
       _ => false,
     };
+    final needsNetworkSettings = appErrorNeedsNetworkSettings(error);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -125,8 +169,18 @@ class AppErrorView extends StatelessWidget {
           children: [
             Icon(appErrorIcon(error), size: 56, color: colorScheme.error),
             const SizedBox(height: 16),
+            if (title case final heading?) ...[
+              Text(
+                heading,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(
-              '$error',
+              appErrorBody(l10n, error),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
@@ -161,6 +215,14 @@ class AppErrorView extends StatelessWidget {
                     child: TextButton(
                       onPressed: onCloudflareVerified,
                       child: Text(l10n.completeCloudflareVerification),
+                    ),
+                  ),
+                if (needsNetworkSettings)
+                  PressScale(
+                    child: TextButton.icon(
+                      onPressed: () => _openNetworkSettings(context),
+                      icon: const Icon(Symbols.settings_ethernet_rounded, size: 18),
+                      label: Text(l10n.openNetworkSettings),
                     ),
                   ),
               ],
@@ -275,7 +337,8 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '${widget.error}',
+                                  appErrorTitle(l10n, widget.error) ??
+                                      appErrorBody(l10n, widget.error),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodyMedium?.copyWith(
