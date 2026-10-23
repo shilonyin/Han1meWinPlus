@@ -194,6 +194,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addressGroupGetchu => 'Getchu previews';
 
   @override
+  String get addressGroupJav => 'AV video sources';
+
+  @override
+  String get addressLatencyNoCandidates =>
+      'No built-in candidate addresses for this group: the site\'s edge addresses are unreachable over a direct connection, so requests fall back to system DNS or the proxy and there is nothing to measure here.';
+
+  @override
+  String get addressLatencyNoCandidatesTitle =>
+      'Sites without candidate addresses';
+
+  @override
+  String addressProbeNoteHttp(int code) {
+    return 'HTTP $code rejected';
+  }
+
+  @override
+  String get addressProbeNoteNoBody => 'throughput not measurable';
+
+  @override
+  String get customMirrorSites => 'Mirror candidates';
+
+  @override
+  String get customMirrorSitesHint =>
+      'One address per line. When a mirror goes down you can switch here instead of hunting for a new one.';
+
+  @override
+  String get customMirrorSitesEmpty => 'No mirror addresses added yet';
+
+  @override
+  String get customMirrorSiteActive => 'In use';
+
+  @override
+  String get customMirrorSiteUse => 'Switch to this one';
+
+  @override
+  String get customMirrorSiteRemove => 'Remove';
+
+  @override
+  String get dohTest => 'Test endpoint';
+
+  @override
+  String get dohTesting => 'Testing…';
+
+  @override
+  String dohTestOk(Object host, int count, int ms) {
+    return 'Resolved $host to $count address(es) in $ms ms';
+  }
+
+  @override
+  String dohTestFail(Object error) {
+    return 'Resolution failed: $error';
+  }
+
+  @override
+  String get dohTestSample => 'example.com';
+
+  @override
   String get siteDiagnostics => 'Site Diagnostics';
 
   @override
@@ -1397,6 +1454,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkErrorTitle => 'Page failed to load';
+
+  @override
+  String get networkUnreachableTitle => 'Cannot reach this site';
+
+  @override
+  String networkUnreachableDetail(String host, int attempts) {
+    return 'None of the $attempts candidate addresses for $host responded';
+  }
+
+  @override
+  String get networkUnreachableSuggestion =>
+      'The route to this site is blocked. Switching to a proxy or another site address in Network settings usually fixes it.';
+
+  @override
+  String get openNetworkSettings => 'Network settings';
 
   @override
   String get loginLoadFailedHint =>

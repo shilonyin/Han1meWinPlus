@@ -125,6 +125,7 @@ class AppSettings {
     this.useBuiltInHosts = false,
     this.useCustomMirrorSite = false,
     this.customMirrorSite = '',
+    this.customMirrorSites = const [],
     this.appendCustomMirrorPath = true,
     this.useAddressRanking = true,
     this.useDoh = false,
@@ -222,7 +223,13 @@ class AppSettings {
   final String videoBaseUrl;
   final bool useBuiltInHosts;
   final bool useCustomMirrorSite;
+
+  /// 当前生效的自定义镜像（[customMirrorSites] 里被选中的那一个）。
   final String customMirrorSite;
+
+  /// 备用的自定义镜像候选。镜像站随时会挂，只存一个的话每次换站都要重新手输；
+  /// 存一份候选列表就能在设置里直接切换、在诊断页逐条测速。
+  final List<String> customMirrorSites;
   final bool appendCustomMirrorPath;
 
   /// 是否按实测延迟自动优选内置候选地址（见 `AddressRanker`）。关闭则回到列表原顺序（IPv4 优先）。
@@ -404,6 +411,7 @@ class AppSettings {
     'useBuiltInHosts': useBuiltInHosts,
     'useCustomMirrorSite': useCustomMirrorSite,
     'customMirrorSite': customMirrorSite,
+    'customMirrorSites': customMirrorSites,
     'appendCustomMirrorPath': appendCustomMirrorPath,
     'useAddressRanking': useAddressRanking,
     'useDoh': useDoh,
@@ -531,6 +539,10 @@ class AppSettings {
         Platform.isWindows || Platform.isLinux || Platform.isMacOS,
     useCustomMirrorSite: json['useCustomMirrorSite'] as bool? ?? false,
     customMirrorSite: _mirrorUrl(json['customMirrorSite'] as String?),
+    customMirrorSites: _mirrorList(
+      json['customMirrorSites'],
+      fallback: _mirrorUrl(json['customMirrorSite'] as String?),
+    ),
     appendCustomMirrorPath: json['appendCustomMirrorPath'] as bool? ?? true,
     useAddressRanking: json['useAddressRanking'] as bool? ?? true,
     useDoh: json['useDoh'] as bool? ?? false,
@@ -678,6 +690,22 @@ class AppSettings {
     _ => 'auto',
   };
 
+  /// 解析镜像候选列表：逐条走 [_mirrorUrl] 校验、去重保序。
+  ///
+  /// [fallback] 是旧配置里的单个镜像 —— 老版本只存一个地址，升级后要把它并进
+  /// 候选列表，否则用户会看到「候选列表是空的、但当前镜像还在用着」。
+  static List<String> _mirrorList(Object? value, {String fallback = ''}) {
+    final urls = <String>[];
+    if (value is List) {
+      for (final item in value) {
+        final url = _mirrorUrl(item is String ? item : null);
+        if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
+      }
+    }
+    if (fallback.isNotEmpty && !urls.contains(fallback)) urls.insert(0, fallback);
+    return urls;
+  }
+
   static String _mirrorUrl(String? value) {
     final normalized = value?.trim().replaceAll(RegExp(r'/+$'), '') ?? '';
     final uri = Uri.tryParse(normalized);
@@ -735,6 +763,7 @@ class AppSettings {
     bool? useBuiltInHosts,
     bool? useCustomMirrorSite,
     String? customMirrorSite,
+    List<String>? customMirrorSites,
     bool? appendCustomMirrorPath,
     bool? useAddressRanking,
     bool? useDoh,
@@ -829,6 +858,7 @@ class AppSettings {
     useBuiltInHosts: useBuiltInHosts ?? this.useBuiltInHosts,
     useCustomMirrorSite: useCustomMirrorSite ?? this.useCustomMirrorSite,
     customMirrorSite: customMirrorSite ?? this.customMirrorSite,
+    customMirrorSites: customMirrorSites ?? this.customMirrorSites,
     appendCustomMirrorPath:
         appendCustomMirrorPath ?? this.appendCustomMirrorPath,
     useAddressRanking: useAddressRanking ?? this.useAddressRanking,

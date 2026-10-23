@@ -19,11 +19,25 @@ import 'settings_sub_page.dart';
 
 /// 候选地址分组：Hanime1 的三个域名共用同一批 Cloudflare 边缘地址（同一个 List 常量），
 /// 合成一组展示，免得同一个地址列表在页面上重复三遍。
-const _addressHosts = <String>['hanime1.com', 'vdownload.hembed.com', 'www.getchu.com'];
+///
+/// 后五个 AV 源也列出来：其中只有 xHamster 有实测可用的内置地址，其余四个的
+/// Cloudflare 边缘地址在直连下要么超时要么被按 IP 拒绝。列出来是为了让用户看清
+/// 「这一组为什么没有候选」，否则页面只显示三组，会让人以为项目不支持这些站点。
+const _addressHosts = <String>[
+  'hanime1.com',
+  'vdownload.hembed.com',
+  'www.getchu.com',
+  'zh.xhamster.com',
+  'missav.ai',
+  'jable.tv',
+  'supjav.com',
+  'kissjav.li',
+];
 
 String _addressGroupLabel(AppLocalizations l10n, String host) => switch (host) {
       'vdownload.hembed.com' => l10n.addressGroupImageCdn,
       'www.getchu.com' => l10n.addressGroupGetchu,
+      'zh.xhamster.com' || 'missav.ai' || 'jable.tv' || 'supjav.com' || 'kissjav.li' => l10n.addressGroupJav,
       _ => l10n.addressGroupSite,
     };
 
@@ -81,13 +95,26 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
       final addresses = WindowsConnectionFactory.builtInHosts[host] ?? const <String>[];
       // 探测是**直连**的（裸 TCP + TLS 握手），不走代理：内置地址本来就只在直连时才有
       // 意义。用真实 SNI 是因为「能连上」不等于「这个节点能服务该域名」。
-      final probes = await AddressRanker.instance.probe(host, addresses, allowBadCertificate: WindowsConnectionFactory.hanimeHosts.contains(host));
+      // 顺带测吞吐：只测握手会被「握手很快、传文件很慢」的节点骗过去，而这一列
+      // 本来就是给用户判断「这个地址到底能不能用」看的。
+      final probes = await AddressRanker.instance.probe(host, addresses, allowBadCertificate: WindowsConnectionFactory.hanimeHosts.contains(host), measureBandwidth: addresses.isNotEmpty);
       if (!mounted) return;
       setState(() => _measured[host] = probes);
     }
     if (!mounted) return;
     setState(() => _probing = false);
   }
+
+  /// 没有内置候选地址的站点。
+  ///
+  /// 这些站点（missav / jable / supjav / kissjav）的边缘地址在直连下全部连不上，
+  /// 只能走系统解析或代理，所以既没有可测速的地址也没有任何指标。以前它们各自
+  /// 占一张卡、每张只写一句「没有候选地址」，一屏里四张几乎空白的卡全是同一句话，
+  /// 把真正有数据的卡挤到看不见的地方。合并成一张，正文里列一遍域名就够了。
+  List<String> get _hostsWithoutCandidates => [
+        for (final host in _addressHosts)
+          if ((WindowsConnectionFactory.builtInHosts[host] ?? const <String>[]).isEmpty) host,
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +151,9 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
           ),
         ),
         const SizedBox(height: 12),
-        for (final host in _addressHosts) _addressCard(context, l10n, host),
+        for (final host in _addressHosts)
+          if ((WindowsConnectionFactory.builtInHosts[host] ?? const <String>[]).isNotEmpty) _addressCard(context, l10n, host),
+        if (_hostsWithoutCandidates.isNotEmpty) _noCandidatesCard(context, l10n, _hostsWithoutCandidates),
       ]),
     );
   }
@@ -196,6 +225,22 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     );
   }
 
+  Widget _noCandidatesCard(BuildContext context, AppLocalizations l10n, List<String> hosts) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return GlassPanel(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      solidColor: scheme.surfaceContainerLow,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(l10n.addressLatencyNoCandidatesTitle, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Padding(padding: const EdgeInsets.only(top: 4), child: Text(hosts.join(' · '), style: textTheme.bodySmall?.copyWith(color: scheme.outline))),
+        Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyNoCandidates, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4))),
+      ]),
+    );
+  }
+
   Widget _addressCard(BuildContext context, AppLocalizations l10n, String host) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -203,6 +248,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final measured = {for (final probe in _measured[host] ?? const <AddressProbe>[]) probe.address: probe};
     final ranker = AddressRanker.instance;
     final ranked = ranker.rankedFor(host);
+    final speed = ranker.throughputFor(host);
     final failed = ranker.failedFor(host);
     final preferred = ranker.enabled ? ranker.order(host, addresses).firstWhere((address) => ranked.containsKey(address) || measured[address]?.ok == true, orElse: () => '') : '';
     final preferredMs = ranked[preferred] ?? measured[preferred]?.milliseconds;
@@ -220,24 +266,57 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
           else if (fastest != null) Text('$fastest ms', style: textTheme.bodyMedium?.copyWith(color: _okColor(context), fontWeight: FontWeight.w600)),
         ]),
         Padding(padding: const EdgeInsets.only(top: 4), child: Text(host, style: textTheme.bodySmall?.copyWith(color: scheme.outline))),
-        if (preferred.isNotEmpty && preferredMs != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyPreferred(preferred, preferredMs), style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant))),
+        if (addresses.isEmpty)
+          Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyNoCandidates, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)))
+        else ...[
+          if (preferred.isNotEmpty && preferredMs != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyPreferred(preferred, preferredMs), style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant))),
+        ],
         for (final address in addresses) Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Row(children: [
             Icon(address == preferred ? Symbols.bolt_rounded : failed.contains(address) ? Symbols.error_rounded : Symbols.circle_rounded, size: 16, color: address == preferred ? scheme.primary : failed.contains(address) ? scheme.error : scheme.outline),
             const SizedBox(width: 8),
             Expanded(child: Text(address, style: textTheme.bodyMedium)),
-            Text(_addressMeasurement(l10n, measured[address], ranked[address], failed.contains(address)), style: textTheme.bodyMedium?.copyWith(color: address == preferred ? scheme.primary : scheme.onSurfaceVariant, fontWeight: address == preferred ? FontWeight.w600 : null)),
+            Text(_addressMeasurement(l10n, measured[address], ranked[address], speed[address], failed.contains(address)), style: textTheme.bodyMedium?.copyWith(color: address == preferred ? scheme.primary : scheme.onSurfaceVariant, fontWeight: address == preferred ? FontWeight.w600 : null)),
           ]),
         ),
       ]),
     );
   }
 
-  String _addressMeasurement(AppLocalizations l10n, AddressProbe? probe, int? rankedMs, bool failed) {
-    if (probe?.ok == true) return '${probe!.milliseconds} ms';
+  /// 把 [AddressProbe.note] 翻成给人看的一小段。
+  ///
+  /// note 是 [AddressRanker] 内部的短代码（`http-403` / `small-body` / `read-failed`…），
+  /// 直接显示出来没人看得懂；分不出具体原因时统一说「未能测速」，比空白好。
+  String? _probeNote(AppLocalizations l10n, String? note) {
+    if (note == null) return null;
+    if (note.startsWith('http-')) {
+      final code = int.tryParse(note.substring(5));
+      if (code != null) return l10n.addressProbeNoteHttp(code);
+    }
+    return l10n.addressProbeNoteNoBody;
+  }
+
+  /// 地址右侧那一小段测量值。
+  ///
+  /// 吞吐比延迟更能说明「这个地址到底能不能用」：握手 400ms 但只能跑 30 KB/s 的
+  /// 节点，页面上比握手 600ms 能跑 800 KB/s 的那个慢得多。测不出吞吐时（握手成功
+  /// 但 HTTP 打回 403／读超时）只显示延迟，把原因留给 [AddressProbe.note]。
+  String _addressMeasurement(AppLocalizations l10n, AddressProbe? probe, int? rankedMs, int? kbps, bool failed) {
+    if (probe?.ok == true) {
+      final latency = '${probe!.milliseconds} ms';
+      final speed = probe.kilobytesPerSecond ?? kbps;
+      if (speed != null) return '$latency · $speed KB/s';
+      // 握手成功但没测出吞吐时，把原因带出来。不然这一行只剩一个延迟，看的人
+      // 会以为「这个地址只有延迟可看」，而实际情况可能是 HTTP 层被拒了。
+      final note = _probeNote(l10n, probe.note);
+      return note == null ? latency : '$latency · $note';
+    }
     if (probe?.ok == false || (probe == null && failed)) return l10n.addressLatencyUnavailable;
-    if (rankedMs != null) return '$rankedMs ms';
+    if (rankedMs != null) {
+      final speed = kbps;
+      return speed == null ? '$rankedMs ms' : '$rankedMs ms · $speed KB/s';
+    }
     return l10n.addressLatencyNotProbed;
   }
 

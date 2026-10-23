@@ -447,6 +447,102 @@ abstract class AppLocalizations {
   /// **'Getchu previews'**
   String get addressGroupGetchu;
 
+  /// No description provided for @addressGroupJav.
+  ///
+  /// In en, this message translates to:
+  /// **'AV video sources'**
+  String get addressGroupJav;
+
+  /// No description provided for @addressLatencyNoCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'No built-in candidate addresses for this group: the site\'s edge addresses are unreachable over a direct connection, so requests fall back to system DNS or the proxy and there is nothing to measure here.'**
+  String get addressLatencyNoCandidates;
+
+  /// No description provided for @addressLatencyNoCandidatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sites without candidate addresses'**
+  String get addressLatencyNoCandidatesTitle;
+
+  /// No description provided for @addressProbeNoteHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP {code} rejected'**
+  String addressProbeNoteHttp(int code);
+
+  /// No description provided for @addressProbeNoteNoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'throughput not measurable'**
+  String get addressProbeNoteNoBody;
+
+  /// No description provided for @customMirrorSites.
+  ///
+  /// In en, this message translates to:
+  /// **'Mirror candidates'**
+  String get customMirrorSites;
+
+  /// No description provided for @customMirrorSitesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One address per line. When a mirror goes down you can switch here instead of hunting for a new one.'**
+  String get customMirrorSitesHint;
+
+  /// No description provided for @customMirrorSitesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No mirror addresses added yet'**
+  String get customMirrorSitesEmpty;
+
+  /// No description provided for @customMirrorSiteActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get customMirrorSiteActive;
+
+  /// No description provided for @customMirrorSiteUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to this one'**
+  String get customMirrorSiteUse;
+
+  /// No description provided for @customMirrorSiteRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get customMirrorSiteRemove;
+
+  /// No description provided for @dohTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test endpoint'**
+  String get dohTest;
+
+  /// No description provided for @dohTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing…'**
+  String get dohTesting;
+
+  /// No description provided for @dohTestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved {host} to {count} address(es) in {ms} ms'**
+  String dohTestOk(Object host, int count, int ms);
+
+  /// No description provided for @dohTestFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution failed: {error}'**
+  String dohTestFail(Object error);
+
+  /// No description provided for @dohTestSample.
+  ///
+  /// In en, this message translates to:
+  /// **'example.com'**
+  String get dohTestSample;
+
   /// No description provided for @siteDiagnostics.
   ///
   /// In en, this message translates to:
@@ -2534,6 +2630,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page failed to load'**
   String get networkErrorTitle;
+
+  /// No description provided for @networkUnreachableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reach this site'**
+  String get networkUnreachableTitle;
+
+  /// No description provided for @networkUnreachableDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the {attempts} candidate addresses for {host} responded'**
+  String networkUnreachableDetail(String host, int attempts);
+
+  /// No description provided for @networkUnreachableSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'The route to this site is blocked. Switching to a proxy or another site address in Network settings usually fixes it.'**
+  String get networkUnreachableSuggestion;
+
+  /// No description provided for @openNetworkSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Network settings'**
+  String get openNetworkSettings;
 
   /// No description provided for @loginLoadFailedHint.
   ///

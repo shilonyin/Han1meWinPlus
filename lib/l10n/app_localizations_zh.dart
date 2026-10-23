@@ -188,6 +188,61 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addressGroupGetchu => 'Getchu 预告源';
 
   @override
+  String get addressGroupJav => 'AV 视频源';
+
+  @override
+  String get addressLatencyNoCandidates =>
+      '这一组没有内置候选地址：该站点的边缘地址在直连下不可用，请求会走系统解析或代理，所以这里没有可测速的地址。';
+
+  @override
+  String get addressLatencyNoCandidatesTitle => '没有候选地址的站点';
+
+  @override
+  String addressProbeNoteHttp(int code) {
+    return 'HTTP $code 拒绝';
+  }
+
+  @override
+  String get addressProbeNoteNoBody => '未能测速';
+
+  @override
+  String get customMirrorSites => '镜像候选列表';
+
+  @override
+  String get customMirrorSitesHint => '每行一个地址。镜像站挂掉时可以直接在这里换，不用重新去别处找。';
+
+  @override
+  String get customMirrorSitesEmpty => '还没有添加任何镜像地址';
+
+  @override
+  String get customMirrorSiteActive => '当前使用';
+
+  @override
+  String get customMirrorSiteUse => '切换到这一个';
+
+  @override
+  String get customMirrorSiteRemove => '删除';
+
+  @override
+  String get dohTest => '测试端点';
+
+  @override
+  String get dohTesting => '测试中…';
+
+  @override
+  String dohTestOk(Object host, int count, int ms) {
+    return '解析 $host 得到 $count 个地址，用时 $ms ms';
+  }
+
+  @override
+  String dohTestFail(Object error) {
+    return '解析失败：$error';
+  }
+
+  @override
+  String get dohTestSample => 'example.com';
+
+  @override
   String get siteDiagnostics => '站点可用性诊断';
 
   @override
@@ -1353,6 +1408,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get networkErrorTitle => '网页打不开';
+
+  @override
+  String get networkUnreachableTitle => '这个站点连不上';
+
+  @override
+  String networkUnreachableDetail(String host, int attempts) {
+    return '$host 的 $attempts 个候选地址都没连上';
+  }
+
+  @override
+  String get networkUnreachableSuggestion =>
+      '线路到该站点不通。在「网络设置」里改用代理，或换一个站点地址，通常就能恢复。';
+
+  @override
+  String get openNetworkSettings => '网络设置';
 
   @override
   String get loginLoadFailedHint =>
@@ -2861,6 +2931,61 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addressGroupGetchu => 'Getchu 預告源';
 
   @override
+  String get addressGroupJav => 'AV 影片來源';
+
+  @override
+  String get addressLatencyNoCandidates =>
+      '這一組沒有內建候選位址：該站點的邊緣位址在直連下不可用，請求會走系統解析或代理，所以這裡沒有可測速的位址。';
+
+  @override
+  String get addressLatencyNoCandidatesTitle => '沒有候選位址的站點';
+
+  @override
+  String addressProbeNoteHttp(int code) {
+    return 'HTTP $code 拒絕';
+  }
+
+  @override
+  String get addressProbeNoteNoBody => '未能測速';
+
+  @override
+  String get customMirrorSites => '鏡像候選清單';
+
+  @override
+  String get customMirrorSitesHint => '每行一個位址。鏡像站掛掉時可以直接在這裡換，不用重新去別處找。';
+
+  @override
+  String get customMirrorSitesEmpty => '還沒有新增任何鏡像位址';
+
+  @override
+  String get customMirrorSiteActive => '目前使用';
+
+  @override
+  String get customMirrorSiteUse => '切換到這一個';
+
+  @override
+  String get customMirrorSiteRemove => '刪除';
+
+  @override
+  String get dohTest => '測試端點';
+
+  @override
+  String get dohTesting => '測試中…';
+
+  @override
+  String dohTestOk(Object host, int count, int ms) {
+    return '解析 $host 得到 $count 個位址，用時 $ms ms';
+  }
+
+  @override
+  String dohTestFail(Object error) {
+    return '解析失敗：$error';
+  }
+
+  @override
+  String get dohTestSample => 'example.com';
+
+  @override
   String get siteDiagnostics => '站點可用性診斷';
 
   @override
@@ -4026,6 +4151,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get networkErrorTitle => '網頁打不開';
+
+  @override
+  String get networkUnreachableTitle => '這個站點連不上';
+
+  @override
+  String networkUnreachableDetail(String host, int attempts) {
+    return '$host 的 $attempts 個候選位址都沒連上';
+  }
+
+  @override
+  String get networkUnreachableSuggestion =>
+      '線路到該站點不通。在「網路設定」裡改用代理，或換一個站點位址，通常就能恢復。';
+
+  @override
+  String get openNetworkSettings => '網路設定';
 
   @override
   String get loginLoadFailedHint =>

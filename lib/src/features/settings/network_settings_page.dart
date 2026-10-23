@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/cast_receiver.dart';
+import '../../core/app_radius.dart';
 import '../../core/settings.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../data/remote/han1me_http_client.dart';
 import '../../data/remote/webview_environment.dart';
+import '../../data/remote/windows_connection_factory.dart';
 import '../../data/remote/windows_proxy.dart';
 import '../../data/remote/jav/jav_api.dart';
 import '../../data/remote/jav/jav_site.dart';
@@ -49,7 +52,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     return Scaffold(appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.networkSettings)), body: ListView(children: [
        SettingsCardList(title: l10n.general, children: [
         SettingsCardItem(title: l10n.site, subtitle: settings.comicMode ? 'https://hanimeone.me' : settings.baseUrl, leading: const Icon(Symbols.language_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => showSitePicker(context, ref, settings, onManageGroups: () => setState(() => _showSiteGroups = true))),
-       SettingsCardItem(title: l10n.customMirrorSite, subtitle: settings.mirrorActive ? settings.customMirrorSite : l10n.customMirrorSiteHint, leading: const Icon(Symbols.link_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
+       SettingsCardItem(title: l10n.customMirrorSite, subtitle: _mirrorSummary(l10n, settings), leading: const Icon(Symbols.link_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showMirrorSettings(context, ref, settings, controller)),
        SettingsCardItem(title: l10n.useBuiltInHosts, subtitle: settings.useBuiltInHosts && settings.proxyMode != 'direct' ? '${l10n.useBuiltInHostsDescription}\n${l10n.proxyDirectOnlyHint}' : l10n.useBuiltInHostsDescription, leading: const Icon(Symbols.dns_rounded), trailing: Switch(value: settings.useBuiltInHosts, onChanged: (value) => controller.saveChanges((current) => current.copyWith(useBuiltInHosts: value)))),        SettingsCardItem(title: l10n.siteDiagnostics, subtitle: l10n.siteDiagnosticsDescription, leading: const Icon(Symbols.network_check_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => setState(() => _showDiagnostics = true)),       SettingsCardItem(title: l10n.proxy, subtitle: _proxySummary(l10n, settings), leading: const Icon(Symbols.vpn_lock_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showProxySettings(context, settings, controller)),
        SettingsCardItem(title: l10n.doh, subtitle: _dohSummary(l10n, settings), leading: const Icon(Symbols.security_rounded), trailing: const Icon(Symbols.chevron_right_rounded), onTap: () => _showDohSettings(context, settings, controller)),
       ]),
@@ -71,12 +74,27 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     ]));
   }
 
+  /// 副标题：当前在用的镜像 + 还存了几个候选。只显示地址的话，用户看不出自己
+  /// 其实还存着别的镜像可以随时切。
+  String _mirrorSummary(AppLocalizations l10n, AppSettings settings) {
+    final count = settings.customMirrorSites.length;
+    if (!settings.mirrorActive) {
+      return count == 0 ? l10n.customMirrorSiteHint : '${l10n.customMirrorSites} ($count)';
+    }
+    return count <= 1 ? settings.customMirrorSite : '${settings.customMirrorSite} (+${count - 1})';
+  }
+
   String _dohSummary(AppLocalizations l10n, AppSettings settings) => !settings.useDoh ? l10n.dohDisabled : settings.dohPreset == 'custom' ? settings.dohCustomUrl.ifEmpty(l10n.custom) : _dohPresets[settings.dohPreset]!;
 
   Future<void> _showMirrorSettings(BuildContext context, WidgetRef ref, AppSettings settings, SettingsController controller) async {
     final result = await showAppDialog<_MirrorSettings>(context: context, builder: (_) => _MirrorSettingsDialog(settings: settings));
-    if (result == null || result.enabled == settings.useCustomMirrorSite && result.url == settings.customMirrorSite && result.appendPath == settings.appendCustomMirrorPath) return;
-    await controller.saveChanges((current) => current.copyWith(useCustomMirrorSite: result.enabled, customMirrorSite: result.url, appendCustomMirrorPath: result.appendPath));
+    if (result == null) return;
+    final unchanged = result.enabled == settings.useCustomMirrorSite &&
+        result.activeUrl == settings.customMirrorSite &&
+        result.appendPath == settings.appendCustomMirrorPath &&
+        listEquals(result.urls, settings.customMirrorSites);
+    if (unchanged) return;
+    await controller.saveChanges((current) => current.copyWith(useCustomMirrorSite: result.enabled, customMirrorSite: result.activeUrl, customMirrorSites: result.urls, appendCustomMirrorPath: result.appendPath));
     ref.invalidate(accountProvider);
     resetHomeFeed(ref);
   }
@@ -202,33 +220,110 @@ class _DohSettingsDialogState extends State<_DohSettingsDialog> {
   late final _customUrl = TextEditingController(text: widget.settings.dohCustomUrl);
   late final _bootstrapIps = TextEditingController(text: widget.settings.dohBootstrapIps);
   late final _timeout = TextEditingController(text: widget.settings.dohTimeoutSeconds.toString());
+  var _testing = false;
+  String? _testResult;
+  bool _testOk = false;
   @override void dispose() { _customUrl.dispose(); _bootstrapIps.dispose(); _timeout.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(l10n.dohSettings), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.useDoh), value: _enabled, onChanged: (value) => setState(() => _enabled = value)), DropdownButtonFormField(initialValue: _preset, decoration: InputDecoration(labelText: l10n.dohPreset), items: [..._dohPresets.entries.map((item) => DropdownMenuItem(value: item.key, child: Text(item.value))), DropdownMenuItem(value: 'custom', child: Text(l10n.custom))], onChanged: (value) => setState(() => _preset = value!)), const SizedBox(height: 12), TextField(controller: _customUrl, enabled: _preset == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.dohCustomUrl)), const SizedBox(height: 12), TextField(controller: _bootstrapIps, decoration: InputDecoration(labelText: l10n.dohBootstrapIps, helperText: l10n.dohBootstrapIpsDescription)), const SizedBox(height: 12), TextField(controller: _timeout, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: l10n.dohTimeoutSeconds, helperText: l10n.dohTimeoutSecondsDescription))])), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _DohSettings(enabled: _enabled, preset: _preset, customUrl: _customUrl.text.trim(), bootstrapIps: _bootstrapIps.text.trim(), timeoutSeconds: (int.tryParse(_timeout.text) ?? 10).clamp(1, 60))), child: Text(l10n.save)))]); }
+
+  /// 用**当前填的值**真发一次解析，而不是用已保存的配置 —— 这样「改完先测再存」
+  /// 的顺序才成立，选错端点在按下保存之前就能看见。
+  Future<void> _testDoh(AppLocalizations l10n) async {
+    setState(() {
+      _testing = true;
+      _testResult = null;
+    });
+    final seconds = (int.tryParse(_timeout.text) ?? 10).clamp(1, 60);
+    final result = await WindowsConnectionFactory.probeDohEndpoint(
+      preset: _preset,
+      customUrl: _customUrl.text.trim(),
+      bootstrapIps: _bootstrapIps.text.trim(),
+      timeout: Duration(seconds: seconds),
+    );
+    if (!mounted) return;
+    setState(() {
+      _testing = false;
+      _testOk = result.ok;
+      _testResult = result.ok
+          ? l10n.dohTestOk(result.host, result.addresses.length, result.milliseconds)
+          : l10n.dohTestFail(result.error ?? l10n.addressLatencyUnavailable);
+    });
+  }
+  @override Widget build(BuildContext context) { final l10n = AppLocalizations.of(context)!; return AlertDialog(title: Text(l10n.dohSettings), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.useDoh), value: _enabled, onChanged: (value) => setState(() => _enabled = value)), DropdownButtonFormField(initialValue: _preset, decoration: InputDecoration(labelText: l10n.dohPreset), items: [..._dohPresets.entries.map((item) => DropdownMenuItem(value: item.key, child: Text(item.value))), DropdownMenuItem(value: 'custom', child: Text(l10n.custom))], onChanged: (value) => setState(() => _preset = value!)), const SizedBox(height: 12), TextField(controller: _customUrl, enabled: _preset == 'custom', keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.dohCustomUrl)), const SizedBox(height: 12), TextField(controller: _bootstrapIps, decoration: InputDecoration(labelText: l10n.dohBootstrapIps, helperText: l10n.dohBootstrapIpsDescription)), const SizedBox(height: 12), TextField(controller: _timeout, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: l10n.dohTimeoutSeconds, helperText: l10n.dohTimeoutSecondsDescription)), const SizedBox(height: 12), SizedBox(width: double.infinity, child: PressScale(child: OutlinedButton.icon(onPressed: _testing ? null : () => _testDoh(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.network_check_rounded), label: Text(_testing ? l10n.dohTesting : l10n.dohTest)))), if (_testResult != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_testResult!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: _testOk ? null : Theme.of(context).colorScheme.error, height: 1.4)))])), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _DohSettings(enabled: _enabled, preset: _preset, customUrl: _customUrl.text.trim(), bootstrapIps: _bootstrapIps.text.trim(), timeoutSeconds: (int.tryParse(_timeout.text) ?? 10).clamp(1, 60))), child: Text(l10n.save)))]); }
 }
 
-class _MirrorSettings { const _MirrorSettings({required this.enabled, required this.url, required this.appendPath}); final bool enabled; final String url; final bool appendPath; }
+class _MirrorSettings {
+  const _MirrorSettings({required this.enabled, required this.urls, required this.activeUrl, required this.appendPath});
 
-class _MirrorSettingsDialog extends StatefulWidget { const _MirrorSettingsDialog({required this.settings}); final AppSettings settings; @override State<_MirrorSettingsDialog> createState() => _MirrorSettingsDialogState(); }
+  final bool enabled;
+  final List<String> urls;
+  final String activeUrl;
+  final bool appendPath;
+}
+
+/// 镜像站设置：候选列表 + 逐条测速。
+///
+/// 之前只存一个地址，镜像站一换就得重新去别处找、再手输一遍。现在候选列表常驻，
+/// 列表里直接切当前使用的那一个；每一条都能单独测，不用切过去再回主页看有没有
+/// 加载出来。
+class _MirrorSettingsDialog extends StatefulWidget {
+  const _MirrorSettingsDialog({required this.settings});
+
+  final AppSettings settings;
+
+  @override
+  State<_MirrorSettingsDialog> createState() => _MirrorSettingsDialogState();
+}
 
 class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
   late var _enabled = widget.settings.useCustomMirrorSite;
-  late final _url = TextEditingController(text: widget.settings.customMirrorSite);
+  late final _urls = <String>[...widget.settings.customMirrorSites];
+  late var _active = widget.settings.customMirrorSite;
   late var _appendPath = widget.settings.appendCustomMirrorPath;
-  var _testing = false;
-  String? _testResult;
-  @override void dispose() { _url.dispose(); super.dispose(); }
+  final _input = TextEditingController();
 
-  Future<void> _testConnection(AppLocalizations l10n) async {
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
-    final uri = Uri.tryParse(url);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty || uri.hasQuery || uri.hasFragment) {
-      setState(() => _testResult = l10n.customMirrorSiteInvalid);
+  /// 当前正在测的那一条（同一时刻只测一条，镜像请求本来就慢，并发没意义）。
+  String? _probing;
+  final _probeResults = <String, String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    // 老配置里那个单个地址也要出现在候选列表里，否则用户会看到一个空列表却还在用着它。
+    if (_active.isNotEmpty && !_urls.contains(_active)) _urls.insert(0, _active);
+    if (_active.isEmpty && _urls.isNotEmpty) _active = _urls.first;
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  void _addUrl(AppLocalizations l10n) {
+    final url = _normalize(_input.text);
+    if (!_validMirrorUrl(url)) {
+      setState(() => _probeResults['#input'] = l10n.customMirrorSiteInvalid);
       return;
     }
-    setState(() { _testing = true; _testResult = null; });
+    setState(() {
+      if (!_urls.contains(url)) _urls.add(url);
+      _active = url;
+      _probeResults.remove('#input');
+      _input.clear();
+    });
+  }
+
+  Future<void> _probe(AppLocalizations l10n, String url) async {
+    setState(() {
+      _probing = url;
+      _probeResults.remove(url);
+    });
     final result = await _testMirror(url, l10n);
     if (!mounted) return;
-    setState(() { _testing = false; _testResult = result; });
+    setState(() {
+      _probing = null;
+      _probeResults[url] = result;
+    });
   }
 
   Future<String> _testMirror(String homeUrl, AppLocalizations l10n) async {
@@ -257,15 +352,16 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
   }
 
   void _save(AppLocalizations l10n) {
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
-    if (_enabled && !_validMirrorUrl(url)) {
-      setState(() => _testResult = l10n.customMirrorSiteInvalid);
+    if (_enabled && !_validMirrorUrl(_active)) {
+      setState(() => _probeResults['#input'] = l10n.customMirrorSiteInvalid);
       return;
     }
-    Navigator.pop(context, _MirrorSettings(enabled: _enabled, url: url, appendPath: _appendPath));
+    Navigator.pop(context, _MirrorSettings(enabled: _enabled, urls: List.unmodifiable(_urls), activeUrl: _active, appendPath: _appendPath));
   }
 
-  bool _validMirrorUrl(String url) {
+  static String _normalize(String value) => value.trim().replaceAll(RegExp(r'/+$'), '');
+
+  static bool _validMirrorUrl(String url) {
     final uri = Uri.tryParse(url);
     return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty && !uri.hasQuery && !uri.hasFragment;
   }
@@ -273,30 +369,86 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final inputError = _probeResults['#input'];
     return AlertDialog(
       title: Text(l10n.customMirrorSite),
-      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.enableCustomMirrorSite), value: _enabled, onChanged: (value) => setState(() => _enabled = value)),
-        TextField(controller: _url, enabled: _enabled, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.customMirrorSite, helperText: l10n.customMirrorSiteHint)),
-        const SizedBox(height: 12),
-        if (_enabled) ...[
-          Text(l10n.customMirrorApiPathMode, style: Theme.of(context).textTheme.titleSmall),
-          // 选中值交给 RadioGroup 统一管，子项只报自己的 value —— 这是
-          // RadioListTile 上 groupValue/onChanged 被弃用后的官方写法。
-          RadioGroup<bool>(
-            groupValue: _appendPath,
-            onChanged: (value) => setState(() => _appendPath = value ?? false),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: true, title: Text(l10n.customMirrorPathFollowHome), subtitle: Text(l10n.customMirrorPathFollowHomeSummary)),
-              RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: false, title: Text(l10n.customMirrorPathRoot), subtitle: Text(l10n.customMirrorPathRootSummary)),
-            ]),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(width: double.infinity, child: PressScale(child: FilledButton.icon(onPressed: _testing ? null : () => _testConnection(l10n), icon: _testing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.network_check_rounded), label: Text(l10n.testConnection)))),
-          if (_testResult != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_testResult!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))),
-        ],
-      ])),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(l10n.enableCustomMirrorSite), value: _enabled, onChanged: (value) => setState(() => _enabled = value)),
+            if (_enabled) ...[
+              Text(l10n.customMirrorSites, style: theme.textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text(l10n.customMirrorSitesHint, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)),
+              const SizedBox(height: 8),
+              if (_urls.isEmpty)
+                Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(l10n.customMirrorSitesEmpty, style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline))),
+              for (final url in _urls)
+                _mirrorRow(context, l10n, url),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: TextField(controller: _input, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: l10n.customMirrorSite, helperText: l10n.customMirrorSiteHint, errorText: inputError))),
+                const SizedBox(width: 8),
+                PressScale(child: IconButton.filledTonal(onPressed: () => _addUrl(l10n), icon: const Icon(Symbols.add_rounded), tooltip: l10n.customMirrorSite)),
+              ]),
+              const SizedBox(height: 12),
+              Text(l10n.customMirrorApiPathMode, style: theme.textTheme.titleSmall),
+              // 选中值交给 RadioGroup 统一管，子项只报自己的 value —— 这是
+              // RadioListTile 上 groupValue/onChanged 被弃用后的官方写法。
+              RadioGroup<bool>(
+                groupValue: _appendPath,
+                onChanged: (value) => setState(() => _appendPath = value ?? false),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: true, title: Text(l10n.customMirrorPathFollowHome), subtitle: Text(l10n.customMirrorPathFollowHomeSummary)),
+                  RadioListTile<bool>(contentPadding: EdgeInsets.zero, dense: true, value: false, title: Text(l10n.customMirrorPathRoot), subtitle: Text(l10n.customMirrorPathRootSummary)),
+                ]),
+              ),
+            ],
+          ]),
+        ),
+      ),
       actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => _save(l10n), child: Text(l10n.save)))],
+    );
+  }
+
+  /// 候选列表里的一行：选中标记 + 地址 + 单条测速 + 删除。
+  Widget _mirrorRow(BuildContext context, AppLocalizations l10n, String url) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final active = url == _active;
+    final probing = _probing == url;
+    final result = _probeResults[url];
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+      decoration: BoxDecoration(
+        color: active ? scheme.primaryContainer.withValues(alpha: .35) : scheme.surfaceContainerHighest.withValues(alpha: .4),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(active ? Symbols.check_circle_rounded : Symbols.circle_rounded, size: 18, color: active ? scheme.primary : scheme.outline),
+          const SizedBox(width: 8),
+          Expanded(
+            child: PressScale(
+              child: InkWell(
+                onTap: () => setState(() => _active = url),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(url, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: active ? FontWeight.w600 : null)),
+                  if (active) Text(l10n.customMirrorSiteActive, style: theme.textTheme.bodySmall?.copyWith(color: scheme.primary)),
+                ]),
+              ),
+            ),
+          ),
+          if (probing) const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)))
+          else PressScale(child: IconButton(onPressed: () => _probe(l10n, url), icon: const Icon(Symbols.network_check_rounded), tooltip: l10n.testConnection, visualDensity: VisualDensity.compact)),
+          PressScale(child: IconButton(onPressed: () => setState(() { _urls.remove(url); _probeResults.remove(url); if (_active == url) _active = _urls.isEmpty ? '' : _urls.first; }), icon: const Icon(Symbols.delete_outline_rounded), tooltip: l10n.customMirrorSiteRemove, visualDensity: VisualDensity.compact)),
+        ]),
+        if (result != null) Padding(padding: const EdgeInsets.only(left: 26, top: 2, bottom: 2), child: Text(result, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.3))),
+      ]),
     );
   }
 }
