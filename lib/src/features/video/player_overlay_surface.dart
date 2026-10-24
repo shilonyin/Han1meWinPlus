@@ -17,7 +17,7 @@ class PlayerOverlaySurface extends StatelessWidget {
     required this.child,
     this.radius = AppRadius.xl,
     this.padding = EdgeInsets.zero,
-    this.blurSigma = 18,
+    this.blurSigma = 10,
     super.key,
   });
 
@@ -25,7 +25,12 @@ class PlayerOverlaySurface extends StatelessWidget {
   final double radius;
   final EdgeInsetsGeometry padding;
 
-  /// 背景模糊半径。大块的条用默认值，小角标可以调小一点省开销。
+  /// 背景模糊半径。
+  ///
+  /// 默认值调得比早期（18）小：压在视频上时 18 会把背后的画面糊成一团色块，
+  /// 磨砂感过重、看起来像一块不透明的塑料板。10 仍能压住画面细节，但底下的
+  /// 内容透得出来，观感更接近「悬在画面之上」而不是「贴在画面上」。
+  /// 小角标可以再调小一点省开销。
   final double blurSigma;
 
   @override
@@ -33,14 +38,17 @@ class PlayerOverlaySurface extends StatelessWidget {
     // 边框画在模糊层之外：模糊会把条内的一切糊掉，边框留在外层才能保持清晰。
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      // 白边也压淡一档：底色变透之后，原来那道 8% 的边会显得比面板本身还重。
+      border: Border.all(color: Colors.white.withValues(alpha: .06)),
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
         child: ColoredBox(
-          color: Colors.black.withValues(alpha: .48),
+          // 底黑从 48% 降到 34%：模糊减弱之后需要更透的底色才看得出背后的画面，
+          // 否则两处一起收会让面板看起来跟改之前一样实。
+          color: Colors.black.withValues(alpha: .34),
           child: Padding(padding: padding, child: child),
         ),
       ),
