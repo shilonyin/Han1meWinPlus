@@ -356,7 +356,14 @@ class _FloatingControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 评论页签 + 侧栏展开时才给写评论入口：侧栏一收，评论列表就整个看不见了，
+    // 按钮还留在右下角的话就是一个指向虚无的按钮。（收起状态见
+    // [videoSidebarCollapsedProvider]，布局层读到的是同一个值。）
+    final sidebarCollapsed = vertical
+        ? ref.watch(videoSidebarCollapsedProvider(video.id))
+        : false;
     final showComment =
+        !sidebarCollapsed &&
         ref.watch(videoTabProvider(video.id)) == 1 &&
         ref.watch(accountProvider).valueOrNull != null;
     final actionColumn = Column(

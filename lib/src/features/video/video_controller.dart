@@ -10,6 +10,16 @@ import '../account/account_controller.dart';
 import '../shared/comments_page.dart' show CommentSort;
 
 final videoTabProvider = StateProvider.autoDispose.family<int, String>((ref, id) => 0);
+
+/// 播放页右侧信息栏是否收起（主窗口播放页用；独立播放窗口没有这个概念，值不会被读到）。
+///
+/// 提到 provider 是因为「收起」这个状态要被两个互不为祖先的组件读到：
+/// 一个是 [VideoPageBody] 里的布局（决定侧栏宽度动画到 0），另一个是页面
+/// 底层的写评论悬浮按钮 —— 侧栏收起后评论列表根本看不见，那个按钮必须跟着消失，
+/// 否则就是「右侧 UI 收起来了，按钮还挂在右下角」。
+final videoSidebarCollapsedProvider = StateProvider.autoDispose.family<bool, String>(
+  (ref, id) => false,
+);
 final videoCommentSortProvider = StateProvider.autoDispose.family<CommentSort, String>((ref, id) => CommentSort.latest);
 final selectedCommentVideoIdProvider = StateProvider.autoDispose.family<String, String>((ref, id) => id);
 final favoriteOverrideProvider = StateProvider.autoDispose.family<bool?, String>((ref, id) => null);

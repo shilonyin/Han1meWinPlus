@@ -79,8 +79,6 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
         exitDirection: M3EFloatingToolbarExitDirection.bottom,
       );
 
-  /// 桌面宽度下右侧内容栏是否收起（收起后播放器占满宽度）
-  var _sidebarCollapsed = false;
 
   /// 鼠标是否在播放器上 / 侧栏把手上（把手只在鼠标靠近时出现）
   var _pointerOnPlayer = false;
@@ -121,7 +119,9 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
   Widget build(BuildContext context) {
     final video = widget.video;
     final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
-    final sidebarCollapsed = widget.showSidebarToggle && _sidebarCollapsed;
+    final sidebarCollapsed =
+        widget.showSidebarToggle &&
+        ref.watch(videoSidebarCollapsedProvider(video.id));
     return SafeArea(
       bottom: false,
       child: Stack(
@@ -132,8 +132,12 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
               scrollBehavior: _scrollBehavior,
               sidebarCollapsed: sidebarCollapsed,
               showHandle: widget.showSidebarToggle && _showSidebarHandle,
-              onToggleSidebar: () =>
-                  setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+              onToggleSidebar: () {
+                final notifier = ref.read(
+                  videoSidebarCollapsedProvider(video.id).notifier,
+                );
+                notifier.state = !notifier.state;
+              },
               onPlayerHover: _setPointerOnPlayer,
               onHandleHover: _setPointerOnHandle,
               onBack: widget.onBack,
