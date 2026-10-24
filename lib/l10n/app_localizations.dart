@@ -4778,24 +4778,6 @@ abstract class AppLocalizations {
   /// **'Remove Tags'**
   String get removeTags;
 
-  /// No description provided for @translate.
-  ///
-  /// In en, this message translates to:
-  /// **'Translate'**
-  String get translate;
-
-  /// No description provided for @translating.
-  ///
-  /// In en, this message translates to:
-  /// **'Translating...'**
-  String get translating;
-
-  /// No description provided for @translationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Translation failed'**
-  String get translationFailed;
-
   /// No description provided for @cachedDownloads.
   ///
   /// In en, this message translates to:

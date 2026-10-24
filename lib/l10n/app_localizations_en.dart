@@ -2619,15 +2619,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removeTags => 'Remove Tags';
 
   @override
-  String get translate => 'Translate';
-
-  @override
-  String get translating => 'Translating...';
-
-  @override
-  String get translationFailed => 'Translation failed';
-
-  @override
   String get cachedDownloads => 'Cached';
 
   @override

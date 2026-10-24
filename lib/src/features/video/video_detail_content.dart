@@ -8,7 +8,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../core/settings.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/download_requests.dart';
@@ -45,11 +44,10 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
   Widget build(BuildContext context) {
     super.build(context);
     final video = widget.video;
-    final translation = ref.watch(videoTranslationProvider(video.id)).valueOrNull;
-    final description = translation?.description ?? video.description ?? '';
+    final description = video.description ?? '';
     final related = visibleRelatedVideos(ref, video.related);
     // 作者 / 上传者 / 简介内容都算「详情」，收起时整块一起隐藏
-    final hasDetails = description.isNotEmpty || video.uploader != null || translation?.captionTitle != null || video.captionTitle != null;
+    final hasDetails = description.isNotEmpty || video.uploader != null || video.captionTitle != null;
     void toggleDescription() => setState(() => _descriptionExpanded = !_descriptionExpanded);
     return CustomScrollView(
       slivers: [
@@ -57,15 +55,14 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 侧栏内容顺序：作者 → 标题（带展开/收起）→ 数据 → 简介 → 标签 → 系列 → 翻译
+              // 侧栏内容顺序：作者 → 标题（带展开/收起）→ 数据 → 简介 → 标签 → 系列
               _ArtistRow(video: video),
-              _TitleBlock(video: video, title: translation?.title, hasDetails: hasDetails, expanded: _descriptionExpanded, onToggleDescription: toggleDescription),
+              _TitleBlock(video: video, hasDetails: hasDetails, expanded: _descriptionExpanded, onToggleDescription: toggleDescription),
               // 操作排放在标题/数据下面
               VideoActionRow(video: video),
-              if (_descriptionExpanded) _Description(video: video, captionTitle: translation?.captionTitle, description: translation?.description, onToggle: toggleDescription),
+              if (_descriptionExpanded) _Description(video: video, onToggle: toggleDescription),
               _TagList(video: video),
               if (video.playlist.isNotEmpty) _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
-              _TranslateButton(video: video),
             ],
           ),
         ),
@@ -98,10 +95,9 @@ List<VideoCard> visibleRelatedVideos(WidgetRef ref, List<VideoCard> videos) {
 }
 
 class _TitleBlock extends StatelessWidget {
-  const _TitleBlock({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription, this.title});
+  const _TitleBlock({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription});
 
   final VideoDetail video;
-  final String? title;
   final bool hasDetails;
   final bool expanded;
   final VoidCallback onToggleDescription;
@@ -119,7 +115,7 @@ class _TitleBlock extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TitleText(text: title ?? video.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700) ?? const TextStyle(), expanded: expanded),
+                _TitleText(text: video.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700) ?? const TextStyle(), expanded: expanded),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
@@ -225,16 +221,14 @@ class _ArtistRow extends ConsumerWidget {
 }
 
 class _Description extends StatelessWidget {
-  const _Description({required this.video, required this.onToggle, this.captionTitle, this.description});
+  const _Description({required this.video, required this.onToggle});
 
   final VideoDetail video;
   final VoidCallback onToggle;
-  final String? captionTitle;
-  final String? description;
 
   @override
   Widget build(BuildContext context) {
-    final description = this.description ?? video.description ?? '';
+    final description = video.description ?? '';
     final l10n = AppLocalizations.of(context)!;
     if (description.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -254,7 +248,7 @@ class _Description extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (video.uploader case final uploader?) ...[Text('${l10n.uploader}: $uploader', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)), const SizedBox(height: 8)],
-                  if (captionTitle ?? video.captionTitle case final title?) ...[Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)), const SizedBox(height: 8)],
+                  if (video.captionTitle case final title?) ...[Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)), const SizedBox(height: 8)],
                   Text(description),
                 ],
               ),
@@ -498,38 +492,6 @@ class _SeriesPageArrow extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _TranslateButton extends ConsumerWidget {
-  const _TranslateButton({required this.video});
-
-  final VideoDetail video;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(videoTranslationProvider(video.id));
-    ref.listen(videoTranslationProvider(video.id), (previous, next) {
-      if (next.hasError && previous?.hasError != true) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.translationFailed)));
-      }
-    });
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: PressScale(child: TextButton(
-          onPressed: state.isLoading
-              ? null
-              : () {
-                  final language = ref.read(settingsProvider).valueOrNull?.language ?? AppLanguage.system;
-                  final locale = Localizations.localeOf(context);
-                  ref.read(videoTranslationProvider(video.id).notifier).translate(video, language, locale.toLanguageTag());
-                },
-          child: Text(state.isLoading ? AppLocalizations.of(context)!.translating : AppLocalizations.of(context)!.translate),
-        )),
-      ),
-    );
-  }
 }
 
 class _RelatedVideoTile extends StatelessWidget {

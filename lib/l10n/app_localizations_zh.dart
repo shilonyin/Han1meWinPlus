@@ -2532,15 +2532,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get removeTags => '移除标签';
 
   @override
-  String get translate => '翻译';
-
-  @override
-  String get translating => '翻译中...';
-
-  @override
-  String get translationFailed => '翻译失败';
-
-  @override
   String get cachedDownloads => '已缓存';
 
   @override
@@ -5272,15 +5263,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get removeTags => '移除標籤';
-
-  @override
-  String get translate => '翻譯';
-
-  @override
-  String get translating => '翻譯中...';
-
-  @override
-  String get translationFailed => '翻譯失敗';
 
   @override
   String get cachedDownloads => '已快取';
