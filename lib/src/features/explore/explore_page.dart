@@ -924,7 +924,11 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
             await cache.put(VideoCard(
               id: video.id,
               title: video.title,
-              coverUrl: detail.coverUrl ?? video.coverUrl,
+              // 和 VideoCard._mergeMeta 保持一致：封面只认列表页给的那张，
+              // 否则这条缓存会让卡片下次命中时又换一次图。
+              coverUrl: video.coverUrl.isNotEmpty
+                  ? video.coverUrl
+                  : (detail.coverUrl ?? ''),
               duration: detail.duration ?? video.duration,
               views: detail.views ?? video.views,
               rating: detail.rating ?? video.rating,

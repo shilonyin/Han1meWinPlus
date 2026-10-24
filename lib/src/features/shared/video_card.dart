@@ -346,11 +346,16 @@ class VideoCardTile extends ConsumerWidget {
     return fetched == null ? video : _mergeMeta(fetched);
   }
 
-  /// 补全信息以详情页为准（封面换成视频内容截图，而不是列表页给的海报）。
+  /// 补全信息只补文字字段，**封面继续用列表页给的那张**。
+  ///
+  /// 详情页的 `poster` 不一定是同一张图：可能是另一帧（视频截帧），也可能是
+  /// 同画面的高分辨率版本。不管哪种，URL 一变这张封面就得重新走一遍下载和解码，
+  /// 表现出来就是「先加载封面，然后又跳到视频帧画面」。列表页那张本来就是这张
+  /// 卡片该显示的图，补全元数据没有理由把它换掉。
   VideoCard _mergeMeta(VideoCard meta) => VideoCard(
     id: video.id,
     title: video.title,
-    coverUrl: meta.coverUrl.isEmpty ? video.coverUrl : meta.coverUrl,
+    coverUrl: video.coverUrl.isEmpty ? meta.coverUrl : video.coverUrl,
     duration: meta.duration ?? video.duration,
     views: meta.views ?? video.views,
     rating: meta.rating ?? video.rating,
