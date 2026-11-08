@@ -20,10 +20,16 @@ import 'startup_effects.dart';
 import 'theme_transition.dart';
 
 class Han1meApp extends ConsumerStatefulWidget {
-  const Han1meApp({super.key, this.initialLink});
+  const Han1meApp({super.key, this.initialLink, this.previewRoute});
 
   /// scheme 唤起带来的链接，交给启动流程在首页栈就绪后跳转。
   final Uri? initialLink;
+
+  /// 开发用 `--preview=<路由>`：启动后直接落在这个应用内页面上。
+  ///
+  /// 只在从命令行带该参数启动时非空；平时为 null，不进任何分支。
+  /// 用途见 `DeepLink.previewFromArguments` —— 逐页截图比对设计稿。
+  final Uri? previewRoute;
 
   @override
   ConsumerState<Han1meApp> createState() => _Han1meAppState();
@@ -91,6 +97,7 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
                       navigatorKey: _appRouter.navigatorKey,
                       exitCoordinator: _exitCoordinator,
                       initialLink: widget.initialLink,
+                      previewRoute: widget.previewRoute,
                       child: DownloadRequestListener(
                         // 独立播放窗口投进来的下载意图由主窗口执行（见该组件说明）。
                         navigatorKey: _appRouter.navigatorKey,

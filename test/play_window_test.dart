@@ -174,18 +174,19 @@ void main() {
   });
 
   group('openVideo 的分支', () {
-    testWidgets('开启独立窗口且启动成功 → 不 push 播放页', (tester) async {
+    // 「点封面」现在一律进详情页（`video_detail_content` 那一页），
+    // 独立播放窗口改由详情页里的「立即播放」触发 —— 所以这几种设置下
+    // 都不该再起 --play-window 进程。
+    testWidgets('点封面进详情页，不拉起独立播放窗口', (tester) async {
       final fake = _useLauncher();
       final probe = _Probe();
       await _openVideo(tester, probe);
 
-      expect(fake.calls, [
-        ['--play-window', '--video=v123'],
-      ]);
-      expect(probe.pushed, isEmpty);
+      expect(fake.calls, isEmpty, reason: '点封面不是「播这个」，是「看这个」');
+      expect(probe.pushed, ['/video/v123']);
     });
 
-    testWidgets('启动失败 → 回退到窗口内 push 播放页（不能让用户点不开）', (tester) async {
+    testWidgets('播放器拉不起来时也照样进详情页（不能让用户点不开）', (tester) async {
       _useLauncher(succeeds: false);
       final probe = _Probe();
       await _openVideo(tester, probe);
@@ -194,7 +195,7 @@ void main() {
       expect(find.text('video v123'), findsOneWidget);
     });
 
-    testWidgets('设置里关掉独立窗口 → 直接在当前窗口 push，不起进程', (tester) async {
+    testWidgets('设置里关掉独立窗口 → 同样先进详情页', (tester) async {
       final fake = _useLauncher();
       final probe = _Probe();
       await _openVideo(tester, probe, openInWindow: false);

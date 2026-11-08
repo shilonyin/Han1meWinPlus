@@ -19,7 +19,14 @@ const double floatingActionsClearance = 120;
 /// 需要调用方给出列表自己的 [controller]（不在滚动树里面时 `Scrollable.of` 拿不到），
 /// 以及刷新回调。[visibleAfter] 是「回到顶部」按钮出现的滚动距离。
 class ScrollActions extends StatefulWidget {
-  const ScrollActions({super.key, required this.controller, required this.onRefresh, this.onError, this.visibleAfter = 240, this.inset = 16});
+  const ScrollActions({
+    super.key,
+    required this.controller,
+    required this.onRefresh,
+    this.onError,
+    this.visibleAfter = 240,
+    this.inset = 16,
+  });
 
   final ScrollController controller;
   final Future<void> Function() onRefresh;
@@ -54,7 +61,9 @@ class _ScrollActionsState extends State<ScrollActions> {
 
   void _handleScroll() {
     if (!mounted) return;
-    final show = widget.controller.hasClients && widget.controller.offset > widget.visibleAfter;
+    final show =
+        widget.controller.hasClients &&
+        widget.controller.offset > widget.visibleAfter;
     if (show != _showTop) setState(() => _showTop = show);
   }
 
@@ -72,7 +81,11 @@ class _ScrollActionsState extends State<ScrollActions> {
 
   void _toTop() {
     if (!widget.controller.hasClients) return;
-    widget.controller.animateTo(0, duration: AppMotion.dialog, curve: Curves.easeOutCubic);
+    widget.controller.animateTo(
+      0,
+      duration: AppMotion.dialog,
+      curve: AppMotion.settle,
+    );
   }
 
   @override
@@ -86,14 +99,27 @@ class _ScrollActionsState extends State<ScrollActions> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _ActionButton(tooltip: l10n.refresh, onTap: _refresh, child: _busy ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: ink)) : Icon(Symbols.refresh_rounded, size: 22, color: ink)),
+          _ActionButton(
+            tooltip: l10n.refresh,
+            onTap: _refresh,
+            child: _busy
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: ink,
+                    ),
+                  )
+                : Icon(Symbols.refresh_rounded, size: 22, color: ink),
+          ),
           AnimatedSize(
             // 原为字面量 180ms。同一次「回到顶部」里，滚动动画用的是 AppMotion.dialog
             // （300ms）而按钮展开只用 180ms，按钮会先冒出来、列表还在往上滑，看着是两段。
             // 归到最接近的 standard（200ms）：它是 180 的最近一档（差 20ms，brief 差 30ms），
             // 且语义上「标准过渡」正是这里要的；升到 dialog 反而比点击反馈慢半拍。
             duration: AppMotion.standard,
-            curve: Curves.easeOutCubic,
+            curve: AppMotion.settle,
             alignment: Alignment.bottomCenter,
             child: _showTop
                 ? Padding(
@@ -104,9 +130,20 @@ class _ScrollActionsState extends State<ScrollActions> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Symbols.arrow_upward_rounded, size: 18, color: ink),
+                          Icon(
+                            Symbols.arrow_upward_rounded,
+                            size: 18,
+                            color: ink,
+                          ),
                           const SizedBox(height: 1),
-                          Text(l10n.backToTop, style: TextStyle(fontSize: 11, color: ink, fontWeight: FontWeight.w600)),
+                          Text(
+                            l10n.backToTop,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -120,7 +157,11 @@ class _ScrollActionsState extends State<ScrollActions> {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.tooltip, required this.onTap, required this.child});
+  const _ActionButton({
+    required this.tooltip,
+    required this.onTap,
+    required this.child,
+  });
 
   final String tooltip;
   final VoidCallback onTap;
@@ -128,16 +169,18 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: tooltip,
-        // 悬浮控件回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
-        child: Material(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          clipBehavior: Clip.antiAlias,
-          child: PressScale(child: InkWell(
-            onTap: onTap,
-            child: SizedBox(width: 44, height: 44, child: Center(child: child)),
-          )),
+    message: tooltip,
+    // 悬浮控件回到主题自己的面（玻璃已停用，决策见 `docs/ui-polish.md`）。
+    child: Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      clipBehavior: Clip.antiAlias,
+      child: PressScale(
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(width: 44, height: 44, child: Center(child: child)),
         ),
-      );
+      ),
+    ),
+  );
 }

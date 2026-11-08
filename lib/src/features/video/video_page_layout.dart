@@ -5,6 +5,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
@@ -12,7 +13,6 @@ import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
 import 'video_player_panel.dart';
-import '../../core/app_motion.dart';
 
 // 播放页的内容布局：主窗口的播放页和「独立播放窗口」共用这一份，
 // 所以任何播放页的视觉调整只改这里，两边自动同步。
@@ -30,13 +30,18 @@ import '../../core/app_motion.dart';
 /// 画面比例不匹配时由播放器自己居中留黑——那才是真正必要的那一层。
 ///
 /// 抽成纯函数便于单测（见 test/stage_width_test.dart）。
-double stageWidthFor({required double availableWidth, required bool sidebarCollapsed}) {
+double stageWidthFor({
+  required double availableWidth,
+  required bool sidebarCollapsed,
+}) {
   return availableWidth;
 }
 
 /// 右侧内容栏宽度：参考同类客户端（1920 下约 336px）定上限，窗口再宽也不会越拉越宽 ——
 /// 之前按 1/4 弹性算，全屏时能到 600+ 逻辑像素，播放器反被挤窄、上下黑边更多。
-const double kSidebarWidth = 336;
+/// 设计稿 `base_videodetail.png` 实测：内容区 1044 里右卡 360、播放器 640，
+/// 中间留 44 的沟。之前 336 是照同类客户端估的，比设计稿窄 24。
+const double kSidebarWidth = 360;
 const double kSidebarMinWidth = 280;
 const double kSidebarHandleWidth = 36;
 
@@ -78,7 +83,6 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
       M3EFloatingToolbarScrollBehavior.exitAlways(
         exitDirection: M3EFloatingToolbarExitDirection.bottom,
       );
-
 
   /// 鼠标是否在播放器上 / 侧栏把手上（把手只在鼠标靠近时出现）
   var _pointerOnPlayer = false;
@@ -234,15 +238,11 @@ class _TabletVideoLayout extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final ValueChanged<VideoCard>? onEpisodeSelected;
-
-  /// 隐去播放器自带顶部条（独立播放窗口用，见 [VideoPageBody.hidePlayerTopBar]）。
   final bool hidePlayerTopBar;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      // 同类客户端那套：播放器与右侧信息栏是**两个独立的块**，内容始终铺满可用宽度，
-      // 应用层不留任何额外黑边（见 [stageWidthFor] 里记的两轮返工）。
       final stageWidth = stageWidthFor(
         availableWidth: constraints.maxWidth,
         sidebarCollapsed: sidebarCollapsed,
@@ -251,16 +251,7 @@ class _TabletVideoLayout extends StatelessWidget {
         kSidebarMinWidth,
         kSidebarWidth,
       );
-      // 播放器区域宽度（手把要骑在它的右缘上）
-      final playerWidth = sidebarCollapsed
-          ? stageWidth
-          : stageWidth - sidebarWidth - 1;
-      // 舞台高度：左列整高都是播放器舞台（纯黑）。画面本身不拉伸：16:9 的片子在
-      // 更高的舞台里由 _PlayerFrame 垂直居中，上下留对称的黑 —— 比起「盒子贴顶、
-      // 下方一片页面底色」更像剧院，收起把手也能对齐舞台竖直中心。
-      final stageHeight = constraints.maxHeight;
-      // 内容区始终贴左：宽度已经铺满，居中没有意义；而且一旦居中就要求 stageWidth
-      // 小于可用宽度，那必然在两侧留出黑边（就是用户报的「视频两边又多一段黑边」）。
+      final effectiveSidebar = sidebarCollapsed ? 0.0 : sidebarWidth;
       return Align(
         alignment: Alignment.topLeft,
         child: SizedBox(
@@ -270,69 +261,24 @@ class _TabletVideoLayout extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 播放器舞台：宽度撑满左列、整高纯黑，画面在舞台里居中。
-                    SizedBox(
-                      width: playerWidth,
-                      height: stageHeight,
-                      child: MouseRegion(
-                        onEnter: (_) => onPlayerHover(true),
-                        onExit: (_) => onPlayerHover(false),
-                        child: ColoredBox(
-                          color: Colors.black,
-                          child: VideoPlayerPanel(
-                            video: video,
-                            onBack: onBack,
-                            onHome: onHome,
-                            onPrevious: onPrevious,
-                            onNext: onNext,
-                            onEpisodeSelected: onEpisodeSelected,
-                            hideTopBar: hidePlayerTopBar,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const VerticalDivider(width: 1),
-                    // 侧栏：整高，与播放器顶部对齐。收起时宽度动画到 0（而不是直接消失），
-                    // 这样收起 / 展开是一个平滑的过渡而不是硬切。
-                    AnimatedContainer(
-                      duration: AppMotion.standard,
-                      curve: Curves.easeOutCubic,
-                      width: sidebarCollapsed ? 0 : sidebarWidth,
-                      height: constraints.maxHeight,
-                      child: ClipRect(
-                        child: OverflowBox(
-                          alignment: Alignment.topLeft,
-                          minWidth: sidebarWidth,
-                          maxWidth: sidebarWidth,
-                          child: SizedBox(
-                            width: sidebarWidth,
-                            child: _VideoTabsView(
-                              video: video,
-                              scrollBehavior: scrollBehavior,
-                              showPlayer: false,
-                              onBack: onBack,
-                              onHome: onHome,
-                              onPrevious: onPrevious,
-                              onNext: onNext,
-                              onEpisodeSelected: onEpisodeSelected,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                child: VideoDetailSplitView(
+                  video: video,
+                  sidebarWidth: effectiveSidebar,
+                  onBack: onBack,
+                  onHome: onHome,
+                  onPrevious: onPrevious,
+                  onNext: onNext,
+                  onEpisodeSelected: onEpisodeSelected,
+                  hidePlayerTopBar: hidePlayerTopBar,
                 ),
               ),
-              // 把手：展开时骑在舞台右缘（舞台竖直中心），收起后贴窗口右缘。
+              // 收起/展开手把（保留原有折叠交互）
               Positioned(
                 left: sidebarCollapsed
                     ? null
-                    : playerWidth - kSidebarHandleWidth / 2,
+                    : stageWidth - effectiveSidebar - kSidebarHandleWidth / 2,
                 right: sidebarCollapsed ? 8 : null,
-                top: (stageHeight - 64) / 2,
+                top: (constraints.maxHeight - 64) / 2,
                 child: Center(
                   child: _SidebarHandle(
                     collapsed: sidebarCollapsed,
@@ -369,7 +315,7 @@ class _SidebarHandle extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return AnimatedOpacity(
       opacity: visible ? 1 : 0,
-      duration: const Duration(milliseconds: 180),
+      duration: AppMotion.brief,
       child: MouseRegion(
         onEnter: (_) => onHover(true),
         onExit: (_) => onHover(false),
@@ -379,18 +325,22 @@ class _SidebarHandle extends StatelessWidget {
             color: const Color(0x73000000),
             borderRadius: BorderRadius.circular(AppRadius.md),
             clipBehavior: Clip.antiAlias,
-            child: PressScale(child: InkWell(
-              onTap: onPressed,
-              child: SizedBox(
-                width: kSidebarHandleWidth,
-                height: 64,
-                child: Icon(
-                  collapsed ? Symbols.chevron_left_rounded : Symbols.chevron_right_rounded,
-                  size: 24,
-                  color: Colors.white,
+            child: PressScale(
+              child: InkWell(
+                onTap: onPressed,
+                child: SizedBox(
+                  width: kSidebarHandleWidth,
+                  height: 64,
+                  child: Icon(
+                    collapsed
+                        ? Symbols.chevron_left_rounded
+                        : Symbols.chevron_right_rounded,
+                    size: 24,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            )),
+            ),
           ),
         ),
       ),
@@ -530,11 +480,13 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
                   SizedBox(
                     height: 40,
                     width: double.infinity,
-                    child: PressScale(child: TextButton.icon(
-                      onPressed: () => _playerCollapse.value = 0,
-                      icon: const Icon(Symbols.play_arrow_rounded),
-                      label: Text(l10n.play),
-                    )),
+                    child: PressScale(
+                      child: TextButton.icon(
+                        onPressed: () => _playerCollapse.value = 0,
+                        icon: const Icon(Symbols.play_arrow_rounded),
+                        label: Text(l10n.play),
+                      ),
+                    ),
                   ),
               ],
             ),

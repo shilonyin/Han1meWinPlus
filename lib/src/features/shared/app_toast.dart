@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 
 /// 屏幕中间的半透明圆角提示，用来代替贴底的 SnackBar。
@@ -10,7 +11,10 @@ void showAppToast(BuildContext context, String message, {IconData? icon}) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
   late final OverlayEntry entry;
-  entry = OverlayEntry(builder: (_) => _AppToast(message: message, icon: icon, onDone: () => entry.remove()));
+  entry = OverlayEntry(
+    builder: (_) =>
+        _AppToast(message: message, icon: icon, onDone: () => entry.remove()),
+  );
   overlay.insert(entry);
 }
 
@@ -25,8 +29,12 @@ class _AppToast extends StatefulWidget {
   State<_AppToast> createState() => _AppToastState();
 }
 
-class _AppToastState extends State<_AppToast> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 180));
+class _AppToastState extends State<_AppToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: AppMotion.brief,
+  );
   Timer? _timer;
 
   @override
@@ -55,27 +63,47 @@ class _AppToastState extends State<_AppToast> with SingleTickerProviderStateMixi
         child: FadeTransition(
           opacity: _controller,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.94, end: 1).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic)),
+            scale: Tween<double>(begin: 0.94, end: 1).animate(
+              CurvedAnimation(parent: _controller, curve: AppMotion.settle),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 32),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.88),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.88,
+                  ),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 6))],
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.28),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (widget.icon case final icon?) ...[Icon(icon, size: 18, color: colorScheme.primary), const SizedBox(width: 10)],
+                    if (widget.icon case final icon?) ...[
+                      Icon(icon, size: 18, color: colorScheme.primary),
+                      const SizedBox(width: 10),
+                    ],
                     Flexible(
                       child: Text(
                         widget.message,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                     ),
                   ],

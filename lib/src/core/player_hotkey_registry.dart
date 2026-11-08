@@ -35,7 +35,10 @@ class PlayerHotkeyRegistry {
   static const volumeUp = PlayerHotkeyAction(id: 'inApp.volumeUp', scope: PlayerHotkeyScope.inApp, defaultCombo: 'arrowup');
   static const volumeDown = PlayerHotkeyAction(id: 'inApp.volumeDown', scope: PlayerHotkeyScope.inApp, defaultCombo: 'arrowdown');
   static const mute = PlayerHotkeyAction(id: 'inApp.mute', scope: PlayerHotkeyScope.inApp, defaultCombo: 'm');
-  static const fullscreen = PlayerHotkeyAction(id: 'inApp.fullscreen', scope: PlayerHotkeyScope.inApp, defaultCombo: 'f');
+  /// 全屏切换默认 **F11** —— 设计稿（`17828_v6_hotkey.png`）最后一行就是 F11，
+  /// 也是 Windows 上「全屏」的通行键（浏览器、播放器都是它）。
+  /// 原来默认 F，和「F11 是系统级全屏约定」的习惯对不上。
+  static const fullscreen = PlayerHotkeyAction(id: 'inApp.fullscreen', scope: PlayerHotkeyScope.inApp, defaultCombo: 'f11');
   static const previousEpisode = PlayerHotkeyAction(id: 'inApp.previousEpisode', scope: PlayerHotkeyScope.inApp, defaultCombo: 'pageup');
   static const nextEpisode = PlayerHotkeyAction(id: 'inApp.nextEpisode', scope: PlayerHotkeyScope.inApp, defaultCombo: 'pagedown');
 
@@ -45,8 +48,21 @@ class PlayerHotkeyRegistry {
   static const globalPreviousEpisode = PlayerHotkeyAction(id: 'global.previousEpisode', scope: PlayerHotkeyScope.global, defaultCombo: 'ctrl+alt+arrowleft');
   static const globalNextEpisode = PlayerHotkeyAction(id: 'global.nextEpisode', scope: PlayerHotkeyScope.global, defaultCombo: 'ctrl+alt+arrowright');
 
+  /// 应用内快捷键的展示顺序 —— **按设计稿固定**（`17828_v6_hotkey.png`）：
+  ///   退出全屏(Esc) / 播放·暂停(空格) / 快退10秒(←) / 快进10秒(→)
+  ///   / 音量增大(↑) / 音量减小(↓) / 静音(M) / 全屏切换(F11)
+  ///
+  /// `previousEpisode` / `nextEpisode`（PgUp / PgDn）**不在设计稿里**，
+  /// 已从这份列表移除；对应枚举仍保留（旧的按键绑定不丢，
+  /// 播放器那边的响应也照旧），只是不在设置页露出。
   static const inAppActions = <PlayerHotkeyAction>[
-    playPause, seekBackward, seekForward, volumeUp, volumeDown, mute, fullscreen, previousEpisode, nextEpisode,
+    playPause,
+    seekBackward,
+    seekForward,
+    volumeUp,
+    volumeDown,
+    mute,
+    fullscreen,
   ];
 
   static const globalActions = <PlayerHotkeyAction>[

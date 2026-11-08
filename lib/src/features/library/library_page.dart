@@ -6,7 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
+import '../../core/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../data/local/library_repository.dart';
@@ -25,6 +25,7 @@ import '../settings/settings_controller.dart';
 import '../video/play_window.dart';
 import 'remote_library_controller.dart';
 import '../../core/app_dialog.dart';
+import '../shared/app_top_bar.dart';
 
 /// 选中角标：白色对勾垫在一个半透明黑圆上。
 ///
@@ -56,7 +57,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     if (account?.id != null) return _RemoteLibrary(initialTab: widget.initialTab);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
+      appBar: AppTopBar(leading: Navigator.of(context).canPop() || permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, widget.initialTab)), actions: widget.initialTab == 4 ? [PressScale(child: IconButton(tooltip: l10n.statistics, onPressed: () => context.push('/stats'), icon: const Icon(Symbols.bar_chart_rounded)))] : null),
       body: LibraryTabView(index: widget.initialTab),
     );
   }
@@ -116,7 +117,7 @@ class _RemoteLibrary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
+      appBar: AppTopBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(_tabTitle(l10n, initialTab))),
       body: LibraryTabView(index: initialTab),
     );
   }
@@ -179,51 +180,219 @@ class _LocalHistory extends ConsumerStatefulWidget {
 }
 
 class _LocalHistoryState extends ConsumerState<_LocalHistory> {
-  final _selected = <String>{};
-  var _selectionMode = false;
+  final _search = TextEditingController();
+  String _keyword = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final history = ref.watch(watchProvider).valueOrNull?.histories ?? const [];
-    final items = history.reversed.toList(growable: false);
-    return Stack(
+    final all = ref.watch(watchProvider).valueOrNull?.histories ?? const [];
+    // 新的在前；搜索时按标题过滤。
+    var items = all.reversed.toList(growable: false);
+    if (_keyword.trim().isNotEmpty) {
+      items = items.where((item) => item.title.toLowerCase().contains(_keyword.trim().toLowerCase())).toList(growable: false);
+    }
+    String dateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final todayKey = dateKey(now);
+    final yesterdayKey = dateKey(now.subtract(const Duration(days: 1)));
+    final groups = <String, List<WatchHistory>>{};
+    for (final item in items) {
+      final key = item.date == todayKey ? '今天' : (item.date == yesterdayKey ? '昨天' : item.date);
+      groups.putIfAbsent(key, () => <WatchHistory>[]).add(item);
+    }
+    String fmtDuration(int ms) {
+      final total = (ms / 1000).round();
+      final m = total ~/ 60;
+      final s = total % 60;
+      return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    String fmtSize(int ms) {
+      // 站点历史不带文件大小，按观看时长估个约数（每分钟约 8 MB）—— 只作展示提示。
+      final mb = (ms / 60000 * 8).round();
+      return mb >= 1024 ? '${(mb / 1024).toStringAsFixed(1)} GB' : '$mb MB';
+    }
+    return Column(
       children: [
-        items.isEmpty
-            ? Center(child: Text(l10n.noWatchHistory))
-            : VideoCardGrid(
-                videos: items.map((item) => VideoCard(id: item.videoCode, title: item.title, coverUrl: '')).toList(growable: false),
-                cardsPerRow: 4,
-                itemBuilder: (context, index, video, horizontal) {
-                  final item = items[index];
-                  final selected = _selected.contains(item.id);
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      DecoratedBox(
-                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
-                        child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(item.id) : null, onLongPress: () => _startSelection(item.id)),
-                      ),
-                      if (selected) const Positioned(top: 6, right: 6, child: _SelectionCheck()),
-                    ],
-                  );
-                },
+        // 顶部工具条：标题 + 计数 + 搜索框 + 清空 + 齿轮。
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          child: Row(
+            children: [
+              const Text('观看历史', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              const SizedBox(width: 10),
+              Text('共 ${all.length} 条 · 最近 30 天', style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+              const Spacer(),
+              SizedBox(
+                width: 260,
+                height: 34,
+                child: TextField(
+                  controller: _search,
+                  onChanged: (v) => setState(() => _keyword = v),
+                  style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: '在历史中搜索',
+                    hintStyle: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+                    filled: true,
+                    fillColor: AppDesignTokens.fieldFill,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    prefixIcon: const Icon(Symbols.search_rounded, size: 16, color: AppDesignTokens.inkMuted),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide.none),
+                  ),
+                ),
               ),
-        Positioned(right: 16, bottom: 16 + MediaQuery.paddingOf(context).bottom, child: FloatingActionButton(tooltip: _selectionMode ? l10n.delete : l10n.select, onPressed: _selectionMode ? (_selected.isEmpty ? _exitSelection : _deleteSelected) : _enterSelection, child: Icon(_selectionMode ? Symbols.delete_rounded : Symbols.checklist_rounded))),
+              const SizedBox(width: 10),
+              PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  onTap: all.isEmpty
+                      ? null
+                      : () => ref.read(watchProvider.notifier).deleteHistories({for (final h in all) h.id}),
+                  child: Container(
+                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                    child: const Text('清空', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              PressScale(child: IconButton(tooltip: l10n.settings, visualDensity: VisualDensity.compact, onPressed: () => context.push('/settings'), icon: const Icon(Symbols.settings_rounded, size: 20))),
+            ],
+          ),
+        ),
+        Expanded(
+          child: items.isEmpty
+              ? Center(child: Text(l10n.noWatchHistory, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted)))
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  children: [
+                    for (final entry in groups.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
+                        child: Row(
+                          children: [
+                            Text(entry.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                            const SizedBox(width: 8),
+                            Text('${entry.value.length} 条', style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+                          ],
+                        ),
+                      ),
+                      for (final item in entry.value)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _HistoryRow(
+                            item: item,
+                            duration: fmtDuration(item.watchedMs),
+                            sizeLabel: fmtSize(item.watchedMs),
+                            onDelete: () => ref.read(watchProvider.notifier).deleteHistories({item.id}),
+                            onOpen: () => context.push('/video/${item.videoCode}'),
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+        ),
       ],
     );
   }
+}
 
-  void _toggle(String id) => setState(() => _selected.contains(id) ? _selected.remove(id) : _selected.add(id));
-  void _enterSelection() => setState(() => _selectionMode = true);
-  void _startSelection(String id) => setState(() { _selectionMode = true; _selected.add(id); });
-  void _exitSelection() => setState(() { _selectionMode = false; _selected.clear(); });
+/// 单条历史记录行：白底圆角14，缩略图 + 进度条 + 标题/集数 + 进度胶囊/大小 + 播放圆钮。
+class _HistoryRow extends StatelessWidget {
+  const _HistoryRow({required this.item, required this.duration, required this.sizeLabel, required this.onDelete, required this.onOpen});
 
-  Future<void> _deleteSelected() async {
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.delete), content: Text(AppLocalizations.of(context)!.selectedItems(_selected.length)), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete)))]));
-    if (confirmed != true) return;
-    await ref.read(watchProvider.notifier).deleteHistories(_selected);
-    if (mounted) setState(() { _selectionMode = false; _selected.clear(); });
+  final WatchHistory item;
+  final String duration;
+  final String sizeLabel;
+  final VoidCallback onDelete;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+      padding: const EdgeInsets.all(10),
+      child: PressScale(child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: onOpen,
+        child: Row(
+          children: [
+            // 缩略图 + 底部进度条（这里用一条占位进度，真实进度在播放页维护）。
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: SizedBox(
+                width: 96,
+                height: 54,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const ColoredBox(color: Color(0xFF3D3540)),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        height: 3,
+                        child: Row(children: const [
+                          Expanded(flex: 62, child: ColoredBox(color: AppDesignTokens.accent)),
+                          Expanded(flex: 38, child: ColoredBox(color: Color(0x59000000))),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                  const SizedBox(height: 5),
+                  Text('$duration · ${item.date}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkSubtle)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: AppDesignTokens.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+              child: const Text('已看过', style: TextStyle(fontSize: 10.5, color: AppDesignTokens.accentDeep)),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(width: 60, child: Text(sizeLabel, style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted))),
+            const SizedBox(width: 8),
+            PressScale(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                onTap: onOpen,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: AppDesignTokens.accentDeep, shape: BoxShape.circle),
+                  child: const Icon(Symbols.play_arrow_rounded, size: 18, color: Colors.white),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: AppLocalizations.of(context)!.delete,
+              onPressed: onDelete,
+              icon: const Icon(Symbols.close_rounded, size: 16, color: AppDesignTokens.inkMuted),
+            ),
+          ],
+        ),
+      )),
+    );
   }
 }
 
@@ -239,16 +408,20 @@ class _RemoteSubscriptions extends StatefulWidget {
 
 class _RemoteSubscriptionsState extends State<_RemoteSubscriptions> {
   String? _artist;
+  String _filter = 'all';
 
   @override
   Widget build(BuildContext context) {
     final selected = widget.artists.any((artist) => artist.name == _artist) ? _artist : null;
-    final videos = selected == null ? widget.videos : widget.videos.where((video) => video.artistName == selected).toList(growable: false);
-    return Column(
-      children: [
-        if (widget.artists.isNotEmpty) _ArtistStrip(artists: widget.artists, selectedKey: selected, keyOf: (artist) => artist.name, onSelected: (key) => setState(() => _artist = key)),
-        Expanded(child: _Videos(videos: videos, message: AppLocalizations.of(context)!.noSubscriptionVideos)),
-      ],
+    return _SubscriptionsLayout(
+      artists: widget.artists,
+      updatesOf: (artist) => widget.videos.where((video) => video.artistName == artist.name).toList(growable: false),
+      selectedKey: selected,
+      keyOf: (artist) => artist.name,
+      onSelected: (key) => setState(() => _artist = key),
+      filter: _filter,
+      onFilterChanged: (value) => setState(() => _filter = value),
+      emptyMessage: AppLocalizations.of(context)!.noSubscriptionVideos,
     );
   }
 }
@@ -263,107 +436,293 @@ class _LocalSubscriptions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = artists.any((artist) => artist.id == selectedArtist) ? selectedArtist : null;
-    final allVideos = videos.values.expand((items) => items).fold(<String, FollowingVideo>{}, (items, video) => items..putIfAbsent(video.videoCode, () => video)).values.toList()
-      ..sort((a, b) => b.addedAt.compareTo(a.addedAt));
-    final visible = selected == null ? allVideos : videos[selected] ?? const <FollowingVideo>[];
+    final l10n = AppLocalizations.of(context)!;
+    if (artists.isEmpty) return Center(child: Text(l10n.noSubscriptionVideos));
+    return _SubscriptionsLayout(
+      artists: artists,
+      updatesOf: (artist) => videos[artist.id] ?? const <FollowingVideo>[],
+      selectedKey: selectedArtist,
+      keyOf: (artist) => artist.id,
+      onSelected: onSelected,
+      filter: 'all',
+      onFilterChanged: (_) {},
+      emptyMessage: l10n.noSubscriptionVideos,
+    );
+  }
+}
+
+/// 关注页统一样式骨架：页头工具条 + 筛选胶囊 + 作者卡片网格。
+///
+/// 本地 / 远程两种数据源共用同一套视觉，只把「作者 → 作品」的取法抽成回调。
+class _SubscriptionsLayout extends StatefulWidget {
+  const _SubscriptionsLayout({
+    required this.artists,
+    required this.updatesOf,
+    required this.selectedKey,
+    required this.keyOf,
+    required this.onSelected,
+    required this.filter,
+    required this.onFilterChanged,
+    required this.emptyMessage,
+  });
+
+  final List<SubscribedArtist> artists;
+  final List<FollowingVideo> Function(SubscribedArtist artist) updatesOf;
+  final String? selectedKey;
+  final String Function(SubscribedArtist artist) keyOf;
+  final ValueChanged<String?> onSelected;
+  final String filter;
+  final ValueChanged<String> onFilterChanged;
+  final String emptyMessage;
+
+  @override
+  State<_SubscriptionsLayout> createState() => _SubscriptionsLayoutState();
+}
+
+class _SubscriptionsLayoutState extends State<_SubscriptionsLayout> {
+  final _search = TextEditingController();
+  String _keyword = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allArtists = widget.artists;
+    final updateCount = allArtists.where((artist) => widget.updatesOf(artist).isNotEmpty).length;
+    final keyword = _keyword.trim().toLowerCase();
+    var shown = allArtists;
+    if (widget.selectedKey != null) {
+      shown = shown.where((artist) => widget.keyOf(artist) == widget.selectedKey).toList(growable: false);
+    }
+    if (widget.filter == 'updated') {
+      shown = shown.where((artist) => widget.updatesOf(artist).isNotEmpty).toList(growable: false);
+    }
+    if (keyword.isNotEmpty) {
+      shown = shown.where((artist) => artist.name.toLowerCase().contains(keyword)).toList(growable: false);
+    }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (artists.isNotEmpty) _ArtistStrip(artists: artists, selectedKey: selected, keyOf: (artist) => artist.id, onSelected: onSelected),
-        Expanded(child: _Videos(videos: visible, message: AppLocalizations.of(context)!.noSubscriptionVideos)),
+        _SubscriptionHeader(
+          total: allArtists.length,
+          updated: updateCount,
+          search: _search,
+          onSearchChanged: (value) => setState(() => _keyword = value),
+        ),
+        _SubscriptionFilters(
+          filter: widget.filter,
+          total: allArtists.length,
+          updated: updateCount,
+          onChanged: widget.onFilterChanged,
+        ),
+        Expanded(
+          child: shown.isEmpty
+              ? Center(child: Text(widget.emptyMessage, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted)))
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 16, crossAxisSpacing: 16, mainAxisExtent: 196),
+                  itemCount: shown.length,
+                  itemBuilder: (context, index) {
+                    final artist = shown[index];
+                    return _FollowingArtistCard(
+                      artist: artist,
+                      updates: widget.updatesOf(artist),
+                      onTap: () => context.push('/author/${Uri.encodeComponent(artist.name)}'),
+                      onToggle: () => widget.onSelected(widget.keyOf(artist) == widget.selectedKey ? null : widget.keyOf(artist)),
+                      onLongPress: () {
+                        final url = Uri(path: '/search', queryParameters: {'query': artist.name}).toString();
+                        context.push(url, extra: SearchRouteRequest(initialUrl: url));
+                      },
+                    );
+                  },
+                ),
+        ),
       ],
     );
   }
 }
 
-/// 订阅作者条：单行横向滚动，第一个是「全部」。
-class _ArtistStrip extends StatelessWidget {
-  const _ArtistStrip({required this.artists, required this.selectedKey, required this.keyOf, required this.onSelected});
+/// 关注页页头：标题 + 计数 + 搜索框 + 排序胶囊。
+class _SubscriptionHeader extends StatelessWidget {
+  const _SubscriptionHeader({required this.total, required this.updated, required this.search, required this.onSearchChanged});
 
-  final List<SubscribedArtist> artists;
-  final String? selectedKey;
-  final String Function(SubscribedArtist artist) keyOf;
-  final ValueChanged<String?> onSelected;
-
-  static const double height = 104;
+  final int total;
+  final int updated;
+  final TextEditingController search;
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      height: height,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        itemCount: artists.length + 1,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) return _ArtistStripCard(selected: selectedKey == null, label: l10n.all, isAll: true, onTap: () => onSelected(null), onLongPress: () => onSelected(null));
-          final artist = artists[index - 1];
-          final key = keyOf(artist);
-          final selected = key == selectedKey;
-          return _ArtistStripCard(
-            selected: selected,
-            label: artist.name,
-            avatarUrl: artist.avatarUrl,
-            onTap: () => onSelected(selected ? null : key),
-            onLongPress: () {
-              final url = Uri(path: '/search', queryParameters: {'query': artist.name}).toString();
-              context.push(url, extra: SearchRouteRequest(initialUrl: url));
-            },
-          );
-        },
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+      child: Row(
+        children: [
+          const Text('关注', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+          const SizedBox(width: 10),
+          Text('$total 位作者 · $updated 位有更新', style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+          const Spacer(),
+          SizedBox(
+            width: 220,
+            height: 34,
+            child: TextField(
+              controller: search,
+              onChanged: onSearchChanged,
+              style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: '搜索作者',
+                hintStyle: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+                filled: true,
+                fillColor: AppDesignTokens.fieldFill,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                prefixIcon: const Icon(Symbols.search_rounded, size: 16, color: AppDesignTokens.inkMuted),
+                prefixIconConstraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.sm), border: Border.all(color: AppDesignTokens.stroke)),
+            child: const Row(
+              children: [
+                Text('最近更新', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
+                SizedBox(width: 4),
+                Icon(Symbols.keyboard_arrow_down_rounded, size: 16, color: AppDesignTokens.inkSubtle),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ArtistStripCard extends StatelessWidget {
-  const _ArtistStripCard({required this.selected, required this.label, required this.onTap, required this.onLongPress, this.avatarUrl, this.isAll = false});
+/// 关注页筛选胶囊：全部 / 有更新 / 最近收藏。
+class _SubscriptionFilters extends StatelessWidget {
+  const _SubscriptionFilters({required this.filter, required this.total, required this.updated, required this.onChanged});
 
-  final bool selected;
-  final String label;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-  final String? avatarUrl;
-  final bool isAll;
+  final String filter;
+  final int total;
+  final int updated;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasAvatar = avatarUrl?.isNotEmpty == true;
-    return SizedBox(
-      width: 96,
-      child: GlassPanel(
-        solidColor: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerLow,
-        border: selected ? BorderSide(color: theme.colorScheme.primary, width: 2) : null,
-        // 这里是**列表项**（视频墙上的每一格），按 g1455 规则 5 不该穿玻璃：
-        // 一屏几十格同时取样，滚动时捕获一滞后就会在格子里浮出上一帧的 UI。
-        // 选中态本来就靠 `solidColor` + 描边区分，用纯色底更清楚。
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: PressScale(child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage: hasAvatar ? appNetworkImage(avatarUrl!) : null,
-                  child: hasAvatar ? null : Icon(isAll ? Symbols.group_rounded : Symbols.person_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(fontWeight: selected ? FontWeight.w700 : null)),
-              ],
-            ),
-          ),
-        )),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      child: Row(
+        children: [
+          _FilterChip(label: '全部 $total', selected: filter == 'all', onTap: () => onChanged('all')),
+          const SizedBox(width: 8),
+          _FilterChip(label: '有更新 $updated', selected: filter == 'updated', onTap: () => onChanged('updated')),
+        ],
       ),
     );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PressScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(color: selected ? AppDesignTokens.accentDeep : AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.sm)),
+          child: Text(label, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? Colors.white : AppDesignTokens.inkSubtle)),
+        ),
+      ),
+    );
+  }
+}
+
+/// 关注页作者卡片：上方淡粉头像区 + 白底信息区 + 状态胶囊。
+class _FollowingArtistCard extends StatelessWidget {
+  const _FollowingArtistCard({required this.artist, required this.updates, required this.onTap, required this.onToggle, required this.onLongPress});
+
+  final SubscribedArtist artist;
+  final List<FollowingVideo> updates;
+  final VoidCallback onTap;
+  final VoidCallback onToggle;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = artist.avatarUrl?.isNotEmpty == true;
+    final hasUpdates = updates.isNotEmpty;
+    return PressScale(
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg), border: Border.all(color: AppDesignTokens.divider)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 72,
+                decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFBEDF2), Color(0xFFF6F1F4)])),
+                alignment: Alignment.center,
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppDesignTokens.surface,
+                  backgroundImage: hasAvatar ? appNetworkImage(artist.avatarUrl!) : null,
+                  child: hasAvatar ? null : Text(artist.name.isNotEmpty ? artist.name.characters.first : '?', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppDesignTokens.accent)),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                      const SizedBox(height: 4),
+                      Text(_subtitle(artist, updates), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: onToggle,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(color: hasUpdates ? AppDesignTokens.accentDeep : AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.md)),
+                          child: Text(
+                            hasUpdates ? '${updates.length} 部新作' : '已关注',
+                            style: TextStyle(fontSize: 11, fontWeight: hasUpdates ? FontWeight.w600 : FontWeight.w500, color: hasUpdates ? Colors.white : AppDesignTokens.inkSubtle),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _subtitle(SubscribedArtist artist, List<FollowingVideo> updates) {
+    final genre = artist.genre?.trim();
+    if (genre != null && genre.isNotEmpty) return '${updates.length} 作品 · $genre';
+    return '${updates.length} 作品';
   }
 }
 
@@ -383,11 +742,24 @@ class _LocalPlaylistList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (playlists.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.noPlaylists));
+    if (playlists.isEmpty) {
+      return Center(
+        child: Text(
+          AppLocalizations.of(context)!.noPlaylists,
+          style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+        ),
+      );
+    }
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + MediaQuery.paddingOf(context).bottom),
       itemCount: playlists.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.45),
+      // 白卡留呼吸：行/列间距比旧版(10)略松，卡片高度多给一行标题 + 元数据。
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.32,
+      ),
       itemBuilder: (context, index) => _LocalPlaylistCard(playlist: playlists[index]),
     );
   }
@@ -412,11 +784,16 @@ class _Playlists extends ConsumerWidget {
     return Stack(
       children: [
         playlists.isEmpty
-            ? Center(child: Text(l10n.noPlaylists))
+            ? Center(
+                child: Text(
+                  l10n.noPlaylists,
+                  style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+                ),
+              )
             : GridView.builder(
                 padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + MediaQuery.paddingOf(context).bottom),
                 itemCount: playlists.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.45),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.32),
                 itemBuilder: (context, index) => _PlaylistCard(playlist: playlists[index]),
               ),
         Positioned(
@@ -567,20 +944,100 @@ class _PlaylistGridCard extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) => CardHover(
-        builder: (context, hovered) => Card(
-        clipBehavior: Clip.antiAlias,
-        child: PressScale(child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: SizedBox(width: double.infinity, child: playlist.coverUrl?.isNotEmpty == true ? ClipRRect(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sm)), child: ZoomOnHover(hovered: hovered, child: AppCachedNetworkImage(imageUrl: playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 480, faceFocus: true))) : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Symbols.playlist_play_rounded, size: 40)))),
-            Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 2), child: Text(playlist.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall)),
-            Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 8), child: Text(AppLocalizations.of(context)!.videoCount(playlist.count), style: Theme.of(context).textTheme.bodySmall)),
-          ]),
-        )),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return CardHover(
+      builder: (context, hovered) => DecoratedBox(
+        // 白底 + 大圆角 + 一圈极细描边，不铺重阴影：卡片靠描边从页面底上立起来，
+        // 观感与「稍后看/收藏」的影片网格一致。
+        decoration: BoxDecoration(
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppDesignTokens.stroke, width: 1),
         ),
-      );
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Material(
+            type: MaterialType.transparency,
+            child: PressScale(child: InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              hoverColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 封面在卡片内也切圆角，而不是贴着卡片的直角边：白卡 + 圆角封面
+                  // 是设计稿里「卡片」的统一做法。
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: playlist.coverUrl?.isNotEmpty == true
+                              ? ZoomOnHover(
+                                  hovered: hovered,
+                                  child: AppCachedNetworkImage(
+                                    imageUrl: playlist.coverUrl!,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 480,
+                                    faceFocus: true,
+                                    // 封面加载失败（网络/缓存写盘失败）时给个占位图标，
+                                    // 别把异常原文画在卡片上。
+                                    errorWidget: (context, url, error) => const ColoredBox(
+                                      color: AppDesignTokens.fieldFill,
+                                      child: Icon(Symbols.playlist_play_rounded, size: 40, color: AppDesignTokens.inkMuted),
+                                    ),
+                                  ),
+                                )
+                              : ColoredBox(
+                                  color: AppDesignTokens.fieldFill,
+                                  child: const Icon(
+                                    Symbols.playlist_play_rounded,
+                                    size: 40,
+                                    color: AppDesignTokens.inkMuted,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 3),
+                    child: Text(
+                      playlist.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppDesignTokens.ink,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                    child: Text(
+                      l10n.videoCount(playlist.count),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppDesignTokens.accentDeep,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+    )));
+  }
 }
 
 class _LocalPlaylistItemsSheet extends StatelessWidget {
@@ -625,7 +1082,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
     final l10n = AppLocalizations.of(context)!;
     final account = ref.watch(accountProvider).valueOrNull;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.playlist.title)),
+      appBar: AppTopBar(title: Text(widget.playlist.title)),
       body: FutureBuilder<PlaylistDetail>(
         future: _playlist,
         builder: (context, snapshot) {
@@ -635,7 +1092,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: AppCachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, faceFocus: true))),
+              if (playlist.playlist.coverUrl?.isNotEmpty == true) ClipRRect(borderRadius: BorderRadius.circular(AppRadius.lg), child: AspectRatio(aspectRatio: 16 / 9, child: AppCachedNetworkImage(imageUrl: playlist.playlist.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, faceFocus: true, errorWidget: (context, url, error) => const ColoredBox(color: AppDesignTokens.fieldFill, child: Icon(Symbols.playlist_play_rounded, size: 48, color: AppDesignTokens.inkMuted))))),
               const SizedBox(height: 16),
               Text(playlist.playlist.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
@@ -790,7 +1247,12 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
     return Stack(
       children: [
         widget.videos.isEmpty
-            ? Center(child: Text(widget.emptyMessage, style: Theme.of(context).textTheme.bodyLarge))
+            ? Center(
+                child: Text(
+                  widget.emptyMessage,
+                  style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+                ),
+              )
             : VideoCardGrid(
                 videos: widget.videos.map(_videoCard).toList(growable: false),
                 cardsPerRow: 4,
@@ -800,7 +1262,13 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
                     fit: StackFit.expand,
                     children: [
                       DecoratedBox(
-                        decoration: selected ? BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2), borderRadius: BorderRadius.circular(AppRadius.md)) : const BoxDecoration(),
+                        // 选中态用设计稿主色描一圈（与封面圆角同档），不铺底色。
+                        decoration: selected
+                            ? BoxDecoration(
+                                border: Border.all(color: AppDesignTokens.accent, width: 2),
+                                borderRadius: BorderRadius.circular(videoCardRadius),
+                              )
+                            : const BoxDecoration(),
                         child: VideoCardTile(video: video, horizontal: horizontal, onTap: _selectionMode ? () => _toggle(video.id) : null, onLongPress: () => _startSelection(video.id)),
                       ),
                       if (selected) const Positioned(top: 6, right: 6, child: _SelectionCheck()),

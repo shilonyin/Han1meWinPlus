@@ -331,7 +331,7 @@ class _HeaderActionButtonState extends State<_HeaderActionButton> {
     // 悬停时底色往前景色偏一点：黑底提亮成深灰、浅底压成更明显的灰，
     // 两种按钮都看得出「亮了」。
     final hoverBackground = Color.alphaBlend(foreground.withValues(alpha: isPrimary ? .12 : .06), background);
-    const duration = Duration(milliseconds: 140);
+    const duration = AppMotion.brief;
     return MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: enabled ? (_) => setState(() => _hovered = true) : null,

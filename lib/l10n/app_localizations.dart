@@ -273,6 +273,12 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @appearanceAndDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance & Display'**
+  String get appearanceAndDisplay;
+
   /// No description provided for @themeAndColor.
   ///
   /// In en, this message translates to:
@@ -618,7 +624,7 @@ abstract class AppLocalizations {
   /// No description provided for @diagnose.
   ///
   /// In en, this message translates to:
-  /// **'Run diagnostics'**
+  /// **'Start diagnostics'**
   String get diagnose;
 
   /// No description provided for @diagnosticDns.
@@ -636,19 +642,19 @@ abstract class AppLocalizations {
   /// No description provided for @diagnosticCertificate.
   ///
   /// In en, this message translates to:
-  /// **'SSL Certificate'**
+  /// **'Certificate'**
   String get diagnosticCertificate;
 
   /// No description provided for @diagnosticSite.
   ///
   /// In en, this message translates to:
-  /// **'Site Status'**
+  /// **'Site Structure'**
   String get diagnosticSite;
 
   /// No description provided for @diagnosticLogin.
   ///
   /// In en, this message translates to:
-  /// **'Login Status'**
+  /// **'Login'**
   String get diagnosticLogin;
 
   /// No description provided for @diagnosticOk.
@@ -3110,6 +3116,18 @@ abstract class AppLocalizations {
   /// **'Log In'**
   String get login;
 
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your site account to sync favorites and watch history'**
+  String get loginSubtitle;
+
+  /// No description provided for @loginPrivacyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Login information is stored only on this device and is not uploaded anywhere except the site itself'**
+  String get loginPrivacyHint;
+
   /// No description provided for @finishLogin.
   ///
   /// In en, this message translates to:
@@ -3785,7 +3803,7 @@ abstract class AppLocalizations {
   /// No description provided for @globalHotkeys.
   ///
   /// In en, this message translates to:
-  /// **'Global hotkeys'**
+  /// **'Global shortcuts'**
   String get globalHotkeys;
 
   /// No description provided for @globalHotkeysDescription.
@@ -3803,13 +3821,13 @@ abstract class AppLocalizations {
   /// No description provided for @hotkeyInAppSection.
   ///
   /// In en, this message translates to:
-  /// **'In-app shortcuts (player page)'**
+  /// **'In-app shortcuts'**
   String get hotkeyInAppSection;
 
   /// No description provided for @hotkeyGlobalSection.
   ///
   /// In en, this message translates to:
-  /// **'Global hotkeys'**
+  /// **'Global shortcuts'**
   String get hotkeyGlobalSection;
 
   /// No description provided for @hotkeyActionPlayPause.
@@ -3821,13 +3839,13 @@ abstract class AppLocalizations {
   /// No description provided for @hotkeyActionSeekBackward.
   ///
   /// In en, this message translates to:
-  /// **'Rewind 5 seconds'**
+  /// **'Rewind 10 seconds'**
   String get hotkeyActionSeekBackward;
 
   /// No description provided for @hotkeyActionSeekForward.
   ///
   /// In en, this message translates to:
-  /// **'Forward 5 seconds'**
+  /// **'Forward 10 seconds'**
   String get hotkeyActionSeekForward;
 
   /// No description provided for @hotkeyActionVolumeUp.
@@ -3845,13 +3863,13 @@ abstract class AppLocalizations {
   /// No description provided for @hotkeyActionMute.
   ///
   /// In en, this message translates to:
-  /// **'Mute / unmute'**
+  /// **'Mute'**
   String get hotkeyActionMute;
 
   /// No description provided for @hotkeyActionFullscreen.
   ///
   /// In en, this message translates to:
-  /// **'Toggle fullscreen'**
+  /// **'Toggle full screen'**
   String get hotkeyActionFullscreen;
 
   /// No description provided for @hotkeyActionExitFullscreen.

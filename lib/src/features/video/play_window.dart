@@ -111,7 +111,12 @@ Future<void> openVideo(
   WidgetRef ref,
   String videoId,
 ) async {
-  if (await openVideoInPlayWindow(context, ref, videoId)) return;
+  // 列表点封面**一律先进详情页**（设计稿 `base_videodetail.png` 那一页）。
+  //
+  // 原来这里先试 `openVideoInPlayWindow`，而设置项 `openVideoInWindow` 默认是
+  // true —— 点一张卡就直接弹出一个暗色播放窗口，详情页从来没出现过。
+  // 独立播放窗口仍然保留，但改由详情页里的「立即播放」触发（也就是说
+  // 它现在是"播这个"的动作，而不是"点封面"的动作）。
   // 窗口内打开新视频：先把正在播的停掉。
   //
   // 这里用的是 push，旧播放页仍留在栈里（返回键要能回到刚才那一集），播放器
@@ -119,7 +124,11 @@ Future<void> openVideo(
   //（见 video_actions.dart）。跳到独立播放窗口时不走这里：那种情况由播放窗口
   // 自己换片并暂停（见 play_window_app.dart 的 didUpdateWidget）。
   await VideoPlayerShutdown.pauseAll();
-  if (context.mounted) context.push('/video/$videoId');
+  if (!context.mounted) return;
+  // 用 maybeOf：卡片也会被独立播放窗口、widget 测试这类没有 GoRouter 的宿主渲染，
+  // `context.push` 在那里会直接断言失败把整棵树带崩。
+  final router = GoRouter.maybeOf(context);
+  router?.push('/video/$videoId');
 }
 
 /// 尝试把 [videoId] 放进独立播放窗口打开；返回 true 表示已经打开、调用方不要再导航。
@@ -134,7 +143,12 @@ Future<bool> openVideoInPlayWindow(
   String videoId,
 ) async {
   final settings = ref.read(settingsProvider).valueOrNull;
-  if (!Platform.isWindows || !(settings?.openVideoInWindow ?? true)) return false;
+  // 默认**不**弹独立播放窗口：点封面先进详情页（设计稿 `base_videodetail.png`
+  // 那一页：左边播放器占位 + 简介 + 评论，右边标题/作者/统计/立即播放/标签/选集/
+  // 相关推荐），在详情页里点「立即播放」才真正开窗播。
+  // 之前默认 true，点一张卡就直接弹出一个暗色播放窗口，详情页根本没出现过。
+  // 想恢复「点了就播」可以在设置里把 openVideoInWindow 打开。
+  if (!Platform.isWindows || !(settings?.openVideoInWindow ?? false)) return false;
   // 拉起成功就直接返回；拉不起来（exe 被移动 / 删除等）回退窗口内播放，
   // 别让用户点不开视频。
   return launchPlayWindow(videoId);

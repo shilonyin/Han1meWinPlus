@@ -75,9 +75,8 @@ Widget _row(List<VideoCard> videos) => ProviderScope(
         // 作者页等价物：把 URL 里的 name 显示出来，用来断言跳转真的带上了作者名。
         GoRoute(
           path: '/author',
-          builder: (context, state) => Scaffold(
-            body: Text('作者页：${state.uri.queryParameters['name']}'),
-          ),
+          builder: (context, state) =>
+              Scaffold(body: Text('作者页：${state.uri.queryParameters['name']}')),
         ),
         // 搜索页等价物：留着证明作者名不再走「关键词搜索」那条路。
         GoRoute(
@@ -161,7 +160,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final author = tester.getRect(find.text('甲作者'));
-    final date = tester.getRect(find.text('2026-04-24'));
+    // 日期按设计稿归一成 `MM-DD`（`formatUploadDate` 把 2026-04-24 缩成 04-24）。
+    // 完整年份会把作者行挤到换行，卡片高度跟着变。
+    final date = tester.getRect(find.text('04-24'));
     expect(date.left, greaterThan(author.left), reason: '日期应该在作者名右边');
     expect(date.top, closeTo(author.top, 6), reason: '日期与作者名不该差出一行');
   });
@@ -170,12 +171,14 @@ void main() {
     // AV 源（xHamster / Jable 等）通常只给上传时间、没有作者名。此前日期仍被塞在
     // `Expanded` 之后，空位把它推到卡片最右边，看着像少了半行、和设计稿不一致。
     await tester.pumpWidget(
-      _row([_video(id: 'a', title: '短标题', artist: '', uploadTime: '2026-04-24')]),
+      _row([
+        _video(id: 'a', title: '短标题', artist: '', uploadTime: '2026-04-24'),
+      ]),
     );
     await tester.pumpAndSettle();
 
     final card = tester.getRect(find.byType(VideoCardTile));
-    final date = tester.getRect(find.text('2026-04-24'));
+    final date = tester.getRect(find.text('04-24'));
     expect(
       date.left - card.left,
       lessThan(16),
@@ -185,7 +188,9 @@ void main() {
 
   testWidgets('点作者名进作者页（/author?name=作者），不会点开视频', (tester) async {
     await tester.pumpWidget(
-      _row([_video(id: 'a', title: '短标题', artist: '甲作者', uploadTime: '2026-04-24')]),
+      _row([
+        _video(id: 'a', title: '短标题', artist: '甲作者', uploadTime: '2026-04-24'),
+      ]),
     );
     await tester.pumpAndSettle();
 

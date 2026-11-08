@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
@@ -693,11 +694,11 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                         return Center(
                           child: IgnorePointer(
                             child: AnimatedScale(
-                              duration: const Duration(milliseconds: 160),
-                              curve: Curves.easeOut,
+                              duration: AppMotion.brief,
+                              curve: AppMotion.settle,
                               scale: paused ? 1 : .82,
                               child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 160),
+                                duration: AppMotion.brief,
                                 opacity: paused ? 1 : 0,
                                 child: const _PausedBadge(),
                               ),

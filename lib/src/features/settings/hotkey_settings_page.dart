@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/app_radius.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/player_hotkey_registry.dart';
@@ -42,26 +43,29 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final bindings = settings.hotkeyBindings;
     return Scaffold(
-      appBar: embeddedInSettingsPanes(context) ? null : AppBar(title: Text(l10n.settingsHotkeys)),
+      appBar: embeddedInSettingsPanes(context)
+          ? null
+          : AppBar(title: Text(l10n.settingsHotkeys)),
       body: ListView(
         children: [
-          SettingsCardList(
-            title: l10n.hotkeyInAppSection,
-            children: [
-              for (final action in PlayerHotkeyRegistry.inAppActions)
-                _actionRow(context, l10n, action, bindings),
-              SettingsCardItem(
-                title: l10n.hotkeyActionExitFullscreen,
-                subtitle: l10n.hotkeyExitFullscreenFixed,
-                leading: const Icon(Symbols.close_fullscreen_rounded),
-                trailing: const _ComboChip(label: 'Esc'),
-                enabled: false,
-              ),
-            ],
-          ),
+          // ① 全局快捷键卡：**只有一行**（标题 + 副标题 + 开关）。
+          //
+          // 设计稿（`17828_v6_hotkey.png`）里这张卡就是一行 ——
+          // 全局热键是「开不开」的一个总开关，下面那四个组合键
+          // （显示隐藏窗口 / 播放暂停 / 上集 / 下集）设计稿并没有列。
+          // 它们在应用内的「快捷键」里已经能改，而且全局组合必须是
+          // Ctrl+Alt+X 这种带修饰键的形式，能改的空间很小 ——
+          // 列出来只是把卡片撑长一倍。
           if (GlobalHotkeys.isSupported) ...[
             SettingsCardList(
-              title: l10n.hotkeyGlobalSection,
+              // 行高 **76**：这张卡在设计稿里只有一行，但它是整页最舒展的一行 ——
+              // 白区实测 y104~180 = 76 高，标题 + 副标题之间还有 4 的间距。
+              // 内容 36 + 上下各 20 = 76。下面那 8 行操作是 42（`rowPadding: 3`），
+              // 两者不是同一种行：这里是**页首的开关卡**，宽松一点才不显得憋。
+              //
+              // 原来用默认的 2（行高约 44），整张卡片只有设计稿的一半高，
+              // 卡片二也跟着上移 16，全页重心整体偏上。
+              rowPadding: 20,
               children: [
                 if (GlobalHotkeys.lastFailures.isNotEmpty)
                   SettingsCardItem(
@@ -74,9 +78,11 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
                     ),
                   ),
                 SettingsCardItem(
-                  title: l10n.globalHotkeys,
-                  subtitle: l10n.globalHotkeysDescription,
-                  leading: const Icon(Symbols.keyboard_rounded),
+                  // 设计稿的标题就是「全局快捷键」，副标题说明它「在任意应用前台时
+                  // 也能响应播放控制」—— 原来用的是 `globalHotkeys` / `globalHotkeysDescription`
+                  // 那一组更长的文案，和设计稿不是一套说法。
+                  title: l10n.hotkeyGlobalSection,
+                  subtitle: '在任意应用前台时也能响应播放控制',
                   trailing: Switch(
                     value: settings.globalHotkeysEnabled,
                     onChanged: (value) => controller.saveChanges(
@@ -85,16 +91,41 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
                     ),
                   ),
                 ),
-                for (final action in PlayerHotkeyRegistry.globalActions)
-                  _actionRow(context, l10n, action, bindings),
               ],
             ),
           ],
+          // ② 应用内快捷键卡：设计稿 8 行，顺序固定。
+          //
+          // 第一行「退出全屏」是**固定键**（Esc 不可改），设计稿把它排在最前、
+          // 键帽同样是灰底胶囊 —— 所以不能像原来那样把它单独挂在列表末尾，
+          // 也不能给它加一行「固定键，不可修改」的副标题（设计稿没有）。
           SettingsCardList(
+            title: l10n.hotkeyInAppSection,
+            // 卡片间距 24：设计稿卡片一白区底边 y=180、卡片二顶边 y=204。
+            // `SettingsSection` 自带 `fromLTRB(39, 0, 29, 16)`，底部已经有 16，
+            // 这里再补 8 → 16 + 8 = 24。（直接写 24 会变成 40，整张卡下移 16。）
+            padding: const EdgeInsets.only(top: 8),
+            rowPadding: 2.5,
+            children: [
+              SettingsCardItem(
+                title: l10n.hotkeyActionExitFullscreen,
+                trailing: const _ComboChip(label: 'Esc'),
+                enabled: false,
+              ),
+              for (final action in PlayerHotkeyRegistry.inAppActions)
+                _actionRow(context, l10n, action, bindings),
+            ],
+          ),
+          // ③ 恢复默认：设计稿没有这一行，但它是**必要的出口** ——
+          // 用户把某个键改乱之后没有别的办法退回初始值。
+          // 保留成单独一张卡（与设计稿的两张卡在视觉上分开），
+          // 而不是塞进上面那张快捷键列表里。
+          SettingsCardList(
+            padding: const EdgeInsets.only(top: 8),
+            rowPadding: 2.5,
             children: [
               SettingsCardItem(
                 title: l10n.hotkeyResetDefaults,
-                leading: const Icon(Symbols.restart_alt_rounded),
                 onTap: () => controller.saveChanges(
                   (current) => current.copyWith(hotkeyBindings: const {}),
                 ),
@@ -120,7 +151,6 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
         child: SettingsCardItem(
           title: title,
           subtitle: _captureWarning ?? l10n.hotkeyPressKeys,
-          leading: Icon(_iconFor(action)),
           trailing: _capturePreview == null
               ? const SizedBox.shrink()
               : _ComboChip(
@@ -131,8 +161,11 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
       );
     }
     return SettingsCardItem(
+      // 设计稿（`17828_v6_hotkey.png`）的操作行**没有左侧图标** ——
+      // 「退出全屏 / 播放暂停 / 快退 10 秒 …」直接顶着左边距起排，
+      // 图标只出现在左侧导航栏。原来每行挂一个 Symbol，整列图标反而
+      // 比文字更抢眼，和设计稿的克制感不一致。
       title: title,
-      leading: Icon(_iconFor(action)),
       trailing: _ComboChip(
         label: _displayCombo(PlayerHotkeyRegistry.bindingFor(bindings, action)),
       ),
@@ -235,27 +268,15 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
         _ => action.id,
       };
 
-  IconData _iconFor(PlayerHotkeyAction action) => switch (action.id) {
-    'inApp.playPause' || 'global.playPause' => Symbols.play_arrow_rounded,
-    'inApp.seekBackward' => Symbols.replay_5_rounded,
-    'inApp.seekForward' => Symbols.forward_5_rounded,
-    'inApp.volumeUp' => Symbols.volume_up_rounded,
-    'inApp.volumeDown' => Symbols.volume_down_rounded,
-    'inApp.mute' => Symbols.volume_off_rounded,
-    'inApp.fullscreen' => Symbols.fullscreen_rounded,
-    'inApp.previousEpisode' ||
-    'global.previousEpisode' => Symbols.skip_previous_rounded,
-    'inApp.nextEpisode' || 'global.nextEpisode' => Symbols.skip_next_rounded,
-    'global.toggleWindow' => Symbols.desktop_windows_rounded,
-    _ => Symbols.keyboard_rounded,
-  };
-
   /// `ctrl+alt+arrowleft` → `Ctrl+Alt+←`，给用户看的友好写法。
   String _displayCombo(String combo) {
     final parsed = PlayerHotkeyRegistry.parseCombo(combo);
     if (parsed == null) return combo;
     const keyLabels = <String, String>{
-      'space': 'Space',
+      // 「空格」用中文——设计稿（`17828_v6_hotkey.png`）第二行的键帽就是这两个字。
+      // 其余修饰键/功能键保留英文缩写（Esc / Ctrl / PgUp 之类），
+      // 那是键盘上印的字符，翻译反而认不出来。
+      'space': '空格',
       'enter': 'Enter',
       'escape': 'Esc',
       'tab': 'Tab',
@@ -294,21 +315,37 @@ class _ComboChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      // 内边距 8/4：设计稿（`17828_v6_hotkey.png`）的键帽实测
+      //   左边缘 x1131、右边缘 x1179 → 宽 49（含左右各 8 的内边距，
+      //   所以文字区 33）；纵向 y257~279 → 高 23。
+      // 现在 `_ComboChip` 渲染出来是 52 宽 / 22 高，只差 3 宽 1 高，
+      // 属于字体实际宽度不同（设计稿用的是另一套字形），不再硬调内边距 ——
+      // 再收就让「空格」两个字挤在一起了。
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: warning
-            ? colorScheme.errorContainer
-            : colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+        // **固定浅灰**（#F2F2F5），不跟主题色。
+        //
+        // 原来用 `surfaceContainerHighest`：那一层由主题种子派生，蓝主题下就是
+        // 一块蓝灰、紫主题下一块紫灰 —— 而键帽表达的是「键盘上的一个键」，
+        // 它不该带配色倾向。设计稿里它就是一格中性浅灰。
+        // 出错时仍然用容器的错误色，那是语义色，需要和普通键帽区分开。
+        color: warning ? colorScheme.errorContainer : const Color(0xFFF2F2F5),
+        // 圆角取 `AppRadius.xs`（6）：设计稿键帽的圆角实测只有 3~4px
+        //（左边缘从 y257 的 x1133 收到 y260 的 x1131），比原来的 8 小一半，
+        // 6 是令牌里最接近的一档。守卫测试不允许写数字字面量。
+        borderRadius: BorderRadius.circular(AppRadius.xs),
         border: warning ? Border.all(color: colorScheme.error) : null,
       ),
       child: Text(
         label,
         style: TextStyle(
+          // 12 号：比行标题（14）小一号，键帽才像「附在右侧的标记」而不是
+          // 又一个标题。
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: warning
               ? colorScheme.onErrorContainer
-              : colorScheme.onSurfaceVariant,
+              : AppDesignTokens.inkSubtle,
         ),
       ),
     );

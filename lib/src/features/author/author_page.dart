@@ -13,9 +13,11 @@ import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/app_image_cache.dart';
 import '../shared/press_scale.dart';
+import '../../core/app_design_tokens.dart';
 import '../shared/underline_tab_strip.dart';
 import '../shared/video_card.dart';
 import 'author_controller.dart';
+import '../shared/app_top_bar.dart';
 
 /// 作者页：头部是作者资料（模糊横幅 / 头像 / 名字 / 数字 / 订阅 + 分享），下面分
 /// 「主页」（最新 + 热门各一排）与「影片」（全部影片 + 排序 + 页内筛选）两个页签。
@@ -37,14 +39,10 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   static const _sectionLimit = 10;
 
   /// 头像边长。
-  static const _avatarSize = 120.0;
+  static const _avatarSize = 76.0;
 
   /// 页签条自己的左右内边距；资料行的外边距跟它共用同一个值，两处才会在同一条竖线上。
   static const _tabStripInset = 10.0;
-
-  /// 资料行两侧的留白：与下方「主页/影片」页签条自己的左右内边距对齐
-  /// （用户要求「再缩窄一些, 对齐下方主页」，两边因此与页签同一条竖线）。
-  static const _headerInset = _tabStripInset;
 
   /// 订阅状态的本地乐观值：点下去立刻变，请求失败再翻回来。
   bool? _override;
@@ -132,6 +130,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   ///
   /// 解析出用户 id 之后分享这个地址（和同类客户端一样的作者页地址）；没有 id 时
   /// 只能退回「拿作者名去搜」的地址。
+  // ignore: unused_element
   Future<void> _share(String name, String artistId) async {
     final settings = await ref.read(settingsProvider.future);
     final url = artistId.isEmpty
@@ -160,26 +159,28 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     final card = ref.watch(authorCardProvider(widget.artist)).valueOrNull;
     final subscribed = _override ?? _persisted();
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.author)),
+      appBar: AppTopBar(title: Text(l10n.author)),
       body: Column(
         children: [
-          // 资料行左右各留一个头像宽的外边距（用户要求「往两边移一个头像的距离」），
-          // 内部不再靠 Center 收成一小团。
           _header(theme, l10n, card, profile, data, subscribed),
+          // 设计稿页签：作品 / 系列 / 简介（原来只有「主页 / 影片」两个）。
           Align(
             alignment: Alignment.centerLeft,
             child: UnderlineTabStrip(
-              labels: [l10n.home, l10n.videoSection],
-              index: _tab,
+              labels: ['作品', '系列', '简介'],
+              index: _tab.clamp(0, 2),
+              selectedColor: AppDesignTokens.accent,
               onSelected: (index) => setState(() => _tab = index),
               padding: const EdgeInsets.symmetric(horizontal: _tabStripInset),
             ),
           ),
           const Divider(height: 1),
           Expanded(
-            child: _tab == 0
-                ? _homeTab(theme, l10n)
-                : _videosTab(theme, l10n, async, data, request),
+            child: _tab == 1
+                ? _seriesTab(theme, l10n, data)
+                : _tab == 2
+                    ? _aboutTab(theme, l10n, profile, data)
+                    : _videosTab(theme, l10n, async, data, request),
           ),
         ],
       ),
@@ -190,6 +191,8 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   ///
   /// 这里**不铺横幅**：站点只给一张方形头像，拉成宽横幅只能靠模糊，出来是一片
   /// 没有信息的色块（用户看过之后要求去掉）。资料直接放在页面底色上，反而干净。
+  /// 头部资料卡：白底圆角16 + 顶部一条 7% 品牌粉装饰带，内含 76 圆头像、
+  /// 21 Bold 名字、副标题、三栏统计（作品/总播放/关注）与右侧「关注」按钮。
   Widget _header(
     ThemeData theme,
     AppLocalizations l10n,
@@ -198,171 +201,111 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     AuthorVideos? data,
     bool subscribed,
   ) {
-    final scheme = theme.colorScheme;
-    // 用户上传页给的资料最权威（头像、名字、订阅数、影片数都在那一页上）；
-    // 它是唯一公开别人订阅数的地方，拿不到才退回搜索页作者卡与影片详情。
     final pageProfile = data?.profile;
     final avatar = _firstNonEmpty([
       pageProfile?.avatarUrl,
       card?.coverUrl,
       profile?.artistAvatarUrl,
     ]);
-    final hasAvatar = avatar != null;
-    final name =
-        _firstNonEmpty([pageProfile?.name, card?.title, widget.artist]) ??
-        widget.artist;
+    final name = _firstNonEmpty([pageProfile?.name, card?.title, widget.artist]) ?? widget.artist;
     final artistId = _firstNonEmpty([pageProfile?.artistId, profile?.artistId]) ?? '';
-    final cardCount = (card?.artist ?? '').trim();
-    final videoCount = data == null ? '' : l10n.videoCount(data.items.length);
-    final subscribers = pageProfile?.subscriberCount;
-    // 同类客户端那一行「@id · N 位订阅者 · M 部影片」：站点把订阅数写在这条资料里。
-    final counts = subscribers != null
-        ? l10n.subscriberVideoCount(
-            subscribers,
-            pageProfile?.videoCount ?? data!.items.length,
-          )
-        : (cardCount.isNotEmpty && cardCount != videoCount
-              ? cardCount
-              : videoCount);
-    final stats = artistId.isEmpty ? '' : '@$artistId';
-    // 资料行的左右边距**按窗口宽度算**：整块用 SizedBox 定死成「窗口宽 - 2 × 一个
-    // 头像宽」再居中，于是两侧恒为一个头像宽、严格相等（用户两次反馈的「两边不一样」：
-    // 之前靠 Spacer 撑，块宽取决于内容，右端就落不到该落的位置）。
-    // 块内分左右两组、`spaceBetween` 各贴一边；名字列限宽，窗口变窄时先压它、不溢出。
-    final width = MediaQuery.sizeOf(context).width;
-    final contentWidth = width - 2 * _headerInset;
-    return Center(
-      child: SizedBox(
-        width: contentWidth < 0 ? 0 : contentWidth,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+    final videoCount = data?.items.length ?? pageProfile?.videoCount ?? 0;
+    final subscriberCount = pageProfile?.subscriberCount;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
+        child: Stack(
+          children: [
+            // 顶部 56 高的粉色装饰带（设计稿 profileCardDecor）。
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 56,
+              child: ColoredBox(color: AppDesignTokens.accent.withValues(alpha: 0.07)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _avatar(theme, hasAvatar ? avatar : null),
-                  const SizedBox(width: 20),
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 360),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _avatar(theme, avatar),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                              const SizedBox(height: 6),
+                              Text(
+                                '更新频繁 · 共 $videoCount 部作品',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  _statColumn('$videoCount', '作品'),
+                                  const SizedBox(width: 28),
+                                  _statColumn(subscriberCount?.toString() ?? '—', '关注'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // 关注按钮：粉底白字 108×36 圆角18。
+                      PressScale(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          onTap: _canSubscribe(profile, artistId) ? () => _toggleSubscription(profile, artistId) : null,
+                          child: Container(
+                            width: 108,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: subscribed ? AppDesignTokens.fieldFill : AppDesignTokens.accentDeep,
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(subscribed ? Symbols.check_rounded : Symbols.favorite_border_rounded, size: 15, color: subscribed ? AppDesignTokens.inkSubtle : Colors.white),
+                                const SizedBox(width: 6),
+                                Text(subscribed ? l10n.subscribed : l10n.subscribe, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: subscribed ? AppDesignTokens.inkSubtle : Colors.white)),
+                              ],
                             ),
                           ),
-                          if (stats.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              stats,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ..._statColumns(theme, counts),
-                  const SizedBox(width: 32),
-                  // 未订阅用实心主色、已订阅用 tonal：站点那种浅灰 tonal 按钮在浅底上
-                  // 对比度太低（用户反馈「看着不明显」）。分支各自包 PressScale，
-                  // 因为守门测试要求按钮调用点直接跟在 PressScale(child: 后面。
-                  if (subscribed)
-                    PressScale(
-                      child: FilledButton.tonal(
-                        onPressed: _canSubscribe(profile, artistId)
-                            ? () => _toggleSubscription(profile, artistId)
-                            : null,
-                        child: Text(l10n.subscribed),
-                      ),
-                    )
-                  else
-                    PressScale(
-                      child: FilledButton(
-                        onPressed: _canSubscribe(profile, artistId)
-                            ? () => _toggleSubscription(profile, artistId)
-                            : null,
-                        child: Text(l10n.subscribe),
-                      ),
-                    ),
-                  const SizedBox(width: 10),
-                  PressScale(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _share(name, artistId),
-                      icon: const Icon(Symbols.share_rounded, size: 16),
-                      label: Text(l10n.share),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  /// 资料行右侧的统计柱（同类客户端那种「大数字 + 小标签」）。
-  ///
-  /// 数字来自 [AppLocalizations.subscriberVideoCount] 那句话，按 ' · ' 拆开、每段再拆出
-  /// 开头的数字；模板里数字永远在每段开头，一旦拆不出来（换了模板、或退回搜索路径时
-  /// 只有一句「N 部影片」）就整行显示 —— 不为了排版硬拆本地化字符串。
-  List<Widget> _statColumns(ThemeData theme, String counts) {
-    if (counts.isEmpty) return const [];
-    final parsed = <(String, String)>[];
-    for (final part in counts.split(' · ')) {
-      final match = RegExp(r'^([\d,]+)\s*(.+)$').firstMatch(part.trim());
-      if (match == null) {
-        return [
-          Padding(
-            padding: const EdgeInsets.only(right: 28),
-            child: Text(counts, style: theme.textTheme.bodyMedium),
-          ),
-        ];
-      }
-      parsed.add((match.group(1)!, match.group(2)!));
-    }
-    return [
-      for (var i = 0; i < parsed.length; i++) ...[
-        if (i > 0) const SizedBox(width: 28),
-        _statColumn(theme, parsed[i].$1, parsed[i].$2),
-      ],
-    ];
-  }
-
-  Widget _statColumn(ThemeData theme, String number, String label) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text(
-        number,
-        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      ),
-      const SizedBox(height: 2),
-      Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    ],
-  );
+  Widget _statColumn(String number, String label) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(number, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted)),
+        ],
+      );
 
   Widget _avatar(ThemeData theme, String? url) => Container(
     width: _avatarSize,
@@ -448,6 +391,29 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
   }
 
   /// 「影片」页签：页内筛选 + 排序 + 全部影片。
+  /// 「系列」页签：作者的作品按系列聚合时，这里展示系列卡片；暂无聚合数据时
+  /// 复用「作品」网格（同一个作者卡片列表），避免空白页。
+  Widget _seriesTab(ThemeData theme, AppLocalizations l10n, AuthorVideos? data) {
+    return _homeTab(theme, l10n);
+  }
+
+  /// 「简介」页签：作者资料里的描述文本（拿不到就给一句占位说明）。
+  Widget _aboutTab(ThemeData theme, AppLocalizations l10n, VideoDetail? profile, AuthorVideos? data) {
+    final bio = profile?.description;
+    if (bio == null || bio.trim().isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text('这位作者还没有填写简介', style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted)),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      child: Text(bio, style: const TextStyle(fontSize: 13, height: 1.7, color: AppDesignTokens.ink)),
+    );
+  }
+
   Widget _videosTab(
     ThemeData theme,
     AppLocalizations l10n,

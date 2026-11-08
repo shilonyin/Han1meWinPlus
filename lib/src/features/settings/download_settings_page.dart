@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import '../shared/app_top_bar.dart';
 
 class DownloadSettingsPage extends ConsumerWidget {
   const DownloadSettingsPage({super.key});
@@ -16,7 +17,7 @@ class DownloadSettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final speed = settings.downloadSpeedLimitMbps;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.downloadSettings)),
+      appBar: AppTopBar(title: Text(l10n.downloadSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [

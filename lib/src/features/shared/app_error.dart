@@ -221,7 +221,10 @@ class AppErrorView extends StatelessWidget {
                   PressScale(
                     child: TextButton.icon(
                       onPressed: () => _openNetworkSettings(context),
-                      icon: const Icon(Symbols.settings_ethernet_rounded, size: 18),
+                      icon: const Icon(
+                        Symbols.settings_ethernet_rounded,
+                        size: 18,
+                      ),
                       label: Text(l10n.openNetworkSettings),
                     ),
                   ),
@@ -300,10 +303,7 @@ class _AppErrorBarHostState extends State<_AppErrorBarHost>
                 begin: const Offset(0, -0.6),
                 end: Offset.zero,
               ).animate(
-                CurvedAnimation(
-                  parent: _controller,
-                  curve: Curves.easeOutCubic,
-                ),
+                CurvedAnimation(parent: _controller, curve: AppMotion.settle),
               ),
           child: FadeTransition(
             opacity: _controller,

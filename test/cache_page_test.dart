@@ -29,20 +29,19 @@ DownloadTask _task({
   Set<String> groupIds = const {},
   int totalBytes = 0,
   int createdAt = 0,
-}) =>
-    DownloadTask(
-      id: id,
-      videoCode: id,
-      title: '作品 $id',
-      groupIds: groupIds,
-      quality: '1080',
-      status: status,
-      progress: .4,
-      downloadedBytes: totalBytes ~/ 2,
-      totalBytes: totalBytes,
-      createdAt: createdAt,
-      updatedAt: createdAt,
-    );
+}) => DownloadTask(
+  id: id,
+  videoCode: id,
+  title: '作品 $id',
+  groupIds: groupIds,
+  quality: '1080',
+  status: status,
+  progress: .4,
+  downloadedBytes: totalBytes ~/ 2,
+  totalBytes: totalBytes,
+  createdAt: createdAt,
+  updatedAt: createdAt,
+);
 
 final _state = DownloadState(
   groups: const [
@@ -52,31 +51,65 @@ final _state = DownloadState(
   ],
   tasks: [
     // 系列 A 两集已下完 -> 聚成一张文件夹卡。
-    _task(id: 'a1', status: DownloadStatus.completed, groupIds: {'a'}, totalBytes: 100 * 1024 * 1024),
-    _task(id: 'a2', status: DownloadStatus.completed, groupIds: {'a'}, totalBytes: 200 * 1024 * 1024),
+    _task(
+      id: 'a1',
+      status: DownloadStatus.completed,
+      groupIds: {'a'},
+      totalBytes: 100 * 1024 * 1024,
+    ),
+    _task(
+      id: 'a2',
+      status: DownloadStatus.completed,
+      groupIds: {'a'},
+      totalBytes: 200 * 1024 * 1024,
+    ),
     // 系列 B 一集下完。
-    _task(id: 'b1', status: DownloadStatus.completed, groupIds: {'b'}, totalBytes: 50 * 1024 * 1024),
+    _task(
+      id: 'b1',
+      status: DownloadStatus.completed,
+      groupIds: {'b'},
+      totalBytes: 50 * 1024 * 1024,
+    ),
     // 没有分组的进默认组。
-    _task(id: 'd1', status: DownloadStatus.completed, totalBytes: 10 * 1024 * 1024),
+    _task(
+      id: 'd1',
+      status: DownloadStatus.completed,
+      totalBytes: 10 * 1024 * 1024,
+    ),
     // 进行中的。
-    _task(id: 'p1', status: DownloadStatus.downloading, totalBytes: 400 * 1024 * 1024),
-    _task(id: 'p2', status: DownloadStatus.paused, totalBytes: 400 * 1024 * 1024),
-    _task(id: 'p3', status: DownloadStatus.queued, totalBytes: 400 * 1024 * 1024),
+    _task(
+      id: 'p1',
+      status: DownloadStatus.downloading,
+      totalBytes: 400 * 1024 * 1024,
+    ),
+    _task(
+      id: 'p2',
+      status: DownloadStatus.paused,
+      totalBytes: 400 * 1024 * 1024,
+    ),
+    _task(
+      id: 'p3',
+      status: DownloadStatus.queued,
+      totalBytes: 400 * 1024 * 1024,
+    ),
   ],
 );
 
 Widget _app({Size size = const Size(1200, 900)}) => ProviderScope(
-      overrides: [downloadProvider.overrideWith(() => _FakeController(_state))],
-      child: MaterialApp(
-        theme: appTheme(null, const Color(0xffb3265a), brightness: Brightness.dark),
-        locale: const Locale('zh'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const CachePage(),
-      ),
-    );
+  overrides: [downloadProvider.overrideWith(() => _FakeController(_state))],
+  child: MaterialApp(
+    theme: appTheme(null, const Color(0xffb3265a), brightness: Brightness.dark),
+    locale: const Locale('zh'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: const CachePage(),
+  ),
+);
 
-Future<void> _pump(WidgetTester tester, {Size size = const Size(1200, 900)}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  Size size = const Size(1200, 900),
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -85,13 +118,14 @@ Future<void> _pump(WidgetTester tester, {Size size = const Size(1200, 900)}) asy
 }
 
 void main() {
-  group('缓存页状态双页签', () {
-    testWidgets('顶部有「已缓存视频 / 正在缓存」两个页签，进行中数量写进标题', (tester) async {
+  group('缓存页状态页签', () {
+    testWidgets('顶部有「已缓存 / 下载中 / 本地媒体」三个页签（照 v6 设计稿），进行中数量写进标题', (
+      tester,
+    ) async {
       await _pump(tester);
-      final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      expect(find.text(l10n.cachedVideos), findsOneWidget);
+      expect(find.text('已缓存'), findsOneWidget);
       // 3 条进行中（下载中 / 暂停 / 等待）。
-      expect(find.text('${l10n.activeDownloads} 3'), findsOneWidget);
+      expect(find.text('下载中 3'), findsOneWidget);
     });
 
     testWidgets('已缓存页签按分组聚成文件夹卡，不把每一集摊开', (tester) async {
@@ -101,9 +135,10 @@ void main() {
       expect(find.text(_seriesB), findsOneWidget);
       // 「N 个内容」角标说明这张卡里叠了几集。
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      expect(find.text(l10n.folderContents(2)), findsOneWidget);
+      // 新版分组卡把「N 个内容」和体积拼在一行：2 个内容 · 300 MB。
+      expect(find.textContaining(l10n.folderContents(2)), findsOneWidget);
       // 系列 B 只有 1 集，也是一张文件夹卡（它确实是个分组）。
-      expect(find.text(l10n.folderContents(1)), findsOneWidget);
+      expect(find.textContaining(l10n.folderContents(1)), findsOneWidget);
     });
 
     testWidgets('没有归组的影片单铺一张卡，不会被算进「全部」文件夹里重复一次', (tester) async {
@@ -113,14 +148,18 @@ void main() {
       expect(find.text(_seriesA), findsOneWidget);
       expect(find.text('作品 d1'), findsOneWidget);
       // 「全部」这个组名不该作为文件夹标题出现。
-      final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      expect(find.text(l10n.cachedDownloads), findsNothing);
+      //
+      // 注意断言的是**分组标题**而不是 `l10n.cachedDownloads`：后者是「已缓存」，
+      // 与页签文案「已缓存」同形，一改成设计稿的短页签文案就会误判成找到了
+      // （页签本来就在那儿）。默认组的名字看 `cachedDownloads` 的语义即可，
+      // 这里直接按分组标题的形态找 —— 文件夹标题是「N 个内容」那套胶囊右上角
+      // 的组名，最稳妥的判据是「全部」这个词不作为独立文案出现。
+      expect(find.text('全部'), findsNothing);
     });
 
-    testWidgets('切到「正在缓存」页签能看到未完成的任务', (tester) async {
+    testWidgets('切到「下载中」页签能看到未完成的任务', (tester) async {
       await _pump(tester);
-      final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      await tester.tap(find.text('${l10n.activeDownloads} 3'));
+      await tester.tap(find.text('下载中 3'));
       await tester.pumpAndSettle();
       // 三条未完成任务都在。
       expect(find.text('作品 p1'), findsOneWidget);
@@ -130,28 +169,23 @@ void main() {
       expect(find.text('作品 a1'), findsNothing);
     });
 
-    testWidgets('进行中列表按状态给不同操作：下载中的 ⋮ 里有暂停，暂停中的封面给出「开始缓存」', (tester) async {
+    testWidgets('进行中列表：暂停中的任务给出「开始缓存」主操作，其余给打开入口', (tester) async {
       await _pump(tester);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      await tester.tap(find.text('${l10n.activeDownloads} 3'));
+      await tester.tap(find.text('下载中 3'));
       await tester.pumpAndSettle();
-      // 每条任务标题右侧都有一个 ⋮；三条任务各一个。
-      expect(find.byTooltip(l10n.moreActions), findsNWidgets(3));
-      // 暂停中的那条在封面中央直接给出主操作，点一下就是继续下载。
-      expect(find.text(l10n.startCache), findsOneWidget);
-      // 下载中的那条没有中央按钮，它的「暂停」收在 ⋮ 菜单里。
-      // 排序把下载中排在最前，所以第一个 ⋮ 属于它。
-      await tester.tap(find.byTooltip(l10n.moreActions).first);
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.pause), findsOneWidget);
+      // 三条进行中任务各有一个主操作：暂停那条是「开始缓存」，下载/等待那条是打开播放。
+      expect(find.byTooltip(l10n.startCache), findsOneWidget);
+      // 每条任务末尾都有一个打开/跳转入口（暂停那条除「开始缓存」外也有一个）。
+      expect(find.byTooltip(l10n.play), findsNWidgets(3));
     });
 
     testWidgets('点封面中央的「开始缓存」会把暂停的任务放回队列', (tester) async {
       await _pump(tester);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      await tester.tap(find.text('${l10n.activeDownloads} 3'));
+      await tester.tap(find.text('下载中 3'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.startCache));
+      await tester.tap(find.byTooltip(l10n.startCache));
       await tester.pumpAndSettle();
       // 假控制器不落盘，只要求这条路径不抛异常、UI 不塌。
       expect(tester.takeException(), isNull);
@@ -163,7 +197,10 @@ void main() {
       await _pump(tester);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
       // 概览按全部已完成内容汇总。
-      expect(find.textContaining(l10n.cacheSummary(4, '').split(' · ').first), findsOneWidget);
+      expect(
+        find.textContaining(l10n.cacheSummary(4, '').split(' · ').first),
+        findsOneWidget,
+      );
       expect(find.byTooltip(l10n.taskSort), findsOneWidget);
       expect(find.byTooltip(l10n.groupSettings), findsOneWidget);
     });
@@ -185,7 +222,8 @@ void main() {
       await _pump(tester, size: const Size(640, 800));
       expect(tester.takeException(), isNull);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      expect(find.text(l10n.folderContents(2)), findsOneWidget);
+      // 新版分组卡把「N 个内容」和体积拼在一行：2 个内容 · 300 MB。
+      expect(find.textContaining(l10n.folderContents(2)), findsOneWidget);
     });
 
     testWidgets('极窄窗口也不报 overflow', (tester) async {
@@ -198,7 +236,7 @@ void main() {
     testWidgets('点开页签后长按进入多选，标题变成已选数量', (tester) async {
       await _pump(tester);
       final l10n = AppLocalizations.of(tester.element(find.byType(CachePage)))!;
-      await tester.tap(find.text('${l10n.activeDownloads} 3'));
+      await tester.tap(find.text('下载中 3'));
       await tester.pumpAndSettle();
       await tester.longPress(find.text('作品 p1'));
       await tester.pumpAndSettle();

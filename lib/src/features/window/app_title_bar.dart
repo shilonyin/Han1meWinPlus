@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -11,9 +10,13 @@ import '../../core/window_chrome.dart';
 import '../settings/settings_controller.dart';
 import 'pip_overlay_controls.dart';
 
-/// Height of the in-app title bar. Close to the system caption height so the
-/// window keeps roughly the same proportions whichever style is selected.
-const double appTitleBarHeight = 34;
+/// Height of the in-app title bar.
+///
+/// 主窗口「合并标题栏」之后，这条栏只铺一条可拖拽的窄带 + 右侧窗口按钮，
+/// 锁标交给侧栏顶部。取 28：嵌在侧栏顶部留白带（12 + 28 + 4 = 44）的上沿里，
+/// 右侧三个按钮就落在侧栏白底上、和锁标同一行，不额外占垂直空间。
+/// 播放窗口用的是自己的 [playWindowTitleBarHeight]，不受这里影响。
+const double appTitleBarHeight = 28;
 
 /// Draws the app's own title bar when the appearance settings ask for it, so
 /// turning the system title bar off still leaves a draggable window with the
@@ -71,6 +74,29 @@ class AppWindowFrame extends ConsumerWidget {
             // 所以改成不挂 Tooltip —— 图标按钮用悬停高亮表达状态，无障碍标签走 Semantics。
             // 若将来确实需要气泡/菜单，正确做法是把**整个 Column（标题栏 + 内容）**包进
             // Overlay，而不是只包标题栏。
+            // 主窗口：顶部悬浮层只让出窗口按钮那一小段宽度来拖拽（左侧全透明，
+            // 点击穿透给下面的侧栏 / 顶栏）。播放窗口那条仍铺满整宽（它自带标题栏
+            // 内容，且没有导航壳可穿透）。
+            // 主窗口的顶部悬浮层：一条窄带负责拖窗口 / 双击最大化，右上角挂按钮。
+            //
+            // 关键：用 HitTestBehavior.translucent —— 单击会穿透给下面的侧栏品牌块 /
+            // 顶栏控件（它们仍在命中测试里），只有「拖动」这个手势才被这条带子接走，
+            // 交给平台去移动窗口。以前这里是个裸 Container + WindowTitleControls，
+            // 没有任何拖拽手势，所以「合并标题栏」之后主窗口就拖不动了。
+            final overlayBar = titleBar == null
+                ? GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onPanStart: (_) => WindowChrome.startDragging(),
+                    onDoubleTap: WindowChrome.toggleMaximize,
+                    child: SizedBox(
+                      height: appTitleBarHeight,
+                      child: const Align(
+                        alignment: Alignment.centerRight,
+                        child: WindowTitleControls(),
+                      ),
+                    ),
+                  )
+                : bar;
             return ValueListenableBuilder<bool>(
               valueListenable: WindowChrome.pipMode,
               builder: (context, pip, ___) => pip
@@ -81,7 +107,13 @@ class AppWindowFrame extends ConsumerWidget {
                       Positioned(top: 0, left: 0, right: 0, child: bar),
                       const Center(child: PipOverlayControls()),
                     ])
-                  : Column(children: [bar, Expanded(child: child)]),
+                  // 主窗口：标题栏不再占一条高度，改成**右上角悬浮层** —— 一条可拖拽的
+                  // 顶部窄带（负责拖窗口 / 双击最大化）+ 右上角三个窗口按钮。
+                  // 这样 logo 只出现在侧栏一次，视觉上和系统标题栏一致，也不挤任何一列。
+                  : Stack(children: [
+                      Positioned.fill(child: child),
+                      Positioned(top: 0, left: 0, right: 0, child: overlayBar),
+                    ]),
             );
           },
         );
@@ -98,6 +130,79 @@ class AppTitleBar extends StatefulWidget {
 }
 
 class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  // 最大化 / 还原状态由 [WindowTitleControls] 订阅，这里只保留监听以维持原有
+  // 生命周期约定（避免 WindowListener 注册行为变化带来的副作用）。
+  @override
+  void onWindowMaximize() {}
+  @override
+  void onWindowUnmaximize() {}
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    // 主窗口把「锁标」交给侧栏顶部（见 _DesktopSidebar 的品牌锁标块），
+    // 标题栏这里只铺一条**可拖拽的窄带**，右侧挂窗口按钮 —— 两行 logo 合成一行，
+    // 省掉原来那条独立标题栏。整条透明、以悬浮层叠在内容之上，点击空白处穿透。
+    //
+    // 高度取 appTitleBarHeight（28）：与侧栏顶部留白带对齐，按钮就压在最右上角，
+    // 和锁标同一水平线。宽度由 AppWindowFrame 控制（只占窗口按钮那段），
+    // 所以这里用 Row 把按钮推到左端即可 —— 不要再塞 Expanded（Expanded 需要
+    // 有界宽度，而外层是 Spacer 包着的只能收缩到内容宽度）。
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        // The window is frameless, so dragging and double clicking have to be
+        // forwarded to the platform by hand.
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (_) => WindowChrome.startDragging(),
+        onDoubleTap: WindowChrome.toggleMaximize,
+        child: SizedBox(
+          height: appTitleBarHeight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const WindowTitleControls(),
+              const SizedBox(width: 6),
+              // 拖拽热区：按钮右侧留一截窄条让人能拖窗口 / 双击最大化。
+              Semantics(
+                label: l10n.appTitle,
+                child: const SizedBox(width: 24, height: appTitleBarHeight),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 窗口的 最小化 / 最大化还原 / 关闭 三个按钮，主窗口标题栏与侧栏顶部共用。
+///
+/// 单拎出来是因为「合并标题栏」之后，按钮既要能挂在标题栏窄带里（默认），
+/// 也要能挂进侧栏顶部那一行品牌锁标的右边；两处共用一个实现，别各画一套。
+class WindowTitleControls extends StatefulWidget {
+  const WindowTitleControls({this.height = appTitleBarHeight, super.key});
+
+  /// 按钮高度，跟随所挂的那一行。
+  final double height;
+
+  @override
+  State<WindowTitleControls> createState() => _WindowTitleControlsState();
+}
+
+class _WindowTitleControlsState extends State<WindowTitleControls> with WindowListener {
   var _maximized = false;
 
   @override
@@ -128,51 +233,31 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Material(
-      // 标题栏让出底色，和内容区共用同一层背景（AppBackdrop 的画布）。
-      // 原来这里写死 surface：Scaffold 已经透明了，标题栏还是实色，
-      // 顶部就会横着一条和下面内容不同色的实色条。
-      color: Colors.transparent,
-      child: GestureDetector(
-        // The window is frameless, so dragging and double clicking have to be
-        // forwarded to the platform by hand.
-        behavior: HitTestBehavior.opaque,
-        onPanStart: (_) => WindowChrome.startDragging(),
-        onDoubleTap: WindowChrome.toggleMaximize,
-        child: SizedBox(
-          height: appTitleBarHeight,
-          child: Row(
-            children: [
-              const SizedBox(width: 14),
-              // 左上角整张锁标（图标 + 字标一体，和关于页 / README 同源）。
-              // 标题栏只有 34px 高：按设计稿比例（图标:字标 = 2.4:1）显示时字标只剩
-              // 8~11px，改用紧凑版（1.5:1）—— 16px 高时图标 16px、字标约 11px，
-              // 与 Windows 标题栏图标的常规尺寸一致。
-              SvgPicture.asset('assets/logo_lockup_compact.svg', height: 16, semanticsLabel: l10n.appTitle),
-              const Spacer(),
-              _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 16),
-              _TitleBarButton(
-                label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
-                onPressed: WindowChrome.toggleMaximize,
-                icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
-                iconSize: _maximized ? 14 : 13,
-              ),
-              _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Symbols.close_rounded, iconSize: 16, danger: true),
-            ],
-          ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 16, height: widget.height),
+        _TitleBarButton(
+          label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
+          onPressed: WindowChrome.toggleMaximize,
+          icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
+          iconSize: _maximized ? 14 : 13,
+          height: widget.height,
         ),
-      ),
+        _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Symbols.close_rounded, iconSize: 16, height: widget.height, danger: true),
+      ],
     );
   }
 }
 
 class _TitleBarButton extends StatefulWidget {
-  const _TitleBarButton({required this.label, required this.onPressed, required this.icon, required this.iconSize, this.danger = false});
+  const _TitleBarButton({required this.label, required this.onPressed, required this.icon, required this.iconSize, this.height = appTitleBarHeight, this.danger = false});
 
   final String label;
   final VoidCallback onPressed;
   final IconData icon;
   final double iconSize;
+  final double height;
   final bool danger;
 
   @override
@@ -229,7 +314,7 @@ class _TitleBarButtonState extends State<_TitleBarButton> {
             onTap: widget.onPressed,
             child: Container(
               width: 46,
-              height: appTitleBarHeight,
+              height: widget.height,
               color: background,
               child: Icon(widget.icon, size: widget.iconSize, color: foreground),
             ),

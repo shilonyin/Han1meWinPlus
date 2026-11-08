@@ -10,8 +10,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:han1me_win_plus/l10n/app_localizations.dart';
-import 'dart:async';
-import 'dart:io';
 
 import 'package:han1me_win_plus/src/data/remote/han1me_api.dart' show CloudflareChallengeException;
 import 'package:han1me_win_plus/src/data/remote/network_exceptions.dart';

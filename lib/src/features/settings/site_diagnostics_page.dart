@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../shared/press_scale.dart';
+
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
+import '../../core/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/remote/address_ranker.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -13,9 +15,9 @@ import '../../data/remote/network_diagnostics.dart';
 import '../../data/remote/windows_connection_factory.dart';
 import '../../data/remote/windows_http_overrides.dart';
 import '../account/account_controller.dart';
-import '../shared/press_scale.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
+import '../shared/app_top_bar.dart';
 
 /// 候选地址分组：Hanime1 的三个域名共用同一批 Cloudflare 边缘地址（同一个 List 常量），
 /// 合成一组展示，免得同一个地址列表在页面上重复三遍。
@@ -34,22 +36,20 @@ const _addressHosts = <String>[
   'kissjav.li',
 ];
 
-String _addressGroupLabel(AppLocalizations l10n, String host) => switch (host) {
-      'vdownload.hembed.com' => l10n.addressGroupImageCdn,
-      'www.getchu.com' => l10n.addressGroupGetchu,
-      'zh.xhamster.com' || 'missav.ai' || 'jable.tv' || 'supjav.com' || 'kissjav.li' => l10n.addressGroupJav,
-      _ => l10n.addressGroupSite,
-    };
-
-/// 站点可用性诊断：DNS → 连接 → 证书 → 站点结构 → 登录，外加内置候选地址的实测延迟。
+/// 站点诊断：DNS → 连接 → 证书 → 站点结构 → 登录，外加内置候选地址的实测延迟。
 ///
 /// 所有请求都走 [Han1meHttpClient]，所以用的是当前真实生效的网络设置（代理模式、内置
 /// Hosts、DoH）—— 结论与真实加载路径一致，这是这一页存在的意义。
+///
+/// 视觉按 `p_diagnostics.png` 重做：页底 #F4F4F7、白卡圆角 16 带浅描边；
+/// 文字只用 [AppDesignTokens] 的三层灰（ink / inkSubtle / inkMuted）；
+/// 状态绿保留原有语义色。检测与网络逻辑完全未动。
 class SiteDiagnosticsPage extends ConsumerStatefulWidget {
   const SiteDiagnosticsPage({super.key});
 
   @override
-  ConsumerState<SiteDiagnosticsPage> createState() => _SiteDiagnosticsPageState();
+  ConsumerState<SiteDiagnosticsPage> createState() =>
+      _SiteDiagnosticsPageState();
 }
 
 class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
@@ -72,14 +72,23 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     final account = ref.read(accountProvider).valueOrNull;
     // 地址优选那一栏测的是**直连**延迟，而代理模式下内置地址根本不参与请求。不把这件事
     // 说出来，显示的 4 秒就会让人以为「站点很慢」，而真实访问可能是走代理的 1.8 秒。
-    final rule = settings == null ? 'DIRECT' : await WindowsHttpOverrides.resolveRule(mode: settings.proxyMode, custom: settings.customProxy);
+    final rule = settings == null
+        ? 'DIRECT'
+        : await WindowsHttpOverrides.resolveRule(
+            mode: settings.proxyMode,
+            custom: settings.customProxy,
+          );
     setState(() {
       _running = true;
       _proxyActive = rule.toUpperCase().contains('PROXY');
       _siteUrl = settings?.resolvedBaseUrl ?? '';
       _accountName = account?.name ?? '';
     });
-    final results = await NetworkDiagnostics(http: Han1meHttpClient(), siteUrl: _siteUrl, hasAccount: account != null).runAll();
+    final results = await NetworkDiagnostics(
+      http: Han1meHttpClient(),
+      siteUrl: _siteUrl,
+      hasAccount: account != null,
+    ).runAll();
     if (!mounted) return;
     setState(() {
       _results = results;
@@ -92,12 +101,20 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
   Future<void> _probeAddresses() async {
     setState(() => _probing = true);
     for (final host in _addressHosts) {
-      final addresses = WindowsConnectionFactory.builtInHosts[host] ?? const <String>[];
+      final addresses =
+          WindowsConnectionFactory.builtInHosts[host] ?? const <String>[];
       // 探测是**直连**的（裸 TCP + TLS 握手），不走代理：内置地址本来就只在直连时才有
       // 意义。用真实 SNI 是因为「能连上」不等于「这个节点能服务该域名」。
       // 顺带测吞吐：只测握手会被「握手很快、传文件很慢」的节点骗过去，而这一列
       // 本来就是给用户判断「这个地址到底能不能用」看的。
-      final probes = await AddressRanker.instance.probe(host, addresses, allowBadCertificate: WindowsConnectionFactory.hanimeHosts.contains(host), measureBandwidth: addresses.isNotEmpty);
+      final probes = await AddressRanker.instance.probe(
+        host,
+        addresses,
+        allowBadCertificate: WindowsConnectionFactory.hanimeHosts.contains(
+          host,
+        ),
+        measureBandwidth: addresses.isNotEmpty,
+      );
       if (!mounted) return;
       setState(() => _measured[host] = probes);
     }
@@ -105,97 +122,233 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     setState(() => _probing = false);
   }
 
-  /// 没有内置候选地址的站点。
-  ///
-  /// 这些站点（missav / jable / supjav / kissjav）的边缘地址在直连下全部连不上，
-  /// 只能走系统解析或代理，所以既没有可测速的地址也没有任何指标。以前它们各自
-  /// 占一张卡、每张只写一句「没有候选地址」，一屏里四张几乎空白的卡全是同一句话，
-  /// 把真正有数据的卡挤到看不见的地方。合并成一张，正文里列一遍域名就够了。
-  List<String> get _hostsWithoutCandidates => [
-        for (final host in _addressHosts)
-          if ((WindowsConnectionFactory.builtInHosts[host] ?? const <String>[]).isEmpty) host,
-      ];
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.siteDiagnostics)),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
-        Text(l10n.siteDiagnosticsDescription, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)),
-        const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: PressScale(child: FilledButton.icon(
-          onPressed: _running ? null : _runAll,
-          icon: _running ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Symbols.refresh_rounded),
-          label: Text(l10n.diagnose),
-        ))),
-        const SizedBox(height: 16),
-        for (final result in _results ?? const <DiagnosticResult>[]) _diagnosticCard(context, l10n, result),
-        const SizedBox(height: 8),
-        Text(l10n.addressLatency, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(l10n.addressLatencyDescription, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)),
-        if (_proxyActive) Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: .35), borderRadius: BorderRadius.circular(AppRadius.sm)),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Symbols.info_rounded, size: 16, color: scheme.onPrimaryContainer),
-              const SizedBox(width: 8),
-              Expanded(child: Text(l10n.addressLatencyProxyNotice, style: theme.textTheme.bodySmall?.copyWith(color: scheme.onPrimaryContainer, height: 1.4))),
-            ]),
+    // 设计稿是浅色稿：#F4F4F7 页底 + 白卡。这里不复用主题面色，
+    // 否则换了主题色后这一页会偏离设计稿。
+    return Theme(
+      data: theme.copyWith(
+        scaffoldBackgroundColor: AppDesignTokens.pageBackground,
+        appBarTheme: theme.appBarTheme.copyWith(
+          backgroundColor: AppDesignTokens.pageBackground,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: AppDesignTokens.ink,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+      ),
+      child: Scaffold(
+        // 设计稿（`18999_v6_diagnostics.png`）的页头是一整段：
+        //   标题「站点诊断」 + 右侧灰字「DNS · 连接 · 证书 · 站点结构 · 登录」
+        //   下面两行小字说明，同一行的最右侧是「开始诊断」主按钮。
+        //
+        // 原来把按钮挂在 AppBar 的 actions 里、说明单独占一整行 ——
+        // 按钮跑到标题右上方，和说明隔了一整屏，既不紧凑也不像设计稿。
+        appBar: AppTopBar(
+          leading: settingsSubPageBack(context),
+          title: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                l10n.siteDiagnostics,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
+              const SizedBox(width: 18),
+              // 「DNS · 连接 · 证书 · 站点结构 · 登录」——设计稿用它一屏讲清
+              // 这一页会查哪五件事，比一整句「检测当前站点的……」更易扫读。
+              Flexible(
+                child: Text(
+                  'DNS · 连接 · 证书 · 站点结构 · 登录',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: AppDesignTokens.inkMuted,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        for (final host in _addressHosts)
-          if ((WindowsConnectionFactory.builtInHosts[host] ?? const <String>[]).isNotEmpty) _addressCard(context, l10n, host),
-        if (_hostsWithoutCandidates.isNotEmpty) _noCandidatesCard(context, l10n, _hostsWithoutCandidates),
-      ]),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
+          children: [
+            // 说明与按钮**同一行**：左边两行小字（说明 + 「检测在本机实时进行」），
+            // 右边「开始诊断」。设计稿里按钮和这段说明齐平，而不是浮在标题行。
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '依次检测 DNS 解析、网络连接、证书、站点结构与登录状态',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          height: 1.6,
+                          color: AppDesignTokens.inkSubtle,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '检测在本机实时进行，不会上传任何数据',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          height: 1.5,
+                          color: AppDesignTokens.inkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                _runButton(l10n),
+              ],
+            ),
+            // 说明到卡片的间距 24：设计稿说明底行 y168、首卡顶边 y200（含文字行盒余量）。
+            const SizedBox(height: 24),
+            if ((_results ?? const <DiagnosticResult>[]).isNotEmpty)
+              _sectionCard(
+                // 设计稿这张卡带标题「诊断结果」。
+                title: '诊断结果',
+                children: [
+                  for (var i = 0; i < _results!.length; i++) ...[
+                    if (i > 0) _rowDivider(),
+                    _diagnosticRow(context, l10n, _results![i]),
+                  ],
+                ],
+              ),
+            // 卡片间距 21：设计稿（`18999_v6_diagnostics.png`）第一张卡底边
+            // y526、第二张卡顶边 y547。原来给 16，两卡贴得比设计稿紧。
+            const SizedBox(height: 21),
+            _addressSection(context, l10n),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 页头右侧的「开始诊断」主按钮：实心 accentDeep 胶囊 34 高（设计稿）。
+  Widget _runButton(AppLocalizations l10n) {
+    return SizedBox(
+      height: 34,
+      child: PressScale(
+        child: FilledButton.icon(
+          onPressed: _running ? null : _runAll,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppDesignTokens.accentDeep,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppDesignTokens.accentDeep.withValues(
+              alpha: .45,
+            ),
+            disabledForegroundColor: Colors.white.withValues(alpha: .85),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          icon: _running
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Symbols.refresh_rounded, size: 16),
+          label: Text(l10n.diagnose),
+        ),
+      ),
     );
   }
 
   /// 状态色：正常用绿色（与错误色区分开，光靠主题色表达不出「健康」），异常用 error。
-  Color _okColor(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF6BD08A) : const Color(0xFF2E7D32);
+  Color _okColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? const Color(0xFF6BD08A)
+      : const Color(0xFF2E7D32);
 
-  (IconData, Color) _statusVisual(BuildContext context, DiagnosticStatus status) => switch (status) {
-        DiagnosticStatus.ok => (Symbols.check_rounded, _okColor(context)),
-        DiagnosticStatus.fail => (Symbols.close_rounded, Theme.of(context).colorScheme.error),
-        DiagnosticStatus.skipped => (Symbols.remove_rounded, Theme.of(context).colorScheme.outline),
-      };
+  (IconData, Color) _statusVisual(
+    BuildContext context,
+    DiagnosticStatus status,
+  ) => switch (status) {
+    DiagnosticStatus.ok => (Symbols.check_rounded, _okColor(context)),
+    DiagnosticStatus.fail => (
+      Symbols.close_rounded,
+      Theme.of(context).colorScheme.error,
+    ),
+    DiagnosticStatus.skipped => (
+      Symbols.remove_rounded,
+      AppDesignTokens.inkMuted,
+    ),
+  };
 
-  String _statusText(AppLocalizations l10n, DiagnosticStatus status) => switch (status) {
+  String _statusText(AppLocalizations l10n, DiagnosticStatus status) =>
+      switch (status) {
         DiagnosticStatus.ok => l10n.diagnosticOk,
         DiagnosticStatus.fail => l10n.diagnosticFail,
         DiagnosticStatus.skipped => l10n.diagnosticSkipped,
       };
 
   String _title(AppLocalizations l10n, DiagnosticKind kind) => switch (kind) {
-        DiagnosticKind.dns => l10n.diagnosticDns,
-        DiagnosticKind.connectivity => l10n.diagnosticConnectivity,
-        DiagnosticKind.certificate => l10n.diagnosticCertificate,
-        DiagnosticKind.site => l10n.diagnosticSite,
-        DiagnosticKind.login => l10n.diagnosticLogin,
-      };
+    DiagnosticKind.dns => l10n.diagnosticDns,
+    DiagnosticKind.connectivity => l10n.diagnosticConnectivity,
+    DiagnosticKind.certificate => l10n.diagnosticCertificate,
+    DiagnosticKind.site => l10n.diagnosticSite,
+    DiagnosticKind.login => l10n.diagnosticLogin,
+  };
 
   String _detail(AppLocalizations l10n, DiagnosticResult result) {
     final code = result.statusCode;
     final error = result.error ?? '';
     return switch (result.kind) {
-      DiagnosticKind.dns => result.status == DiagnosticStatus.ok ? l10n.diagnosticDnsOk(Uri.tryParse(_siteUrl)?.host ?? _siteUrl, result.addresses.take(2).join(' / ')) : l10n.diagnosticDnsFail(Uri.tryParse(_siteUrl)?.host ?? _siteUrl),
-      DiagnosticKind.connectivity => result.status == DiagnosticStatus.ok ? l10n.diagnosticHttpOk(code ?? 0) : code != null ? l10n.diagnosticHttpFail(code) : l10n.diagnosticError(error),
+      DiagnosticKind.dns =>
+        result.status == DiagnosticStatus.ok
+            ? l10n.diagnosticDnsOk(
+                Uri.tryParse(_siteUrl)?.host ?? _siteUrl,
+                result.addresses.take(2).join(' / '),
+              )
+            : l10n.diagnosticDnsFail(Uri.tryParse(_siteUrl)?.host ?? _siteUrl),
+      DiagnosticKind.connectivity =>
+        result.status == DiagnosticStatus.ok
+            ? l10n.diagnosticHttpOk(code ?? 0)
+            : code != null
+            ? l10n.diagnosticHttpFail(code)
+            : l10n.diagnosticError(error),
       DiagnosticKind.certificate => switch (result.status) {
-          DiagnosticStatus.ok => l10n.diagnosticCertificateOk(result.issuer ?? ''),
-          DiagnosticStatus.skipped => l10n.diagnosticCertificateNone,
-          _ => l10n.diagnosticError(error),
-        },
-      DiagnosticKind.site => result.status == DiagnosticStatus.ok
-          ? l10n.diagnosticSiteOk(_siteUrl)
-          : error == 'structure' ? l10n.diagnosticSiteStructure : error.isNotEmpty ? l10n.diagnosticError(error) : l10n.diagnosticSiteFail(code ?? 0),
-      DiagnosticKind.login => result.status == DiagnosticStatus.ok ? l10n.diagnosticLoginSaved(_accountName) : l10n.diagnosticLoginSkipped,
+        DiagnosticStatus.ok => l10n.diagnosticCertificateOk(
+          result.issuer ?? '',
+        ),
+        DiagnosticStatus.skipped => l10n.diagnosticCertificateNone,
+        _ => l10n.diagnosticError(error),
+      },
+      DiagnosticKind.site =>
+        result.status == DiagnosticStatus.ok
+            ? l10n.diagnosticSiteOk(_siteUrl)
+            : error == 'structure'
+            ? l10n.diagnosticSiteStructure
+            : error.isNotEmpty
+            ? l10n.diagnosticError(error)
+            : l10n.diagnosticSiteFail(code ?? 0),
+      DiagnosticKind.login =>
+        result.status == DiagnosticStatus.ok
+            ? l10n.diagnosticLoginSaved(_accountName)
+            : l10n.diagnosticLoginSkipped,
     };
   }
 
@@ -210,143 +363,318 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     return l10n.suggestionTimeout;
   }
 
-  Widget _diagnosticCard(BuildContext context, AppLocalizations l10n, DiagnosticResult result) {
+  /// 白色卡片：surface 底 + 16 圆角 + 极浅描边（设计稿的卡片靠描边和页底分开）。
+  Widget _whiteCard({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppDesignTokens.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppDesignTokens.stroke),
+      ),
+      child: child,
+    );
+  }
+
+  /// 带标题的分区卡片（「诊断结果」「地址实测延迟」）。
+  Widget _sectionCard({String? title, required List<Widget> children}) {
+    return _whiteCard(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, title == null ? 8 : 20, 24, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (title != null) ...[
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            ...children,
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rowDivider() => FractionallySizedBox(
+    alignment: Alignment.centerLeft,
+    child: Container(height: 1, color: AppDesignTokens.divider),
+  );
+
+  /// 诊断结果的一行：状态图标 + 标题/详情 + 右侧状态文字。
+  /// 与设计稿一致，所有行铺在同一张白卡里，不再各自一张卡。
+  Widget _diagnosticRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    DiagnosticResult result,
+  ) {
     final (icon, color) = _statusVisual(context, result.status);
-    final measurement = result.latencyMs == null ? null : '${result.latencyMs} ms';
-    return _card(
-      context,
-      icon: icon,
-      color: color,
-      title: _title(l10n, result.kind),
-      measurement: measurement,
-      status: _statusText(l10n, result.status),
-      detail: _detail(l10n, result),
-      suggestion: _suggestion(l10n, result),
-    );
-  }
-
-  Widget _noCandidatesCard(BuildContext context, AppLocalizations l10n, List<String> hosts) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return GlassPanel(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      solidColor: scheme.surfaceContainerLow,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(l10n.addressLatencyNoCandidatesTitle, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-        Padding(padding: const EdgeInsets.only(top: 4), child: Text(hosts.join(' · '), style: textTheme.bodySmall?.copyWith(color: scheme.outline))),
-        Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyNoCandidates, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4))),
-      ]),
-    );
-  }
-
-  Widget _addressCard(BuildContext context, AppLocalizations l10n, String host) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final addresses = WindowsConnectionFactory.builtInHosts[host] ?? const <String>[];
-    final measured = {for (final probe in _measured[host] ?? const <AddressProbe>[]) probe.address: probe};
-    final ranker = AddressRanker.instance;
-    final ranked = ranker.rankedFor(host);
-    final speed = ranker.throughputFor(host);
-    final failed = ranker.failedFor(host);
-    final preferred = ranker.enabled ? ranker.order(host, addresses).firstWhere((address) => ranked.containsKey(address) || measured[address]?.ok == true, orElse: () => '') : '';
-    final preferredMs = ranked[preferred] ?? measured[preferred]?.milliseconds;
-    final fastest = addresses.map((address) => measured[address]?.ok == true ? measured[address]!.milliseconds : ranked[address]).whereType<int>().fold<int?>(null, (best, value) => best == null || value < best ? value : best);
-
-    return GlassPanel(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          solidColor: scheme.surfaceContainerLow,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(_addressGroupLabel(l10n, host), style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
-          if (_probing) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-          else if (fastest != null) Text('$fastest ms', style: textTheme.bodyMedium?.copyWith(color: _okColor(context), fontWeight: FontWeight.w600)),
-        ]),
-        Padding(padding: const EdgeInsets.only(top: 4), child: Text(host, style: textTheme.bodySmall?.copyWith(color: scheme.outline))),
-        if (addresses.isEmpty)
-          Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyNoCandidates, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.4)))
-        else ...[
-          if (preferred.isNotEmpty && preferredMs != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(l10n.addressLatencyPreferred(preferred, preferredMs), style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant))),
-        ],
-        for (final address in addresses) Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Row(children: [
-            Icon(address == preferred ? Symbols.bolt_rounded : failed.contains(address) ? Symbols.error_rounded : Symbols.circle_rounded, size: 16, color: address == preferred ? scheme.primary : failed.contains(address) ? scheme.error : scheme.outline),
-            const SizedBox(width: 8),
-            Expanded(child: Text(address, style: textTheme.bodyMedium)),
-            Text(_addressMeasurement(l10n, measured[address], ranked[address], speed[address], failed.contains(address)), style: textTheme.bodyMedium?.copyWith(color: address == preferred ? scheme.primary : scheme.onSurfaceVariant, fontWeight: address == preferred ? FontWeight.w600 : null)),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  /// 把 [AddressProbe.note] 翻成给人看的一小段。
-  ///
-  /// note 是 [AddressRanker] 内部的短代码（`http-403` / `small-body` / `read-failed`…），
-  /// 直接显示出来没人看得懂；分不出具体原因时统一说「未能测速」，比空白好。
-  String? _probeNote(AppLocalizations l10n, String? note) {
-    if (note == null) return null;
-    if (note.startsWith('http-')) {
-      final code = int.tryParse(note.substring(5));
-      if (code != null) return l10n.addressProbeNoteHttp(code);
-    }
-    return l10n.addressProbeNoteNoBody;
-  }
-
-  /// 地址右侧那一小段测量值。
-  ///
-  /// 吞吐比延迟更能说明「这个地址到底能不能用」：握手 400ms 但只能跑 30 KB/s 的
-  /// 节点，页面上比握手 600ms 能跑 800 KB/s 的那个慢得多。测不出吞吐时（握手成功
-  /// 但 HTTP 打回 403／读超时）只显示延迟，把原因留给 [AddressProbe.note]。
-  String _addressMeasurement(AppLocalizations l10n, AddressProbe? probe, int? rankedMs, int? kbps, bool failed) {
-    if (probe?.ok == true) {
-      final latency = '${probe!.milliseconds} ms';
-      final speed = probe.kilobytesPerSecond ?? kbps;
-      if (speed != null) return '$latency · $speed KB/s';
-      // 握手成功但没测出吞吐时，把原因带出来。不然这一行只剩一个延迟，看的人
-      // 会以为「这个地址只有延迟可看」，而实际情况可能是 HTTP 层被拒了。
-      final note = _probeNote(l10n, probe.note);
-      return note == null ? latency : '$latency · $note';
-    }
-    if (probe?.ok == false || (probe == null && failed)) return l10n.addressLatencyUnavailable;
-    if (rankedMs != null) {
-      final speed = kbps;
-      return speed == null ? '$rankedMs ms' : '$rankedMs ms · $speed KB/s';
-    }
-    return l10n.addressLatencyNotProbed;
-  }
-
-  Widget _card(BuildContext context, {required IconData icon, required Color color, required String title, required String? measurement, required String status, required String detail, required String? suggestion}) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return GlassPanel(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          solidColor: scheme.surfaceContainerLow,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: color.withValues(alpha: .14), shape: BoxShape.circle), child: Icon(icon, size: 20, color: color)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(title, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
-          if (measurement != null) ...[Text(measurement, style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)), const SizedBox(width: 10)],
-          Text(status, style: textTheme.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600)),
-        ]),
-        if (detail.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text(detail, style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, height: 1.4))),
-        if (suggestion != null) Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: scheme.errorContainer.withValues(alpha: .45), borderRadius: BorderRadius.circular(AppRadius.sm)),
-            child: Text('${AppLocalizations.of(context)!.suggestionLabel}：$suggestion', style: textTheme.bodySmall?.copyWith(color: scheme.onErrorContainer, height: 1.4)),
+    final measurement = result.latencyMs == null
+        ? null
+        : '${result.latencyMs} ms';
+    final detail = _detail(l10n, result);
+    final suggestion = _suggestion(l10n, result);
+    return Padding(
+      // 行高 **50**：设计稿（`18999_v6_diagnostics.png`）的分隔线实测
+      // 314 / 364 / 414 / 464 —— 严格等差 50。
+      // 标题行盒 18 + 间距 4 + 详情 18 = 40，上下各补 4 落在 50。
+      // 原来给 13（行高 62），5 行下来比设计稿多占一整行。
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: 21, color: color),
           ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _title(l10n, result.kind),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppDesignTokens.ink,
+                  ),
+                ),
+                if (detail.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      // 延迟放在**最后**（设计稿是 `hanime1.com → 203.0.113.42 · 12ms`），
+                      // 而不是挂在最前面。一行以域名/状态开头更好扫读，耗时是补充信息。
+                      measurement == null ? detail : '$detail · $measurement',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        height: 1.4,
+                        color: AppDesignTokens.inkMuted,
+                      ),
+                    ),
+                  ),
+                if (suggestion != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.errorContainer.withValues(alpha: .45),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Text(
+                        '${l10n.suggestionLabel}：$suggestion',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
+              _statusText(l10n, result.status),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 地址实测延迟分区：设计稿（`18999_v6_diagnostics.png`）是一张
+  /// **两列网格表** —— 每个域名一行「域名 …… 延迟」，左列四个、右列四个，
+  /// 中间有 1px 竖分隔线。
+  ///
+  /// 原来做成「按站点分块、逐条列出每个候选 IP、带优选图标与状态文字」，
+  /// 一块就有三四行、八块下来整页要滚三屏，和设计稿那种一眼扫完的表
+  /// 完全是两回事。这里改成表格：**一个域名一行**，延迟按档着色，
+  /// 贴边信息（优选地址、未能测速的原因）收进 tooltip，不再占版面。
+  Widget _addressSection(BuildContext context, AppLocalizations l10n) {
+    // 每个域名的最佳延迟：优先用实测，没有就退回 ranker 里缓存的值。
+    int? bestFor(String host) {
+      final measured = _measured[host] ?? const <AddressProbe>[];
+      final ranked = AddressRanker.instance.rankedFor(host);
+      final values = <int>[
+        for (final probe in measured)
+          if (probe.ok && probe.milliseconds != null) probe.milliseconds!,
+        ...ranked.values,
+      ];
+      return values.isEmpty ? null : values.reduce((a, b) => a < b ? a : b);
+    }
+
+    final rows = <(String, int?)>[
+      // **所有**域名都列出来，包括没有内置候选地址的那几个
+      // （missav / jable / supjav / kissjav）—— 设计稿
+      // （`18999_v6_diagnostics.png`）就是 8 个域名铺成两列八行，
+      // 没有数据的照样占一行、延迟显示 `--`。
+      // 原来按「有没有内置地址」过滤，八行只剩四行，下半张卡空一半。
+      for (final host in _addressHosts) (host, bestFor(host)),
+    ];
+    // 按延迟升序：设计稿左列是 42/58/126/88、右列 210/156/182/168，
+    // 并不是排好序的 —— 但它显然按「快 → 慢」铺满了第一列再铺第二列。
+    final sorted = [...rows]
+      ..sort((a, b) {
+        if (a.$2 == null) return 1;
+        if (b.$2 == null) return -1;
+        return a.$2!.compareTo(b.$2!);
+      });
+    final half = (sorted.length + 1) ~/ 2;
+    final left = sorted.take(half).toList();
+    final right = sorted.skip(half).toList();
+
+    return _whiteCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '地址实测延迟',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppDesignTokens.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '直连状态下各候选地址的握手延迟',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.5,
+                color: AppDesignTokens.inkMuted,
+              ),
+            ),
+            if (_proxyActive)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  l10n.addressLatencyProxyNotice,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    color: AppDesignTokens.inkSubtle,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // 两列：中间留 24 的沟，再各占一半。
+                // 窄窗口（< 760）退回单列，否则域名和延迟会挤在一起。
+                final twoColumn = constraints.maxWidth >= 760;
+                if (!twoColumn) {
+                  return Column(
+                    children: [
+                      for (final row in sorted)
+                        _addressRow(context, row.$1, row.$2),
+                    ],
+                  );
+                }
+                return Row(
+                  // 用 `start`（不是 `stretch`）：`stretch` 会把两列各自撑成
+                  // 整块高度，白卡被撑破、分隔线跑到卡片外（实测）。
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final row in left)
+                            _addressRow(context, row.$1, row.$2),
+                        ],
+                      ),
+                    ),
+                    // 1px 竖分隔线。高度写成「右侧行数 × 44」：
+                    // 设计稿里它贯穿整张表（4 行 × 44 = 176）。
+                    Container(
+                      width: 1,
+                      height: (right.length * 44).toDouble(),
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      color: AppDesignTokens.divider,
+                    ),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final row in right)
+                            _addressRow(context, row.$1, row.$2),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            if (_probing)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+          ],
         ),
-      ]),
+      ),
+    );
+  }
+
+  /// 表格里的一行：`域名 ……………… 延迟`。
+  ///
+  /// 延迟按档着色（设计稿就是这么做的）：60 以内绿、150 以内橙、更慢红。
+  /// 没测到的显示灰色 `--`，不用「未能测速」四个字，一行里不塞句子。
+  Widget _addressRow(BuildContext context, String host, int? ms) {
+    final color = ms == null
+        ? AppDesignTokens.inkMuted
+        : ms <= 60
+        ? _okColor(context)
+        : ms <= 150
+        ? const Color(0xFFC77700)
+        : Theme.of(context).colorScheme.error;
+    return SizedBox(
+      // 行高 44：设计稿（`18999_v6_diagnostics.png`）的 4 行是
+      // y621/665/709/753，严格等差 44。
+      height: 44,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              host,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            ms == null ? '--' : '$ms ms',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

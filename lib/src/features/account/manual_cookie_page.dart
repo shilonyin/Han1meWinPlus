@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../shared/press_scale.dart';
 import 'account_controller.dart';
+import '../shared/app_top_bar.dart';
 
 class ManualCookiePage extends ConsumerStatefulWidget {
   const ManualCookiePage({super.key});
@@ -28,7 +29,7 @@ class _ManualCookiePageState extends ConsumerState<ManualCookiePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.manualCookieLogin)),
+      appBar: AppTopBar(title: Text(l10n.manualCookieLogin)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

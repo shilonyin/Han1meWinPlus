@@ -33,6 +33,7 @@ class AppStartupEffects extends ConsumerStatefulWidget {
     required this.exitCoordinator,
     required this.child,
     this.initialLink,
+    this.previewRoute,
   });
 
   final GlobalKey<NavigatorState> navigatorKey;
@@ -41,6 +42,9 @@ class AppStartupEffects extends ConsumerStatefulWidget {
 
   /// 由 `han1me://` scheme 唤起时带来的链接（命令行参数解析得到），null 表示正常启动。
   final Uri? initialLink;
+
+  /// 开发用 `--preview=<路由>` 指定的页面，null 表示正常启动。
+  final Uri? previewRoute;
 
   @override
   ConsumerState<AppStartupEffects> createState() => _AppStartupEffectsState();
@@ -143,6 +147,22 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
         (_) => _openInitialLink(link),
       );
     }
+    // 开发用 `--preview=<路由>`：启动后直接落到指定页面（逐页截图比对设计稿用）。
+    // 它和深链走同一条「首帧之后再跳」的路径，理由一样：navigator 还没挂载时
+    // `pushReplacement` 会被吞掉。两者同时存在时以预览为准 —— 预览是开发者显式
+    // 指定的，不该被系统唤起盖掉。
+    final preview = widget.previewRoute;
+    if (preview != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openPreviewRoute(preview),
+      );
+    }
+  }
+
+  Future<void> _openPreviewRoute(Uri route) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!mounted) return;
+    DeepLink.openPreview(route, widget.navigatorKey);
   }
 
   /// 手机投屏推片：接收端只是把消息转出来，开页面交给路由。
@@ -277,23 +297,27 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
               : update.body,
         ),
         actions: [
-          PressScale(child: TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.later),
-          )),
-          PressScale(child: FilledButton(
-            onPressed: update.downloadUrl.isEmpty
-                ? null
-                : () async {
-                    Navigator.pop(dialogContext);
-                    await _installUpdate(
-                      context,
-                      update.downloadUrl,
-                      useUpdateMirror,
-                    );
-                  },
-            child: Text(l10n.updateNow),
-          )),
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.later),
+            ),
+          ),
+          PressScale(
+            child: FilledButton(
+              onPressed: update.downloadUrl.isEmpty
+                  ? null
+                  : () async {
+                      Navigator.pop(dialogContext);
+                      await _installUpdate(
+                        context,
+                        update.downloadUrl,
+                        useUpdateMirror,
+                      );
+                    },
+              child: Text(l10n.updateNow),
+            ),
+          ),
         ],
       ),
     );
@@ -364,10 +388,12 @@ class _StartupUpdateDownloadState extends State<_StartupUpdateDownload> {
     actions: _error == null
         ? null
         : [
-            PressScale(child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.close),
-            )),
+            PressScale(
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(AppLocalizations.of(context)!.close),
+              ),
+            ),
           ],
   );
 }

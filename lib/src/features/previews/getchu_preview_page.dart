@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
-import '../../core/app_radius.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../shared/glass/glass_panel.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../core/app_radius.dart';
+import '../../core/app_design_tokens.dart';
 import '../shared/press_scale.dart';
 import 'getchu_card.dart';
 import 'getchu_preview_controller.dart';
 import 'preview_grid.dart';
+
+/// 本页统一使用的圆角：卡片、导航条、页码等容器一律走这一档。
+const double _kCardRadius = 14.0;
 
 class GetchuPreviewPage extends ConsumerWidget {
   const GetchuPreviewPage({super.key, required this.month});
@@ -24,14 +27,23 @@ class GetchuPreviewPage extends ConsumerWidget {
     final selectedMonth = GetchuPreviewMonth.parse(month);
     final result = ref.watch(getchuPreviewsProvider(selectedMonth.value));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.getchuPreviews)),
+      backgroundColor: AppDesignTokens.pageBackground,
+      appBar: _buildAppBar(context, l10n),
       body: Column(
         children: [
-          _MonthNavigation(
-            month: selectedMonth,
-            onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-            onNext: () => _replaceMonth(context, selectedMonth.next),
-            onSelect: () => _selectMonth(context, selectedMonth),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              PreviewGridMetrics.horizontalPadding,
+              4,
+              PreviewGridMetrics.horizontalPadding,
+              8,
+            ),
+            child: _MonthNavigation(
+              month: selectedMonth,
+              onPrevious: () => _replaceMonth(context, selectedMonth.previous),
+              onNext: () => _replaceMonth(context, selectedMonth.next),
+              onSelect: () => _selectMonth(context, selectedMonth),
+            ),
           ),
           Expanded(
             child: result.when(
@@ -96,6 +108,30 @@ class GetchuPreviewPage extends ConsumerWidget {
     );
   }
 
+  /// 页头照设计稿：标题 20 Bold、正文色；去掉了 Material 默认的阴影与滚动换色，
+  /// 让页面底色一直透上来，顶栏是「平」的一块而不是浮起的灰条。
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return AppBar(
+      backgroundColor: AppDesignTokens.pageBackground,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleSpacing: PreviewGridMetrics.horizontalPadding,
+      title: Text(
+        l10n.getchuPreviews,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: AppDesignTokens.ink,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+
   Future<void> _selectMonth(
     BuildContext context,
     GetchuPreviewMonth month,
@@ -143,6 +179,8 @@ class GetchuPreviewMonth {
       GetchuPreviewMonth(value.year, value.month);
 }
 
+/// 月份导航：白色底板 + 一圈描边，取代原来的玻璃面板。
+/// 中间是「当前月份」，两侧是描边圆形箭头，整体与下面的卡片同一套圆角。
 class _MonthNavigation extends StatelessWidget {
   const _MonthNavigation({
     required this.month,
@@ -159,43 +197,103 @@ class _MonthNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return GlassPanel(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            PressScale(
-              child: IconButton(
-                tooltip: l10n.previousMonth,
-                onPressed: onPrevious,
-                icon: const Icon(Symbols.chevron_left_rounded),
-              ),
-            ),
-            Expanded(
-              child: PressScale(
-                child: TextButton.icon(
-                  onPressed: onSelect,
-                  icon: const Icon(Symbols.calendar_month_rounded, size: 18),
-                  label: Text(l10n.getchuPreviewMonth(month.value)),
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppDesignTokens.surface,
+        borderRadius: BorderRadius.circular(_kCardRadius),
+        border: Border.all(color: AppDesignTokens.stroke),
+      ),
+      child: Row(
+        children: [
+          _NavArrow(
+            tooltip: l10n.previousMonth,
+            icon: Symbols.chevron_left_rounded,
+            onTap: onPrevious,
+          ),
+          Expanded(
+            child: PressScale(
+              child: TextButton.icon(
+                onPressed: onSelect,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppDesignTokens.accentDeep,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                icon: const Icon(
+                  Symbols.calendar_month_rounded,
+                  size: 18,
+                  color: AppDesignTokens.accent,
+                ),
+                label: Text(
+                  l10n.getchuPreviewMonth(month.value),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppDesignTokens.accentDeep,
+                  ),
                 ),
               ),
             ),
-            PressScale(
-              child: IconButton(
-                tooltip: l10n.nextMonth,
-                onPressed: onNext,
-                icon: const Icon(Symbols.chevron_right_rounded),
+          ),
+          _NavArrow(
+            tooltip: l10n.nextMonth,
+            icon: Symbols.chevron_right_rounded,
+            onTap: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 月份导航两侧的箭头：圆形描边按钮，按下有缩放反馈。
+class _NavArrow extends StatelessWidget {
+  const _NavArrow({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: PressScale(
+        child: Material(
+          color: AppDesignTokens.fieldFill,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: AppDesignTokens.inkSubtle,
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// 分组标题（发售日）：12.5 SemiBold、正文色，左侧一枚 accent 竖条做视觉锚点。
+/// 上方留 20、下方留 10，与下面的卡片拉开层次。
 class _GroupHeader extends StatelessWidget {
   const _GroupHeader({required this.title});
 
@@ -203,12 +301,37 @@ class _GroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-    child: Text(
-      title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    padding: const EdgeInsets.fromLTRB(
+      PreviewGridMetrics.horizontalPadding,
+      20,
+      PreviewGridMetrics.horizontalPadding,
+      10,
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 3,
+          height: 13,
+          decoration: BoxDecoration(
+            color: AppDesignTokens.accent,
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppDesignTokens.ink,
+              height: 1.2,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -228,21 +351,43 @@ class _Unavailable extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Symbols.event_busy_rounded, size: 56),
+            const Icon(
+              Symbols.event_busy_rounded,
+              size: 56,
+              color: AppDesignTokens.inkMuted,
+            ),
             const SizedBox(height: 16),
             Text(
               error == null
                   ? l10n.noGetchuPreviews
                   : l10n.getchuPreviewUnavailable,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppDesignTokens.ink,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             PressScale(
               child: OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Symbols.refresh_rounded),
-                label: Text(l10n.reload),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppDesignTokens.accentDeep,
+                  side: const BorderSide(color: AppDesignTokens.stroke),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+                icon: const Icon(Symbols.refresh_rounded, size: 18),
+                label: Text(
+                  l10n.reload,
+                  style: const TextStyle(fontSize: 13),
+                ),
               ),
             ),
           ],

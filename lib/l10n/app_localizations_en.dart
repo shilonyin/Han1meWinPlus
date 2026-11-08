@@ -100,6 +100,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearance => 'Appearance';
 
   @override
+  String get appearanceAndDisplay => 'Appearance & Display';
+
+  @override
   String get themeAndColor => 'Theme & Color';
 
   @override
@@ -293,7 +296,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get diagnose => 'Run diagnostics';
+  String get diagnose => 'Start diagnostics';
 
   @override
   String get diagnosticDns => 'DNS Lookup';
@@ -302,13 +305,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticConnectivity => 'Connectivity';
 
   @override
-  String get diagnosticCertificate => 'SSL Certificate';
+  String get diagnosticCertificate => 'Certificate';
 
   @override
-  String get diagnosticSite => 'Site Status';
+  String get diagnosticSite => 'Site Structure';
 
   @override
-  String get diagnosticLogin => 'Login Status';
+  String get diagnosticLogin => 'Login';
 
   @override
   String get diagnosticOk => 'OK';
@@ -1731,6 +1734,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get login => 'Log In';
 
   @override
+  String get loginSubtitle =>
+      'Sign in with your site account to sync favorites and watch history';
+
+  @override
+  String get loginPrivacyHint =>
+      'Login information is stored only on this device and is not uploaded anywhere except the site itself';
+
+  @override
   String get finishLogin => 'Finish Log In';
 
   @override
@@ -2087,7 +2098,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get windowBackdropAcrylic => 'Acrylic (Windows 10)';
 
   @override
-  String get globalHotkeys => 'Global hotkeys';
+  String get globalHotkeys => 'Global shortcuts';
 
   @override
   String get globalHotkeysDescription =>
@@ -2097,19 +2108,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsHotkeys => 'Shortcuts';
 
   @override
-  String get hotkeyInAppSection => 'In-app shortcuts (player page)';
+  String get hotkeyInAppSection => 'In-app shortcuts';
 
   @override
-  String get hotkeyGlobalSection => 'Global hotkeys';
+  String get hotkeyGlobalSection => 'Global shortcuts';
 
   @override
   String get hotkeyActionPlayPause => 'Play / pause';
 
   @override
-  String get hotkeyActionSeekBackward => 'Rewind 5 seconds';
+  String get hotkeyActionSeekBackward => 'Rewind 10 seconds';
 
   @override
-  String get hotkeyActionSeekForward => 'Forward 5 seconds';
+  String get hotkeyActionSeekForward => 'Forward 10 seconds';
 
   @override
   String get hotkeyActionVolumeUp => 'Volume up';
@@ -2118,10 +2129,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hotkeyActionVolumeDown => 'Volume down';
 
   @override
-  String get hotkeyActionMute => 'Mute / unmute';
+  String get hotkeyActionMute => 'Mute';
 
   @override
-  String get hotkeyActionFullscreen => 'Toggle fullscreen';
+  String get hotkeyActionFullscreen => 'Toggle full screen';
 
   @override
   String get hotkeyActionExitFullscreen => 'Exit fullscreen';

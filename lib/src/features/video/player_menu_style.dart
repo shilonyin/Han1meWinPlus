@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import 'player_overlay_surface.dart';
 import 'player_wheel_guard.dart';
@@ -189,7 +190,7 @@ ButtonStyle playerMenuItemStyle() => ButtonStyle(
   shape: WidgetStatePropertyAll(
     RoundedRectangleBorder(borderRadius: AppRadius.all(AppRadius.sm)),
   ),
-  animationDuration: const Duration(milliseconds: 120),
+  animationDuration: AppMotion.quick,
 );
 
 /// 选中项的样式：把字色固定成强调色并加粗。

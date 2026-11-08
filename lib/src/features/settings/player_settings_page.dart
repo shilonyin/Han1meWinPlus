@@ -13,6 +13,7 @@ import 'settings_controller.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
 import '../../core/app_dialog.dart';
+import '../shared/app_top_bar.dart';
 
 class PlayerSettingsPage extends ConsumerWidget {
   const PlayerSettingsPage({super.key});
@@ -25,7 +26,7 @@ class PlayerSettingsPage extends ConsumerWidget {
     final controller = ref.read(settingsProvider.notifier);
     final libmpv = settings.playerEngine == PlayerEngine.libMpv;
     return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.playerSettings)),
+      appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.playerSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [

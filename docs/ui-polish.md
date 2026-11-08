@@ -56,6 +56,10 @@
   `MediaQuery.disableAnimationsOf` 与 `TickerMode.valuesOf`；`motionDuration()` 在关闭时归零，
   控件直接跳终态 —— 这条规范里**最容易漏的一条我们已经有了**。
 - 图标：统一用 `Symbols.*_rounded`；`currentColor` 等价物是 `IconTheme`/`color:`，无需双资源。
+- 圆角：2026-11 把 34 个文件里的 15 种值按元素尺寸收成 `AppRadius` 五档 + 药丸，
+  UI 层已无 `BorderRadius.circular(<数字>)`，由 `test/radius_token_guard_test.dart` 守住。
+- 动效曲线：`Curves.easeOutCubic` / `easeInCubic` 的 11 处同类用途收成 `AppMotion.settle` /
+  `unsettle`，时长字面量同样由 `test/motion_token_guard_test.dart` 守住。
 
 ## 已修（本次）
 

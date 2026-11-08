@@ -14,6 +14,27 @@ class DeepLink {
 
   static const scheme = 'han1me';
 
+  /// 开发用：`--preview=<应用内路由>` 启动时直接落到该页面（例如
+  /// `han1me_win_plus.exe --preview=/settings/theme`）。
+  ///
+  /// 这是**给逐页截图比对设计稿**用的：应用启动只能落在首页，而设置、详情这些页
+  /// 要一路点过去，每改一次样式就得重走一遍，没法自动化。有了它，
+  /// `flutter build` + 一条命令就能把任意页面截成图。
+  ///
+  /// 只认以 `/` 开头的应用内路径，不接受完整 URL —— 避免它变成第二个深链入口。
+  static const previewFlag = '--preview=';
+
+  /// 从命令行参数里挑出预览路由（没有则返回 null）。
+  static Uri? previewFromArguments(List<String> arguments) {
+    for (final argument in arguments) {
+      if (!argument.startsWith(previewFlag)) continue;
+      final route = argument.substring(previewFlag.length);
+      if (!route.startsWith('/')) continue;
+      return Uri.parse(route);
+    }
+    return null;
+  }
+
   /// 从命令行参数里挑出第一个 `han1me://` 链接。
   static Uri? fromArguments(List<String> arguments) {
     for (final argument in arguments) {
@@ -51,5 +72,15 @@ class DeepLink {
     final context = navigatorKey.currentContext;
     if (context == null) return;
     context.pushReplacement(route);
+  }
+
+  /// 跳到预览路由（`--preview=` 用）。
+  ///
+  /// 与 [open] 的区别：这里给的就是应用内路径，**不做 scheme 校验**；
+  /// 带查询串时（如 `/search?genre=里番`）原样带上，否则只取 path。
+  static void openPreview(Uri route, GlobalKey<NavigatorState> navigatorKey) {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    context.pushReplacement(route.hasQuery ? route.toString() : route.path);
   }
 }

@@ -17,20 +17,34 @@ class WindowBackdropEffect {
 
   static bool get isSupported => Platform.isWindows;
 
-  static bool _initialized = false;
+  /// 初始化只做一次的**共享 Future**。
+  ///
+  /// 原来用 `_initialized` 布尔量判断：两次 `apply` 并发进来时，两个都看到
+  /// `_initialized == false`，于是都去 `await Window.initialize()` —— 而它内部的
+  /// Completer 只能完成一次，第二次就抛 `Bad state: Future already completed`
+  /// （日志里每次启动都有这一行）。
+  ///
+  /// 改成缓存 Future：只有第一个调用真正初始化，其余直接等同一个 Future。
+  /// 失败时把缓存清掉，下一次还能重试（与原来「失败不记为已应用」的语义一致）。
+  static Future<void>? _initFuture;
 
   /// 应用材质；返回是否真的下发成功。
   ///
   /// 调用方据此决定要不要记住这次结果：窗口刚创建时 `Window.initialize` 可能失败，
   /// 若把失败也当成「已应用」记下来，之后主题切换就再也不会重试，界面会一直停在
   /// 错误的材质深浅上。
-  static Future<bool> apply(WindowBackdrop backdrop, {required bool dark}) async {
+  static Future<bool> apply(
+    WindowBackdrop backdrop, {
+    required bool dark,
+  }) async {
     if (!isSupported) return false;
     try {
-      if (!_initialized) {
-        await Window.initialize();
-        _initialized = true;
-      }
+      // 并发调用共享同一次初始化，避免 Completer 被重复完成。
+      await (_initFuture ??= Window.initialize().catchError((Object error) {
+        // 初始化失败就把缓存清掉：下一次触发还会重试，而不是永远停在这里。
+        _initFuture = null;
+        throw error;
+      }));
       switch (backdrop) {
         case WindowBackdrop.none:
           await Window.setEffect(effect: WindowEffect.disabled);
@@ -38,7 +52,11 @@ class WindowBackdropEffect {
           await Window.setEffect(effect: WindowEffect.mica, dark: dark);
         case WindowBackdrop.acrylic:
           // Acrylic 需要一层底色，深色下压暗一点，否则浅色主题的文字会看不清。
-          await Window.setEffect(effect: WindowEffect.acrylic, color: dark ? const Color(0xcc101114) : const Color(0xccf7f7fb), dark: dark);
+          await Window.setEffect(
+            effect: WindowEffect.acrylic,
+            color: dark ? const Color(0xcc101114) : const Color(0xccf7f7fb),
+            dark: dark,
+          );
       }
       return true;
     } catch (error) {

@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../core/app_motion.dart';
+
 /// 亮暗主题切换的过渡：**圆形揭示**，新画面从中心扩散把旧画面推开。
 ///
 /// **为什么不能直接把 `themeAnimationDuration` 调大**：那个参数是对整套
@@ -30,12 +32,7 @@ import 'package:flutter/rendering.dart';
 /// **失败即降级**：截图拿不到（首帧、尺寸为空、后端不支持同步光栅化）时
 /// 直接不做过渡，主题照常瞬时切换 —— 过渡是锦上添花，不能因为它让切换本身失效。
 class ThemeTransition extends StatefulWidget {
-  const ThemeTransition({
-    super.key,
-    required this.child,
-    this.duration = const Duration(milliseconds: 420),
-    this.origin = Alignment.center,
-  });
+  const ThemeTransition({super.key, required this.child, this.origin = Alignment.center});
 
   /// 旧画面那一层的 key。测试用它判断过渡层在不在 —— `FadeTransition` 在
   /// `MaterialApp` 内部（路由、对话框）到处都是，按类型找会误判。
@@ -44,7 +41,9 @@ class ThemeTransition extends StatefulWidget {
   final Widget child;
 
   /// 圆形扩散的时长。太短看起来像闪一下，太长用户会觉得点完没反应。
-  final Duration duration;
+  ///
+  /// 走 [AppMotion.page]：换色时整屏同时变，节奏和整页切换对齐。
+  Duration get duration => AppMotion.page;
 
   /// **没有点击时**的扩散圆心。正常由用户点击触发，圆心取那次按下的位置
   /// （见 `_resolveOrigin`），这个值只在没有指针事件时兜底 —— 比如「跟随系统」
@@ -112,7 +111,8 @@ class _ThemeTransitionState extends State<ThemeTransition>
   Alignment _origin = Alignment.center;
 
   /// 半径线性增长时，覆盖面积按平方增长 —— 观感是「先慢后快」，像突然糊上来。
-  /// 用 `easeInOutCubic` 把两端都缓下来，扩散过程更均匀。
+  /// 用两端都缓下的曲线把扩散过程抹平，所以这里用 `Curves.easeInOutCubic`
+  /// 而不是 [AppMotion.settle]（后者起点快、末段慢，圆会「先冲出去再停」）。
   static final Animatable<double> _revealCurve = CurveTween(
     curve: Curves.easeInOutCubic,
   );

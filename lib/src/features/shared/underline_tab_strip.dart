@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_design_tokens.dart';
 import '../../core/app_motion.dart';
 import 'press_scale.dart';
 
@@ -14,17 +15,24 @@ import 'press_scale.dart';
 ///  * 每个页签的插槽按**选中态的粗体**预留宽度，所以鼠标划过或选中都不会把邻居挤动
 ///    （粗体比常规体宽，不预留的话整排会轻微位移 —— 这也是那条注释的意思）。
 class UnderlineTabStrip extends StatelessWidget {
-  const UnderlineTabStrip({super.key, required this.labels, required this.index, required this.onSelected, this.spacing = 0, this.padding, this.center = false});
+  const UnderlineTabStrip({super.key, required this.labels, required this.index, required this.onSelected, this.spacing = 0, this.padding, this.center = false, this.selectedColor});
 
-  /// 那根下划线的尺寸。同类客户端用 20×3、圆角 1.5，这里是同一量级。
-  static const double underlineWidth = 18;
-  static const double underlineHeight = 2;
+  /// 那根下划线的尺寸。设计稿 `tabUnderline` 是 73×3、圆角 1.5；
+  /// 73 对应选中项（四字）整段文字宽，这里取 28×3 的居中短段 ——
+  /// 保持「单根、只滑不形变」的既有规则（见类注释与测试），同时比原来的 18×2
+  /// 更接近设计稿的分量感。
+  static const double underlineWidth = 28;
+  static const double underlineHeight = 3;
 
   /// 那根下划线的 key（测试用来量它的位置与宽度）。
   static const Key underlineKey = ValueKey('underline-tab-strip-underline');
 
   /// 每一项自己带的水平内边距。
-  static const double _horizontalPadding = 10;
+  ///
+  /// 设计稿页签文字的相邻间隙是 20px（`tab/latestUpload` 右缘 380 → `tab/hentai` 左缘 400）。
+  /// 这里 padding 8 + spacing 4 + padding 8 = 20，正好对上；字号也用设计稿的 13
+  /// （设计稿文字高 17px ≈ 13 号字），比原来的 14 更贴。
+  static const double _horizontalPadding = 8;
 
   /// 文字与下划线之间的空隙。
   static const double _gap = 2;
@@ -40,6 +48,12 @@ class UnderlineTabStrip extends StatelessWidget {
   /// 内容比可用宽度窄时是否居中（超出时仍可横向滚动）。
   final bool center;
 
+  /// 选中态（文字强调色 + 下划线）的颜色。留空则用 `colorScheme.primary`。
+  ///
+  /// 设计稿的顶栏页签用的是固定的胭脂粉，不跟随用户主题色 —— 首页顶栏与搜索页
+  /// 的分类页签都传 `AppDesignTokens.accent`；帐号页等其余地方留空即可。
+  final Color? selectedColor;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -47,7 +61,7 @@ class UnderlineTabStrip extends StatelessWidget {
     // 量插槽宽度用的样式：与页签里那行文字完全同一份（含环境默认字体），
     // 只是固定成选中态的粗体 —— 这样插槽宽度不随选中/悬停变化。
     final boldStyle = DefaultTextStyle.of(context).style.merge(
-      const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
     );
     final slots = <double>[
       for (final label in labels) _slotWidth(label, boldStyle, scaler),
@@ -60,7 +74,13 @@ class UnderlineTabStrip extends StatelessWidget {
           children: [
             for (var i = 0; i < labels.length; i++) ...[
               if (i > 0 && spacing > 0) SizedBox(width: spacing),
-              UnderlineTab(label: labels[i], width: slots[i], selected: i == index, onTap: () => onSelected(i)),
+              UnderlineTab(
+                label: labels[i],
+                width: slots[i],
+                selected: i == index,
+                selectedColor: selectedColor,
+                onTap: () => onSelected(i),
+              ),
             ],
           ],
         ),
@@ -75,7 +95,7 @@ class UnderlineTabStrip extends StatelessWidget {
               key: underlineKey,
               height: underlineHeight,
               width: underlineWidth,
-              decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(underlineHeight / 2)),
+              decoration: BoxDecoration(color: selectedColor ?? scheme.primary, borderRadius: BorderRadius.circular(underlineHeight / 2)),
             ),
           ),
       ],
@@ -119,11 +139,14 @@ class UnderlineTabStrip extends StatelessWidget {
 
 /// [UnderlineTabStrip] 的单项，也可以单独使用。
 class UnderlineTab extends StatefulWidget {
-  const UnderlineTab({super.key, required this.label, required this.selected, required this.onTap, this.width});
+  const UnderlineTab({super.key, required this.label, required this.selected, required this.onTap, this.width, this.selectedColor});
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// 选中态的强调色。由 [UnderlineTabStrip] 传下来，留空则用 `colorScheme.primary`。
+  final Color? selectedColor;
 
   /// 插槽宽度。由 [UnderlineTabStrip] 按选中态（粗体）的文字宽度算好传进来；
   /// 单独使用时留空则按自身内容宽度。
@@ -163,8 +186,10 @@ class _UnderlineTabState extends State<UnderlineTab> {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: highlighted ? scheme.primary : scheme.onSurfaceVariant,
+                    fontSize: 13,
+                    color: highlighted
+                        ? (widget.selectedColor ?? scheme.primary)
+                        : AppDesignTokens.inkSubtle,
                     fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),

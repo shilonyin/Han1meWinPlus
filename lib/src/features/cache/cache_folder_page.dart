@@ -13,6 +13,7 @@ import 'cache_cards.dart';
 import 'cache_format.dart';
 import 'download_group_page.dart';
 import '../../core/app_dialog.dart';
+import '../shared/app_top_bar.dart';
 
 /// 网格里单张卡片的目标宽度区间。
 ///
@@ -47,7 +48,7 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
     final downloads = ref.watch(downloadProvider);
     return downloads.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) => Scaffold(appBar: AppBar(), body: Center(child: Text('$error'))),
+      error: (error, _) => Scaffold(appBar: AppTopBar(), body: Center(child: Text('$error'))),
       data: (state) {
         final group = state.groups.where((item) => item.id == widget.groupId).firstOrNull;
         // 分组可能在别处被删掉了，这时直接把这一页收起来。
@@ -55,12 +56,12 @@ class _CacheFolderPageState extends ConsumerState<CacheFolderPage> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
           });
-          return Scaffold(appBar: AppBar(), body: const SizedBox.shrink());
+          return Scaffold(appBar: AppTopBar(), body: const SizedBox.shrink());
         }
         final tasks = sortTasks(state.tasks.where((task) => _inGroup(task, group)), group.sort);
         final name = localizedGroupName(group, l10n);
         return Scaffold(
-          appBar: AppBar(
+          appBar: AppTopBar(
             leading: _selecting ? PressScale(child: IconButton(tooltip: l10n.cancel, onPressed: () => setState(_selected.clear), icon: const Icon(Symbols.close_rounded))) : null,
             // 标题栏放不下长系列名时交给省略号：原来直接把整个名字塞进 title，
             // 超长分组名（自动建组用系列名，常常就是整条标题）会把操作按钮挤掉。

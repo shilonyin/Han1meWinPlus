@@ -6,6 +6,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/play_window_nav_history.dart';
 import '../../core/play_window_title_target.dart';
 import '../../core/window_chrome.dart';
@@ -14,6 +15,7 @@ import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
+import '../navigation/app_shell.dart';
 import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
@@ -205,25 +207,49 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     // 继承到的主题，漏掉任何一个都会让播放页/全屏的文字跟其它页面不一样
     // （例如开了「使用系统字体」而这里还写死内置字体，看上去就是「字体异常」）。
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final immersive = appTheme(
+    // 跟随应用当前的主题，而不是一律钉成深色。
+    //
+    // 原来这里写死 `Brightness.dark`，整个详情页（左侧播放器 + 底部简介/评论 +
+    // 右侧作者/标签/选集/相关推荐）全是深色面，而设计稿 `base_videodetail.png`
+    // 是**白底**：页面底浅、信息栏白、只有播放器舞台本身是黑的。
+    final brightness =
+        settings?.effectiveBrightness(
+          MediaQuery.platformBrightnessOf(context),
+        ) ??
+        Brightness.light;
+    final detailTheme = appTheme(
       null,
       settings?.themeColor.seedColor(settings.customThemeColor) ??
           const Color(0xfffb7299),
-      brightness: Brightness.dark,
+      brightness: brightness,
       amoled: settings?.amoledMode ?? false,
       useSystemFont: settings?.useSystemFont ?? false,
       variant:
           settings?.themeColor.schemeVariant ?? DynamicSchemeVariant.tonalSpot,
       neutralSurfaces: true,
     );
-    // 页面底色再压暗一档（#101113），与纯黑的播放器舞台拉开层次但不刺眼。
-    return Theme(
-      data: immersive,
+    // 页面底用设计稿的 #F4F4F7：播放器舞台自己保持纯黑，其余都是浅色面。
+    final page = Theme(
+      data: detailTheme,
       child: Scaffold(
-        backgroundColor: immersive.colorScheme.surfaceContainerLowest,
+        backgroundColor: AppDesignTokens.pageBackground,
         body: content,
       ),
     );
+    // 主窗口里的详情页**要带左侧常驻导航栏**（设计稿 `base_videodetail.png`
+    // 左侧就是 logo + 主页/新番/里番/泡面番/… + 账号卡那一整条）。
+    // 之前详情页是根导航器上的全屏路由，整条侧栏都没有。
+    // 独立播放窗口（inPlayWindow）本来就是纯播放器，不加。
+    if (!widget.inPlayWindow &&
+        MediaQuery.sizeOf(context).width >= 900) {
+      return Material(
+        color: AppDesignTokens.pageBackground,
+        child: Row(
+          children: [const AppDesktopSidebar(), Expanded(child: page)],
+        ),
+      );
+    }
+    return page;
   }
 }
 

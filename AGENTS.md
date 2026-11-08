@@ -24,6 +24,14 @@
 
 ## Agent skills
 
+### UI 令牌与注释
+
+动 UI 之前先读 [docs/design-tokens.md](docs/design-tokens.md)：圆角、动效、颜色各走哪个令牌，
+哪些值必须推导而不是写死。写注释前读 [docs/comment-style.md](docs/comment-style.md)。
+三条守卫测试（`test/radius_token_guard_test.dart`、`test/motion_token_guard_test.dart`、
+`test/comment_style_guard_test.dart`）会挡住回退，改不动它们时先读文件头的说明，
+不要直接调大额度。
+
 ### Issue tracker
 
 Issues and specs live as GitHub issues on `shilonyin/Han1meWinPlus`, read and written through the `deck_*` tools. See `docs/agents/issue-tracker.md`.

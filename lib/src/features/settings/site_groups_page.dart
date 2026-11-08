@@ -5,16 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/app_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
 import '../../data/local/site_group_store.dart';
 import '../../data/remote/jav/jav_site.dart';
 import '../shared/press_scale.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
+import '../shared/app_top_bar.dart';
 
 /// 分组显示名：用户没改过名时用内置名（于是跟随界面语言）。
 String siteGroupName(SiteGroup group, AppLocalizations l10n) => group.name.isNotEmpty ? group.name : group.id == javSiteGroupId ? l10n.javSources : l10n.site;
@@ -58,15 +59,15 @@ class SiteGroupsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final groups = ref.watch(siteGroupsProvider).valueOrNull;
     if (groups == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.siteGroups)),
+      backgroundColor: AppDesignTokens.pageBackground,
+      appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.siteGroups)),
       // 用 Sliver 组合而不是 ReorderableListView 的 header/footer —— 后者的 footer 区域
       // 在桌面端收不到指针事件（同「首页快捷分类」那页踩过的坑）。
       body: CustomScrollView(slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          sliver: SliverToBoxAdapter(child: Text(l10n.siteGroupsDescription, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, height: 1.4))),
+          sliver: SliverToBoxAdapter(child: Text(l10n.siteGroupsDescription, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted, height: 1.4))),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -80,7 +81,14 @@ class SiteGroupsPage extends ConsumerWidget {
             itemBuilder: (context, index) => Padding(
               key: ValueKey(groups[index].id),
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: GlassPanel(borderRadius: BorderRadius.circular(AppRadius.lg), solidColor: theme.colorScheme.surfaceContainerLow, child: _groupCard(context, ref, groups, index, l10n)),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppDesignTokens.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppDesignTokens.stroke),
+                ),
+                child: _groupCard(context, ref, groups, index, l10n),
+              ),
             ),
           ),
         ),
@@ -94,29 +102,30 @@ class SiteGroupsPage extends ConsumerWidget {
 
   Widget _groupCard(BuildContext context, WidgetRef ref, List<SiteGroup> groups, int index, AppLocalizations l10n) {
     final group = groups[index];
-    final theme = Theme.of(context);
     final multiple = groups.length > 1;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
         dense: true,
-        leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded)),
-        title: Text(siteGroupName(group, l10n), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+        leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded, color: AppDesignTokens.inkMuted)),
+        title: Text(siteGroupName(group, l10n), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
+        subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          PressScale(child: IconButton(tooltip: l10n.siteGroupRename, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20))),
-          PressScale(child: IconButton(tooltip: l10n.delete, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
+          PressScale(child: IconButton(tooltip: l10n.siteGroupRename, color: AppDesignTokens.inkSubtle, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20))),
+          PressScale(child: IconButton(tooltip: l10n.delete, color: AppDesignTokens.inkSubtle, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
         ]),
       ),
       if (group.hosts.isEmpty)
-        Padding(padding: const EdgeInsets.fromLTRB(56, 0, 16, 12), child: Align(alignment: Alignment.centerLeft, child: Text(l10n.siteGroupEmpty, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)))),
-      for (final host in group.hosts)
+        Padding(padding: const EdgeInsets.fromLTRB(56, 0, 16, 12), child: Align(alignment: Alignment.centerLeft, child: Text(l10n.siteGroupEmpty, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)))),
+      for (final host in group.hosts) ...[
+        const Divider(height: 1, thickness: 1, indent: 56, endIndent: 16, color: Color(0xFFF0F0F3)),
         ListTile(
           dense: true,
           contentPadding: const EdgeInsets.only(left: 56, right: 8),
-          title: Text(siteHostLabel(host, l10n)),
-          subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n)),
-          trailing: PressScale(child: IconButton(tooltip: l10n.siteGroupMoveTo, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20))),
+          title: Text(siteHostLabel(host, l10n), style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink)),
+          subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n), style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+          trailing: PressScale(child: IconButton(tooltip: l10n.siteGroupMoveTo, color: AppDesignTokens.inkSubtle, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20))),
         ),
+      ],
     ]);
   }
 
@@ -183,7 +192,24 @@ class SiteGroupsPage extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: TextField(controller: controller, autofocus: true, textInputAction: TextInputAction.done, onSubmitted: (value) => Navigator.pop(context, value.trim()), decoration: InputDecoration(labelText: l10n.siteGroupName, helperText: l10n.siteGroupNameHint)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (value) => Navigator.pop(context, value.trim()),
+          style: const TextStyle(fontSize: 14, color: AppDesignTokens.ink),
+          decoration: InputDecoration(
+            labelText: l10n.siteGroupName,
+            helperText: l10n.siteGroupNameHint,
+            labelStyle: const TextStyle(color: AppDesignTokens.inkMuted),
+            helperStyle: const TextStyle(color: AppDesignTokens.inkMuted),
+            filled: true,
+            fillColor: AppDesignTokens.fieldFill,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.stroke)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.stroke)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.accent)),
+          ),
+        ),
         actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.save)))],
       ),
     );

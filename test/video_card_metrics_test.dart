@@ -3,10 +3,13 @@ import 'package:han1me_win_plus/src/features/shared/video_card.dart';
 
 void main() {
   group('视频卡片高度', () {
-    // 详情区的实际内容：标题一行(20) + 间隙(8) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2) = 66。
-    // 标题由两行改一行后从 84 降到 66（预留高度取 72，留 6px 兜字体度量误差）。
-    // 预留高度必须贴近它，否则卡片底部会空出一块，加上投影就显得"下面还有一层"。
-    const contentHeight = 66.0;
+    // 详情区的实际内容（v6 设计稿的卡片是两行）：
+    // 间隙(8) + 标题一行(20) + 间隙(8) + 元信息行(18 作者/日期/点赞率同一行) + 底距(2) = 56。
+    //
+    // 点赞率并进元信息行之后比原来少了一整行（间隙 4 + 行高 16 = 20），实际内容从 66 降到 56；
+    // 预留高度同步调到 56，两者一致。预留必须贴近实际内容，否则卡片底部会空出一块，
+    // 加上投影就显得"下面还有一层"。
+    const contentHeight = 56.0;
 
     test('横向卡片：详情区预留高度贴近实际内容，不留大片空白', () {
       final metrics = videoCardMetrics(
@@ -16,7 +19,9 @@ void main() {
         expanded: true,
       );
       final details = metrics.cardHeight - metrics.cardWidth * 9 / 16;
-      expect(details, greaterThanOrEqualTo(contentHeight));
+      // 允许 0.5px 的浮点误差：`cardWidth * 9 / 16` 在非整数宽度上会带出小数，
+      // 直接比 `>= 56` 可能因 55.9996 这种值失败。
+      expect(details, greaterThanOrEqualTo(contentHeight - 0.5));
       // 余量控制在 12px 以内：够兜住字体度量误差，又不会空出一大块。
       expect(details, lessThanOrEqualTo(contentHeight + 12));
     });

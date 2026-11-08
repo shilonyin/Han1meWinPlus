@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/cached_video_lookup.dart';
@@ -28,8 +29,8 @@ import 'video_controller.dart';
 import '../../core/app_dialog.dart';
 
 /// 一个操作项（图标 / 文案 / 回调），悬浮工具条和侧栏操作排都用它
-class _VideoAction {
-  const _VideoAction(this.icon, this.label, this.onPressed, {this.filled = false});
+class VideoAction {
+  const VideoAction(this.icon, this.label, this.onPressed, {this.filled = false});
 
   final IconData icon;
   final String label;
@@ -47,29 +48,69 @@ class VideoActionRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    // 设计稿 v6 详情页右栏的操作行：左侧一个大「立即播放」按钮（200×40 圆角12 粉色
+    // 白字），右侧紧跟三个 40×40 圆角8 的浅灰方块（收藏 / 下载 / 更多）。
+    // 不再是「图标+文字竖排平铺」，那与设计稿不是一回事。
+    final actions = videoActionsFor(context, ref, video);
+    final play = actions.isNotEmpty ? actions.first : null;
+    // actions 里通常还含收藏/下载/分享等；取后三个做小方块。
+    final smalls = actions.length > 1 ? actions.sublist(1).take(3).toList() : const <VideoAction>[];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
-          for (final action in _videoActions(context, ref, video))
+          if (play != null)
             Expanded(
-              child: PressScale(child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                onTap: action.onPressed,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+              child: PressScale(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: play.onPressed,
+                child: Container(
+                  // 主按钮吃掉剩余宽度：右栏内宽只有 304，写死宽度再加 Spacer 时
+                  // 三个 40 的圆图标会被挤出卡片右缘，最后一个直接被裁掉。
+                  // 设计稿 bigPlayBtn：200×40、圆角 12。
+                  height: 40,
+                  decoration: BoxDecoration(color: AppDesignTokens.accentDeep, borderRadius: BorderRadius.circular(AppRadius.md)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(action.icon, size: 18, color: action.onPressed == null ? theme.colorScheme.outline : theme.colorScheme.onSurface, fill: action.filled ? 1 : 0),
-                      const SizedBox(height: 4),
-                      Text(action.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      const Icon(Symbols.play_arrow_rounded, size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(play.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
                     ],
                   ),
                 ),
-              )),
+              ),
             ),
+            ),
+          for (final action in smalls) ...[
+            // 设计稿这一组是**圆形**图标（♡ / 😊 / ⋯），不是圆角方块；
+            // 而且不带底色，靠图标本身立在白卡上。
+            PressScale(
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: action.onPressed,
+                child: Container(
+                  // 设计稿 collect/download/more：40×40、圆角 8 的浅灰方块。
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppDesignTokens.fieldFill,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      action.icon,
+                      size: 20,
+                      color: action.onPressed == null ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
+                      fill: action.filled ? 1 : 0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
         ],
       ),
     );
@@ -84,7 +125,7 @@ class VideoActionBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final actions = [for (final action in _videoActions(context, ref, video)) PressScale(child: IconButton(tooltip: action.label, icon: Icon(action.icon), onPressed: action.onPressed))];
+    final actions = [for (final action in videoActionsFor(context, ref, video)) PressScale(child: IconButton(tooltip: action.label, icon: Icon(action.icon), onPressed: action.onPressed))];
     return vertical
         ? M3EVerticalFloatingToolbar(expanded: true, content: Column(mainAxisSize: MainAxisSize.min, children: actions))
         : M3EHorizontalFloatingToolbar(expanded: true, content: Row(mainAxisSize: MainAxisSize.min, children: actions));
@@ -92,7 +133,11 @@ class VideoActionBar extends ConsumerWidget {
 }
 
 /// 收藏 / 稍后看 / 下载 / 分享这几个操作
-List<_VideoAction> _videoActions(BuildContext context, WidgetRef ref, VideoDetail video) {
+/// 详情页可用的动作（加入清单 / 收藏 / 下载 / 分享）。
+///
+/// 公开出来是为了让右栏顶部那三个圆形图标也能复用同一组动作，
+/// 而不是另写一套"看着能点、点下去没反应"的装饰。
+List<VideoAction> videoActionsFor(BuildContext context, WidgetRef ref, VideoDetail video) {
   final library = ref.watch(libraryProvider).value ?? const LibraryState();
   final account = ref.watch(accountProvider).valueOrNull;
   final remote = account == null ? null : ref.watch(remoteLibraryProvider).valueOrNull;
@@ -101,10 +146,10 @@ List<_VideoAction> _videoActions(BuildContext context, WidgetRef ref, VideoDetai
   final inFavorites = ref.watch(favoriteOverrideProvider(video.id)) ?? persistedFavorite;
   final l10n = AppLocalizations.of(context)!;
   return [
-    _VideoAction(inWatchLater ? Symbols.playlist_add_check_rounded : Symbols.playlist_add_rounded, l10n.addToPlaylist, () => account == null ? _pickLocalPlaylist(context, ref, video, library) : _pickPlaylist(context, ref, video, video.csrfToken ?? remote?.csrfToken ?? account.csrfToken, remote)),
-    _VideoAction(Symbols.favorite_rounded, l10n.favorite, () => _toggleFavorite(ref, video, account == null ? null : video.csrfToken ?? account.csrfToken, account == null ? null : video.currentUserId ?? account.id, !inFavorites), filled: inFavorites),
-    _VideoAction(Symbols.download_rounded, l10n.download, video.sources.any((item) => !_isStreamPlaylist(item)) ? () => _showDownloadPicker(context, ref, video) : null),
-    _VideoAction(Symbols.share_rounded, l10n.share, () => Share.share('${video.title} (${video.id})', subject: video.title)),
+    VideoAction(inWatchLater ? Symbols.playlist_add_check_rounded : Symbols.playlist_add_rounded, l10n.addToPlaylist, () => account == null ? _pickLocalPlaylist(context, ref, video, library) : _pickPlaylist(context, ref, video, video.csrfToken ?? remote?.csrfToken ?? account.csrfToken, remote)),
+    VideoAction(Symbols.favorite_rounded, l10n.favorite, () => _toggleFavorite(ref, video, account == null ? null : video.csrfToken ?? account.csrfToken, account == null ? null : video.currentUserId ?? account.id, !inFavorites), filled: inFavorites),
+    VideoAction(Symbols.download_rounded, l10n.download, video.sources.any((item) => !_isStreamPlaylist(item)) ? () => _showDownloadPicker(context, ref, video) : null),
+    VideoAction(Symbols.share_rounded, l10n.share, () => Share.share('${video.title} (${video.id})', subject: video.title)),
   ];
 }
 

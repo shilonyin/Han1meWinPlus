@@ -19,8 +19,6 @@ abstract final class AppRadius {
   static const double xs = 6;
 
   /// 小元素（8~10px 级）：封面切口、缩略图、紧凑卡片、菜单项。
-  ///
-  /// [videoCardRadius] 也归在这一档（封面是 8）。
   static const double sm = 10;
 
   /// 中元素（12~14px 级）：列表行、设置卡片、下拉、浮层提示。

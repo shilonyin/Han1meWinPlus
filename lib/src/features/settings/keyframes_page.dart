@@ -8,6 +8,7 @@ import '../shared/press_scale.dart';
 import 'settings_card_list.dart';
 import 'settings_sub_page.dart';
 import '../../core/app_dialog.dart';
+import '../shared/app_top_bar.dart';
 
 class KeyframesPage extends ConsumerWidget {
   const KeyframesPage({super.key});
@@ -16,7 +17,7 @@ class KeyframesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.keyframeManagement)),
+      appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.keyframeManagement)),
       body: ListView(
         children: [
           const _KeyframeVideoList(),

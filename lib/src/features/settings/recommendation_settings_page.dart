@@ -9,6 +9,7 @@ import 'settings_card_list.dart';
 import 'settings_controller.dart';
 import 'settings_sub_page.dart';
 import '../../core/app_dialog.dart';
+import '../shared/app_top_bar.dart';
 
 class RecommendationSettingsPage extends ConsumerStatefulWidget {
   const RecommendationSettingsPage({super.key});
@@ -31,7 +32,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(leading: settingsSubPageBack(context), title: Text(l10n.recommendationFilters)),
+      appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.recommendationFilters)),
       body: ListView(
         children: [
           SettingsCardList(
@@ -136,7 +137,7 @@ class _StringFilterPageState extends State<_StringFilterPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(leading: settingsSubPageBack(context), title: Text(widget.title)),
+        appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(widget.title)),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

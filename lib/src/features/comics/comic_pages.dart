@@ -23,9 +23,12 @@ import '../shared/glass/glass_scroll_edge_bar.dart';
 import '../../core/app_dialog.dart';
 import '../../core/app_motion.dart';
 import '../shared/press_scale.dart';
+import '../shared/app_top_bar.dart';
 
 final comicHomeCacheProvider = Provider((_) => HomeCache());
-final comicHomeProvider = AsyncNotifierProvider<ComicHomeController, ComicHome>(ComicHomeController.new);
+final comicHomeProvider = AsyncNotifierProvider<ComicHomeController, ComicHome>(
+  ComicHomeController.new,
+);
 
 class ComicHomeController extends AsyncNotifier<ComicHome> {
   @override
@@ -47,14 +50,16 @@ class ComicHomeController extends AsyncNotifier<ComicHome> {
     return feed;
   }
 }
+
 final comicDetailProvider = FutureProvider.autoDispose.family((ref, String id) {
   ref.keepAlive();
   return ref.watch(comicRepositoryProvider).detail(id);
 });
-final _browseProvider = FutureProvider.autoDispose.family<ComicSearchResult, (String, int)>((ref, value) {
-  ref.keepAlive();
-  return ref.watch(comicRepositoryProvider).browse(value.$1, value.$2);
-});
+final _browseProvider = FutureProvider.autoDispose
+    .family<ComicSearchResult, (String, int)>((ref, value) {
+      ref.keepAlive();
+      return ref.watch(comicRepositoryProvider).browse(value.$1, value.$2);
+    });
 
 class ComicExplorePage extends ConsumerWidget {
   const ComicExplorePage({super.key});
@@ -64,14 +69,33 @@ class ComicExplorePage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final home = ref.watch(comicHomeProvider);
     return Scaffold(
-      appBar: AppBar(
-        leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))),
+      appBar: AppTopBar(
+        leading: permanentNavigationDrawer(context)
+            ? null
+            : PressScale(
+                child: IconButton(
+                  tooltip: l10n.navigationDrawer,
+                  onPressed: openAppDrawer,
+                  icon: const Icon(Symbols.menu_rounded),
+                ),
+              ),
         title: const Text('Hanime1.me'),
-        actions: [PressScale(child: IconButton(tooltip: l10n.comicBrowse, onPressed: () => context.push('/comics/browse'), icon: const Icon(Symbols.tune_rounded)))],
+        actions: [
+          PressScale(
+            child: IconButton(
+              tooltip: l10n.comicBrowse,
+              onPressed: () => context.push('/comics/browse'),
+              icon: const Icon(Symbols.tune_rounded),
+            ),
+          ),
+        ],
       ),
       body: home.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicHomeProvider)),
+        error: (error, _) => AppErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(comicHomeProvider),
+        ),
         data: (feed) => M3EPullToRefreshIndicator(
           onRefresh: () async {
             await ref.read(comicHomeProvider.notifier).refresh();
@@ -80,7 +104,8 @@ class ComicExplorePage extends ConsumerWidget {
           onError: (error, _) => showAppErrorBar(
             context,
             error,
-            onRetry: () => unawaited(ref.read(comicHomeProvider.notifier).refresh()),
+            onRetry: () =>
+                unawaited(ref.read(comicHomeProvider.notifier).refresh()),
           ),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -92,15 +117,27 @@ class ComicExplorePage extends ConsumerWidget {
                   child: CarouselView(
                     itemExtent: 160,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: feed.trending.map((comic) => ComicTile(comic: comic)).toList(),
+                    children: feed.trending
+                        .map((comic) => ComicTile(comic: comic))
+                        .toList(),
                   ),
                 ),
               ),
-              SliverToBoxAdapter(child: _Heading(title: l10n.latestComics, action: () => context.push('/comics/browse'))),
+              SliverToBoxAdapter(
+                child: _Heading(
+                  title: l10n.latestComics,
+                  action: () => context.push('/comics/browse'),
+                ),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: .52, mainAxisSpacing: 12, crossAxisSpacing: 10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: .52,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 10,
+                  ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ComicTile(comic: feed.latest[index]),
                     childCount: feed.latest.length,
@@ -123,7 +160,10 @@ class ComicBrowseTarget {
 }
 
 class ComicBrowsePage extends ConsumerStatefulWidget {
-  const ComicBrowsePage({super.key, this.target = const ComicBrowseTarget('/comics')});
+  const ComicBrowsePage({
+    super.key,
+    this.target = const ComicBrowseTarget('/comics'),
+  });
   final ComicBrowseTarget target;
 
   @override
@@ -157,7 +197,7 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
     final l10n = AppLocalizations.of(context)!;
     final result = ref.watch(_browseProvider((_path, _page)));
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.comicBrowse)),
+      appBar: AppTopBar(title: Text(l10n.comicBrowse)),
       body: Column(
         children: [
           Padding(
@@ -165,7 +205,11 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
             child: TextField(
               controller: _search,
               readOnly: true,
-              decoration: InputDecoration(hintText: l10n.comicSearchUnavailable, prefixIcon: const Icon(Symbols.search_rounded), border: const OutlineInputBorder()),
+              decoration: InputDecoration(
+                hintText: l10n.comicSearchUnavailable,
+                prefixIcon: const Icon(Symbols.search_rounded),
+                border: const OutlineInputBorder(),
+              ),
             ),
           ),
           SizedBox(
@@ -174,11 +218,17 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: _filters.entries.map((entry) {
-                final selected = entry.key == 'sort' ? _path != widget.target.path : entry.key == widget.target.type;
+                final selected = entry.key == 'sort'
+                    ? _path != widget.target.path
+                    : entry.key == widget.target.type;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(selected && entry.key != 'sort' ? '${entry.key}: ${widget.target.label}' : entry.key),
+                    label: Text(
+                      selected && entry.key != 'sort'
+                          ? '${entry.key}: ${widget.target.label}'
+                          : entry.key,
+                    ),
                     selected: selected,
                     onSelected: (_) => _chooseFilter(entry.key, entry.value),
                   ),
@@ -188,16 +238,25 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
           ),
           Expanded(
             child: result.when(
-              loading: () => const Center(child: M3EContainedLoadingIndicator()),
+              loading: () =>
+                  const Center(child: M3EContainedLoadingIndicator()),
               error: (error, _) => AppErrorView(
                 error: error,
                 onRetry: () => ref.invalidate(_browseProvider((_path, _page))),
-                onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(_browseProvider((_path, _page)))),
+                onCloudflareVerified: () => _verifyCloudflare(
+                  context,
+                  error,
+                  () => ref.invalidate(_browseProvider((_path, _page))),
+                ),
               ),
               data: (value) => Column(
                 children: [
                   Expanded(child: _ComicGrid(comics: value.items)),
-                  _Pager(page: value.page, total: value.totalPages, onChanged: (page) => setState(() => _page = page)),
+                  _Pager(
+                    page: value.page,
+                    total: value.totalPages,
+                    onChanged: (page) => setState(() => _page = page),
+                  ),
                 ],
               ),
             ),
@@ -211,9 +270,22 @@ class _ComicBrowsePageState extends ConsumerState<ComicBrowsePage> {
     final l10n = AppLocalizations.of(context)!;
     final choices = name == 'sort' ? values : [l10n.all, ...values];
     final selected = await showModalBottomSheet<String>(
-      context: context, barrierColor: Colors.transparent,
+      context: context,
+      barrierColor: Colors.transparent,
       showDragHandle: true,
-      builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: choices.map((choice) => ListTile(title: Text(choice), onTap: () => Navigator.pop(context, choice))).toList())),
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: choices
+              .map(
+                (choice) => ListTile(
+                  title: Text(choice),
+                  onTap: () => Navigator.pop(context, choice),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
     if (selected == null) return;
     setState(() {
@@ -234,18 +306,26 @@ class ComicDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ref.watch(comicDetailProvider(id)).when(
-      loading: () => const Scaffold(body: Center(child: M3EContainedLoadingIndicator())),
-      error: (error, _) => Scaffold(
-        appBar: AppBar(),
-        body: AppErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(comicDetailProvider(id)),
-          onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicDetailProvider(id))),
-        ),
-      ),
-      data: (comic) => _ComicDetail(comic: comic),
-    );
+    return ref
+        .watch(comicDetailProvider(id))
+        .when(
+          loading: () => const Scaffold(
+            body: Center(child: M3EContainedLoadingIndicator()),
+          ),
+          error: (error, _) => Scaffold(
+            appBar: AppTopBar(),
+            body: AppErrorView(
+              error: error,
+              onRetry: () => ref.invalidate(comicDetailProvider(id)),
+              onCloudflareVerified: () => _verifyCloudflare(
+                context,
+                error,
+                () => ref.invalidate(comicDetailProvider(id)),
+              ),
+            ),
+          ),
+          data: (comic) => _ComicDetail(comic: comic),
+        );
   }
 }
 
@@ -264,34 +344,141 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
   Widget build(BuildContext context) {
     final comic = widget.comic;
     final l10n = AppLocalizations.of(context)!;
-    final card = ComicCard(id: comic.id, title: comic.title, coverUrl: comic.coverUrl);
+    final card = ComicCard(
+      id: comic.id,
+      title: comic.title,
+      coverUrl: comic.coverUrl,
+    );
     final bar = AppBar(title: Text(l10n.comicDetails));
     return Scaffold(
       // 顶栏挂 g1455 的 scroll edge：详情滚到它下面时被模糊淡出。
       extendBodyBehindAppBar: true,
       appBar: glassScrollEdgeAppBar(bar),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.push('/comics/${comic.id}/read', extra: comic), icon: const Icon(Symbols.menu_book_rounded), label: Text(l10n.read)),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/comics/${comic.id}/read', extra: comic),
+        icon: const Icon(Symbols.menu_book_rounded),
+        label: Text(l10n.read),
+      ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, barExtent(bar) + 16, 16, 16),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: AppCachedNetworkImage(imageUrl: comic.coverUrl, width: 118, height: 172, fit: BoxFit.cover, faceFocus: true)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                child: AppCachedNetworkImage(
+                  imageUrl: comic.coverUrl,
+                  width: 118,
+                  height: 172,
+                  fit: BoxFit.cover,
+                  faceFocus: true,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(comic.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text('#${comic.id}'), if (comic.artist != null) Text(comic.artist!), Text('${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}')])),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      comic.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('#${comic.id}'),
+                    if (comic.artist != null) Text(comic.artist!),
+                    Text(
+                      '${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}',
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          Card(child: Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: PressScale(child: FilledButton.tonalIcon(onPressed: () => _save(card), icon: const Icon(Symbols.bookmark_add_rounded), label: Text(l10n.library)))), const SizedBox(width: 8), Expanded(child: PressScale(child: FilledButton.tonalIcon(onPressed: () => _cache(comic), icon: const Icon(Symbols.download_rounded), label: Text(l10n.cache)))), const SizedBox(width: 8), PressScale(child: IconButton(tooltip: l10n.info, onPressed: () => _info(comic), icon: const Icon(Symbols.info_rounded)))]))),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: PressScale(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => _save(card),
+                        icon: const Icon(Symbols.bookmark_add_rounded),
+                        label: Text(l10n.library),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: PressScale(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => _cache(comic),
+                        icon: const Icon(Symbols.download_rounded),
+                        label: Text(l10n.cache),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  PressScale(
+                    child: IconButton(
+                      tooltip: l10n.info,
+                      onPressed: () => _info(comic),
+                      icon: const Icon(Symbols.info_rounded),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 18),
           Text(l10n.tags, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 6, children: comic.tags.take(_expanded ? comic.tags.length : 12).map((tag) => ActionChip(label: Text(tag.name), onPressed: () => context.push('/comics/browse', extra: ComicBrowseTarget(tag.path, type: tag.type, label: tag.name)))).toList()),
-          if (comic.tags.length > 12) Align(alignment: Alignment.centerRight, child: PressScale(child: IconButton(onPressed: () => setState(() => _expanded = !_expanded), icon: Icon(_expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded)))),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: comic.tags
+                .take(_expanded ? comic.tags.length : 12)
+                .map(
+                  (tag) => ActionChip(
+                    label: Text(tag.name),
+                    onPressed: () => context.push(
+                      '/comics/browse',
+                      extra: ComicBrowseTarget(
+                        tag.path,
+                        type: tag.type,
+                        label: tag.name,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          if (comic.tags.length > 12)
+            Align(
+              alignment: Alignment.centerRight,
+              child: PressScale(
+                child: IconButton(
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  icon: Icon(
+                    _expanded
+                        ? Symbols.expand_less_rounded
+                        : Symbols.expand_more_rounded,
+                  ),
+                ),
+              ),
+            ),
           const SizedBox(height: 18),
           Text(l10n.chapter, style: Theme.of(context).textTheme.titleMedium),
-          ListTile(leading: const Icon(Symbols.article_rounded), title: Text(l10n.chapterOne), trailing: Text(l10n.pageCount(comic.pageCount)), onTap: () => context.push('/comics/${comic.id}/read', extra: comic)),
+          ListTile(
+            leading: const Icon(Symbols.article_rounded),
+            title: Text(l10n.chapterOne),
+            trailing: Text(l10n.pageCount(comic.pageCount)),
+            onTap: () => context.push('/comics/${comic.id}/read', extra: comic),
+          ),
         ],
       ),
     );
@@ -299,23 +486,72 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
 
   Future<void> _save(ComicCard card) async {
     final l10n = AppLocalizations.of(context)!;
-    final favorite = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.addToLibrary), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.watchLater))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.favoriteVideos)))]));
+    final favorite = await showAppDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.addToLibrary),
+        actions: [
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.watchLater),
+            ),
+          ),
+          PressScale(
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.favoriteVideos),
+            ),
+          ),
+        ],
+      ),
+    );
     if (favorite == null) return;
-    if (favorite) await ref.read(comicLibraryProvider.notifier).setFavorite(card, true);
-    if (!favorite) await ref.read(comicLibraryProvider.notifier).setWatchLater(card, true);
+    if (favorite)
+      await ref.read(comicLibraryProvider.notifier).setFavorite(card, true);
+    if (!favorite)
+      await ref.read(comicLibraryProvider.notifier).setWatchLater(card, true);
   }
 
   Future<void> _cache(ComicDetail comic) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showAppDialog<bool>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cache), content: Text(l10n.cacheComicConfirmation), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel))), PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.confirm)))]));
+    final confirmed = await showAppDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.cache),
+        content: Text(l10n.cacheComicConfirmation),
+        actions: [
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+          ),
+          PressScale(
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.confirm),
+            ),
+          ),
+        ],
+      ),
+    );
     if (confirmed != true) return;
     final category = await _chooseCategory();
     if (category == null) return;
     try {
-      await ref.read(comicCacheProvider.notifier).cache(comic, category: category);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.completed)));
+      await ref
+          .read(comicCacheProvider.notifier)
+          .cache(comic, category: category);
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.completed)));
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
     }
   }
 
@@ -324,10 +560,55 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
     // 读分类是异步的：回来时页面可能已经被关掉，再弹对话框会挂在失效的 context 上。
     if (!mounted) return null;
     final l10n = AppLocalizations.of(context)!;
-    return showAppDialog<String>(context: context, builder: (context) => AlertDialog(title: Text(l10n.cacheCategory), content: Wrap(spacing: 8, runSpacing: 8, children: existing.map((category) => ActionChip(label: Text(category), onPressed: () => Navigator.pop(context, category))).toList()), actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)))]));
+    return showAppDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.cacheCategory),
+        content: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: existing
+              .map(
+                (category) => ActionChip(
+                  label: Text(category),
+                  onPressed: () => Navigator.pop(context, category),
+                ),
+              )
+              .toList(),
+        ),
+        actions: [
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _info(ComicDetail comic) => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [ListTile(title: Text(comic.title), onTap: () => Clipboard.setData(ClipboardData(text: comic.title))), ListTile(title: Text(comic.description ?? ''), onTap: () => Clipboard.setData(ClipboardData(text: comic.description ?? '')))])));
+  void _info(ComicDetail comic) => showModalBottomSheet<void>(
+    context: context,
+    barrierColor: Colors.transparent,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          ListTile(
+            title: Text(comic.title),
+            onTap: () => Clipboard.setData(ClipboardData(text: comic.title)),
+          ),
+          ListTile(
+            title: Text(comic.description ?? ''),
+            onTap: () =>
+                Clipboard.setData(ClipboardData(text: comic.description ?? '')),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class ComicReaderPage extends StatefulWidget {
@@ -361,7 +642,10 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     setState(() {
       _mode = state.mode;
       _background = _backgroundFromName(state.background);
-      _page = (state.progress[widget.comic.id] ?? 0).clamp(0, widget.comic.pageCount - 1);
+      _page = (state.progress[widget.comic.id] ?? 0).clamp(
+        0,
+        widget.comic.pageCount - 1,
+      );
       _ready = true;
     });
     _prefetch();
@@ -380,7 +664,11 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   Widget build(BuildContext context) {
     final comic = widget.comic;
     final long = _mode >= 4;
-    if (!_ready) return Scaffold(backgroundColor: _background, body: const Center(child: M3EContainedLoadingIndicator()));
+    if (!_ready)
+      return Scaffold(
+        backgroundColor: _background,
+        body: const Center(child: M3EContainedLoadingIndicator()),
+      );
     return Scaffold(
       backgroundColor: _background,
       body: Listener(
@@ -391,7 +679,14 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
         child: Stack(
           children: [
             if (long)
-              ListView.separated(itemCount: comic.pageCount, separatorBuilder: (_, __) => SizedBox(height: _mode == 5 ? 8 : 0), itemBuilder: (_, index) => InteractiveViewer(child: _Image(url: comic.imageUrls[index])))
+              ListView.separated(
+                itemCount: comic.pageCount,
+                separatorBuilder: (_, __) =>
+                    SizedBox(height: _mode == 5 ? 8 : 0),
+                itemBuilder: (_, index) => InteractiveViewer(
+                  child: _Image(url: comic.imageUrls[index]),
+                ),
+              )
             else
               Center(
                 child: PageView.builder(
@@ -408,8 +703,65 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                   ),
                 ),
               ),
-            if (_controls) Positioned(top: 0, left: 0, right: 0, child: AppBar(title: Text('${_page + 1}/${comic.pageCount}'), leading: PressScale(child: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back_rounded))))),
-            if (_controls) Positioned(bottom: 0, left: 0, right: 0, child: BottomAppBar(child: Row(children: [PressScale(child: IconButton(onPressed: long || _page == 0 ? null : () => _change(-1), icon: const Icon(Symbols.chevron_left_rounded))), const Spacer(), PressScale(child: IconButton(onPressed: _selectPage, icon: const Icon(Symbols.format_list_numbered_rounded))), PressScale(child: IconButton(onPressed: _settings, icon: const Icon(Symbols.tune_rounded))), const Spacer(), PressScale(child: IconButton(onPressed: long || _page == comic.pageCount - 1 ? null : () => _change(1), icon: const Icon(Symbols.chevron_right_rounded)))]))),
+            if (_controls)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AppBar(
+                  title: Text('${_page + 1}/${comic.pageCount}'),
+                  leading: PressScale(
+                    child: IconButton(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Symbols.arrow_back_rounded),
+                    ),
+                  ),
+                ),
+              ),
+            if (_controls)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: BottomAppBar(
+                  child: Row(
+                    children: [
+                      PressScale(
+                        child: IconButton(
+                          onPressed: long || _page == 0
+                              ? null
+                              : () => _change(-1),
+                          icon: const Icon(Symbols.chevron_left_rounded),
+                        ),
+                      ),
+                      const Spacer(),
+                      PressScale(
+                        child: IconButton(
+                          onPressed: _selectPage,
+                          icon: const Icon(
+                            Symbols.format_list_numbered_rounded,
+                          ),
+                        ),
+                      ),
+                      PressScale(
+                        child: IconButton(
+                          onPressed: _settings,
+                          icon: const Icon(Symbols.tune_rounded),
+                        ),
+                      ),
+                      const Spacer(),
+                      PressScale(
+                        child: IconButton(
+                          onPressed: long || _page == comic.pageCount - 1
+                              ? null
+                              : () => _change(1),
+                          icon: const Icon(Symbols.chevron_right_rounded),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -449,7 +801,11 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     setState(() {
       _page = next;
     });
-    _pageController.animateToPage(next, duration: AppMotion.emphasis, curve: Curves.easeOutCubic);
+    _pageController.animateToPage(
+      next,
+      duration: AppMotion.emphasis,
+      curve: AppMotion.settle,
+    );
     _save();
     _prefetch();
   }
@@ -458,11 +814,42 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     var value = (_page + 1).toDouble();
     final controller = TextEditingController(text: '${_page + 1}');
     showModalBottomSheet<void>(
-      context: context, barrierColor: Colors.transparent,
+      context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheet) => Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [Slider(value: value, min: 1, max: widget.comic.pageCount.toDouble(), divisions: widget.comic.pageCount > 1 ? widget.comic.pageCount - 1 : null, onChanged: (next) => setSheet(() => value = next.roundToDouble()), onChangeEnd: (next) { _jump(next.round()); Navigator.pop(context); }), TextField(controller: controller, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.pageNumber), onSubmitted: (text) { final page = int.tryParse(text); if (page != null) _jump(page); Navigator.pop(context); })]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Slider(
+                value: value,
+                min: 1,
+                max: widget.comic.pageCount.toDouble(),
+                divisions: widget.comic.pageCount > 1
+                    ? widget.comic.pageCount - 1
+                    : null,
+                onChanged: (next) =>
+                    setSheet(() => value = next.roundToDouble()),
+                onChangeEnd: (next) {
+                  _jump(next.round());
+                  Navigator.pop(context);
+                },
+              ),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.pageNumber,
+                ),
+                onSubmitted: (text) {
+                  final page = int.tryParse(text);
+                  if (page != null) _jump(page);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     ).whenComplete(controller.dispose);
@@ -471,7 +858,8 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   void _settings() {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
-      context: context, barrierColor: Colors.transparent,
+      context: context,
+      barrierColor: Colors.transparent,
       showDragHandle: true,
       builder: (context) => DefaultTabController(
         length: 2,
@@ -479,7 +867,12 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
           height: 290,
           child: Column(
             children: [
-              TabBar(tabs: [Tab(text: l10n.readingMode), Tab(text: l10n.general)]),
+              TabBar(
+                tabs: [
+                  Tab(text: l10n.readingMode),
+                  Tab(text: l10n.general),
+                ],
+              ),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -491,14 +884,47 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                         children: List.generate(
                           6,
                           (index) => ChoiceChip(
-                            label: Text([l10n.defaultValue, l10n.leftToRight, l10n.rightToLeft, l10n.topToBottom, l10n.scroll, l10n.scrollGap][index]),
+                            label: Text(
+                              [
+                                l10n.defaultValue,
+                                l10n.leftToRight,
+                                l10n.rightToLeft,
+                                l10n.topToBottom,
+                                l10n.scroll,
+                                l10n.scrollGap,
+                              ][index],
+                            ),
                             selected: _mode == index,
                             onSelected: (_) => _setMode(index, context),
                           ),
                         ),
                       ),
                     ),
-                    Padding(padding: const EdgeInsets.all(16), child: Wrap(spacing: 8, children: [Colors.black, Colors.grey, Colors.white].map((color) => ChoiceChip(label: Text(color == Colors.black ? l10n.black : color == Colors.grey ? l10n.gray : l10n.white), selected: _background == color, onSelected: (_) { setState(() => _background = color); _save(); Navigator.pop(context); })).toList())),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [Colors.black, Colors.grey, Colors.white]
+                            .map(
+                              (color) => ChoiceChip(
+                                label: Text(
+                                  color == Colors.black
+                                      ? l10n.black
+                                      : color == Colors.grey
+                                      ? l10n.gray
+                                      : l10n.white,
+                                ),
+                                selected: _background == color,
+                                onSelected: (_) {
+                                  setState(() => _background = color);
+                                  _save();
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -526,7 +952,13 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   Future<void> _save() async {
     final saved = await _readerStore.load();
     final progress = {...saved.progress, widget.comic.id: _page};
-    await _readerStore.save(ComicReaderState(mode: _mode, background: _backgroundName(_background), progress: progress));
+    await _readerStore.save(
+      ComicReaderState(
+        mode: _mode,
+        background: _backgroundName(_background),
+        progress: progress,
+      ),
+    );
   }
 
   void _prefetch() {
@@ -538,8 +970,16 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
     }
   }
 
-  Color _backgroundFromName(String name) => switch (name) { 'gray' => Colors.grey, 'white' => Colors.white, _ => Colors.black };
-  String _backgroundName(Color color) => color == Colors.grey ? 'gray' : color == Colors.white ? 'white' : 'black';
+  Color _backgroundFromName(String name) => switch (name) {
+    'gray' => Colors.grey,
+    'white' => Colors.white,
+    _ => Colors.black,
+  };
+  String _backgroundName(Color color) => color == Colors.grey
+      ? 'gray'
+      : color == Colors.white
+      ? 'white'
+      : 'black';
 }
 
 class ComicLibraryPage extends ConsumerWidget {
@@ -553,7 +993,35 @@ class ComicLibraryPage extends ConsumerWidget {
     final selectedTab = initialTab.clamp(0, 1).toInt();
     final library = ref.watch(comicLibraryProvider);
     final title = selectedTab == 0 ? l10n.watchLater : l10n.favoriteVideos;
-    return Scaffold(appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(title)), body: library.when(loading: () => const Center(child: M3EContainedLoadingIndicator()), error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicLibraryProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicLibraryProvider))), data: (value) => _ComicGrid(comics: selectedTab == 0 ? value.watchLater : value.favorites)));
+    return Scaffold(
+      appBar: AppTopBar(
+        leading: permanentNavigationDrawer(context)
+            ? null
+            : PressScale(
+                child: IconButton(
+                  tooltip: l10n.navigationDrawer,
+                  onPressed: openAppDrawer,
+                  icon: const Icon(Symbols.menu_rounded),
+                ),
+              ),
+        title: Text(title),
+      ),
+      body: library.when(
+        loading: () => const Center(child: M3EContainedLoadingIndicator()),
+        error: (error, _) => AppErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(comicLibraryProvider),
+          onCloudflareVerified: () => _verifyCloudflare(
+            context,
+            error,
+            () => ref.invalidate(comicLibraryProvider),
+          ),
+        ),
+        data: (value) => _ComicGrid(
+          comics: selectedTab == 0 ? value.watchLater : value.favorites,
+        ),
+      ),
+    );
   }
 }
 
@@ -583,32 +1051,132 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(leading: permanentNavigationDrawer(context) ? null : PressScale(child: IconButton(tooltip: l10n.navigationDrawer, onPressed: openAppDrawer, icon: const Icon(Symbols.menu_rounded))), title: Text(l10n.cache), actions: [PressScale(child: IconButton(tooltip: l10n.cacheCategory, onPressed: _manageCategories, icon: const Icon(Symbols.folder_rounded)))]),
-      body: ref.watch(comicCacheProvider).when(
-        loading: () => const Center(child: M3EContainedLoadingIndicator()),
-        error: (error, _) => AppErrorView(error: error, onRetry: () => ref.invalidate(comicCacheProvider), onCloudflareVerified: () => _verifyCloudflare(context, error, () => ref.invalidate(comicCacheProvider))),
-        data: (items) => _cacheList(items, l10n),
+      appBar: AppTopBar(
+        leading: permanentNavigationDrawer(context)
+            ? null
+            : PressScale(
+                child: IconButton(
+                  tooltip: l10n.navigationDrawer,
+                  onPressed: openAppDrawer,
+                  icon: const Icon(Symbols.menu_rounded),
+                ),
+              ),
+        title: Text(l10n.cache),
+        actions: [
+          PressScale(
+            child: IconButton(
+              tooltip: l10n.cacheCategory,
+              onPressed: _manageCategories,
+              icon: const Icon(Symbols.folder_rounded),
+            ),
+          ),
+        ],
       ),
+      body: ref
+          .watch(comicCacheProvider)
+          .when(
+            loading: () => const Center(child: M3EContainedLoadingIndicator()),
+            error: (error, _) => AppErrorView(
+              error: error,
+              onRetry: () => ref.invalidate(comicCacheProvider),
+              onCloudflareVerified: () => _verifyCloudflare(
+                context,
+                error,
+                () => ref.invalidate(comicCacheProvider),
+              ),
+            ),
+            data: (items) => _cacheList(items, l10n),
+          ),
     );
   }
 
   Widget _cacheList(List<ComicCacheEntry> items, AppLocalizations l10n) {
-    final categories = ['', ...{..._categories, ...items.map((item) => item.category)}];
+    final categories = [
+      '',
+      ...{..._categories, ...items.map((item) => item.category)},
+    ];
     if (!categories.contains(_category)) _category = '';
-    final visible = _category.isEmpty ? items : items.where((item) => item.category == _category).toList();
+    final visible = _category.isEmpty
+        ? items
+        : items.where((item) => item.category == _category).toList();
     final all = AppLocalizations.of(context)!.all;
-    String label(String category) => category.isEmpty ? all : (category == defaultComicCategory ? l10n.defaultCategory : category);
-    return Column(children: [SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: categories.map((category) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label(category)), selected: _category == category, onSelected: (_) => setState(() => _category = category)))).toList())), Expanded(child: visible.isEmpty ? Center(child: Text(l10n.noCache)) : ListView(children: visible.map((item) => ListTile(onTap: () => _open(item), leading: AppCachedNetworkImage(imageUrl: item.coverUrl, width: 52, fit: BoxFit.cover, faceFocus: true), title: Text(item.title), subtitle: Text('${label(item.category)}  ${l10n.pageCount(item.pageCount)}'), trailing: PressScale(child: IconButton(onPressed: () => ref.read(comicCacheProvider.notifier).delete(item), icon: const Icon(Symbols.delete_rounded))))).toList()))]);
+    String label(String category) => category.isEmpty
+        ? all
+        : (category == defaultComicCategory ? l10n.defaultCategory : category);
+    return Column(
+      children: [
+        SizedBox(
+          height: 52,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            children: categories
+                .map(
+                  (category) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(label(category)),
+                      selected: _category == category,
+                      onSelected: (_) => setState(() => _category = category),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? Center(child: Text(l10n.noCache))
+              : ListView(
+                  children: visible
+                      .map(
+                        (item) => ListTile(
+                          onTap: () => _open(item),
+                          leading: AppCachedNetworkImage(
+                            imageUrl: item.coverUrl,
+                            width: 52,
+                            fit: BoxFit.cover,
+                            faceFocus: true,
+                          ),
+                          title: Text(item.title),
+                          subtitle: Text(
+                            '${label(item.category)}  ${l10n.pageCount(item.pageCount)}',
+                          ),
+                          trailing: PressScale(
+                            child: IconButton(
+                              onPressed: () => ref
+                                  .read(comicCacheProvider.notifier)
+                                  .delete(item),
+                              icon: const Icon(Symbols.delete_rounded),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+        ),
+      ],
+    );
   }
 
   Future<void> _open(ComicCacheEntry entry) async {
     try {
       final images = await ref.read(comicCacheProvider.notifier).extract(entry);
       if (!mounted) return;
-      final comic = ComicDetail(id: entry.id, title: entry.title, coverUrl: entry.coverUrl, pageCount: entry.pageCount, tags: const [], imageUrls: images);
+      final comic = ComicDetail(
+        id: entry.id,
+        title: entry.title,
+        coverUrl: entry.coverUrl,
+        pageCount: entry.pageCount,
+        tags: const [],
+        imageUrls: images,
+      );
       context.push('/comics/${entry.id}/read', extra: comic);
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
     }
   }
 
@@ -617,48 +1185,68 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
     final controller = TextEditingController();
     try {
       await showModalBottomSheet<void>(
-        context: context, barrierColor: Colors.transparent,
+        context: context,
+        barrierColor: Colors.transparent,
         showDragHandle: true,
         builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheet) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: TextField(controller: controller, decoration: InputDecoration(labelText: l10n.newCategory))),
-                    PressScale(child: IconButton(
-                      onPressed: () async {
-                        await ref.read(comicCacheProvider.notifier).addCategory(controller.text);
-                        controller.clear();
-                        await _loadCategories();
-                        setSheet(() {});
-                      },
-                      icon: const Icon(Symbols.add_rounded),
-                    )),
-                  ],
-                ),
-                ..._categories.map(
-                  (category) => ListTile(
-                    title: Text(category == defaultComicCategory ? l10n.defaultCategory : category),
-                    trailing: category == defaultComicCategory
-                        ? null
-                        : PressScale(child: IconButton(
-                            onPressed: () async {
-                              await ref.read(comicCacheProvider.notifier).deleteCategory(category);
-                              await _loadCategories();
-                              setSheet(() {});
-                            },
-                            icon: const Icon(Symbols.delete_rounded),
-                          )),
+          builder: (sheetContext, setSheet) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          decoration: InputDecoration(
+                            labelText: l10n.newCategory,
+                          ),
+                        ),
+                      ),
+                      PressScale(
+                        child: IconButton(
+                          onPressed: () async {
+                            await ref
+                                .read(comicCacheProvider.notifier)
+                                .addCategory(controller.text);
+                            controller.clear();
+                            await _loadCategories();
+                            setSheet(() {});
+                          },
+                          icon: const Icon(Symbols.add_rounded),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  ..._categories.map(
+                    (category) => ListTile(
+                      title: Text(
+                        category == defaultComicCategory
+                            ? l10n.defaultCategory
+                            : category,
+                      ),
+                      trailing: category == defaultComicCategory
+                          ? null
+                          : PressScale(
+                              child: IconButton(
+                                onPressed: () async {
+                                  await ref
+                                      .read(comicCacheProvider.notifier)
+                                      .deleteCategory(category);
+                                  await _loadCategories();
+                                  setSheet(() {});
+                                },
+                                icon: const Icon(Symbols.delete_rounded),
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       );
     } finally {
@@ -690,7 +1278,24 @@ class ComicTile extends StatelessWidget {
           highlightColor: Colors.transparent,
           focusColor: theme.colorScheme.primary.withValues(alpha: .16),
           onTap: () => context.push('/comics/${comic.id}'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(AppRadius.xs), child: AppCachedNetworkImage(imageUrl: comic.coverUrl, fit: BoxFit.cover, width: double.infinity, faceFocus: true))), const SizedBox(height: 6), Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis)]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                  child: AppCachedNetworkImage(
+                    imageUrl: comic.coverUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    faceFocus: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       ),
     );
@@ -707,7 +1312,12 @@ class _ComicGrid extends StatelessWidget {
       ? Center(child: Text(AppLocalizations.of(context)!.noComics))
       : GridView.builder(
           padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: .52, mainAxisSpacing: 12, crossAxisSpacing: 10),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: .52,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 10,
+          ),
           itemCount: comics.length,
           itemBuilder: (_, index) => ComicTile(comic: comics[index]),
         );
@@ -719,20 +1329,85 @@ class _Heading extends StatelessWidget {
   final VoidCallback? action;
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)), if (action != null) PressScale(child: TextButton(onPressed: action, child: Text(AppLocalizations.of(context)!.more)))]));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+        ),
+        if (action != null)
+          PressScale(
+            child: TextButton(
+              onPressed: action,
+              child: Text(AppLocalizations.of(context)!.more),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _Pager extends StatelessWidget {
-  const _Pager({required this.page, required this.total, required this.onChanged});
+  const _Pager({
+    required this.page,
+    required this.total,
+    required this.onChanged,
+  });
   final int page;
   final int total;
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [PressScale(child: IconButton(onPressed: page > 1 ? () => onChanged(page - 1) : null, icon: const Icon(Symbols.chevron_left_rounded))), PressScale(child: TextButton(onPressed: () => _showPages(context), child: Text('$page/$total'))), PressScale(child: IconButton(onPressed: page < total ? () => onChanged(page + 1) : null, icon: const Icon(Symbols.chevron_right_rounded)))]));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        PressScale(
+          child: IconButton(
+            onPressed: page > 1 ? () => onChanged(page - 1) : null,
+            icon: const Icon(Symbols.chevron_left_rounded),
+          ),
+        ),
+        PressScale(
+          child: TextButton(
+            onPressed: () => _showPages(context),
+            child: Text('$page/$total'),
+          ),
+        ),
+        PressScale(
+          child: IconButton(
+            onPressed: page < total ? () => onChanged(page + 1) : null,
+            icon: const Icon(Symbols.chevron_right_rounded),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Future<void> _showPages(BuildContext context) async {
-    final selected = await showModalBottomSheet<int>(context: context, barrierColor: Colors.transparent, showDragHandle: true, builder: (context) => SafeArea(child: GridView.builder(shrinkWrap: true, padding: const EdgeInsets.all(16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5), itemCount: total, itemBuilder: (_, index) => PressScale(child: TextButton(onPressed: () => Navigator.pop(context, index + 1), child: Text('${index + 1}'))))));
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      barrierColor: Colors.transparent,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: GridView.builder(
+          shrinkWrap: true,
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+          ),
+          itemCount: total,
+          itemBuilder: (_, index) => PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, index + 1),
+              child: Text('${index + 1}'),
+            ),
+          ),
+        ),
+      ),
+    );
     if (selected != null) onChanged(selected);
   }
 }
@@ -742,14 +1417,34 @@ class _Image extends StatelessWidget {
   final String url;
 
   @override
-  Widget build(BuildContext context) => url.startsWith('/') ? Image.file(File(url), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white)) : AppCachedNetworkImage(imageUrl: url, fit: BoxFit.contain, placeholder: (_, __) => const SizedBox(height: 180, child: Center(child: M3EContainedLoadingIndicator())), errorWidget: (_, __, ___) => const Icon(Symbols.broken_image_rounded, color: Colors.white));
+  Widget build(BuildContext context) => url.startsWith('/')
+      ? Image.file(
+          File(url),
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) =>
+              const Icon(Symbols.broken_image_rounded, color: Colors.white),
+        )
+      : AppCachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.contain,
+          placeholder: (_, __) => const SizedBox(
+            height: 180,
+            child: Center(child: M3EContainedLoadingIndicator()),
+          ),
+          errorWidget: (_, __, ___) =>
+              const Icon(Symbols.broken_image_rounded, color: Colors.white),
+        );
 }
 
 /// 借应用内 WebView 过一次 Cloudflare 校验，成功后重跑 [retry]。
 ///
 /// 漫画源（`comic_api.dart`）也会抛 [CloudflareChallengeException]，但原先这三处
 /// 错误态只有「重试」——被挑战时用户点几次都一样，只能去视频那边撞运气。
-Future<void> _verifyCloudflare(BuildContext context, Object error, VoidCallback retry) async {
+Future<void> _verifyCloudflare(
+  BuildContext context,
+  Object error,
+  VoidCallback retry,
+) async {
   final url = error is CloudflareChallengeException ? error.url : null;
   if (await context.push<bool>('/cloudflare', extra: url) == true) {
     await Future<void>.delayed(const Duration(milliseconds: 250));

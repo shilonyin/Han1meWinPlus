@@ -11,6 +11,7 @@ import '../../core/dlna_media_renderer.dart';
 import '../../core/video_player_shutdown.dart';
 import '../shared/motion_icon.dart';
 import '../shared/press_scale.dart';
+import '../shared/app_top_bar.dart';
 
 /// 投屏接收页：手机投过来的片在这里播。
 ///
@@ -156,7 +157,7 @@ class _CastReceiverPageState extends State<CastReceiverPage> implements CastPlay
     final controller = _controller;
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
+      appBar: AppTopBar(
         title: Text(_loaded?.title ?? l10n.dlnaReceiver),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,

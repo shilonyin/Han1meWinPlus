@@ -62,6 +62,17 @@ abstract final class AppMotion {
   /// 线性，用于连续动画（进度、扫光）。
   static const Curve linear = Easing.linear;
 
+  /// 「减速收尾」的通用替代：进入视野、位移到位、淡入。
+  ///
+  /// 对应 `Curves.easeOutCubic`。它不是 M3 token，但全仓有 11 处用它做同类过渡 ——
+  /// 收在这里是为了让「进入用哪条曲线」只有一个答案。与 [enter] 的分工：
+  /// [enter] 用于整块界面进出（强调减速），[settle] 用于控件级的小幅过渡，
+  /// 两者数值不同（emphasizedDecelerate 的起始斜率更缓），别混用。
+  static const Curve settle = Curves.easeOutCubic;
+
+  /// 配合 [settle] 的反向曲线：退出视野、收起。
+  static const Curve unsettle = Curves.easeInCubic;
+
   /// 通用的「短过渡」组合，页面里最常用。
   static const Duration shortDuration = standard;
 }
@@ -71,7 +82,8 @@ abstract final class AppMotion {
 /// 与 `MediaQuery.disableAnimationsOf` + `TickerMode.valuesOf` 一致，
 /// 收在一处是为了避免各处写法不一。
 bool motionEnabledOf(BuildContext context) =>
-    !MediaQuery.disableAnimationsOf(context) && TickerMode.valuesOf(context).enabled;
+    !MediaQuery.disableAnimationsOf(context) &&
+    TickerMode.valuesOf(context).enabled;
 
 /// 按 [enabled] 返回时长；关闭动效时归零，控件直接跳到终态。
 Duration motionDuration(BuildContext context, Duration duration) =>

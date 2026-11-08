@@ -72,7 +72,9 @@ class AppLogger {
   Future<void> init({Directory? directory}) async {
     if (_initialized) return;
     try {
-      final target = directory ?? Directory(path.join((await appStorageDirectory()).path, 'logs'));
+      final target =
+          directory ??
+          Directory(path.join((await appStorageDirectory()).path, 'logs'));
       await target.create(recursive: true);
       _directory = target;
       _file = File(path.join(target.path, _activeFileName));
@@ -112,7 +114,8 @@ class AppLogger {
     debugPrint = (String? message, {int? wrapWidth}) {
       _originalDebugPrint(message, wrapWidth: wrapWidth);
       if (message == null || !_initialized) return;
-      final line = '${DateTime.now().toIso8601String()} DEBUG[debugPrint] '
+      final line =
+          '${DateTime.now().toIso8601String()} DEBUG[debugPrint] '
           '${redact(message)}\n';
       _writes = _writes.then((_) => _writeLine(line)).catchError((Object _) {});
     };
@@ -121,10 +124,18 @@ class AppLogger {
   /// `debugPrint` 是否已经被接过（防止重复包装导致重复落盘）。
   bool _capturingDebugPrint = false;
 
-  void debug(String message, {String? tag}) => _emit(LogLevel.debug, message, tag);
-  void info(String message, {String? tag}) => _emit(LogLevel.info, message, tag);
-  void warning(String message, {String? tag}) => _emit(LogLevel.warning, message, tag);
-  void error(String message, {String? tag, Object? error, StackTrace? stackTrace}) {
+  void debug(String message, {String? tag}) =>
+      _emit(LogLevel.debug, message, tag);
+  void info(String message, {String? tag}) =>
+      _emit(LogLevel.info, message, tag);
+  void warning(String message, {String? tag}) =>
+      _emit(LogLevel.warning, message, tag);
+  void error(
+    String message, {
+    String? tag,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
     final buffer = StringBuffer(message);
     if (error != null) buffer.write(' | $error');
     if (stackTrace != null) buffer.write('\n$stackTrace');
@@ -149,7 +160,9 @@ class AppLogger {
     // 接管后的实现会把内容写进文件 —— 直接调它等于让 debug 级别绕过「不落盘」的约定，
     // 而且接管实现内部再记日志时会自我递归。实测踩过：debug 的行出现在 app.log 里。
     if (level == LogLevel.debug) {
-      _originalDebugPrint('[${level.label}]${tag == null ? '' : '[$tag]'} $message');
+      _originalDebugPrint(
+        '[${level.label}]${tag == null ? '' : '[$tag]'} $message',
+      );
       return;
     }
     if (!_initialized) {
@@ -170,13 +183,45 @@ class AppLogger {
   ///
   /// 在 [_captureDebugPrint] 里**先赋值再替换**，不是 `late final` 懒求值 —— 懒求值会
   /// 在替换之后才执行，拿到的就是替换后的自己。
-  void Function(String? message, {int? wrapWidth}) _originalDebugPrint = debugPrint;
+  void Function(String? message, {int? wrapWidth}) _originalDebugPrint =
+      debugPrint;
 
   void _append(LogLevel level, String message, String? tag) {
-    final redacted = redact('${level.label}${tag == null ? '' : '[$tag]'} $message');
+    final redacted = redact(
+      '${level.label}${tag == null ? '' : '[$tag]'} $message',
+    );
+    // 先进内存环形缓冲，供设置页的「最近日志」实时显示（设计稿那块面板）。
+    // 落盘是异步的（`_writes` 排队），如果界面直接读文件，刚发生的日志要等一拍
+    // 才出现，而且每来一行都要重新读整个文件。这里保留最近 200 行，
+    // 界面只监听 [_recentRevision] 的变化。
+    final now = DateTime.now();
+    _recent.add(
+      RecentLogEntry(
+        time: now,
+        level: level,
+        text: redact('${tag == null ? '' : '[$tag] '}$message'),
+      ),
+    );
+    if (_recent.length > _maxRecentEntries) _recent.removeAt(0);
+    _recentRevision.value++;
+
     final line = '${DateTime.now().toIso8601String()} $redacted\n';
     _writes = _writes.then((_) => _writeLine(line)).catchError((Object _) {});
   }
+
+  /// 最近日志（内存中的环形缓冲，最多 [_maxRecentEntries] 条）。
+  ///
+  /// 只保存 `info` 及以上（`debug` 不落盘、也不进这里 —— 它走的是控制台，
+  /// 混进来会把真正有用的几条冲掉）。
+  List<RecentLogEntry> get recent => List.unmodifiable(_recent);
+
+  /// 每当 [_recent] 变化就自增。页面用 `ValueListenableBuilder` 监听它重绘，
+  /// 不必轮询、也不必自己去碰文件。
+  ValueListenable<int> get recentRevision => _recentRevision;
+
+  final _recent = <RecentLogEntry>[];
+  final _recentRevision = ValueNotifier<int>(0);
+  static const _maxRecentEntries = 200;
 
   Future<void> _writeLine(String line) async {
     final file = _file;
@@ -203,7 +248,8 @@ class AppLogger {
         if (!await from.exists()) continue;
         await from.rename(path.join(directory.path, 'app.${index + 1}.log'));
       }
-      if (await file.exists()) await file.rename(path.join(directory.path, 'app.1.log'));
+      if (await file.exists())
+        await file.rename(path.join(directory.path, 'app.1.log'));
       await file.create(recursive: true);
       _written = 0;
     } catch (_) {
@@ -263,7 +309,9 @@ class AppLogger {
       try {
         final content = await file.readAsString();
         final bytes = utf8.encode(content);
-        archive.addFile(ArchiveFile(path.basename(file.path), bytes.length, bytes));
+        archive.addFile(
+          ArchiveFile(path.basename(file.path), bytes.length, bytes),
+        );
       } catch (_) {}
     }
     return ZipEncoder().encode(archive);
@@ -294,7 +342,10 @@ class AppLogger {
     );
     // 3) 查询串里的签名/令牌参数（图片 URL 的 secure 就属于这类）。
     output = output.replaceAllMapped(
-      RegExp(r'([?&](?:secure|token|sign|signature|expires|authkey)=)([^&\s]+)', caseSensitive: false),
+      RegExp(
+        r'([?&](?:secure|token|sign|signature|expires|authkey)=)([^&\s]+)',
+        caseSensitive: false,
+      ),
       (match) => '${match.group(1)}[已脱敏]',
     );
     return output;
@@ -310,6 +361,30 @@ enum LogLevel {
 
   const LogLevel(this.label);
   final String label;
+}
+
+/// 「最近日志」里的一行：时间 + 级别 + 正文。
+///
+/// 与落盘的那份分开：文件里是带 ISO 时间戳的一整行文本（方便事后 grep），
+/// 而界面要按列排版（时间一列、级别一格、正文一列），所以额外留一份结构化的。
+class RecentLogEntry {
+  const RecentLogEntry({
+    required this.time,
+    required this.level,
+    required this.text,
+  });
+
+  final DateTime time;
+  final LogLevel level;
+  final String text;
+
+  /// `15:22:40` —— 设计稿里的时间列就是到秒。
+  String get timeLabel {
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    final s = time.second.toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
 }
 
 /// 初始化日志并接上全局错误处理。

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
 import '../../data/han1me_repository.dart';
@@ -23,19 +24,52 @@ int videoCardCacheWidth(double cardWidth, double devicePixelRatio) =>
     (cardWidth * devicePixelRatio).round().clamp(240, 480).toInt();
 
 /// 视频卡片统一圆角：卡片本体、封面切口与选中描边共用这一个值，
-/// 避免几处各写一个数字后慢慢走样。
-const videoCardRadius = 8.0;
+/// 避免几处各写一个数字后慢慢走样。取值来自 v6 设计稿（封面圆角 12）。
+const videoCardRadius = 12.0;
 
-/// 封面下方详情区的预留高度：标题一行(20) + 间隙(8) + 作者(16) + 间隙(4) + 评分行(16) + 底距(2)。
+/// 把抓下来的上传日期归一成设计稿的 `MM-DD`（例如 `2026-11-08` → `11-08`）。
+///
+/// 各站点的日期串格式不统一（`2026-11-08`、`2026/11/8`、`11-08`、`3 天前`），
+/// 设计稿的卡片右侧只放得下 `10-24` 这种短格式：完整年份会把作者行挤到换行，
+/// 卡片高度跟着变。识别不出年月日时**原样返回**（如「3 天前」），不做猜测。
+String? formatUploadDate(String? raw) {
+  if (raw == null) return null;
+  final value = raw.trim();
+  if (value.isEmpty) return null;
+  // 完整年月日：2026-11-08 / 2026/11/8 / 2026.11.8
+  final full = RegExp(
+    r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})',
+  ).firstMatch(value);
+  if (full != null) {
+    final month = full.group(2)!.padLeft(2, '0');
+    final day = full.group(3)!.padLeft(2, '0');
+    return '$month-$day';
+  }
+  // 已经是 MM-DD：补零后原样用
+  final short = RegExp(r'^(\d{1,2})[-/.](\d{1,2})$').firstMatch(value);
+  if (short != null) {
+    return '${short.group(1)!.padLeft(2, '0')}-${short.group(2)!.padLeft(2, '0')}';
+  }
+  return value;
+}
+
+/// 封面下方详情区的预留高度：间隙(8) + 标题一行(约 20) + 间隙(8) + 元信息行(18) + 底距(2) ≈ 56。
 ///
 /// 原值是 120，比实际内容高出 40 多像素 —— 卡片底部会空出一大块，
-/// 加上投影之后看起来像"卡片下面还有一层"。这里收到贴近实际内容的高度，
-/// 卡片按真实内容收口（`_details` 自身 overflow 由外层 ClipRect 兜底）。
-/// 标题由两行改一行后同步减掉一行的高度，否则每张卡下面都会空出一条。
-const _horizontalCardMetaHeight = 72.0;
+/// 加上投影之后看起来像"卡片下面还有一层"。这里收到贴近实际内容的高度。
+///
+/// 这个值必须**够用**：网格用 `cardWidth * 9 / 16 + 本值` 当卡高，封面是按 16:9
+/// 定高的 —— 卡高不够时多出来的那几像素只能从封面上裁，封面就被压扁了
+/// （曾经因为首页网格硬编码 `+42`，把 16:9 的封面裁成 1.88:1）。
+///
+/// 点赞率并进元信息行之后比原来少了一整行（间隙 4 + 行高 16 = 20），72 → 56。
+/// 取 56 而不是 52：标题行高在「系统字体」与无障碍放大下会更高（实测 20~21），
+/// 留 2px 余量，避免 `RenderFlex overflowed`。多出的 2px 落在封面下沿，
+/// 不影响比例观感。
+const _horizontalCardMetaHeight = 56.0;
 
 /// 站点有些分类列表（如里番、泡麵番）只给封面和标题，卡片下方不需要留出作者/评分那些行。
-const _horizontalCardCompactMetaHeight = 64.0;
+const _horizontalCardCompactMetaHeight = 44.0;
 
 /// 该卡片是否带作者 / 评分 / 上传时间。
 bool hasVideoCardMeta(VideoCard video) =>
@@ -417,49 +451,53 @@ class VideoCardTile extends ConsumerWidget {
             cursor: SystemMouseCursors.click,
             child: Material(
               type: MaterialType.transparency,
-              child: PressScale(child: InkWell(
-                borderRadius: BorderRadius.circular(videoCardRadius),
-                // InkWell 的悬停/按下灰罩在"无底卡片"上只能从文字区透出来，看起来
-                // 就是「选中时下面变暗」（用户反馈的原话）。这里全部关掉：悬停反馈
-                // 交给标题变色 + 封面推近，按下反馈交给 PressScale 的缩放。
-                hoverColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                splashColor: Colors.transparent,
-                // 焦点态**必须**单独给：上面三个都关了，InkWell 的默认焦点高亮也跟着
-                // 没了 —— 用键盘 Tab 到卡片上时整张卡毫无反应（用户看不出焦点在哪）。
-                // 悬停不能铺灰罩是刻意的（见上），但焦点是另一回事：它需要一块**持续**
-                // 可见的标记。用主题色压到很淡，既不破坏"无底卡片"的观感，又能在浅色
-                // 与深色主题下都看出来。
-                focusColor: theme.colorScheme.primary.withValues(alpha: .16),
-                // 统一入口：Windows 上按设置弹出独立播放窗口（同类客户端行为），其余平台窗口内跳转。
-                // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
-                onTap:
-                    onTap ??
-                    (video.id.isEmpty
-                        ? null
-                        : () {
-                            ref.read(openedVideoIdsProvider.notifier).mark(video.id);
-                            openVideo(context, ref, video.id);
-                          }),
-                onLongPress: onLongPress,
-                child: horizontal
-                    ? _horizontalContent(
-                        theme,
-                        cacheWidth,
-                        resolved,
-                        marked,
-                        coverHover,
-                        hovered,
-                      )
-                    : _verticalContent(
-                        theme,
-                        cacheWidth,
-                        resolved,
-                        marked,
-                        coverHover,
-                        hovered,
-                      ),
-              )),
+              child: PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(videoCardRadius),
+                  // InkWell 的悬停/按下灰罩在"无底卡片"上只能从文字区透出来，看起来
+                  // 就是「选中时下面变暗」（用户反馈的原话）。这里全部关掉：悬停反馈
+                  // 交给标题变色 + 封面推近，按下反馈交给 PressScale 的缩放。
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  // 焦点态**必须**单独给：上面三个都关了，InkWell 的默认焦点高亮也跟着
+                  // 没了 —— 用键盘 Tab 到卡片上时整张卡毫无反应（用户看不出焦点在哪）。
+                  // 悬停不能铺灰罩是刻意的（见上），但焦点是另一回事：它需要一块**持续**
+                  // 可见的标记。用主题色压到很淡，既不破坏"无底卡片"的观感，又能在浅色
+                  // 与深色主题下都看出来。
+                  focusColor: theme.colorScheme.primary.withValues(alpha: .16),
+                  // 统一入口：Windows 上按设置弹出独立播放窗口（同类客户端行为），其余平台窗口内跳转。
+                  // 只在"点开视频"这条路径上记标记：库页多选模式下 onTap 被换成了选择，不算看过了。
+                  onTap:
+                      onTap ??
+                      (video.id.isEmpty
+                          ? null
+                          : () {
+                              ref
+                                  .read(openedVideoIdsProvider.notifier)
+                                  .mark(video.id);
+                              openVideo(context, ref, video.id);
+                            }),
+                  onLongPress: onLongPress,
+                  child: horizontal
+                      ? _horizontalContent(
+                          theme,
+                          cacheWidth,
+                          resolved,
+                          marked,
+                          coverHover,
+                          hovered,
+                        )
+                      : _verticalContent(
+                          theme,
+                          cacheWidth,
+                          resolved,
+                          marked,
+                          coverHover,
+                          hovered,
+                        ),
+                ),
+              ),
             ),
           ),
         );
@@ -513,13 +551,29 @@ class VideoCardTile extends ConsumerWidget {
     // 高度，详情区在它那一半里顶部对齐 —— 标题一行还是两行，直接把作者行推到不同高度。
     // 站点有些分类只给封面和标题（例如里番的后续分页），这时封面同样撑满剩余高度，
     // 否则卡片下方会空出一段没有内容的区域。
+    //
+    // 封面比例**显式锁成 16:9**（v6 设计稿的卡片封面就是 16:9）：交给 Expanded 分配
+    // 剩余高度的话，封面高度=卡高−详情高，详情区增删一行就会把封面压扁或拉高，
+    // 同一列卡片之间封面比例也会不一致。网格那边按 `cardWidth*9/16 + 详情高` 给卡高，
+    // 这里用同一个比例，两者相加正好等于卡高，多余的高度由 ClipRect 裁掉。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _cover(theme, cacheWidth, video, hover)),
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: _cover(theme, cacheWidth, video, hover),
+        ),
         SizedBox(height: dense ? 4 : 8),
-        // 网格给的是固定卡高，详情区超出时裁剪而不是溢出报错
-        ClipRect(child: _details(theme, video, marked, hovered)),
+        // 网格给的是固定卡高，详情区超出时**先收缩再裁剪**，而不是溢出报错。
+        //
+        // 卡高由网格按「封面 16:9 + 文字区」算好，但文字区的实际高度受字体影响
+        // （用系统字体、或无障碍放大字号时行高更大），可能比预留值多出 1~2px。
+        // 裸 ClipRect 只裁**绘制**，布局阶段仍会 `RenderFlex overflowed`
+        // （测试里实测溢出 2px）；套一层 Flexible 让它在布局阶段就收缩到剩余高度，
+        // 既不出警告，也不会把封面的 16:9 挤变形。
+        Flexible(
+          child: ClipRect(child: _details(theme, video, marked, hovered)),
+        ),
       ],
     );
   }
@@ -633,7 +687,8 @@ class VideoCardTile extends ConsumerWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: highlight ??
+                        color:
+                            highlight ??
                             (theme.brightness == Brightness.dark
                                     ? Colors.white
                                     : Colors.black)
@@ -713,26 +768,26 @@ class VideoCardTile extends ConsumerWidget {
     ),
   );
 
-  Widget _details(
-    ThemeData theme,
-    VideoCard video,
-    bool marked,
-    bool hovered,
-  ) {
+  Widget _details(ThemeData theme, VideoCard video, bool marked, bool hovered) {
     final hasMeta = hasVideoCardMeta(video);
     // 作者名 / 评分 / 上传时间原来是 `colorScheme.outline` —— 那是**描边**色，
     // 压在页面底上对比度只有 1.6:1 上下（用户反馈"下面的用户和时间对比度有些弱"）。
-    // 正文级的次要文字该用 onSurfaceVariant。
-    final metaInk = theme.colorScheme.onSurfaceVariant;
+    // 现在取设计稿的 #5F5F6B：比 onSurfaceVariant 再深一点，压在 #F4F4F7 上够清楚，
+    // 又比标题浅一档，不会和标题抢。这一层不跟主题色走（设计稿的基准面）。
+    final metaInk = AppDesignTokens.inkSubtle;
     // 作者名缺失时（AV 源通常只给上传时间、没有作者）日期要左对齐，见下面 `Row` 的说明。
     final hasArtist = video.artist != null && video.artist!.isNotEmpty;
-    final dateText = video.uploadTime == null
+    final dateLabel = formatUploadDate(video.uploadTime);
+    final dateText = dateLabel == null
         ? null
         : Text(
-            video.uploadTime!,
+            dateLabel,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(fontSize: dense ? 10 : null, color: metaInk),
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: dense ? 10 : null,
+              color: metaInk,
+            ),
           );
     // 标题在三种情况下染主题色：看过（会话级标记）、详情页里正在看的那一张、
     // 以及鼠标停在这张卡片上 —— 同类客户端的卡片都是「悬停即标题变强调色」。
@@ -780,54 +835,59 @@ class VideoCardTile extends ConsumerWidget {
                     style: titleStyle,
                   ),
                 ),
-            if (hasMeta) ...[
-              const SizedBox(height: 8),
-              // 作者名 + 上传时间同一行：作者可点（进作者页），日期靠右（用户要求
-              // "作者名右边加个视频上传时间，这样看着更平衡"）。这一行给**固定高度**：
-              // 作者缺失时行高会塌成 0，评分行就会比其他卡片高一截。
-              SizedBox(
-                height: dense ? 16 : 18,
-                child: Row(
-                  children: [
-                    // 有作者：作者居左、日期居右（用户要求「作者名右边加上传时间」）。
-                    // 没作者时（AV 源常见）：日期直接左对齐 —— 若仍塞在 `Expanded`
-                    // 之后，空位会把它推到卡片最右边，看着像少了半行、和设计稿不一致。
-                    if (hasArtist) ...[
-                      Expanded(child: _artistLink(context, theme, video.artist!, metaInk)),
-                      if (dateText != null) Padding(padding: const EdgeInsets.only(left: 6), child: dateText),
-                    ] else if (dateText != null)
-                      dateText,
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                height: dense ? 14 : 16,
-                child: video.rating == null
-                    ? const SizedBox.shrink()
-                    : Row(
-                        children: [
-                          Icon(
-                            Symbols.thumb_up_rounded,
-                            size: dense ? 11 : 14,
-                            color: metaInk,
+              if (hasMeta) ...[
+                const SizedBox(height: 8),
+                // 作者 · 上传时间 · 点赞率**挤在同一行**（v6 设计稿的卡片是两行：
+                // 标题一行、元信息一行）。原来是「作者+日期」一行、评分另起一行右对齐，
+                // 每张卡因此比设计稿高 20px，四行卡片累积下来整页错位两百多像素。
+                //
+                // 整行给**固定高度**：作者缺失时行高会塌成 0，卡片就会比同排的矮一截。
+                SizedBox(
+                  height: dense ? 16 : 18,
+                  child: Row(
+                    children: [
+                      // 有作者：作者与日期居左成组。没作者时（AV 源常见）只显示日期，
+                      // 不能塞进 Expanded —— 否则空位会把它推到卡片最右边，像少了半行。
+                      if (hasArtist) ...[
+                        Flexible(
+                          child: _artistLink(
+                            context,
+                            theme,
+                            video.artist!,
+                            metaInk,
                           ),
-                          SizedBox(width: dense ? 3 : 4),
-                          Flexible(
-                            child: Text(
-                              video.rating!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontSize: dense ? 10 : null,
-                                color: metaInk,
-                              ),
-                            ),
-                          ),
+                        ),
+                        if (dateText != null) ...[
+                          const SizedBox(width: 6),
+                          dateText,
                         ],
-                      ),
-              ),
-            ],
+                      ] else if (dateText != null)
+                        dateText,
+                      const Spacer(),
+                      // 点赞率贴右下、染强调粉（设计稿 `rating0` #B3265A）：一排卡片往上
+                      // 量过去，右下那一小撮粉是最稳的对齐锚点。
+                      if (video.rating != null) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Symbols.thumb_up_rounded,
+                          size: dense ? 11 : 12,
+                          color: AppDesignTokens.accentDeep,
+                        ),
+                        SizedBox(width: dense ? 2 : 3),
+                        Text(
+                          video.rating!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: dense ? 10 : 11,
+                            color: AppDesignTokens.accentDeep,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
           );
         },
@@ -973,21 +1033,36 @@ class _OverlayText extends StatelessWidget {
   final bool dense;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (icon != null) ...[
-        Icon(icon, size: dense ? 10 : 12, color: Colors.white),
-        SizedBox(width: dense ? 2 : 3),
-      ],
-      Text(
-        text,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: dense ? 9 : 11,
-          fontWeight: FontWeight.w600,
-        ),
+  Widget build(BuildContext context) => DecoratedBox(
+    // 设计稿把播放数 / 时长做成压在封面上的小胶囊（#1B1B1F、圆角 8、11 号白字），
+    // 而不是一行裸白字：封面亮起来（浅色番宣图）时裸白字会整段消失，
+    // 胶囊底把它兜住，同一条列表里的两张卡也能对齐。
+    decoration: BoxDecoration(
+      color: AppDesignTokens.chipScrim,
+      borderRadius: BorderRadius.circular(dense ? 6 : 8),
+    ),
+    child: Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 4 : 6,
+        vertical: dense ? 1.5 : 2,
       ),
-    ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: dense ? 10 : 11, color: Colors.white),
+            SizedBox(width: dense ? 2 : 3),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: dense ? 9 : 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }

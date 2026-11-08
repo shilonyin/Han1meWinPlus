@@ -98,6 +98,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appearance => '外观';
 
   @override
+  String get appearanceAndDisplay => '外观与显示';
+
+  @override
   String get themeAndColor => '主题与色彩';
 
   @override
@@ -243,7 +246,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dohTestSample => 'example.com';
 
   @override
-  String get siteDiagnostics => '站点可用性诊断';
+  String get siteDiagnostics => '站点诊断';
 
   @override
   String get siteDiagnosticsDescription =>
@@ -284,22 +287,22 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get diagnose => '重新诊断';
+  String get diagnose => '开始诊断';
 
   @override
   String get diagnosticDns => 'DNS 解析';
 
   @override
-  String get diagnosticConnectivity => '连接可用性';
+  String get diagnosticConnectivity => '连接（HTTP）';
 
   @override
-  String get diagnosticCertificate => 'SSL 证书';
+  String get diagnosticCertificate => '证书';
 
   @override
-  String get diagnosticSite => '站点状态';
+  String get diagnosticSite => '站点结构';
 
   @override
-  String get diagnosticLogin => '登录状态';
+  String get diagnosticLogin => '登录';
 
   @override
   String get diagnosticOk => '正常';
@@ -1681,6 +1684,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get login => '登录';
 
   @override
+  String get loginSubtitle => '用站点账号登录后即可同步收藏与观看记录';
+
+  @override
+  String get loginPrivacyHint => '登录信息只保存在本机，不会上传到除站点以外的任何地方';
+
+  @override
   String get finishLogin => '完成登录';
 
   @override
@@ -2031,31 +2040,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHotkeys => '快捷键';
 
   @override
-  String get hotkeyInAppSection => '应用内快捷键（播放页）';
+  String get hotkeyInAppSection => '应用内快捷键';
 
   @override
-  String get hotkeyGlobalSection => '全局热键';
+  String get hotkeyGlobalSection => '全局快捷键';
 
   @override
   String get hotkeyActionPlayPause => '播放 / 暂停';
 
   @override
-  String get hotkeyActionSeekBackward => '快退 5 秒';
+  String get hotkeyActionSeekBackward => '快退 10 秒';
 
   @override
-  String get hotkeyActionSeekForward => '快进 5 秒';
+  String get hotkeyActionSeekForward => '快进 10 秒';
 
   @override
-  String get hotkeyActionVolumeUp => '音量 +';
+  String get hotkeyActionVolumeUp => '音量增大';
 
   @override
-  String get hotkeyActionVolumeDown => '音量 −';
+  String get hotkeyActionVolumeDown => '音量减小';
 
   @override
-  String get hotkeyActionMute => '静音 / 取消静音';
+  String get hotkeyActionMute => '静音';
 
   @override
-  String get hotkeyActionFullscreen => '切换全屏';
+  String get hotkeyActionFullscreen => '全屏切换';
 
   @override
   String get hotkeyActionExitFullscreen => '退出全屏';
@@ -2613,7 +2622,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get videoSection => '影片';
 
   @override
-  String get checkIn => '冲了么';
+  String get checkIn => '签到';
 
   @override
   String get checkInToday => '今日打卡';
@@ -2832,6 +2841,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get appearance => '外觀';
 
   @override
+  String get appearanceAndDisplay => '外觀與顯示';
+
+  @override
   String get themeAndColor => '主題與色彩';
 
   @override
@@ -2977,7 +2989,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get dohTestSample => 'example.com';
 
   @override
-  String get siteDiagnostics => '站點可用性診斷';
+  String get siteDiagnostics => '站點診斷';
 
   @override
   String get siteDiagnosticsDescription =>
@@ -3018,22 +3030,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get diagnose => '重新診斷';
+  String get diagnose => '開始診斷';
 
   @override
   String get diagnosticDns => 'DNS 解析';
 
   @override
-  String get diagnosticConnectivity => '連線可用性';
+  String get diagnosticConnectivity => '連線（HTTP）';
 
   @override
-  String get diagnosticCertificate => 'SSL 憑證';
+  String get diagnosticCertificate => '憑證';
 
   @override
-  String get diagnosticSite => '站點狀態';
+  String get diagnosticSite => '站點結構';
 
   @override
-  String get diagnosticLogin => '登入狀態';
+  String get diagnosticLogin => '登入';
 
   @override
   String get diagnosticOk => '正常';
@@ -4413,6 +4425,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get login => '登入';
+
+  @override
+  String get loginSubtitle => '用站點帳號登入後即可同步收藏與觀看記錄';
+
+  @override
+  String get loginPrivacyHint => '登入資訊只保存在本機，不會上傳到除站點以外的任何地方';
 
   @override
   String get finishLogin => '完成登入';

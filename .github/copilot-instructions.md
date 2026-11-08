@@ -18,3 +18,9 @@
 - 类型用 `修复` / `功能` / `文档` / `重构` / `构建` / `测试` 等
 - 过程性的内容留在 issue、PR 描述或代码注释里，不放进提交信息
 - 篇幅控制在几行；确实需要交代背景时，指向对应文件或 issue，不复述
+
+## UI 令牌
+
+- 圆角取 `AppRadius`、动效取 `AppMotion`、颜色按「基准面 vs 跟随主题」分（见 [docs/design-tokens.md](docs/design-tokens.md)）。
+- 不要新写 `BorderRadius.circular(<数字>)` 或 `Duration(milliseconds: …)`，守卫测试会拦。
+- 注释解释 why，不写过程流水账；规范见 [docs/comment-style.md](docs/comment-style.md)。

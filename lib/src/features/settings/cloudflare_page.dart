@@ -13,6 +13,7 @@ import '../../data/remote/jav/jav_site.dart';
 import '../../data/remote/webview_environment.dart';
 import '../account/account_controller.dart';
 import 'settings_controller.dart';
+import '../shared/app_top_bar.dart';
 
 class CloudflarePage extends ConsumerStatefulWidget {
   const CloudflarePage({super.key, this.initialUrl});
@@ -80,7 +81,7 @@ class _CloudflarePageState extends ConsumerState<CloudflarePage> {
     // 会写进另一个数据目录，随后的 Dart 请求读不到。
     final environment = ref.watch(webViewEnvironmentProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.cloudflareVerification)),
+      appBar: AppTopBar(title: Text(AppLocalizations.of(context)!.cloudflareVerification)),
       body: environment.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         // provider 已把创建失败降级成 data(null)，这里兜底也要照常给页面，

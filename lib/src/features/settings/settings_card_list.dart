@@ -1,15 +1,27 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-import '../../core/app_radius.dart';
+import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
+
+import '../../core/app_design_tokens.dart';
 import 'settings_glass_controls.dart';
 import 'settings_list.dart';
 
 class SettingsCardList extends StatelessWidget {
-  const SettingsCardList({super.key, required this.children, this.title, this.padding = EdgeInsets.zero});
+  const SettingsCardList({
+    super.key,
+    required this.children,
+    this.title,
+    this.padding = EdgeInsets.zero,
+    this.rowPadding = 2,
+  });
 
   final List<Widget> children;
   final String? title;
   final EdgeInsetsGeometry padding;
+
+  /// 行内上下留白：设计稿主题页行高 40 传 4，布局页 56 传 10。
+  final double rowPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +45,20 @@ class SettingsCardList extends StatelessWidget {
         contentPadding: EdgeInsets.zero,
         sections: [
           SettingsSection(
-            title: title == null ? null : Text(title!, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            rowPadding: rowPadding,
+            title: title == null
+                ? null
+                : Text(
+                    title!,
+                    // 设计稿（`setTitle`）的卡片标题是**墨色 13 号粗体**，不是主题色：
+                    // 原来取 `colorScheme.primary`，换紫主题后每条分组标题都是紫的，
+                    // 和下面那列设置项抢注意力。标题只需要「区分分组」，不需要强调。
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppDesignTokens.ink,
+                    ),
+                  ),
             tiles: children,
           ),
         ],
@@ -43,7 +68,15 @@ class SettingsCardList extends StatelessWidget {
 }
 
 class SettingsCardItem extends StatelessWidget {
-  const SettingsCardItem({super.key, required this.title, this.subtitle, this.leading, this.trailing, this.onTap, this.enabled = true});
+  const SettingsCardItem({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.leading,
+    this.trailing,
+    this.onTap,
+    this.enabled = true,
+  });
 
   final String title;
   final String? subtitle;
@@ -53,6 +86,13 @@ class SettingsCardItem extends StatelessWidget {
   final bool enabled;
 
   SettingsTile get tile {
+    // 设计稿的设置项**没有左侧图标**：一张卡里就是一列「标题 + 副标题 …… 开关」，
+    // 靠 1px 分隔线分行（见 v6 的 `setCard` / `stT*` / `stS*`，节点里只有文字与开关，
+    // 没有任何 icon 节点）。原来每条都挂一个 Material Symbols 图标，一列下来
+    // 左边一条彩色图标竖排，和设计稿差得最明显。
+    //
+    // 这里统一不传 `leading`：调用点那 30 多个 `leading: Icon(...)` 参数留着不动
+    // （删起来动静太大、且以后若要按场景恢复也有据可依），只是不再画出来。
     if (trailing case final Switch toggle) {
       // 这里把传进来的 `Switch` **拆成**一个 onToggle 回调（行本身要能整行点），
       // 真开关由 settings_list 里的 SettingsSwitch 重建。副作用是读屏只看到
@@ -64,7 +104,6 @@ class SettingsCardItem extends StatelessWidget {
         onToggle: (value) {
           toggle.onChanged?.call(value ?? !toggle.value);
         },
-        leading: leading,
         title: Text(title),
         description: subtitle == null ? null : Text(subtitle!),
         enabled: enabled && toggle.onChanged != null,
@@ -73,7 +112,6 @@ class SettingsCardItem extends StatelessWidget {
     }
     return SettingsTile.navigation(
       onPressed: onTap == null ? null : (_) => onTap!(),
-      leading: leading,
       title: Text(title),
       description: subtitle == null ? null : Text(subtitle!),
       value: trailing,
@@ -108,21 +146,60 @@ class SettingsSliderItem extends SettingsCardItem {
 
   @override
   SettingsTile get tile => SettingsTile(
-        leading: leading,
-        title: Text(title),
-        description: subtitle == null ? null : Text(subtitle!),
-        value: Builder(
-          builder: (context) {
-            final colorScheme = Theme.of(context).colorScheme;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(AppRadius.sm)),
-              child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colorScheme.onSecondaryContainer)),
-            );
-          },
-        ),
-        bottom: SettingsSlider(value: value, min: min, max: max, divisions: divisions, onChanged: onChanged),
-      );
+    // 与 SettingsCardItem 一致：设计稿的滑块行也没有左侧图标，
+    // 只有「标题 + 副标题 + 右侧滑块 + 百分比」。
+    title: Text(title),
+    description: subtitle == null ? null : Text(subtitle!),
+    // 设计稿的滑块**在标题这一行的右侧**（`stSl` 与 `stSlVal` 同排），
+    // 不是单独占一整行。原来把它挂在 `bottom` 里，这一行就变成
+    // 「标题行 36 + 滑块行 44」= 80 高，正好是设计稿 40 的两倍 ——
+    // 一屏在「文字大小」这里就被吃掉一整行的空间。
+    //
+    // 所以：滑块拿一个固定 200 宽跟在标题后面，数值跟在滑块右边。
+    // 行高仍由 36 的 `ConstrainedBox` 管，整行回到 40。
+    value: Builder(
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          // 滑块宽度：设计稿实测（`文字大小` 行）滑块轨道 x760~1139 = 380 宽，
+          // 右侧紧跟 `100%` 灰字。原来它挂在 `bottom` 里单独占一整行（行高 80），
+          // 现在并到标题行右侧，行高回到 40。
+          //
+          // 宽度取 `min(380, 可用 - 60)`：380 是设计稿的值，减 60 留给右侧的
+          // `100%` 文字与间距。窄窗口（<900，以及 widget 测试默认的 800×600）
+          // 里写死 380 会直接撑爆行宽抛 `RenderFlex overflowed`，
+          // 所以要跟着可用宽度收。
+          final sliderWidth = math.min(380.0, constraints.maxWidth - 60);
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: sliderWidth < 80 ? 80 : sliderWidth,
+                // 高度 38：给 32 时滑块被压得太扁，和设计稿那种「有一定厚度」的
+                // 轨道不像；给满 44 又会让这一行比别的行高出 6。
+                // 38 是两者折中，行高和相邻行只差 1~2px，看不出来。
+                height: 38,
+                child: SettingsSlider(
+                  value: value,
+                  min: min,
+                  max: max,
+                  divisions: divisions,
+                  onChanged: onChanged,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontSize: 13,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  );
 }
 
 class SettingsMenuItem<T> extends SettingsCardItem {
@@ -143,31 +220,54 @@ class SettingsMenuItem<T> extends SettingsCardItem {
   final String Function(T value) label;
   final ValueChanged<T> onSelected;
 
+  /// 点击行时弹出选项菜单。位置取**行本身**的矩形（`SettingsTile` 的
+  /// `onPressed` 不给 context，所以由下面的 `Builder` 把 context 传进来）。
   Future<void> _showMenu(BuildContext context) async {
     final renderBox = context.findRenderObject()! as RenderBox;
     final position = renderBox.localToGlobal(Offset.zero) & renderBox.size;
     final selected = await showMenu<T>(
       context: context,
       initialValue: value,
-      position: RelativeRect.fromRect(position, Offset.zero & MediaQuery.sizeOf(context)),
-      items: [for (final option in options) PopupMenuItem(value: option, child: Text(label(option)))],
+      position: RelativeRect.fromRect(
+        position,
+        Offset.zero & MediaQuery.sizeOf(context),
+      ),
+      items: [
+        for (final option in options)
+          PopupMenuItem(value: option, child: Text(label(option))),
+      ],
     );
     if (selected != null) onSelected(selected);
   }
 
   @override
   SettingsTile get tile => SettingsTile.navigation(
-        onPressed: _showMenu,
-        leading: leading,
-        title: Text(title),
-        description: subtitle == null ? null : Text(subtitle!),
-        value: Builder(
-          builder: (context) => PopupMenuButton<T>(
-            initialValue: value,
-            onSelected: onSelected,
-            itemBuilder: (context) => [for (final option in options) PopupMenuItem(value: option, child: Text(label(option)))],
-          ),
+    // `onPressed` 本身就是 `void Function(BuildContext)`（见 `settings_list.dart`
+    // 的第 195 行），菜单直接用行自己的 context 定位。
+    onPressed: _showMenu,
+    // 与 SettingsCardItem / SettingsSliderItem 一致：设计稿的设置行没有左侧图标。
+    title: Text(title),
+    description: subtitle == null ? null : Text(subtitle!),
+    // 右侧显示**当前值的文字** + 一个 chevron（设计稿：`1080P >`、`已开启 >`）。
+    //
+    // 之前这里塞了一个 `PopupMenuButton`，它在右侧渲染出来的是一个 **⋮ 菜单图标** ——
+    // 一列下来每行右边都挂着一个三点菜单，和设计稿那串「值 + 箭头」完全不是一回事，
+    // 用户也看不出当前选的是哪个值。
+    value: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label(value),
+          style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
         ),
-        enabled: enabled,
-      );
+        const SizedBox(width: 4),
+        const Icon(
+          Symbols.chevron_right_rounded,
+          size: 18,
+          color: AppDesignTokens.inkSubtle,
+        ),
+      ],
+    ),
+    enabled: enabled,
+  );
 }

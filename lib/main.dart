@@ -60,6 +60,10 @@ Future<void> _run(List<String> args) async {
   }
   // `han1me://` scheme 唤起时系统把链接放进命令行参数（runner 已转交 Dart）。
   final initialLink = DeepLink.fromArguments(args);
+  // 开发用 `--preview=/settings/theme`：启动后直接落到该页面，方便逐页截图比对
+  // 设计稿（否则每改一次样式都要手动点过去一遍）。没有这个参数时为 null，
+  // 生产行为完全不受影响。
+  final previewRoute = DeepLink.previewFromArguments(args);
   // 列表页图片数量多（首页 + 搜索 + 库 + 预告），默认的 100MB / 1000 张容易被挤掉，
   // 被淘汰的图再滚回来就要重新解码甚至重新下载。桌面端内存宽裕，放宽一倍以上。
   PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
@@ -78,24 +82,34 @@ Future<void> _run(List<String> args) async {
   // splash screen instead of on the first painted frame.
   debugPrint('[startup] system title bar: ${loadedSettings.useSystemTitleBar}');
   await WindowChrome.setUseSystemTitleBar(loadedSettings.useSystemTitleBar);
-  debugPrint('[startup] engine+settings: ${startupWatch.elapsedMilliseconds}ms');
+  debugPrint(
+    '[startup] engine+settings: ${startupWatch.elapsedMilliseconds}ms',
+  );
   await PlaybackSpeedPolicy.initialize();
-  final settings = PlaybackSpeedPolicy.isHarmonyOs && loadedSettings.playerEngine != PlayerEngine.libMpv
+  final settings =
+      PlaybackSpeedPolicy.isHarmonyOs &&
+          loadedSettings.playerEngine != PlayerEngine.libMpv
       ? loadedSettings.copyWith(playerEngine: PlayerEngine.libMpv)
       : loadedSettings;
-  if (!identical(settings, loadedSettings)) await SettingsStore(JsonStore()).save(settings);
+  if (!identical(settings, loadedSettings)) {
+    await SettingsStore(JsonStore()).save(settings);
+  }
   // mpv 的 libmpv-2.dll 会在 MediaKit.ensureInitialized() 里被同步 LoadLibrary 加载，
   // 冷启动（磁盘读取 + 杀软扫描）可能耗数百毫秒。首屏 ExplorePage 用不到播放器，
   // 所以把播放器初始化整体挪到首帧之后再执行，缩短启动图停留时间。
   // 真正打开视频时才创建 Player()，那时 DLL 早已加载完毕，不存在竞态。
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    debugPrint('[startup] first-frame done: ${startupWatch.elapsedMilliseconds}ms');
+    debugPrint(
+      '[startup] first-frame done: ${startupWatch.elapsedMilliseconds}ms',
+    );
     MediaPlayerInitializer.bootstrap(settings);
   });
   runApp(
     ProviderScope(
-      overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
-      child: Han1meApp(initialLink: initialLink),
+      overrides: [
+        settingsProvider.overrideWith(() => SettingsController(settings)),
+      ],
+      child: Han1meApp(initialLink: initialLink, previewRoute: previewRoute),
     ),
   );
   unawaited(_postLaunch());
@@ -121,10 +135,14 @@ Future<void> _runPlayWindow(PlayWindowArgs args) async {
   AppLogger.instance.info('播放窗口启动 video=${args.videoId}', tag: 'play-window');
   final settings = await SettingsStore(JsonStore()).load();
   await WindowChrome.setUseSystemTitleBar(settings.useSystemTitleBar);
-  WidgetsBinding.instance.addPostFrameCallback((_) => MediaPlayerInitializer.bootstrap(settings));
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => MediaPlayerInitializer.bootstrap(settings),
+  );
   runApp(
     ProviderScope(
-      overrides: [settingsProvider.overrideWith(() => SettingsController(settings))],
+      overrides: [
+        settingsProvider.overrideWith(() => SettingsController(settings)),
+      ],
       child: PlayWindowApp(videoId: args.videoId),
     ),
   );

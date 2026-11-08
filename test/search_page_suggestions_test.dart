@@ -22,6 +22,7 @@ import 'package:han1me_win_plus/src/features/search/search_controller.dart';
 import 'package:han1me_win_plus/src/features/search/search_page.dart';
 import 'package:han1me_win_plus/src/features/search/search_suggestions.dart';
 import 'package:han1me_win_plus/src/features/settings/settings_controller.dart';
+import 'package:han1me_win_plus/src/features/navigation/app_shell.dart';
 
 /// 固定返回一份设置（不读盘、不碰网络）。
 class _StubSettings extends SettingsController {
@@ -131,7 +132,7 @@ void main() {
     expect(panelBlocker(tester).ignoring, isTrue);
   });
 
-  testWidgets('面板贴着输入框下方，宽度与输入框一致', (tester) async {
+  testWidgets('面板贴着输入框下方，左对齐搜索框行', (tester) async {
     await pump(tester, history: [const SearchQuery(text: '历史条目')]);
     await tester.tap(find.byType(EditableText));
     await tester.pumpAndSettle();
@@ -140,8 +141,15 @@ void main() {
     final panel = tester.getRect(find.byType(SearchSuggestions));
     // 面板不该盖住输入框自己。
     expect(panel.top, greaterThanOrEqualTo(field.bottom));
-    // 水平居中对齐：两边留白相同，观察上就是「和搜索框一样宽」。
-    expect((panel.left - field.left).abs(), lessThan(24));
+    // 搜索页顶栏是「返回钮 + 搜索框」：搜索框本体左缘 = 28 padding + 32 返回钮 + 16 间距 = 76。
+    // 面板按设计稿 clamp 到 640 宽并左对齐这个起点；EditableText 因为 prefixIcon
+    // 内缩，left 会比搜索框本体右移约 56，不能拿它当对齐基准。
+    //
+    // 这一屏是 1200 宽（≥900），搜索页左侧还会带常驻侧栏（设计稿
+    // `base_search.png` / `base_category_hentai.png` 都画了），所以整体再右移一个侧栏宽。
+    const sidebar = AppDesktopSidebar.width;
+    expect((panel.left - (sidebar + 76)).abs(), lessThan(24), reason: '面板左缘要对齐搜索框本体起点');
+    expect(panel.width, lessThanOrEqualTo(640), reason: '面板宽度取设计上限 640');
   });
 
   testWidgets('点历史条目就地换查询条件（不新压一页）', (tester) async {

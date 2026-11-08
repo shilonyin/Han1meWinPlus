@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:dio/dio.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../../core/app_design_tokens.dart';
 import '../../core/app_radius.dart';
-import '../shared/glass/glass_panel.dart';
 import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,12 +19,62 @@ import '../shared/hover_zoom.dart';
 import '../shared/press_scale.dart';
 import '../video/play_window.dart';
 import 'preview_grid.dart';
+import '../shared/app_top_bar.dart';
 
-final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>((ref, month) async {
-  ref.keepAlive();
-  final settings = await ref.watch(settingsProvider.future);
-  return ref.watch(han1meRepositoryProvider).previews(settings.resolvedBaseUrl, month);
-});
+final previewsProvider = FutureProvider.autoDispose.family<PreviewFeed, String>(
+  (ref, month) async {
+    ref.keepAlive();
+    final settings = await ref.watch(settingsProvider.future);
+    return ref
+        .watch(han1meRepositoryProvider)
+        .previews(settings.resolvedBaseUrl, month);
+  },
+);
+
+/// 默认站点的预告表经常整页 500（服务端问题，不是客户端能修的）。
+///
+/// 这个 provider 只在「自动 / 默认站点」模式下被读取：页面会先看它的结果，
+/// 失败就换 Getchu。所以这里**把 500 转成空结果**，让页面走「没有数据 → 切源」
+/// 这条路，而不是把异常抛到 Riverpod 之外变成一条「未捕获异常」——
+/// 日志里那两行 `DioException [unknown]: Request failed: HTTP 500` 就是这么来的，
+/// 用户那边则会看到一张报错页再加一条红色异常记录。
+///
+/// 只吞服务端的 5xx / 连接失败：其它异常（解析崩了、状态码 4xx 说明参数有问题）
+/// 照常上抛，别拿「站点挂了」遮住真正需要修的 bug。
+final defaultPreviewSourceProvider = FutureProvider.autoDispose
+    .family<PreviewFeed?, String>((ref, month) async {
+      final settings = await ref.watch(settingsProvider.future);
+      try {
+        return await ref
+            .watch(han1meRepositoryProvider)
+            .previews(settings.resolvedBaseUrl, month);
+      } catch (error) {
+        if (_isServerSideFailure(error)) {
+          debugPrint('[previews] 默认站点预告不可用（$error），交给调用方切源');
+          return null;
+        }
+        rethrow;
+      }
+    });
+
+/// 判断这个异常是不是「站点那边的问题」——5xx 或连接层失败。
+///
+/// 这两种情况下换源有意义；4xx 或解析错误换源也没用，应该让用户看到真实原因。
+bool _isServerSideFailure(Object error) {
+  if (error is DioException) {
+    final status = error.response?.statusCode;
+    if (status != null && status >= 500) return true;
+    // 连接类错误（超时、握手失败、被重置）没有状态码。
+    return switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.connectionError => true,
+      _ => false,
+    };
+  }
+  return false;
+}
 
 class PreviewsPage extends ConsumerStatefulWidget {
   const PreviewsPage({super.key, required this.month});
@@ -44,7 +95,10 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
     _fallbackScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      showAppToast(context, AppLocalizations.of(context)!.previewSourceSwitched);
+      showAppToast(
+        context,
+        AppLocalizations.of(context)!.previewSourceSwitched,
+      );
       context.replace('/previews/getchu/${widget.month}');
     });
   }
@@ -53,22 +107,41 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final selectedMonth = _PreviewMonth.parse(widget.month);
-    final result = ref.watch(previewsProvider(widget.month));
-    final auto = (ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto') == 'auto';
+    // 用 `defaultPreviewSourceProvider` 而不是 `previewsProvider`：前者把「站点 5xx」
+    // 收敛成 null（见其说明），页面据此走「切到 Getchu」这条路，不会再把
+    // `HTTP 500` 抛成一条未捕获异常。真实的数据结构错误仍会以 error 状态进来。
+    final result = ref.watch(defaultPreviewSourceProvider(widget.month));
+    final auto =
+        (ref.watch(settingsProvider).valueOrNull?.previewSource ?? 'auto') ==
+        'auto';
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.previews),
+      appBar: AppTopBar(
+        title: Text(
+          l10n.previews,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppDesignTokens.ink,
+          ),
+        ),
         actions: [
-          PressScale(child: IconButton(
-            tooltip: l10n.getchuPreviews,
-            onPressed: () => context.push('/previews/getchu/${widget.month}'),
-            icon: const Icon(Symbols.calendar_month_rounded),
-          )),
-          PressScale(child: IconButton(
-            tooltip: l10n.comments,
-            onPressed: () => context.push('/comments/preview/${widget.month}', extra: l10n.previews),
-            icon: const Icon(Symbols.forum_rounded),
-          )),
+          PressScale(
+            child: IconButton(
+              tooltip: l10n.getchuPreviews,
+              onPressed: () => context.push('/previews/getchu/${widget.month}'),
+              icon: const Icon(Symbols.calendar_month_rounded),
+            ),
+          ),
+          PressScale(
+            child: IconButton(
+              tooltip: l10n.comments,
+              onPressed: () => context.push(
+                '/comments/preview/${widget.month}',
+                extra: l10n.previews,
+              ),
+              icon: const Icon(Symbols.forum_rounded),
+            ),
+          ),
         ],
       ),
       body: Column(
@@ -76,7 +149,9 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
           _MonthNavigation(
             month: selectedMonth,
             onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-            onNext: selectedMonth.isCurrentOrFuture ? null : () => _replaceMonth(context, selectedMonth.next),
+            onNext: selectedMonth.isCurrentOrFuture
+                ? null
+                : () => _replaceMonth(context, selectedMonth.next),
             onSelect: () async {
               final selected = await showDatePicker(
                 context: context,
@@ -85,12 +160,18 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
                 lastDate: _PreviewMonth.current.date,
                 initialDatePickerMode: DatePickerMode.year,
               );
-              if (selected != null && context.mounted) _replaceMonth(context, _PreviewMonth(selected.year, selected.month));
+              if (selected != null && context.mounted) {
+                _replaceMonth(
+                  context,
+                  _PreviewMonth(selected.year, selected.month),
+                );
+              }
             },
           ),
           Expanded(
             child: result.when(
-              loading: () => const Center(child: M3EContainedLoadingIndicator()),
+              loading: () =>
+                  const Center(child: M3EContainedLoadingIndicator()),
               error: (error, _) {
                 if (auto) {
                   _scheduleGetchuFallback();
@@ -101,11 +182,32 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
                 return _PreviewUnavailable(
                   title: l10n.previewUnavailable,
                   description: l10n.previewUnavailableDescription,
-                  onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-                  onRetry: () => ref.invalidate(previewsProvider(widget.month)),
+                  onPrevious: () =>
+                      _replaceMonth(context, selectedMonth.previous),
+                  onRetry: () => ref.invalidate(
+                    defaultPreviewSourceProvider(widget.month),
+                  ),
                 );
               },
               data: (feed) {
+                // feed 为 null：默认站点整页 5xx（provider 已把它收敛成 null）。
+                // 自动模式下直接切 Getchu；用户显式选了「默认站点」时说明他想用这个源，
+                // 这时给一张「源不可用」的页面让能手动重试或换月份，而不是硬切走。
+                if (feed == null) {
+                  if (auto) {
+                    _scheduleGetchuFallback();
+                    return const _SwitchingSource(detail: '默认站点的预告表暂时不可用');
+                  }
+                  return _PreviewUnavailable(
+                    title: l10n.previewUnavailable,
+                    description: l10n.previewUnavailableDescription,
+                    onPrevious: () =>
+                        _replaceMonth(context, selectedMonth.previous),
+                    onRetry: () => ref.invalidate(
+                      defaultPreviewSourceProvider(widget.month),
+                    ),
+                  );
+                }
                 if (feed.items.isEmpty && auto) {
                   _scheduleGetchuFallback();
                   return _SwitchingSource(detail: l10n.previewNoItems);
@@ -114,26 +216,32 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
                     ? _PreviewUnavailable(
                         title: l10n.noPreviews,
                         description: l10n.noPreviewsDescription,
-                        onPrevious: () => _replaceMonth(context, selectedMonth.previous),
-                        onRetry: () => ref.invalidate(previewsProvider(widget.month)),
+                        onPrevious: () =>
+                            _replaceMonth(context, selectedMonth.previous),
+                        onRetry: () => ref.invalidate(
+                          defaultPreviewSourceProvider(widget.month),
+                        ),
                       )
                     : LayoutBuilder(
                         builder: (context, constraints) {
-                          // 这个源上方有一条整幅大横幅，本身就要占掉大半屏，
-                          // 按高度反推列数没有意义，保持按宽度算。
-                          final metrics = PreviewGridMetrics.of(constraints, coverRatio: 16 / 9, detailsHeight: 40, minRows: 1);
+                          // 横向卡片：高度固定（封面 84 + 上下内边距），列数只按宽度算，
+                          // 不再按高度反推 —— 横向卡本来就矮，一屏能放下好几排。
+                          final gridDelegate = _previewGridDelegate(
+                            constraints,
+                          );
                           return CustomScrollView(
                             slivers: [
-                              SliverToBoxAdapter(child: _PreviewHeader(feed: feed)),
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: PreviewGridMetrics.horizontalPadding),
-                                sliver: SliverGrid.builder(
-                                  gridDelegate: metrics.delegate,
-                                  itemCount: feed.items.length,
-                                  itemBuilder: (context, index) => _PreviewCard(item: feed.items[index]),
-                                ),
+                              SliverToBoxAdapter(
+                                child: _PreviewHeader(feed: feed),
                               ),
-                              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                              ..._groupedPreviewSlivers(
+                                context,
+                                feed.items,
+                                gridDelegate,
+                              ),
+                              const SliverToBoxAdapter(
+                                child: SizedBox(height: 24),
+                              ),
                             ],
                           );
                         },
@@ -146,7 +254,8 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
     );
   }
 
-  void _replaceMonth(BuildContext context, _PreviewMonth month) => context.replace('/previews/${month.value}');
+  void _replaceMonth(BuildContext context, _PreviewMonth month) =>
+      context.replace('/previews/${month.value}');
 }
 
 class _PreviewMonth {
@@ -164,7 +273,9 @@ class _PreviewMonth {
     if (!RegExp(r'^\d{6}$').hasMatch(value)) return current;
     final year = int.tryParse(value.substring(0, 4));
     final month = int.tryParse(value.substring(4, 6));
-    return year == null || month == null || month < 1 || month > 12 ? current : _PreviewMonth(year, month);
+    return year == null || month == null || month < 1 || month > 12
+        ? current
+        : _PreviewMonth(year, month);
   }
 
   DateTime get date => DateTime(year, month);
@@ -174,11 +285,17 @@ class _PreviewMonth {
   _PreviewMonth get next => _fromDate(DateTime(year, month + 1));
   bool get isCurrentOrFuture => date.compareTo(current.date) >= 0;
 
-  static _PreviewMonth _fromDate(DateTime value) => _PreviewMonth(value.year, value.month);
+  static _PreviewMonth _fromDate(DateTime value) =>
+      _PreviewMonth(value.year, value.month);
 }
 
 class _MonthNavigation extends StatelessWidget {
-  const _MonthNavigation({required this.month, required this.onPrevious, required this.onNext, required this.onSelect});
+  const _MonthNavigation({
+    required this.month,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onSelect,
+  });
 
   final _PreviewMonth month;
   final VoidCallback onPrevious;
@@ -188,23 +305,61 @@ class _MonthNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return GlassPanel(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            PressScale(child: IconButton(tooltip: l10n.previousMonth, onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded))),
-            Expanded(
-              child: PressScale(child: TextButton.icon(
-                onPressed: onSelect,
-                icon: const Icon(Symbols.calendar_month_rounded, size: 18),
-                label: Text(l10n.previewMonth(month.label)),
-              )),
-            ),
-            PressScale(child: IconButton(tooltip: l10n.nextMonth, onPressed: onNext, icon: const Icon(Symbols.chevron_right_rounded))),
-          ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppDesignTokens.stroke),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          child: Row(
+            children: [
+              PressScale(
+                child: IconButton(
+                  tooltip: l10n.previousMonth,
+                  onPressed: onPrevious,
+                  icon: const Icon(
+                    Symbols.chevron_left_rounded,
+                    color: AppDesignTokens.inkSubtle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: PressScale(
+                  child: TextButton.icon(
+                    onPressed: onSelect,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppDesignTokens.accentDeep,
+                    ),
+                    icon: const Icon(Symbols.calendar_month_rounded, size: 18),
+                    label: Text(
+                      l10n.previewMonth(month.label),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppDesignTokens.ink,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              PressScale(
+                child: IconButton(
+                  tooltip: l10n.nextMonth,
+                  onPressed: onNext,
+                  icon: Icon(
+                    Symbols.chevron_right_rounded,
+                    color: onNext == null
+                        ? AppDesignTokens.inkMuted
+                        : AppDesignTokens.inkSubtle,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -238,19 +393,26 @@ class _SwitchingSource extends StatelessWidget {
           children: [
             const M3EContainedLoadingIndicator(),
             const SizedBox(height: 20),
-            Text(l10n.previewSwitchingSource, style: theme.textTheme.titleMedium),
+            Text(
+              l10n.previewSwitchingSource,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Text(
               l10n.previewSwitchingSourceDetail,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
             ),
             if (reason != null) ...[
               const SizedBox(height: 12),
               Text(
                 reason,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
               ),
             ],
           ],
@@ -272,7 +434,12 @@ class _SwitchingSource extends StatelessWidget {
 }
 
 class _PreviewUnavailable extends StatelessWidget {
-  const _PreviewUnavailable({required this.title, required this.description, required this.onPrevious, required this.onRetry});
+  const _PreviewUnavailable({
+    required this.title,
+    required this.description,
+    required this.onPrevious,
+    required this.onRetry,
+  });
 
   final String title;
   final String description;
@@ -292,13 +459,31 @@ class _PreviewUnavailable extends StatelessWidget {
             const SizedBox(height: 16),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(description, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.outline)),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
             const SizedBox(height: 20),
             Wrap(
               spacing: 8,
               children: [
-                PressScale(child: FilledButton.tonalIcon(onPressed: onPrevious, icon: const Icon(Symbols.chevron_left_rounded), label: Text(l10n.previousMonth))),
-                PressScale(child: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Symbols.refresh_rounded), label: Text(l10n.reload))),
+                PressScale(
+                  child: FilledButton.tonalIcon(
+                    onPressed: onPrevious,
+                    icon: const Icon(Symbols.chevron_left_rounded),
+                    label: Text(l10n.previousMonth),
+                  ),
+                ),
+                PressScale(
+                  child: OutlinedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Symbols.refresh_rounded),
+                    label: Text(l10n.reload),
+                  ),
+                ),
               ],
             ),
           ],
@@ -315,22 +500,60 @@ class _PreviewHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (feed.coverUrl != null && feed.coverUrl!.isNotEmpty)
-            AspectRatio(
-              aspectRatio: 16 / 8,
-              child: AppCachedNetworkImage(imageUrl: feed.coverUrl!, fit: BoxFit.cover, memCacheWidth: 960, faceFocus: true, fadeInDuration: Duration.zero),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (feed.coverUrl != null && feed.coverUrl!.isNotEmpty)
+        AspectRatio(
+          aspectRatio: 16 / 8,
+          child: AppCachedNetworkImage(
+            imageUrl: feed.coverUrl!,
+            fit: BoxFit.cover,
+            memCacheWidth: 960,
+            faceFocus: true,
+            fadeInDuration: Duration.zero,
+            errorWidget: (context, url, error) => const ColoredBox(
+              color: AppDesignTokens.fieldFill,
+              child: Icon(
+                Symbols.image_rounded,
+                size: 32,
+                color: AppDesignTokens.inkMuted,
+              ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(feed.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           ),
-          if (feed.description.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: Text(feed.description)),
-        ],
-      );
+        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          feed.title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppDesignTokens.ink,
+            height: 1.3,
+          ),
+        ),
+      ),
+      if (feed.description.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(
+            feed.description,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppDesignTokens.inkSubtle,
+              height: 1.5,
+            ),
+          ),
+        ),
+    ],
+  );
 }
 
+/// 单张预告卡：设计稿是「左方图 + 右信息列」的横向卡片。
+///
+/// 左封面 84×84 方图、圆角；右侧自上而下是标题（13 Bold ink）、作者（11 inkSubtle）、
+/// 「预订中」粉色胶囊 + 日期（11 inkMuted）。白底 surface、圆角 12、1px stroke 描边、
+/// 不加重阴影。数据模型里没有价格字段，所以设计稿那一行 ¥ 价不做（不编造数据）。
 class _PreviewCard extends ConsumerWidget {
   const _PreviewCard({required this.item});
 
@@ -338,85 +561,117 @@ class _PreviewCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final author = item.brand ?? item.videoTitle ?? '';
     return CardHover(
-      builder: (context, hovered) => GlassPanel(
-          solidColor: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: PressScale(child: InkWell(
-        // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
-        onTap: () => openVideo(context, ref, item.id),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              // 自带一层裁切：推近后多出来的图必须裁在封面框里，
-              // 否则会盖住下面的文字区。
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppRadius.lg),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ZoomOnHover(
-                      hovered: hovered,
-                      child: AppCachedNetworkImage(imageUrl: item.coverUrl, fit: BoxFit.cover, memCacheWidth: 480, faceFocus: true, fadeInDuration: Duration.zero),
-                    ),
-                    // 与 Getchu 预告卡片保持一致：渐变只压在标题区，海报上半部分保持干净（见 getchu_preview_page.dart 的说明）。
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.center,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Color(0xB3000000), Color(0xE6000000)],
-                          stops: [0.62, 0.86, 1],
-                        ),
-                      ),
-                    ),
-                    if (item.releaseDate != null) Positioned(top: 8, right: 8, child: _PreviewBadge(text: item.releaseDate!)),
-                    Positioned(
-                      left: 10,
-                      right: 10,
-                      bottom: 8,
-                      child: Text(
-                        item.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                          shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6, offset: Offset(0, 1))],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      builder: (context, hovered) => PressScale(
+        child: Material(
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
+            onTap: () => openVideo(context, ref, item.id),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppDesignTokens.stroke),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: Text(item.videoTitle ?? item.brand ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))),
-                  if (item.previewImages.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Icon(Symbols.collections_rounded, size: 14, color: theme.colorScheme.outline),
-                    const SizedBox(width: 2),
-                    Text('${item.previewImages.length}', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
-                  ],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: SizedBox(
+                      width: 84,
+                      height: 84,
+                      child: ZoomOnHover(
+                        hovered: hovered,
+                        child: AppCachedNetworkImage(
+                          imageUrl: item.coverUrl,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 240,
+                          faceFocus: true,
+                          fadeInDuration: Duration.zero,
+                          errorWidget: (context, url, error) =>
+                              const ColoredBox(
+                                color: AppDesignTokens.fieldFill,
+                                child: Icon(
+                                  Symbols.image_rounded,
+                                  size: 24,
+                                  color: AppDesignTokens.inkMuted,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppDesignTokens.ink,
+                            height: 1.3,
+                          ),
+                        ),
+                        if (author.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            author,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppDesignTokens.inkSubtle,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const _PreviewBadge(text: '预订中'),
+                            if (item.releaseDate != null &&
+                                item.releaseDate!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  item.releaseDate!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppDesignTokens.inkMuted,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
-      )),
-    ),
+      ),
     );
   }
 }
 
+/// 「预订中」胶囊：淡粉底 + [AppDesignTokens.accent] 文字。
 class _PreviewBadge extends StatelessWidget {
   const _PreviewBadge({required this.text});
 
@@ -424,11 +679,110 @@ class _PreviewBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(AppRadius.xs)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+    decoration: BoxDecoration(
+      color: AppDesignTokens.accent.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppDesignTokens.accentDeep,
+          height: 1.2,
         ),
-      );
+      ),
+    ),
+  );
 }
 
+/// 横向预告卡的网格：卡片高度固定，列数按可用宽度取（最窄 260，最多 4 列）。
+SliverGridDelegate _previewGridDelegate(BoxConstraints constraints) {
+  const padding = PreviewGridMetrics.horizontalPadding;
+  const spacing = PreviewGridMetrics.spacing;
+  const minCardWidth = 260.0;
+  final usable = (constraints.maxWidth - padding * 2).clamp(
+    minCardWidth,
+    double.infinity,
+  );
+  final columns = ((usable + spacing) / (minCardWidth + spacing)).floor().clamp(
+    1,
+    4,
+  );
+  return SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: columns,
+    mainAxisSpacing: spacing,
+    crossAxisSpacing: spacing,
+    mainAxisExtent: 108,
+  );
+}
+
+/// 按上映日期把预告片分组，每组一个小标题 + 网格（v6 设计稿的分组版式）。
+List<Widget> _groupedPreviewSlivers(
+  BuildContext context,
+  List<PreviewItem> items,
+  SliverGridDelegate gridDelegate,
+) {
+  final groups = <String, List<PreviewItem>>{};
+  for (final item in items) {
+    final key = (item.releaseDate ?? '').trim();
+    groups.putIfAbsent(key, () => <PreviewItem>[]).add(item);
+  }
+  final slivers = <Widget>[];
+  for (final entry in groups.entries) {
+    slivers.add(
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppDesignTokens.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                entry.key.isEmpty ? '其他' : entry.key,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${entry.value.length} 部新作',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppDesignTokens.inkMuted,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    slivers.add(
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: PreviewGridMetrics.horizontalPadding,
+        ),
+        sliver: SliverGrid.builder(
+          gridDelegate: gridDelegate,
+          itemCount: entry.value.length,
+          itemBuilder: (context, index) =>
+              _PreviewCard(item: entry.value[index]),
+        ),
+      ),
+    );
+  }
+  return slivers;
+}

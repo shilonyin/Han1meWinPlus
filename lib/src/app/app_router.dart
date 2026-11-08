@@ -146,7 +146,12 @@ class AppRouter {
               routes: [
                 GoRoute(
                   path: '/settings',
-                  builder: (context, state) => const SettingsPage(),
+                  builder: (context, state) => SettingsPage(
+                    // 设计稿的设置页始终是「侧栏 + 分类栏 + 内容」三栏，不分那么多独立页。
+                    // 传 `?pane=theme` 可以直接打开某个分类，供 `--preview` 逐页截图用
+                    // （也让「设置里某个入口深链过来」有地方落）。不传时还是默认第一个。
+                    initialPane: state.uri.queryParameters['pane'],
+                  ),
                 ),
               ],
             ),
@@ -346,12 +351,22 @@ Widget searchRouteBuilder(BuildContext context, GoRouterState state) {
   final request = extra is SearchRouteRequest
       ? extra
       : SearchRouteRequest.fromRoute(
-          state.pageKey.value.toString(),
+          // sessionId 带上完整 URI：`/search?genre=里番` 与 `/search?genre=泡面番`
+          // 是同一个 GoRoute、pageKey 也一样，只用 pageKey 拼 sessionId 会让两次
+          // 请求被判成同一个，`searchQueryProvider` 复用上一份状态 —— 侧栏从
+          // 「里番」点「泡面番」时选中态变了，内容却还是里番。
+          '${state.pageKey.value}|${state.uri}',
           initialUrl: extra is String
               ? extra
               : (state.uri.hasQuery ? state.uri.toString() : null),
         );
-  return SearchPage(key: ValueKey(request.sessionId), request: request);
+  // key 里带上完整 URI：`/search?genre=里番` 和 `/search?genre=泡面番` 是**同一个**
+  // 路由，只靠 pageKey 拼出来的 key 两次是一样的，go_router 会复用同一个 Page，
+  // 于是侧栏从「里番」点「泡面番」时页面根本不重建 —— 看着就是「点了没反应」。
+  return SearchPage(
+    key: ValueKey('${request.sessionId}|${state.uri}'),
+    request: request,
+  );
 }
 
 String? _deepLinkRedirect(GoRouterState state) {

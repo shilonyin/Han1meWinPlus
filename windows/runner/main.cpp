@@ -823,8 +823,24 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int show_command)
   g_use_system_title_bar = ReadUseSystemTitleBar();
   // The player window is a touch narrower and taller than the main one: its
   // layout is "16:9 player + right sidebar", which wants the extra height.
-  const auto width = DpiScale(play_window ? 1180 : 1280, dpi);
-  const auto height = DpiScale(play_window ? 760 : 720, dpi);
+  // Main window: 1288x806 so the *client* area lands on the design canvas
+  // 1280x800. CreateWindow sizes the outer frame; after the caption is merged
+  // into the client area (ExpandClientAreaOverCaption) the DWM frame still eats
+  // about 12x6 px, so asking for 1280x800 gave a 1272x794 client and the card
+  // grid came out 3 px narrower per column.
+  // Requested **client** sizes. CreateWindow sizes the outer frame; after the
+  // caption is merged into the client area (ExpandClientAreaOverCaption) the DWM
+  // frame is invisible but still counted, so a flat 1280x800 came out as a
+  // 1272x794 client and the card grid lost a pixel per column. Adding the frame
+  // compensation here keeps both windows expressed in the size they actually
+  // paint into: main = design canvas 1280x800, player = 1180x760.
+  constexpr int kFrameCompensationWidth = 8;
+  constexpr int kFrameCompensationHeight = 6;
+  const auto width = DpiScale((play_window ? 1180 : 1280) + kFrameCompensationWidth, dpi);
+  // Main window height 800: the design canvas is 1280x800 (sidebar 176 + content
+  // 1104 wide), which is exactly enough for the two rows of cards on the home
+  // page to be visible. At 720 the second row was cut down to a sliver.
+  const auto height = DpiScale((play_window ? 760 : 800) + kFrameCompensationHeight, dpi);
   const auto window = CreateWindow(kWindowClassName, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, instance, &app);
   if (window == nullptr) return EXIT_FAILURE;
   if (play_window) {

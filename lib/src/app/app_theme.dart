@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
+import '../core/app_motion.dart';
 import '../core/app_radius.dart';
 import '../core/settings.dart';
 
@@ -13,7 +14,13 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
   const _AppPageTransitionsBuilder();
 
   @override
-  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
     // 先出后进：旧页面在动画前段淡出，新页面在后段淡入，两段不重叠。
     //
     // 原来的写法只让新页面淡入、`secondaryAnimation` 完全没用，于是过渡期间旧页面
@@ -29,13 +36,25 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
     // 对新页面恒为 0。用 Animatable 而不是 CurvedAnimation —— 后者每次 build 都会
     // 给父动画挂状态监听，而 buildTransitions 会被反复调用。
     const handoff = 0.35;
-    final entering = CurveTween(curve: const Interval(handoff, 1, curve: Curves.easeOutCubic)).animate(animation);
-    final leaving = Tween<double>(begin: 1, end: 0).animate(CurveTween(curve: const Interval(0, handoff, curve: Curves.easeInCubic)).animate(secondaryAnimation));
+    final entering = CurveTween(
+      curve: Interval(handoff, 1, curve: AppMotion.settle),
+    ).animate(animation);
+    final leaving = Tween<double>(begin: 1, end: 0).animate(
+      CurveTween(
+        curve: Interval(0, handoff, curve: AppMotion.unsettle),
+      ).animate(secondaryAnimation),
+    );
     return FadeTransition(
       opacity: leaving,
       child: FadeTransition(
         opacity: entering,
-        child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.015), end: Offset.zero).animate(entering), child: child),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.015),
+            end: Offset.zero,
+          ).animate(entering),
+          child: child,
+        ),
       ),
     );
   }
@@ -81,8 +100,23 @@ IconThemeData _iconTheme(Brightness brightness) => IconThemeData(
   opticalSize: 48,
 );
 
-ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brightness = Brightness.light, bool amoled = false, bool useSystemFont = false, DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot, bool neutralSurfaces = false, WindowBackdrop backdrop = WindowBackdrop.none}) {
-  var scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness, dynamicSchemeVariant: variant);
+ThemeData appTheme(
+  ColorScheme? dynamicScheme,
+  Color seedColor, {
+  Brightness brightness = Brightness.light,
+  bool amoled = false,
+  bool useSystemFont = false,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+  bool neutralSurfaces = false,
+  WindowBackdrop backdrop = WindowBackdrop.none,
+}) {
+  var scheme =
+      dynamicScheme ??
+      ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: brightness,
+        dynamicSchemeVariant: variant,
+      );
   // white 主题是刻意的「白底 + 中性灰」，保持它自己的中性面；
   // 其余主题走 morrow（明隙）式淡染，中性面带上主色倾向。
   if (neutralSurfaces) {
@@ -95,11 +129,21 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
   if (transparent) {
     scheme = scheme.copyWith(
       surface: scheme.surface.withValues(alpha: _surfaceAlpha),
-      surfaceContainerLowest: scheme.surfaceContainerLowest.withValues(alpha: _surfaceContainerLowestAlpha),
-      surfaceContainerLow: scheme.surfaceContainerLow.withValues(alpha: _surfaceContainerLowAlpha),
-      surfaceContainer: scheme.surfaceContainer.withValues(alpha: _surfaceContainerAlpha),
-      surfaceContainerHigh: scheme.surfaceContainerHigh.withValues(alpha: _surfaceContainerHighAlpha),
-      surfaceContainerHighest: scheme.surfaceContainerHighest.withValues(alpha: _surfaceContainerHighestAlpha),
+      surfaceContainerLowest: scheme.surfaceContainerLowest.withValues(
+        alpha: _surfaceContainerLowestAlpha,
+      ),
+      surfaceContainerLow: scheme.surfaceContainerLow.withValues(
+        alpha: _surfaceContainerLowAlpha,
+      ),
+      surfaceContainer: scheme.surfaceContainer.withValues(
+        alpha: _surfaceContainerAlpha,
+      ),
+      surfaceContainerHigh: scheme.surfaceContainerHigh.withValues(
+        alpha: _surfaceContainerHighAlpha,
+      ),
+      surfaceContainerHighest: scheme.surfaceContainerHighest.withValues(
+        alpha: _surfaceContainerHighestAlpha,
+      ),
     );
   }
   if (amoled) {
@@ -125,7 +169,9 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
     // 系统字体开关打开时交回平台默认字体。
     // fallback 用于该字体没有的字符（emoji、生僻字）与彩色 emoji。
     fontFamily: useSystemFont ? null : 'HarmonyOS Sans SC',
-    fontFamilyFallback: useSystemFont ? null : const ['Microsoft YaHei UI', 'Segoe UI Emoji', 'Segoe UI Symbol'],
+    fontFamilyFallback: useSystemFont
+        ? null
+        : const ['Microsoft YaHei UI', 'Segoe UI Emoji', 'Segoe UI Symbol'],
     // 背景画布（AppBackdrop）铺在应用最底层，Scaffold 必须让出底色才能露出渐变。
     // AMOLED 例外：它要的就是纯黑，画布也一并关掉。
     scaffoldBackgroundColor: amoled ? Colors.black : Colors.transparent,
@@ -136,7 +182,11 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
     // 页面背景已经统一交给 AppBackdrop（Scaffold 是透明的），所以 AppBar 也必须透明：
     // 只要它铺自己的底色，顶部就会横出一条和下面内容不同色的实色条。
     // 原来只有"开着窗口材质"时才透明，关掉材质就露馅（用户看到的「右侧顶部出问题」）。
-    appBarTheme: AppBarTheme(backgroundColor: Colors.transparent, surfaceTintColor: Colors.transparent, scrolledUnderElevation: 0),
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+    ),
     pageTransitionsTheme: _pageTransitionsTheme,
     // 贴底的通栏 SnackBar 在这个布局里显得很重，改成半透明浮动圆角。
     // 它是浮起来的，同样给一层投影 —— 否则在半透明卡片上像贴纸。
@@ -146,7 +196,9 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       contentTextStyle: TextStyle(color: scheme.onSurface),
       actionTextColor: scheme.primary,
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
     ),
     // 滑块外观**故意不在这里钉版本**。这里原本写的是 `year2023: false`（要 2024 版），
     // 该字段已被 Flutter 标成 deprecated，而两套外观的差别不只是形状 —— 2024 版的把手
@@ -174,14 +226,18 @@ ThemeData appTheme(ColorScheme? dynamicScheme, Color seedColor, {Brightness brig
       shadowColor: _dialogShadow(scheme),
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
     ),
     popupMenuTheme: PopupMenuThemeData(
       elevation: 6,
       shadowColor: _dialogShadow(scheme),
       color: scheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
     ),
     // 底部弹层同理：它也是浮起来的，需要自己的投影。
     bottomSheetTheme: BottomSheetThemeData(
@@ -199,26 +255,28 @@ Color _dialogShadow(ColorScheme scheme) => scheme.brightness == Brightness.light
 
 extension AppThemeColorSeed on AppThemeColor {
   Color seedColor(String customColor) => switch (this) {
-        AppThemeColor.rose => const Color(0xffb3265a),
-        AppThemeColor.blue => const Color(0xff00639b),
-        AppThemeColor.teal => const Color(0xff006b5f),
-        AppThemeColor.amber => const Color(0xff875400),
-        AppThemeColor.green => const Color(0xff386a20),
-        AppThemeColor.orange => const Color(0xff9b4400),
-        AppThemeColor.indigo => const Color(0xff4a5f9e),
-        AppThemeColor.pink => const Color(0xff9c3c66),
-        // morrow（明隙）的品牌紫。中性面会朝它插值 8%，整套界面因此带紫调。
-        AppThemeColor.purple => const Color(0xff7662ba),
-        // 「白色」= 白底 + 一抹品牌粉，种子取这抹粉 #FB7299，
-        // 配合 [schemeVariant] 的 fidelity 变体：主色就是这抹粉，中性面保持接近纯白。
-        // 注意：**不能拿纯白当种子** —— HCT 色度为 0 时 Material 会回退到色相 192（青），
-        // 整套界面会变成青色（`ColorScheme.fromSeed(Color(0xffffffff)).primary` = #006874）。
-        AppThemeColor.white => const Color(0xfffb7299),
-        AppThemeColor.custom => Color(int.parse('ff$customColor', radix: 16)),
-      };
+    AppThemeColor.rose => const Color(0xffb3265a),
+    AppThemeColor.blue => const Color(0xff00639b),
+    AppThemeColor.teal => const Color(0xff006b5f),
+    AppThemeColor.amber => const Color(0xff875400),
+    AppThemeColor.green => const Color(0xff386a20),
+    AppThemeColor.orange => const Color(0xff9b4400),
+    AppThemeColor.indigo => const Color(0xff4a5f9e),
+    AppThemeColor.pink => const Color(0xff9c3c66),
+    // morrow（明隙）的品牌紫。中性面会朝它插值 8%，整套界面因此带紫调。
+    AppThemeColor.purple => const Color(0xff7662ba),
+    // 「白色」= 白底 + 一抹品牌粉，种子取这抹粉 #FB7299，
+    // 配合 [schemeVariant] 的 fidelity 变体：主色就是这抹粉，中性面保持接近纯白。
+    // 注意：**不能拿纯白当种子** —— HCT 色度为 0 时 Material 会回退到色相 192（青），
+    // 整套界面会变成青色（`ColorScheme.fromSeed(Color(0xffffffff)).primary` = #006874）。
+    AppThemeColor.white => const Color(0xfffb7299),
+    AppThemeColor.custom => Color(int.parse('ff$customColor', radix: 16)),
+  };
 
   /// 配色变体：白色主题用 fidelity（主色忠于种子、中性面近白），其余走默认 tonalSpot。
-  DynamicSchemeVariant get schemeVariant => this == AppThemeColor.white ? DynamicSchemeVariant.fidelity : DynamicSchemeVariant.tonalSpot;
+  DynamicSchemeVariant get schemeVariant => this == AppThemeColor.white
+      ? DynamicSchemeVariant.fidelity
+      : DynamicSchemeVariant.tonalSpot;
 
   /// 是否把中性面换成中性灰（「白底 + 浅灰卡片」那套语言）。
   ///
@@ -232,8 +290,37 @@ extension AppThemeColorSeed on AppThemeColor {
   /// 「两套都不带主色倾向」，8% 淡染和它自相矛盾；这里按文档与参考图取中性。
   bool get neutralSurfaces => this == AppThemeColor.white;
 
+  /// 色板上那个方块的颜色：**设计稿给的那支鲜亮色**，不是 [seedColor]。
+  ///
+  /// 这两个值必须分开：`seedColor` 是喂给 `ColorScheme.fromSeed` 的种子，
+  /// Material 3 会按 tonalSpot 算法把它派生出一整支配色 —— 派生结果普遍比种子
+  /// 暗一档、灰一档（例如蓝色的种子 #00639B 本身已经是 M3 的 tone 40，
+  /// 而设计稿那支鲜亮的 #2563B3 才是屏幕上要看到的颜色）。
+  ///
+  /// 之前色板直接拿 `seedColor` 画，一排列色块和设计稿比就是「同一个位置、
+  /// 不同的色」—— 尤其第 6~8 个（紫 / 棕 / 粉）差得最明显：
+  /// 设计稿是鲜紫 #7C3AED、暖棕 #8E5A3C、亮粉 #EC4899，
+  /// 而种子派生出来的是发灰的 #7662BA / #4A5F9E / #9C3C66。
+  ///
+  /// 色值取自 `han1me-home-redesign.figcraft` 的「配色方案」条，按像素实测。
+  Color get swatchFill => switch (this) {
+    AppThemeColor.rose => const Color(0xFFB3265A),
+    AppThemeColor.blue => const Color(0xFF2563B3),
+    AppThemeColor.teal => const Color(0xFF0E9488),
+    AppThemeColor.green => const Color(0xFF2FA36B),
+    AppThemeColor.orange || AppThemeColor.amber => const Color(0xFFD97706),
+    AppThemeColor.purple => const Color(0xFF7C3AED),
+    AppThemeColor.indigo => const Color(0xFF8E5A3C),
+    AppThemeColor.pink => const Color(0xFFEC4899),
+    // 「白色」主题的粉只体现在高亮色上，色板上画白底（见 [swatchColor]）。
+    AppThemeColor.white => const Color(0xFFFFFFFF),
+    AppThemeColor.custom => const Color(0xFF9C3C66),
+  };
+
   /// 色板上那个圆的颜色：白色主题画白底（它的粉只体现在高亮色上）。
-  Color swatchColor(String customColor) => this == AppThemeColor.white ? const Color(0xffffffff) : seedColor(customColor);
+  Color swatchColor(String customColor) => this == AppThemeColor.white
+      ? const Color(0xffffffff)
+      : seedColor(customColor);
 }
 
 /// morrow（明隙）式淡染中性面。
@@ -328,7 +415,8 @@ ColorScheme _tintedSurfaces(ColorScheme scheme, Brightness brightness) {
 /// 这里把中性角色换成固定灰阶，只留 primary / secondary 等强调色是品牌色。
 ///
 /// 与 [_tintedSurfaces] 的唯一区别就是**不朝主色插值**，色阶本身同一套。
-ColorScheme _neutralSurfaces(ColorScheme scheme, Brightness brightness) => brightness == Brightness.light
+ColorScheme _neutralSurfaces(ColorScheme scheme, Brightness brightness) =>
+    brightness == Brightness.light
     ? scheme.copyWith(
         surface: _lightSurface,
         surfaceContainerLowest: _lightContainerLowest,

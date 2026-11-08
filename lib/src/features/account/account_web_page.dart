@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/remote/han1me_api.dart';
 import '../settings/settings_controller.dart';
+import '../shared/app_top_bar.dart';
 
 class AccountWebPage extends ConsumerWidget {
   const AccountWebPage({super.key, required this.path, required this.title});
@@ -15,7 +16,7 @@ class AccountWebPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final baseUrl = ref.watch(settingsProvider).valueOrNull?.resolvedBaseUrl ?? 'https://hanime1.com';
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppTopBar(title: Text(title)),
       body: InAppWebView(
         initialUrlRequest: URLRequest(url: WebUri('$baseUrl$path')),
         initialSettings: InAppWebViewSettings(

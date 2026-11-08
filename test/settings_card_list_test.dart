@@ -12,6 +12,7 @@
 //
 // 现在 SettingsCardList 不再按类型分派，全部交给 SettingsSection.tiles。
 // 下面这些断言就是钉住这一点：**被包装过的条目必须和裸条目一样落在 GlassPanel 里**。
+// 现在整组共用一张卡片（设计稿版式），但每一条仍必须留在这张卡片的作用域内。
 // 变异验证过：把生产代码改回 whereType 分派，本文件会红。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,7 +90,7 @@ void main() {
     expect(_inCard(tester, find.text('投屏接收端')), isTrue, reason: '重建后不能掉出卡片');
   });
 
-  testWidgets('每一条各有一张卡片，顺序与传入一致', (tester) async {
+  testWidgets('整组共用一张卡片，条目顺序与传入一致', (tester) async {
     await tester.pumpWidget(
       _host(
         SettingsCardList(
@@ -103,9 +104,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(GlassPanel), findsNWidgets(3), reason: '一条一张卡，不能合并也不能少');
+    expect(find.byType(GlassPanel), findsOneWidget, reason: '整组共用一张白卡，不再逐条拆卡');
     final tops = ['第一', '第二', '第三'].map((t) => tester.getTopLeft(find.text(t)).dy).toList();
     expect(tops[0] < tops[1] && tops[1] < tops[2], isTrue, reason: '顺序不能被重排');
+    for (final label in ['第一', '第二', '第三']) {
+      expect(_inCard(tester, find.text(label)), isTrue, reason: '$label 必须留在卡片作用域内');
+    }
   });
 
   testWidgets('分组标题与空列表', (tester) async {
