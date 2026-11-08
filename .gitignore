@@ -42,6 +42,24 @@ tools/ocr/.dl/
 
 # 截图 / 连拍工具的临时产物（.dsh_shots 里的脚本没传 -Out 时会落在仓库根）
 /*.bmp
+/*.png
+
+# 设计稿比对用的临时脚本与截图（.design_tmp 下的 ov.py / shoot.ps1 等）；
+# 每次按设计稿改界面都会重新生成，属于本地工作产物，不入库
+.design_tmp/
+
+# 仓库根目录下的一次性分析脚本（_m.py / _glyph.py / _shot.ps1 …）：
+# 开头是下划线 + 短名，用于临时解析 APK、量字体墨迹、抓窗口截图等，
+# 与本项目源码无关。真正的工具脚本放在 tools/ 下，不受这条影响。
+/_*.py
+/_*.ps1
+/_*.json
+/_*.png
+/_*.bmp
+
+# 图标抓取/裁切的中间产物（221 个 PNG，来自站点跑一遍后按 class 截取），
+# 不是运行时资源 —— pubspec.yaml 没有引用这里，应用打包也不会带上
+_icons/
 
 # Widget Preview related
 .widget_preview/
