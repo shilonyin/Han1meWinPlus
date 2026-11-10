@@ -31,7 +31,29 @@ void main() {
       // 三份译文的键必须完全对应，少一条就会出现「切语言后仍是中文」。
       expect(_messageKeys(path).length, baseCount);
     });
+
+    test('$path 里用到的占位符都有 @key 元数据声明', () {
+      // 漏声明时 gen-l10n 不会生成对应参数，界面上会直接显示字面量 `{value}`。
+      final decoded =
+          jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+      final missing = <String>[];
+      decoded.forEach((key, value) {
+        if (key.startsWith('@') || value is! String) return;
+        final meta = decoded['@$key'];
+        final placeholders = meta is Map ? meta['placeholders'] : null;
+        final declared = placeholders is Map ? placeholders.keys.toSet() : <Object?>{};
+        final undeclared = _placeholdersIn(value).difference(declared);
+        if (undeclared.isNotEmpty) missing.add('$key -> $undeclared');
+      });
+      expect(missing, isEmpty, reason: '$path 有未声明的占位符：$missing');
+    });
   }
+}
+
+/// 取出消息里 `{name}` 形式的占位符名。
+Set<String> _placeholdersIn(String message) {
+  final pattern = RegExp(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}');
+  return pattern.allMatches(message).map((match) => match.group(1)!).toSet();
 }
 
 /// 取出一个 arb 里的全部消息键，跳过 `@@locale` 与 `@key` 元数据。
