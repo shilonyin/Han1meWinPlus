@@ -75,7 +75,8 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
       final settings = next.valueOrNull;
       if (settings == null) return;
       // 开发者模式是全局标志：底层封面组件读不到 provider，由这里单向同步。
-      // 独立播放窗口是另一个进程，会各自跑一遍 AppStartupEffects，也会同步到。
+      // 独立播放窗口不挂 AppStartupEffects，它在 main.dart 的
+      // _runPlayWindow 里另外同步一次。
       developerMode.value = settings.developerMode;
       if (settings.autoUpdate && !_checkedForUpdate) {
         _checkedForUpdate = true;

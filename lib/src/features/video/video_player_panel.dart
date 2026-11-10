@@ -383,7 +383,17 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     if (mounted) setState(() {});
     // 开发者模式：只把播放页/播放窗口搭起来，不创建播放器、不初始化、
     // 不打开片源（不触发网络请求与解码器）。界面由 `_buildPlayer` 画纯色占位。
-    if (developerMode.value) return;
+    // 上面已经把 `_controllerNotifier` 清空，旧控制器必须照样排进销毁队列：
+    // 播放中切到开发者模式时若直接 return，那个播放器会一直被 track 着，
+    // 既不暂停也不释放。
+    if (developerMode.value) {
+      if (previous != null) {
+        await _queueDisposal(
+          previous,
+        ).timeout(const Duration(seconds: 5), onTimeout: () {});
+      }
+      return;
+    }
     if (previous != null) {
       if (previous.value.isInitialized && previous.value.isPlaying) {
         unawaited(previous.pause().catchError((_) {}));

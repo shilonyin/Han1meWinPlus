@@ -1,0 +1,43 @@
+#!/bin/sh
+# 提交前本地代码审查（delegate 模式）。
+#
+# OCR 只做确定性的一半：按 .opencodereview/rule.json 筛文件、匹配规则、取 diff，
+# 生成 Markdown 材料。实际推理由 AI agent 完成 —— 所以这里不阻塞提交，只留下
+# 材料并提醒：agent 应在 commit 前先读一遍、修完问题再提交。
+#
+# 配套规则见 AGENTS.md / .github/copilot-instructions.md 的「提交前本地代码审查」。
+# 二进制不入库（tools/ocr/bin/ 被 .gitignore 排除），缺失时 setup.ps1 重新拉取。
+
+set -e
+repo_root=$(git rev-parse --show-toplevel)
+out="$repo_root/.design_tmp/review_pending.md"
+script="$repo_root/tools/ocr/review.ps1"
+exe="$repo_root/tools/ocr/bin/opencodereview.exe"
+
+# 材料目录可能不存在（新克隆），补上；.design_tmp 已被忽略。
+mkdir -p "$(dirname "$out")"
+
+if [ ! -f "$exe" ]; then
+  echo "[ocr] 未找到 opencodereview.exe，跳过本地审查材料生成。" >&2
+  echo "[ocr] 换机器后运行 .\\tools\\ocr\\setup.ps1 重新拉取二进制。" >&2
+  exit 0
+fi
+
+# Windows 下用 PowerShell 跑脚本；非 Windows 环境直接跳过（本项目是 Windows 桌面端）。
+if command -v pwsh >/dev/null 2>&1; then
+  PS=pwsh
+elif command -v powershell >/dev/null 2>&1; then
+  PS=powershell
+else
+  echo "[ocr] 未找到 PowerShell，跳过本地审查材料生成。" >&2
+  exit 0
+fi
+
+"$PS" -NoProfile -File "$script" -Out "$out" >/dev/null 2>&1 || {
+  echo "[ocr] 生成审查材料失败，提交继续，但请先手动跑一遍审查。" >&2
+  exit 0
+}
+
+echo "[ocr] 审查材料已生成：$out"
+echo "[ocr] 提交前请让 agent 读一遍材料，确认无问题后再提交/推送。"
+exit 0
