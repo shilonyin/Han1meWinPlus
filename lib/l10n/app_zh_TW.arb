@@ -156,7 +156,7 @@
   "proxyAddressUnsupportedScheme": "僅支援 http:// 與 https://，例如 http://127.0.0.1:7897",
   "proxyAddressSocksUnsupported": "播放器與網頁元件均不支援 SOCKS 代理，請改用代理工具提供的 HTTP 混合埠（通常是 7897）",
   "proxyCurrent": "目前生效：{value}",
-  "@proxyCurrent": {"placeholders": {"value": {}}},
+  "@proxyCurrent": {"placeholders": {"value": {"type": "String"}}},
   "proxyCurrentDirect": "目前生效：直連",
   "proxyPlayerCredentialsHint": "此位址帶帳號密碼：瀏覽器請求會使用，影片播放器不支援帶憑證的代理",
   "doh": "DNS over HTTPS",

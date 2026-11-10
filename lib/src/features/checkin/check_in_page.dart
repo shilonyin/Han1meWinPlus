@@ -52,12 +52,27 @@ class CheckInPage extends ConsumerWidget {
       // AppBar 主题本身是透明的（页面底色由 AppShell 的 #F4F4F7 提供），
       // 这里沿用同一个 AppBar，标题字号压到设计稿的 19-20 Bold。
       appBar: AppTopBar(
-        title: Text(
-          l10n.checkIn,
-          style: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+        automaticallyImplyLeading: false,
+        title: const Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '冲了么',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
+              TextSpan(
+                text: '   每日打卡 · 纯本地记录',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -65,30 +80,48 @@ class CheckInPage extends ConsumerWidget {
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) =>
             Center(child: Text(l10n.loadFailed('$error'), style: _tSubtle)),
-        data: (state) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          // 设计稿是**单列**：横幅 → 月历，日历占满内容宽度。
-          //
-          // 原来是「左栏日历 + 右栏 30x0 的统计卡」两栏，日历被挤窄、统计卡又孤零零
-          // 挂在右边。设计稿把三个统计数字直接放进横幅右侧（12 天 / 86 天 / 486），
-          // 下面是通栏的月历 —— 视觉重心集中在打卡这件事上。
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _HeroBanner(state: state),
-              const SizedBox(height: 16),
-              _MonthCalendar(state: state),
-            ],
-          ),
+        data: (state) => LayoutBuilder(
+          builder: (context, constraints) {
+            final main = Column(
+              children: [
+                _TodayCard(state: state),
+                const SizedBox(height: 16),
+                _MonthCalendar(state: state),
+              ],
+            );
+            if (constraints.maxWidth < 900) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                child: Column(
+                  children: [
+                    SizedBox(height: 620, child: main),
+                    const SizedBox(height: 16),
+                    SizedBox(height: 600, child: _StatsColumn(state: state)),
+                  ],
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: main),
+                  const SizedBox(width: 16),
+                  SizedBox(width: 300, child: _StatsColumn(state: state)),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/// 顶部连续签到横幅：品红渐变底 + 左侧「连续签到 N 天」+ 右侧三列统计 + 「今日已签到」按钮。
-class _HeroBanner extends ConsumerWidget {
-  const _HeroBanner({required this.state});
+/// 今日打卡条使用浅粉底，与下方白色日历形成两个层级。
+class _TodayCard extends ConsumerWidget {
+  const _TodayCard({required this.state});
 
   final CheckInState state;
 
@@ -98,100 +131,70 @@ class _HeroBanner extends ConsumerWidget {
     final today = DateTime.now();
     final count = state.todayCount;
     final isMaxed = count >= maxCheckInsPerDay;
-    final streak = _currentStreak(state);
-    final daysInMonth = DateTime(
-      state.month.year,
-      state.month.month + 1,
-      0,
-    ).day;
-    // 积分只是给横幅加点设计稿的味道：一条记录 5 分，纯展示、不落库。
-    final points = state.monthTotal * 5;
     return Container(
+      height: 78,
       decoration: BoxDecoration(
-        // 设计稿（`1675_checkin.png`）是**纯品红**，不是左右渐变。渐变是更早
-        // 一版照 morrow 加的，压在纯色卡片风格里显得跳。
-        color: AppDesignTokens.accentDeep,
+        color: AppDesignTokens.accent.withValues(alpha: .09),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '连续签到 $streak 天',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '本月已签到 ${state.monthDays} / $daysInMonth 天，继续保持',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _HeroStat(value: '$streak', unit: '天', label: '连续'),
-                  _HeroStat(
-                    value: '${state.monthTotal}',
-                    unit: '天',
-                    label: '累计',
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '今日 · ${today.month}/${today.day}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppDesignTokens.accentDeep,
                   ),
-                  _HeroStat(value: '$points', unit: '', label: '积分'),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              // 设计稿：已签到时只有一枚白药丸「✓ 今日已签到」+ 右侧一行积分灰字。
-              // 之前额外放「清除」和第二个「打卡」按钮，把横幅底部撑成三样控件，
-              // 和设计稿差一截。清除改由长按白药丸触发，功能不丢。
-              PressScale(
-                child: _HeroButton(
-                  icon: count > 0 ? Symbols.check_rounded : Symbols.add_rounded,
-                  label: count > 0 ? '今日已签到' : l10n.checkInNow,
-                  enabled: !isMaxed,
-                  onTap: () => _addCheckIn(context, ref, today),
-                  onLongPress: count > 0
-                      ? () =>
-                            ref.read(checkInProvider.notifier).clearDate(today)
-                      : null,
                 ),
-              ),
-              if (count > 0) ...[
-                const SizedBox(width: 14),
-                Flexible(
-                  child: Text(
-                    '今日获得 ${count * 5} 积分 · 累计 $points',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
+                const SizedBox(height: 5),
+                Text(
+                  '今天已打卡 $count 次',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppDesignTokens.accentDeep,
                   ),
                 ),
               ],
-            ],
+            ),
+          ),
+          if (count > 0)
+            PressScale(
+              child: TextButton(
+                onPressed: () =>
+                    ref.read(checkInProvider.notifier).clearDate(today),
+                child: const Text(
+                  '清除',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppDesignTokens.accentDeep,
+                  ),
+                ),
+              ),
+            ),
+          PressScale(
+            child: FilledButton(
+              onPressed: isMaxed
+                  ? null
+                  : () => _addCheckIn(context, ref, today),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppDesignTokens.accentDeep,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(104, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: Text(l10n.checkInNow),
+            ),
           ),
         ],
       ),
@@ -199,138 +202,9 @@ class _HeroBanner extends ConsumerWidget {
   }
 }
 
-/// 横幅上的「连续签到」——本月最早的连续段长度（纯展示用，不改任何数据）。
-int _currentStreak(CheckInState state) {
-  final days =
-      state.records
-          .where((r) => r.date.startsWith(state.monthKey))
-          .map((r) => r.date)
-          .toSet()
-          .map(DateTime.parse)
-          .toList()
-        ..sort();
-  var best = 0;
-  var streak = 0;
-  DateTime? previous;
-  for (final day in days) {
-    streak = previous != null && day.difference(previous).inDays == 1
-        ? streak + 1
-        : 1;
-    if (streak > best) best = streak;
-    previous = day;
-  }
-  return best;
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({
-    required this.value,
-    required this.unit,
-    required this.label,
-  });
-
-  final String value;
-  final String unit;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 28),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  height: 1,
-                ),
-              ),
-              if (unit.isNotEmpty)
-                TextSpan(
-                  text: ' $unit',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-/// 横幅主按钮：白底品红字（设计稿「今日已签到」那枚白药丸）。
-class _HeroButton extends StatelessWidget {
-  const _HeroButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.onLongPress,
-    this.enabled = true,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-    opacity: enabled ? 1 : 0.5,
-    child: Material(
-      color: AppDesignTokens.surface,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: PressScale(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          onTap: enabled ? onTap : null,
-          onLongPress: onLongPress,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 17, color: AppDesignTokens.accentDeep),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.accentDeep,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// 月历热力图：可翻月，每格显示当天次数，颜色随次数加深。
-///
-/// 设计稿：白卡 + 圆角16，格子里「日期数字 + 小对勾」，已打卡的格子浅粉填充、
-/// 今天用 accentDeep 实色底 + 白字。默认按父级剩余高度自动推格子高度，跟随窗口一屏放下。
+/// 大日历卡片包含月份导航、星期和日期。
+/// 日期格铺满七列，打卡次数直接显示在日期下方。
+/// 两次及以上使用品红底，一次使用浅粉底。
 class _MonthCalendar extends ConsumerWidget {
   const _MonthCalendar({required this.state});
 
@@ -346,83 +220,8 @@ class _MonthCalendar extends ConsumerWidget {
     // DateTime.weekday 是 1..7（周一..周日），换算成「周日=0」的下标后再按语言的一周起始偏移。
     final leading = (firstDay.weekday % 7 - firstDayOfWeek + 7) % 7;
     final rows = ((leading + daysInMonth) / 7).ceil();
+    final totalCells = rows * 7;
     final todayKey = checkInDateKey(DateTime.now());
-
-    Widget grid(double extent) {
-      final small = extent < 44;
-      return GridView.builder(
-        padding: EdgeInsets.zero,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 7,
-          mainAxisExtent: extent,
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
-        ),
-        itemCount: leading + daysInMonth,
-        itemBuilder: (context, index) {
-          if (index < leading) return const SizedBox.shrink();
-          final day = DateTime(month.year, month.month, index - leading + 1);
-          final count = state.countFor(checkInDateKey(day));
-          final isToday = checkInDateKey(day) == todayKey;
-          final done = count > 0;
-          // 三档底色：今天 = accentDeep 实色；已打卡 = 极淡粉；未打卡 = 透明（白卡上留白）。
-          final Color bg;
-          final Color fg;
-          final Color subFg;
-          if (isToday) {
-            bg = AppDesignTokens.accentDeep;
-            fg = Colors.white;
-            subFg = Colors.white.withValues(alpha: 0.9);
-          } else if (done) {
-            bg = AppDesignTokens.accent.withValues(alpha: 0.12);
-            fg = AppDesignTokens.accentDeep;
-            subFg = AppDesignTokens.accent;
-          } else {
-            bg = Colors.transparent;
-            fg = AppDesignTokens.ink;
-            subFg = AppDesignTokens.inkMuted;
-          }
-          return PressScale(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              onTap: () => _openDay(context, ref, day),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${day.day}',
-                      style: TextStyle(
-                        fontSize: small ? 12 : 13.5,
-                        height: 1.15,
-                        fontWeight: isToday || done
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: fg,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    if (done)
-                      Icon(
-                        Symbols.check_rounded,
-                        size: small ? 9 : 11,
-                        color: subFg,
-                      )
-                    else
-                      SizedBox(height: small ? 9 : 11),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    }
 
     return Expanded(
       child: Container(
@@ -430,42 +229,36 @@ class _MonthCalendar extends ConsumerWidget {
           color: AppDesignTokens.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
         child: Column(
           children: [
-            // 月标题行：左边「年月 + 已签天数」，右边翻月按钮。
-            Row(
-              children: [
-                Text(
-                  '${month.year} 年 ${month.month} 月',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.ink,
+            SizedBox(
+              height: 26,
+              child: Row(
+                children: [
+                  Text(
+                    '${month.year} / ${month.month.toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppDesignTokens.ink,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '$daysInMonth 天 / 已签 ${state.monthDays} 天',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppDesignTokens.inkMuted,
+                  const Spacer(),
+                  _NavIconButton(
+                    icon: Symbols.chevron_left_rounded,
+                    onTap: () =>
+                        ref.read(checkInProvider.notifier).previousMonth(),
                   ),
-                ),
-                const Spacer(),
-                _NavIconButton(
-                  icon: Symbols.chevron_left_rounded,
-                  onTap: () =>
-                      ref.read(checkInProvider.notifier).previousMonth(),
-                ),
-                const SizedBox(width: 6),
-                _NavIconButton(
-                  icon: Symbols.chevron_right_rounded,
-                  onTap: () => ref.read(checkInProvider.notifier).nextMonth(),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  _NavIconButton(
+                    icon: Symbols.chevron_right_rounded,
+                    onTap: () => ref.read(checkInProvider.notifier).nextMonth(),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 for (var i = 0; i < 7; i++)
@@ -473,20 +266,89 @@ class _MonthCalendar extends ConsumerWidget {
                     child: Center(
                       child: Text(
                         material.narrowWeekdays[(firstDayOfWeek + i) % 7],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppDesignTokens.inkMuted,
+                          fontWeight: FontWeight.w600,
+                          color: i >= 5
+                              ? AppDesignTokens.accentDeep
+                              : AppDesignTokens.inkSubtle,
                         ),
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
             Expanded(
               child: LayoutBuilder(
-                builder: (context, cell) => grid(
-                  ((cell.maxHeight - 6 * (rows - 1)) / rows).clamp(24.0, 64.0),
+                builder: (context, cell) => GridView.builder(
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisExtent: (cell.maxHeight - 12 * (rows - 1)) / rows,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
+                  itemCount: totalCells,
+                  itemBuilder: (context, index) {
+                    final day = DateTime(
+                      month.year,
+                      month.month,
+                      index - leading + 1,
+                    );
+                    final inMonth = day.month == month.month;
+                    final count = state.countFor(checkInDateKey(day));
+                    final isToday = checkInDateKey(day) == todayKey;
+                    final intense = count >= 2 || (isToday && count > 0);
+                    final bg = !inMonth
+                        ? Colors.transparent
+                        : intense
+                        ? AppDesignTokens.accentDeep
+                        : count == 1
+                        ? AppDesignTokens.accent.withValues(alpha: .42)
+                        : AppDesignTokens.pageBackground;
+                    final fg = !inMonth
+                        ? AppDesignTokens.inkMuted.withValues(alpha: .55)
+                        : count > 0
+                        ? Colors.white
+                        : AppDesignTokens.inkSubtle;
+                    return PressScale(
+                      child: Material(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          onTap: () => _openDay(context, ref, day),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.1,
+                                  fontWeight: FontWeight.w700,
+                                  color: fg,
+                                ),
+                              ),
+                              if (count > 0) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'x$count',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    height: 1,
+                                    color: fg.withValues(alpha: .85),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -497,7 +359,7 @@ class _MonthCalendar extends ConsumerWidget {
   }
 }
 
-/// 日历翻月的圆形小按钮：浅灰底 + 灰字，和设计稿右侧那两枚一致。
+/// 月份箭头只保留图标，与日历标题右对齐。
 class _NavIconButton extends StatelessWidget {
   const _NavIconButton({required this.icon, required this.onTap});
 
@@ -506,19 +368,283 @@ class _NavIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PressScale(
-    child: Material(
-      color: AppDesignTokens.pageBackground,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: Icon(icon, size: 18, color: AppDesignTokens.inkSubtle),
-        ),
+    child: InkResponse(
+      onTap: onTap,
+      radius: 18,
+      child: SizedBox(
+        width: 20,
+        height: 28,
+        child: Icon(icon, size: 14, color: AppDesignTokens.inkMuted),
       ),
     ),
+  );
+}
+
+/// 右栏统计与图例，数据全部由本地记录派生。
+class _StatsColumn extends StatelessWidget {
+  const _StatsColumn({required this.state});
+
+  final CheckInState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalDays = state.records.map((r) => r.date).toSet().length;
+    final counts = <String, int>{for (final id in checkInTypeIds) id: 0};
+    for (final record in state.records.where(
+      (r) => r.date.startsWith(state.monthKey),
+    )) {
+      counts[record.type] = (counts[record.type] ?? 0) + 1;
+    }
+    final maxType = counts.values.fold<int>(1, (a, b) => a > b ? a : b);
+    return Column(
+      children: [
+        _SideCard(
+          title: '本月统计',
+          child: Column(
+            children: [
+              _StatRow(label: '打卡天数', value: '${state.monthDays} 天'),
+              const SizedBox(height: 18),
+              _StatRow(label: '总次数', value: '${state.monthTotal} 次'),
+              const SizedBox(height: 18),
+              _StatRow(label: '最佳连续', value: '${state.bestStreak} 天'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _SideCard(
+          title: '累计',
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$totalDays',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: AppDesignTokens.accentDeep,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      '天 · 全部记录',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppDesignTokens.inkMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${state.records.length} 次',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppDesignTokens.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    '累计打卡次数',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppDesignTokens.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        const _SideCard(
+          title: '颜色说明',
+          child: Column(
+            children: [
+              _LegendRow(color: AppDesignTokens.accentDeep, label: '打卡 2 次以上'),
+              SizedBox(height: 12),
+              _LegendRow(color: Color(0xFFC986A1), label: '打卡 1 次'),
+              SizedBox(height: 12),
+              _LegendRow(
+                color: AppDesignTokens.pageBackground,
+                label: '未打卡',
+                muted: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: _SideCard(
+            title: '本月类型分布',
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final id in checkInTypeIds)
+                  _TypeDistributionRow(
+                    icon: _typeIcon[id] ?? Symbols.help_outline_rounded,
+                    label: _typeLabel(AppLocalizations.of(context)!, id),
+                    count: counts[id] ?? 0,
+                    fraction: (counts[id] ?? 0) / maxType,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SideCard extends StatelessWidget {
+  const _SideCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+    decoration: BoxDecoration(
+      color: AppDesignTokens.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppDesignTokens.ink,
+          ),
+        ),
+        const SizedBox(height: 18),
+        child,
+      ],
+    ),
+  );
+}
+
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Text(
+        label,
+        style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+      ),
+      const Spacer(),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: AppDesignTokens.accentDeep,
+        ),
+      ),
+    ],
+  );
+}
+
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({
+    required this.color,
+    required this.label,
+    this.muted = false,
+  });
+
+  final Color color;
+  final String label;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: muted ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
+        ),
+      ),
+    ],
+  );
+}
+
+class _TypeDistributionRow extends StatelessWidget {
+  const _TypeDistributionRow({
+    required this.icon,
+    required this.label,
+    required this.count,
+    required this.fraction,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 18, color: AppDesignTokens.inkMuted),
+      const SizedBox(width: 10),
+      SizedBox(
+        width: 44,
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppDesignTokens.inkSubtle,
+          ),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: LinearProgressIndicator(
+            value: count == 0 ? 0 : fraction,
+            minHeight: 7,
+            backgroundColor: AppDesignTokens.fieldFill,
+            valueColor: const AlwaysStoppedAnimation(
+              AppDesignTokens.accentDeep,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Text(
+        '$count 次',
+        style: const TextStyle(fontSize: 12, color: AppDesignTokens.accentDeep),
+      ),
+    ],
   );
 }
 

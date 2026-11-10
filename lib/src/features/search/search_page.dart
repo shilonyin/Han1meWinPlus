@@ -179,58 +179,64 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       // （1280 画布里 1000 宽，即内容区左右各留 204-176=28 边距）。
       appBar: browseMode
           ? AppBar(
-              // 设计稿分类页页头：窗口按钮带 0~34，「里番 + 副标题 + 搜索框」
-              // 那一行落在 y44~88，所以页头总高 89、内容再往下让 44。
-              // 原来给 100 且内容垂直居中，整行被摆到 13~87，比设计稿高 10。
-              toolbarHeight: 89,
+              // 设计稿分类页页头：窗口按钮带占顶部 28，那一行在按钮带**下方**。
+              // toolbarHeight 只算内容区高度、不含按钮带，所以内容自身还要再让出
+              // `windowControlsHeight`，否则整行会钻进窗口按钮里（实测顶到 y40）。
+              toolbarHeight: 56,
               leadingWidth: 0,
               automaticallyImplyLeading: false,
               backgroundColor: AppDesignTokens.pageBackground,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               titleSpacing: 0,
-              // 分类页页头：左「里番」20 Bold + 副标题 13 灰，右侧搜索框。
+              // 设计稿分类页页头：「里番」与副标题同一行，右侧一条矮窄的灰底搜索框。
               title: Padding(
-                padding: const EdgeInsets.fromLTRB(28, 44, 28, 0),
+                padding: const EdgeInsets.fromLTRB(
+                  28,
+                  AppDesignTokens.windowControlsHeight,
+                  28,
+                  0,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          query.genre,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppDesignTokens.ink,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '题材、年份、评分',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppDesignTokens.fieldHint,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      query.genre,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppDesignTokens.ink,
+                      ),
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: KeyedSubtree(
-                        key: _fieldKey,
-                        child: _SearchInput(
-                          controller: _textController,
-                          focusNode: _searchFocus,
-                          hintText: '${query.genre} 关键词、作者、标签，回车直接搜',
-                          autoFocus: false,
-                          onSubmitted: submit,
-                          onClear: () {
-                            _textController.clear();
-                            notifier.text('');
-                          },
+                    const SizedBox(width: 10),
+                    const Text(
+                      '题材、年份、评分',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppDesignTokens.fieldHint,
+                      ),
+                    ),
+                    const Spacer(),
+                    // 设计稿的搜索框是右侧一条固定宽度的小框，不跟着窗口拉长 ——
+                    // 撑满整行会变成一条横贯页面的长条，和设计稿差得很远。
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: SizedBox(
+                        width: 420,
+                        child: KeyedSubtree(
+                          key: _fieldKey,
+                          child: _SearchInput(
+                            controller: _textController,
+                            focusNode: _searchFocus,
+                            hintText: '${query.genre} 关键词、作者、标签，回车直接搜',
+                            autoFocus: false,
+                            compact: true,
+                            onSubmitted: submit,
+                            onClear: () {
+                              _textController.clear();
+                              notifier.text('');
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -524,6 +530,7 @@ class _SearchInput extends StatelessWidget {
     required this.autoFocus,
     required this.onSubmitted,
     required this.onClear,
+    this.compact = false,
   });
 
   final TextEditingController controller;
@@ -533,41 +540,51 @@ class _SearchInput extends StatelessWidget {
   final ValueChanged<String> onSubmitted;
   final VoidCallback onClear;
 
+  /// 分类浏览页页头用更矮、灰底、更圆的紧凑款（设计稿 34 高、圆角接近药丸、
+  /// 底色是灰 #ECECF0 而不是白）。
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     // 设计稿 searchBox：1000×48、圆角 12、白底。左侧放大镜 18、文字 14、
     // 右侧清除按钮 26×26 圆角 8 底色 #EDEDF2。不用玻璃胶囊（浅底上和白底同色、
     // 占位字被压得看不见）。
+    final height = compact ? 34.0 : 48.0;
+    final radius = compact ? AppRadius.pill : AppRadius.md;
+    final fill = compact ? AppDesignTokens.fieldFill : AppDesignTokens.surface;
+    final verticalPad = compact ? 8.0 : 14.0;
+    final iconSize = compact ? 16.0 : 18.0;
+    final fontSize = compact ? 12.5 : 14.0;
     return SizedBox(
-      height: 48,
+      height: height,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
         autofocus: autoFocus,
         textInputAction: TextInputAction.search,
         onSubmitted: onSubmitted,
-        style: const TextStyle(fontSize: 14, color: AppDesignTokens.ink),
+        style: TextStyle(fontSize: fontSize, color: AppDesignTokens.ink),
         decoration: InputDecoration(
           isDense: true,
           hintText: hintText,
-          hintStyle: const TextStyle(
-            fontSize: 14,
+          hintStyle: TextStyle(
+            fontSize: fontSize,
             color: AppDesignTokens.fieldHint,
           ),
           filled: true,
-          fillColor: AppDesignTokens.surface,
-          contentPadding: const EdgeInsets.symmetric(
+          fillColor: fill,
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 14,
+            vertical: verticalPad,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Symbols.search_rounded,
-            size: 18,
+            size: iconSize,
             color: AppDesignTokens.fieldHint,
           ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 52,
-            minHeight: 48,
+          prefixIconConstraints: BoxConstraints(
+            minWidth: compact ? 40 : 52,
+            minHeight: height,
           ),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
@@ -586,7 +603,9 @@ class _SearchInput extends StatelessWidget {
                               width: 26,
                               height: 26,
                               decoration: BoxDecoration(
-                                color: AppDesignTokens.fieldFill,
+                                color: compact
+                                    ? AppDesignTokens.surface
+                                    : AppDesignTokens.fieldFill,
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.sm,
                                 ),
@@ -604,17 +623,17 @@ class _SearchInput extends StatelessWidget {
               const SizedBox(width: 12),
             ],
           ),
-          suffixIconConstraints: const BoxConstraints(minHeight: 48),
+          suffixIconConstraints: BoxConstraints(minHeight: height),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: const BorderSide(
               color: AppDesignTokens.accent,
               width: 1.4,
