@@ -248,8 +248,9 @@ class AppLogger {
         if (!await from.exists()) continue;
         await from.rename(path.join(directory.path, 'app.${index + 1}.log'));
       }
-      if (await file.exists())
+      if (await file.exists()) {
         await file.rename(path.join(directory.path, 'app.1.log'));
+      }
       await file.create(recursive: true);
       _written = 0;
     } catch (_) {

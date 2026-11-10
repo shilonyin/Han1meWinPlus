@@ -122,6 +122,8 @@ class AboutPage extends ConsumerWidget {
                 project,
                 const SizedBox(height: 24),
                 const _DisclaimerCard(),
+                const SizedBox(height: 24),
+                const _DeveloperModeCard(),
                 const SizedBox(height: 20),
                 const _CopyrightFooter(),
               ],
@@ -503,6 +505,72 @@ class _DisclaimerCard extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// 开发者模式开关。
+///
+/// 样式照免责声明卡：标题在卡片外、白卡撑满宽度。
+/// 放在关于页底部是因为它是调试用的临时开关。
+/// 它不参与日常设置，也就不挤进按设计稿排好的那些页。
+class _DeveloperModeCard extends ConsumerWidget {
+  const _DeveloperModeCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final controller = ref.read(settingsProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(0, 0, 0, 6),
+          child: Text(
+            '开发者选项',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppDesignTokens.ink,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 6, 12, 6),
+          decoration: BoxDecoration(
+            color: AppDesignTokens.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              l10n.developerMode,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppDesignTokens.ink,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.developerModeDescription,
+                style: const TextStyle(
+                  fontSize: 11,
+                  height: 1.5,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
+            ),
+            value: settings?.developerMode ?? false,
+            onChanged: (value) => controller.saveChanges(
+              (current) => current.copyWith(developerMode: value),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// 页脚版权行（设计稿最底部那行居中灰字）。

@@ -172,6 +172,7 @@ class AppSettings {
     this.webDavUrl = '',
     this.webDavUsername = '',
     this.webDavPassword = '',
+    this.developerMode = false,
   });
 
   final AppThemeMode themeMode;
@@ -324,6 +325,12 @@ class AppSettings {
   final String webDavUsername;
   final String webDavPassword;
 
+  /// 开发者模式：开启后所有视频封面用纯色占位代替。
+  /// 点视频只加载播放窗口而不真正解码播放。
+  /// 用于排查界面 / 窗口逻辑时不触发网络与解码器。
+  /// 默认关，属于临时调试开关，不参与任何同步或备份。
+  final bool developerMode;
+
   ThemeMode get materialThemeMode => switch (themeMode) {
     AppThemeMode.system => ThemeMode.system,
     AppThemeMode.light => ThemeMode.light,
@@ -458,6 +465,7 @@ class AppSettings {
     'webDavUrl': webDavUrl,
     'webDavUsername': webDavUsername,
     'webDavPassword': webDavPassword,
+    'developerMode': developerMode,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -497,8 +505,7 @@ class AppSettings {
         .toDouble(),
     downloadSpeedLimitMbps:
         (json['downloadSpeedLimitMbps'] as num?)?.toDouble() ?? 0,
-    concurrentDownloads:
-        (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5),
+    concurrentDownloads: (json['concurrentDownloads'] as int? ?? 2).clamp(1, 5),
     autoGroupDownloads: json['autoGroupDownloads'] as bool? ?? true,
     groupNameFromSeries: json['groupNameFromSeries'] as bool? ?? false,
     groupNameTraditional: json['groupNameTraditional'] as bool? ?? false,
@@ -549,15 +556,13 @@ class AppSettings {
     dohPreset: _dohPreset(json['dohPreset'] as String?),
     dohCustomUrl: json['dohCustomUrl'] as String? ?? '',
     dohBootstrapIps: json['dohBootstrapIps'] as String? ?? '',
-    dohTimeoutSeconds:
-        (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60),
+    dohTimeoutSeconds: (json['dohTimeoutSeconds'] as int? ?? 10).clamp(1, 60),
     // 老用户强制迁移：见 [proxyDefaultsMigrated] 的说明。没有迁移标记的配置里，
     // 'system' 无法区分「用户主动选的」与「旧默认值写进去的」，一律按后者处理；
     // 但 'custom' 明显是主动配的（要填地址），保留不动。
     proxyMode: _proxyMode(
       json['proxyMode'] as String?,
-      migrateSystemToDirect:
-          !(json['proxyDefaultsMigrated'] as bool? ?? false),
+      migrateSystemToDirect: !(json['proxyDefaultsMigrated'] as bool? ?? false),
     ),
     proxyDefaultsMigrated: true,
     customProxy: (json['customProxy'] as String? ?? '').trim(),
@@ -600,8 +605,10 @@ class AppSettings {
         .toList(),
     minimumVideoDurationSeconds:
         (json['minimumVideoDurationSeconds'] as int? ?? 0).clamp(0, 86400),
-    minimumVideoViews:
-        (json['minimumVideoViews'] as int? ?? 0).clamp(0, 1000000000),
+    minimumVideoViews: (json['minimumVideoViews'] as int? ?? 0).clamp(
+      0,
+      1000000000,
+    ),
     exemptSubscribedAuthors: json['exemptSubscribedAuthors'] as bool? ?? true,
     applyRecommendationFiltersToRelated:
         json['applyRecommendationFiltersToRelated'] as bool? ?? true,
@@ -627,6 +634,7 @@ class AppSettings {
     webDavUrl: json['webDavUrl'] as String? ?? '',
     webDavUsername: json['webDavUsername'] as String? ?? '',
     webDavPassword: json['webDavPassword'] as String? ?? '',
+    developerMode: json['developerMode'] as bool? ?? false,
   );
 
   static AppThemeMode _themeMode(String? name) {
@@ -677,13 +685,15 @@ class AppSettings {
   /// 无法区分「用户主动选的」与「旧默认值写进去的」（旧版 [toJson] 全量落盘，所以
   /// 每个老配置里都存着当时那个 'system'），一律按后者处理，改回不使用代理。
   /// 'custom' 不受影响 —— 它要求用户填过地址，是明确的主动选择。
-  static String _proxyMode(String? value, {bool migrateSystemToDirect = false}) =>
-      switch (value) {
-        'custom' => 'custom',
-        'system' => migrateSystemToDirect ? 'direct' : 'system',
-        'direct' => 'direct',
-        _ => 'direct',
-      };
+  static String _proxyMode(
+    String? value, {
+    bool migrateSystemToDirect = false,
+  }) => switch (value) {
+    'custom' => 'custom',
+    'system' => migrateSystemToDirect ? 'direct' : 'system',
+    'direct' => 'direct',
+    _ => 'direct',
+  };
 
   static String _previewSource(String? value) => switch (value) {
     'auto' || 'default' || 'getchu' => value!,
@@ -702,7 +712,8 @@ class AppSettings {
         if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
       }
     }
-    if (fallback.isNotEmpty && !urls.contains(fallback)) urls.insert(0, fallback);
+    if (fallback.isNotEmpty && !urls.contains(fallback))
+      urls.insert(0, fallback);
     return urls;
   }
 
@@ -810,6 +821,7 @@ class AppSettings {
     String? webDavUrl,
     String? webDavUsername,
     String? webDavPassword,
+    bool? developerMode,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     baseUrl: baseUrl ?? this.baseUrl,
@@ -914,6 +926,7 @@ class AppSettings {
     webDavUrl: webDavUrl ?? this.webDavUrl,
     webDavUsername: webDavUsername ?? this.webDavUsername,
     webDavPassword: webDavPassword ?? this.webDavPassword,
+    developerMode: developerMode ?? this.developerMode,
   );
 }
 

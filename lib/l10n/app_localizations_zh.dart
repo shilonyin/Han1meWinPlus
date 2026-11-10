@@ -592,7 +592,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storage => '存储';
 
   @override
-  String get clearCache => '清理缓存';
+  String get clearCache => '清除缓存';
 
   @override
   String get clearCacheDescription => '清除封面图片与列表信息的缓存，下载内容与观看记录不受影响';
@@ -626,6 +626,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportLogs => '导出日志';
+
+  @override
+  String get copyAllLogs => '复制全部日志';
+
+  @override
+  String get copiedAllLogs => '已复制全部日志';
 
   @override
   String get openLogsFolder => '打开日志文件夹';
@@ -2745,6 +2751,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String castLoadFailed(Object error) {
     return '投屏内容载入失败：$error';
   }
+
+  @override
+  String get developerMode => '开发者模式';
+
+  @override
+  String get developerModeDescription =>
+      '开启后视频封面以纯色代替，点视频只加载播放窗口而不播放，用于界面与窗口调试';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3369,6 +3382,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportLogs => '匯出日誌';
+
+  @override
+  String get copyAllLogs => '複製全部日誌';
+
+  @override
+  String get copiedAllLogs => '已複製全部日誌';
 
   @override
   String get openLogsFolder => '開啟日誌資料夾';
@@ -5488,4 +5507,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String castLoadFailed(Object error) {
     return '投屏內容載入失敗：$error';
   }
+
+  @override
+  String get developerMode => '開發者模式';
+
+  @override
+  String get developerModeDescription =>
+      '開啟後影片封面以純色代替，點影片只載入播放視窗而不播放，用於介面與視窗除錯';
 }

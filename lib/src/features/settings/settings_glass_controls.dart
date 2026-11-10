@@ -55,6 +55,15 @@ class SettingsSwitch extends StatelessWidget {
       // 52×32 的开关画在 56×30 的框里，上下各被裁掉 1px，圆钮就偏了一块。
       width: 56,
       height: 30,
+      // 这里**不能裁**。
+      //
+      // `OverflowBox` 不裁剪，52×32 的 `Switch` 会往上下各溢出 1px。之前以为
+      // 溢出会在相邻行留下白块，于是套了 `ClipRect` —— 结果那 1px 正好是圆钮
+      // 的上下边缘，裁完开关看起来就像被切掉了上下各一条，圆钮变成一段扁的，
+      // 比溢出本身难看得多。
+      //
+      // 真实情况是：那个 1px 溢出画在行自己的留白里（行高 42、开关 30，上下各
+      // 有 6px 余量），根本压不到相邻行。所以保持不裁剪。
       child: OverflowBox(
         minWidth: 52,
         maxWidth: 52,

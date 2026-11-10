@@ -28,21 +28,24 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_subPage == 'home-categories')
+    if (_subPage == 'home-categories') {
       return SettingsSubPageScope(
         onBack: () => setState(() => _subPage = null),
         child: const HomeCategoriesPage(),
       );
-    if (_subPage == 'recommendations')
+    }
+    if (_subPage == 'recommendations') {
       return SettingsSubPageScope(
         onBack: () => setState(() => _subPage = null),
         child: const RecommendationSettingsPage(),
       );
+    }
     final settings = ref.watch(settingsProvider).valueOrNull;
-    if (settings == null)
+    if (settings == null) {
       return const Scaffold(
         body: Center(child: M3EContainedLoadingIndicator()),
       );
+    }
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
@@ -58,11 +61,12 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
           // 设计稿那张卡没有标题，但测试与无障碍都依赖它给这一组分名字
           // （`layout_settings_test.dart` 会校验它在），所以保留。
           //
-          // `rowPadding: 10`：布局页设计稿的每行是 **56 高**（分隔线 400/456/512），
-          // 而主题页只有 40。两页字号相同，差的 16 全在这一行上下的留白里。
+          // 行高 **42**：全设置页统一（内容 36 + `rowPadding` 3 × 2）。
+          // 以前这一页单独给 10（行高 56），和主题页的 40、播放页的 44 各不相同 ——
+          // 翻页时同一类设置项的疏密不一样，看起来像两套界面。
           SettingsCardList(
             title: l10n.general,
-            rowPadding: 10,
+            rowPadding: 3,
             children: [
               SettingsCardItem(
                 title: l10n.comicMode,
@@ -231,7 +235,9 @@ class _LayoutPreview extends StatelessWidget {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF2F2F5),
-                                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.sm,
+                                    ),
                                   ),
                                 ),
                               ),

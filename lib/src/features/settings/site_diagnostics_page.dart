@@ -216,17 +216,14 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             ),
             // 说明到卡片的间距 24：设计稿说明底行 y168、首卡顶边 y200（含文字行盒余量）。
             const SizedBox(height: 24),
-            if ((_results ?? const <DiagnosticResult>[]).isNotEmpty)
-              _sectionCard(
-                // 设计稿这张卡带标题「诊断结果」。
-                title: '诊断结果',
-                children: [
-                  for (var i = 0; i < _results!.length; i++) ...[
-                    if (i > 0) _rowDivider(),
-                    _diagnosticRow(context, l10n, _results![i]),
-                  ],
-                ],
-              ),
+            // 「诊断结果」卡**常驻**。
+            //
+            // 原来它只在 `_results` 有值、也就是检测跑完之后才出现，于是进页面的
+            // 第一秒是一整块空白，卡片位置还会往下跳一截（先没有、跑完突然插进来）。
+            // 设计稿（`18999_v6_diagnostics.png`）画的是**结果状态**，但那五行的
+            // 位置是固定的 —— 没结果时用同样的五行占位（灰色圆点 + 标题，
+            // 详情留空），跑完再把状态与说明填进去，版面从头到尾不跳。
+            _sectionCard(title: '诊断结果', children: _diagnosticRows(l10n)),
             // 卡片间距 21：设计稿（`18999_v6_diagnostics.png`）第一张卡底边
             // y526、第二张卡顶边 y547。原来给 16，两卡贴得比设计稿紧。
             const SizedBox(height: 21),
@@ -235,6 +232,27 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
         ),
       ),
     );
+  }
+
+  /// 「诊断结果」里的五行。
+  ///
+  /// 已出结果时按 `_results` 渲染。
+  /// 还没跑（或正在跑）时按 [DiagnosticKind] 的固定顺序给出占位行。
+  /// 占位行与真实行同高，所以卡片高度在检测前后完全一致，不会「等一下突然长出来」。
+  List<Widget> _diagnosticRows(AppLocalizations l10n) {
+    final results = _results;
+    final widgets = <Widget>[];
+    for (var i = 0; i < DiagnosticKind.values.length; i++) {
+      if (i > 0) widgets.add(_rowDivider());
+      final kind = DiagnosticKind.values[i];
+      final result = results?.firstWhere(
+        (r) => r.kind == kind,
+        orElse: () =>
+            DiagnosticResult(kind: kind, status: DiagnosticStatus.skipped),
+      );
+      widgets.add(_diagnosticRow(context, l10n, result, kind: kind));
+    }
+    return widgets;
   }
 
   /// 页头右侧的「开始诊断」主按钮：实心 accentDeep 胶囊 34 高（设计稿）。
@@ -409,17 +427,24 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
 
   /// 诊断结果的一行：状态图标 + 标题/详情 + 右侧状态文字。
   /// 与设计稿一致，所有行铺在同一张白卡里，不再各自一张卡。
+  ///
+  /// [result] 为 null 表示**还没出结果**：只有一行灰色的「标题」，
+  /// 图标与右侧状态都留白。行高与真实行一致（见下面的 50），
+  /// 所以检测跑完后卡片不会跳动。
   Widget _diagnosticRow(
     BuildContext context,
     AppLocalizations l10n,
-    DiagnosticResult result,
-  ) {
-    final (icon, color) = _statusVisual(context, result.status);
-    final measurement = result.latencyMs == null
+    DiagnosticResult? result, {
+    required DiagnosticKind kind,
+  }) {
+    final (icon, color) = result == null
+        ? (Symbols.radio_button_unchecked_rounded, AppDesignTokens.inkMuted)
+        : _statusVisual(context, result.status);
+    final measurement = result?.latencyMs == null
         ? null
-        : '${result.latencyMs} ms';
-    final detail = _detail(l10n, result);
-    final suggestion = _suggestion(l10n, result);
+        : '${result!.latencyMs} ms';
+    final detail = result == null ? '' : _detail(l10n, result);
+    final suggestion = result == null ? null : _suggestion(l10n, result);
     return Padding(
       // 行高 **50**：设计稿（`18999_v6_diagnostics.png`）的分隔线实测
       // 314 / 364 / 414 / 464 —— 严格等差 50。
@@ -439,11 +464,13 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _title(l10n, result.kind),
-                  style: const TextStyle(
+                  _title(l10n, kind),
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppDesignTokens.ink,
+                    color: result == null
+                        ? AppDesignTokens.inkMuted
+                        : AppDesignTokens.ink,
                   ),
                 ),
                 if (detail.isNotEmpty)
@@ -488,14 +515,18 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
           const SizedBox(width: 16),
           Padding(
             padding: const EdgeInsets.only(top: 1),
-            child: Text(
-              _statusText(l10n, result.status),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
+            // 还没出结果时右侧留空：设计稿那一列是状态文字，
+            // 在「未检测」阶段写「未检测」反而像一条失败结论。
+            child: result == null
+                ? const SizedBox.shrink()
+                : Text(
+                    _statusText(l10n, result.status),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
           ),
         ],
       ),

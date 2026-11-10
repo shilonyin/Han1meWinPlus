@@ -798,9 +798,16 @@ class _PlayerTopBar extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onKeyframes,
                   onLongPress: onAddKeyframe,
+                  // 原来用 🥵 当图标：控制条上其它按钮都是白色线性图标，
+                  // 一个彩色 emoji 夹在中间既不成套也没法跟随按钮色。
+                  // 换成「加书签」语义的线性图标，与相邻按钮同一套语言。
                   child: const Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('🥵', style: TextStyle(fontSize: 22)),
+                    child: Icon(
+                      Symbols.bookmark_add_rounded,
+                      size: 22,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

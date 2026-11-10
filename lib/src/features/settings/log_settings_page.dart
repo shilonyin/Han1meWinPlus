@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
@@ -14,6 +15,7 @@ import '../../core/app_radius.dart';
 import '../shared/app_toast.dart';
 import '../shared/press_scale.dart';
 import 'log_local_data_card.dart';
+import 'settings_controller.dart';
 import 'settings_pane_scope.dart';
 
 /// 「日志」：查看、导出、清空应用日志。
@@ -24,14 +26,14 @@ import 'settings_pane_scope.dart';
 ///
 /// 视觉按设计稿 `p_log.png`（1280×800）重做：白底卡片 + 圆角 16 + 三档文字灰，
 /// 页头标题 19-20 Bold，日志正文用等宽字体。日志的读取/导出/清理逻辑原样保留。
-class LogSettingsPage extends StatefulWidget {
+class LogSettingsPage extends ConsumerStatefulWidget {
   const LogSettingsPage({super.key});
 
   @override
-  State<LogSettingsPage> createState() => _LogSettingsPageState();
+  ConsumerState<LogSettingsPage> createState() => _LogSettingsPageState();
 }
 
-class _LogSettingsPageState extends State<LogSettingsPage> {
+class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
   int? _size;
   List<File> _files = const [];
 
@@ -57,42 +59,34 @@ class _LogSettingsPageState extends State<LogSettingsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final embedded = embeddedInSettingsPanes(context);
+    // 设计稿第四格是「网络」：当前代理模式 + 内置 Hosts 是否启用。
+    // 从设置里读真实值，不写死「直连」这类示例字符串。
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final networkLabel = settings == null
+        ? '—'
+        : '${_proxyLabel(settings.proxyMode)} · '
+              '${settings.useBuiltInHosts ? '内置 Hosts 已启用' : '内置 Hosts 未启用'}';
     return Scaffold(
       backgroundColor: AppDesignTokens.pageBackground,
       appBar: embedded ? null : AppBar(title: Text(l10n.logs)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         children: [
-          _PageHeader(
-            title: l10n.logs,
-            subtitle: l10n.logsDescription,
-            exportLabel: l10n.exportLogs,
-            onExport: () => unawaited(_export()),
-            // 分栏模式下标题与副标题由 `_SettingsPanes` 统一画，这里只留右侧的
-            // 「导出」按钮 —— 否则会重复成两行同样的标题。
-            showTitle: !embedded,
-          ),
+          // 分栏模式下标题与右侧按钮由 `_SettingsPanes` 统一画在同一行；
+          // 只有独立路由（窄窗 / 深链）才由本页自己画完整页头。
+          if (!embedded)
+            _PageHeader(title: l10n.logs, subtitle: l10n.logsDescription),
           const SizedBox(height: 20),
-          _EnvironmentCard(files: _files, size: _size),
+          _EnvironmentCard(
+            files: _files,
+            size: _size,
+            networkLabel: networkLabel,
+          ),
           const SizedBox(height: 20),
           // 设计稿在「运行环境」下面紧跟一块**最近日志**（时间 / 级别 / 正文的
           // 实时列表）。原来这一页只有「日志文件」列表 —— 用户想看刚刚发生了什么，
           // 还得先打开文件、再从头翻到尾，而且新日志不会自己出现。
-          const _RecentLogsCard(),
-          const SizedBox(height: 20),
-          if (_files.isNotEmpty) ...[
-            _LogFilesCard(
-              files: _files,
-              onPreview: (file) => unawaited(_preview(file)),
-            ),
-            const SizedBox(height: 20),
-          ],
-          _LogActionsCard(
-            exportLabel: l10n.exportLogs,
-            folderLabel: l10n.openLogsFolder,
-            folderPath: _folderPath(),
-            clearLabel: l10n.clearLogs,
-            clearHint: l10n.clearLogsDescription,
+          _RecentLogsCard(
             onExport: () => unawaited(_export()),
             onOpenFolder: () => unawaited(_openFolder()),
             onClear: () => unawaited(_clear()),
@@ -106,9 +100,14 @@ class _LogSettingsPageState extends State<LogSettingsPage> {
     );
   }
 
-  String _folderPath() => AppLogger.instance.directory?.path ?? '—';
-
   AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
+  /// 与网络设置页三档按钮同一套措辞。
+  static String _proxyLabel(String mode) => switch (mode) {
+    'custom' => '自定义代理',
+    'system' => '跟随系统',
+    _ => '直连',
+  };
 
   /// 导出成一个 zip。
   ///
@@ -148,46 +147,6 @@ class _LogSettingsPageState extends State<LogSettingsPage> {
     } catch (_) {
       if (mounted) showAppToast(context, _l10n.logsFolderUnavailable);
     }
-  }
-
-  Future<void> _preview(File file) async {
-    String content;
-    try {
-      content = await file.readAsString();
-    } catch (_) {
-      if (mounted) showAppToast(context, _l10n.logsFolderUnavailable);
-      return;
-    }
-    if (!mounted) return;
-    await showAppDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(file.uri.pathSegments.last),
-        content: SizedBox(
-          width: 720,
-          height: 480,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              content,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                height: 1.6,
-                color: AppDesignTokens.inkSubtle,
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          PressScale(
-            child: FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(_l10n.close),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _clear() async {
@@ -230,7 +189,14 @@ class _LogSettingsPageState extends State<LogSettingsPage> {
 /// 为什么读内存而不是读文件：落盘是异步排队的，刚发生的日志要晚一拍才写进去，
 /// 而且每来一行都重读整个文件既慢又会让列表跳动。
 class _RecentLogsCard extends StatelessWidget {
-  const _RecentLogsCard();
+  const _RecentLogsCard({this.onExport, this.onOpenFolder, this.onClear});
+
+  /// 设计稿只画了「全部」胶囊，导出 / 打开文件夹 / 清空没有位置。
+  /// 这些是真实功能不能删，收进标题行右侧的一个小菜单里，既不占一行、
+  /// 也不破坏设计稿的版面。
+  final VoidCallback? onExport;
+  final VoidCallback? onOpenFolder;
+  final VoidCallback? onClear;
 
   /// 最多显示多少行。设计稿那块面板大约 6 行高，再多就把下面的卡全挤出去了。
   static const _visible = 6;
@@ -263,6 +229,33 @@ class _RecentLogsCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   _Pill(label: '全部'),
+                  const SizedBox(width: 8),
+                  // 「更多」里放导出 / 打开文件夹 / 清空 —— 设计稿没画这些，
+                  // 但功能要留。用小菜单而不是再排一条卡，版面才和设计稿一致。
+                  PopupMenuButton<String>(
+                    tooltip: '更多',
+                    icon: const Icon(
+                      Symbols.more_horiz_rounded,
+                      size: 18,
+                      color: AppDesignTokens.inkMuted,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'export':
+                          onExport?.call();
+                        case 'folder':
+                          onOpenFolder?.call();
+                        case 'clear':
+                          onClear?.call();
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'export', child: Text('导出日志')),
+                      PopupMenuItem(value: 'folder', child: Text('打开日志文件夹')),
+                      PopupMenuItem(value: 'clear', child: Text('清空日志')),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -338,100 +331,111 @@ class _RecentLogsCard extends StatelessWidget {
   }
 }
 
-/// 页头：19-20 Bold 标题 + 说明灰 + 右侧「导出」主按钮。
+/// 「复制全部日志」主按钮。
+///
+/// 抽成公开组件是因为分栏模式下页头由 `_SettingsPanes` 统一画：标题、
+/// 副标题和这个按钮必须在**同一行**，不能让子页自己另起一行画按钮。
+/// 它自己读日志并写剪贴板，所以外层页头直接用它即可，不依赖页面状态。
+class CopyLogsButton extends ConsumerWidget {
+  const CopyLogsButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return PressScale(
+      child: Material(
+        color: AppDesignTokens.accent,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          onTap: () => unawaited(_copyAll(context)),
+          child: Padding(
+            // 设计稿的页头按钮是纯粉底、无图标的紧凑胶囊；之前带一个分享
+            // 图标、内边距偏大，和标题行比起来显得笨重。
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+            child: Text(
+              l10n.copyAllLogs,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _copyAll(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final buffer = StringBuffer();
+    for (final file in await AppLogger.instance.files()) {
+      try {
+        buffer.writeln('=== ${file.uri.pathSegments.last} ===');
+        buffer.writeln(await file.readAsString());
+      } catch (_) {
+        // 单个文件读失败不影响其它文件，跳过即可。
+      }
+    }
+    final text = buffer.toString().trim();
+    if (text.isEmpty) {
+      if (context.mounted) showAppToast(context, l10n.noLogsToExport);
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) showAppToast(context, l10n.copiedAllLogs);
+  }
+}
+
+/// 页头：19-20 Bold 标题 + 说明灰 + 右侧「复制全部日志」主按钮。
+///
+/// 只在独立路由（窄窗 / 深链）里用。
+/// 分栏模式下标题行由 `_SettingsPanes` 画。
+/// `CopyLogsButton` 也在那一行，本页不再画页头。
 class _PageHeader extends StatelessWidget {
-  const _PageHeader({
-    required this.title,
-    required this.subtitle,
-    required this.exportLabel,
-    required this.onExport,
-    this.showTitle = true,
-  });
+  const _PageHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
-  final String exportLabel;
-  final VoidCallback onExport;
-
-  /// 是否画左侧的标题 + 说明。嵌在设置分栏里时为 false（页头已由外层画过），
-  /// 这时这一行只剩右边的「导出」按钮，右对齐。
-  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: showTitle
-          ? MainAxisAlignment.start
-          : MainAxisAlignment.end,
       children: [
-        if (showTitle)
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.ink,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppDesignTokens.inkMuted,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (showTitle) const SizedBox(width: 16),
-        PressScale(
-          child: Material(
-            color: AppDesignTokens.accent,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              onTap: onExport,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 10,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Symbols.ios_share_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      exportLabel,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                  height: 1.2,
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppDesignTokens.inkMuted,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(width: 16),
+        const CopyLogsButton(),
       ],
     );
   }
@@ -439,18 +443,14 @@ class _PageHeader extends StatelessWidget {
 
 /// 白底圆角 16 卡片外壳。
 class _SurfaceCard extends StatelessWidget {
-  const _SurfaceCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(20),
-  });
+  const _SurfaceCard({required this.child});
 
   final Widget child;
-  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -463,10 +463,15 @@ class _SurfaceCard extends StatelessWidget {
 
 /// 运行环境：版本 / 系统 / 引擎 / 网络，纯静态信息展示。
 class _EnvironmentCard extends StatelessWidget {
-  const _EnvironmentCard({required this.files, required this.size});
+  const _EnvironmentCard({
+    required this.files,
+    required this.size,
+    required this.networkLabel,
+  });
 
   final List<File> files;
   final int? size;
+  final String networkLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -477,18 +482,30 @@ class _EnvironmentCard extends StatelessWidget {
         children: [
           const _CardTitle('运行环境'),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 40,
-            runSpacing: 18,
+          // 设计稿（`7468_v6_log.png`）是 **2×2 表格**：版本 / 系统 /
+          // 引擎 / 网络，两列等宽、两行。原来用 `Wrap` 让四项随宽度乱排，
+          // 第四项还写成「日志 1.38 MB · 1 个文件」—— 那是文件信息，
+          // 不是运行环境，混在这张卡里层级不对。
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _EnvField(label: '版本', value: appLoggerVersionLabel),
-              _EnvField(label: '系统', value: _platformLabel()),
-              _EnvField(label: '引擎', value: engine),
-              _EnvField(
-                label: '日志',
-                value: size == null
-                    ? '—'
-                    : '${_bytesLabel(size!)} · ${files.length} 个文件',
+              Expanded(
+                child: _EnvField(label: '版本', value: appLoggerVersionLabel),
+              ),
+              Expanded(
+                child: _EnvField(label: '系统', value: _platformLabel()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _EnvField(label: '引擎', value: engine),
+              ),
+              Expanded(
+                child: _EnvField(label: '网络', value: networkLabel),
               ),
             ],
           ),
@@ -502,23 +519,28 @@ class _EnvironmentCard extends StatelessWidget {
     return '3.x · Dart 3.x';
   }
 
-  static String _platformLabel() {
-    final name = Platform.operatingSystem;
-    final version = Platform.operatingSystemVersion;
-    final pretty = switch (name) {
-      'windows' => 'Windows',
-      'macos' => 'macOS',
-      'linux' => 'Linux',
-      _ => name,
-    };
-    return version.isEmpty ? pretty : '$pretty $version';
-  }
+  static String _platformLabel() =>
+      windowsVersionLabel(Platform.operatingSystemVersion, Platform.isWindows);
+}
 
-  static String _bytesLabel(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
-  }
+/// 把 Dart 给的系统版本串修正成正确的 Windows 版本名。
+///
+/// Win11 的 NT 内核版本仍是 10.0。
+/// 英文 locale 下 ProductName 常写 "Windows 10 Pro"。
+/// 只看字符串会把 Win11 认成 Win10。
+/// 可靠的判据是 Build 号。
+/// Build 大于等于 22000 即 Windows 11。
+/// 22000 是 Win11 首个正式版。
+/// 非 Windows 平台原样返回。
+/// 抽成顶层函数是为了能被测试直接覆盖。
+@visibleForTesting
+String windowsVersionLabel(String raw, bool isWindows) {
+  final cleaned = raw.trim().replaceAll('"', '');
+  if (!isWindows) return cleaned;
+  final match = RegExp(r'Build (\d+)').firstMatch(cleaned);
+  final build = match == null ? 0 : int.tryParse(match.group(1)!) ?? 0;
+  if (build < 22000) return cleaned;
+  return cleaned.replaceFirst(RegExp(r'Windows 10'), 'Windows 11');
 }
 
 class _EnvField extends StatelessWidget {
@@ -557,249 +579,6 @@ class _EnvField extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 日志文件列表：白卡，等宽字体展示文件名与大小。
-class _LogFilesCard extends StatelessWidget {
-  const _LogFilesCard({required this.files, required this.onPreview});
-
-  final List<File> files;
-  final ValueChanged<File> onPreview;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SurfaceCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const _CardTitle('日志文件'),
-              const Spacer(),
-              _Pill(label: '全部'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (var i = 0; i < files.length; i++) ...[
-            if (i > 0)
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: AppDesignTokens.divider,
-              ),
-            _LogFileRow(file: files[i], onTap: () => onPreview(files[i])),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _LogFileRow extends StatelessWidget {
-  const _LogFileRow({required this.file, required this.onTap});
-
-  final File file;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = file.uri.pathSegments.last;
-    String size = '';
-    try {
-      size = _formatSize(file.lengthSync());
-    } catch (_) {
-      size = '—';
-    }
-    return PressScale(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              // 设计稿的日志文件行没有左侧图标：一行就是「文件名 … 大小 ›」。
-              Expanded(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12.5,
-                    color: AppDesignTokens.ink,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                size,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: AppDesignTokens.inkMuted,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                Symbols.chevron_right_rounded,
-                size: 16,
-                color: AppDesignTokens.inkMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
-  }
-}
-
-/// 日志操作：导出 / 打开文件夹 / 清空，保持原有功能入口。
-class _LogActionsCard extends StatelessWidget {
-  const _LogActionsCard({
-    required this.exportLabel,
-    required this.folderLabel,
-    required this.folderPath,
-    required this.clearLabel,
-    required this.clearHint,
-    required this.onExport,
-    required this.onOpenFolder,
-    required this.onClear,
-  });
-
-  final String exportLabel;
-  final String folderLabel;
-  final String folderPath;
-  final String clearLabel;
-  final String clearHint;
-  final VoidCallback onExport;
-  final VoidCallback onOpenFolder;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SurfaceCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardTitle('日志管理'),
-          const SizedBox(height: 8),
-          _ActionRow(
-            icon: Symbols.ios_share_rounded,
-            title: exportLabel,
-            subtitle: null,
-            onTap: onExport,
-          ),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppDesignTokens.divider,
-          ),
-          _ActionRow(
-            icon: Symbols.folder_open_rounded,
-            title: folderLabel,
-            subtitle: folderPath,
-            onTap: onOpenFolder,
-          ),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppDesignTokens.divider,
-          ),
-          _ActionRow(
-            icon: Symbols.delete_sweep_rounded,
-            title: clearLabel,
-            subtitle: clearHint,
-            onTap: onClear,
-            destructive: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = destructive
-        ? AppDesignTokens.accentOf(context)
-        : AppDesignTokens.ink;
-    return PressScale(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              // 设计稿的设置行没有左侧图标（见 `settings_card_list.dart` 的说明），
-              // 这一卡是手写的 Row，所以单独去掉；文字与右侧箭头保持不变。
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: accent,
-                        height: 1.3,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppDesignTokens.inkMuted,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Icon(
-                Symbols.chevron_right_rounded,
-                size: 16,
-                color: AppDesignTokens.inkMuted,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

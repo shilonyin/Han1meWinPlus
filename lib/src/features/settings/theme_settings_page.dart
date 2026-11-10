@@ -64,13 +64,12 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
           ),
           SettingsCardList(
             title: l10n.appearanceAndDisplay,
-            // 行距 5：整页不滚动 + 每行留足呼吸空间 的平衡点。
+            // 行高 **42**：全设置页统一（内容 36 + `rowPadding` 3 × 2）。
             //
-            // 实测（窗口 800、上面两张卡占 300）：
-            //   行距 6 → 卡片底 798，紧贴窗口下沿，没有留白，看着憋；
-            //   行距 5 → 卡片底约 787，底部留出十几像素，整页完整且不局促。
-            // 再往小就会回到「密得没有呼吸感」，往大则超出窗口。
-            rowPadding: 5,
+            // 原来这一页单独给 5（行高 46），是因为窗口 800 高时要「刚好不滚动」，
+            // 而其它页给 3/4/10 —— 结果同一类设置项在不同页面疏密不一。
+            // 统一到 42 之后整页仍能完整显示：两张预览卡约 300，8 行 × 42 = 336。
+            rowPadding: 3,
             children: [
               // 「配色方案」已经提到上面的 _ColorSchemeCard（设计稿是横向色圆，不是列表行）。
               SettingsCardItem(
@@ -335,7 +334,9 @@ class _ColorSchemeCard extends StatelessWidget {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppRadius.lg),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.lg,
+                                ),
                                 border: selected
                                     ? Border.all(color: color, width: 2)
                                     : null,
@@ -348,7 +349,9 @@ class _ColorSchemeCard extends StatelessWidget {
                                 height: 48,
                                 decoration: BoxDecoration(
                                   color: color,
-                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
                                   border: preset == AppThemeColor.white
                                       ? Border.all(
                                           color: const Color(0xFFE4E4EA),

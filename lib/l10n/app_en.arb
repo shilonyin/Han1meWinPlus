@@ -228,6 +228,8 @@
   "@logsUsage": {"placeholders": {"size": {"type": "String"}, "count": {"type": "int"}}},
   "logFiles": "Log files",
   "exportLogs": "Export logs",
+  "copyAllLogs": "Copy all logs",
+  "copiedAllLogs": "All logs copied",
   "openLogsFolder": "Open logs folder",
   "clearLogs": "Clear logs",
   "clearLogsDescription": "Delete every log file; settings and downloads are not affected",
@@ -948,5 +950,7 @@
   "castLoading": "Loading the cast media…",
   "castDisconnect": "Disconnect",
   "castLoadFailed": "Failed to load the cast media: {error}",
-  "@castLoadFailed": {"placeholders": {"error": {}}}
+  "@castLoadFailed": {"placeholders": {"error": {}}},
+  "developerMode": "Developer mode",
+  "developerModeDescription": "Replace video covers with solid colors and load the player window without playing, for UI and window debugging"
 }

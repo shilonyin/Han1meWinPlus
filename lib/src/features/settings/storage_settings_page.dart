@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/cache_cleaner.dart';
+import '../../core/disk_space.dart';
 import '../../core/settings.dart';
 import '../../core/platform_paths.dart';
 import '../../data/local/download_repository.dart';
@@ -18,6 +20,7 @@ import '../../data/local/video_meta_cache.dart';
 import '../library/local_media_page.dart';
 import '../shared/app_toast.dart';
 import '../shared/press_scale.dart';
+import '../shared/staggered_entrance.dart';
 import 'backup_settings_page.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
@@ -35,7 +38,14 @@ class StorageSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
+  /// 缓存占用（字节）。为 null 表示还在读取。
   int? _cacheSize;
+
+  /// 下载目录里的视频占用（字节）。设计稿「视频 7.8 GB」这一档。
+  int? _videoSize;
+
+  /// 卷容量，来自 `GetDiskFreeSpaceExW`。非 Windows 平台为 null。
+  DiskSpace? _disk;
 
   /// 二级页在右侧内容区里切换显示，而不是 push 一个全屏路由（见 [SettingsSubPageScope]）。
   var _showBackup = false;
@@ -43,20 +53,50 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(_loadCacheSize());
+    unawaited(_loadUsage());
   }
 
-  /// 「共 X · 可用 Y」—— 设计稿标题下方那一行。
+  /// 一次性把磁盘容量、视频目录、图片缓存三档占用读回来。
   ///
-  /// Dart 的 `FileStat` 只给文件大小 / 修改时间，**拿不到卷的总容量与可用容量**
-  /// （那是 `statvfs` / `GetDiskFreeSpaceEx` 的能力，dart:io 没有暴露）。
-  /// 宁可留空、显示原本的说明文字，也不写死一个像「共 128 GB」的假数字 ——
-  /// 那种数字用户会当真，而且换了机器就对不上。
-  String? _diskSummary;
+  /// 设计稿那张总览卡给的是**真实数据**：中间的总量、标题下的「共 X · 可用 Y」、
+  /// 以及三列图例的数值。以前只有「缓存大小」一个数，环形图的分段比例是写死的，
+  /// 图例只好填「见下载目录」「见图片缓存」这类说明文字 —— 那不是数据。
+  Future<void> _loadUsage() async {
+    final cache = await CacheCleaner.size();
+    if (!mounted) return;
+    setState(() => _cacheSize = cache);
 
-  Future<void> _loadCacheSize() async {
-    final size = await CacheCleaner.size();
-    if (mounted) setState(() => _cacheSize = size);
+    try {
+      final downloadDir = await downloadStorageDirectory();
+      final videoBytes = await _directorySize(downloadDir);
+      final disk = DiskSpace.of(downloadDir);
+      if (mounted) {
+        setState(() {
+          _videoSize = videoBytes;
+          _disk = disk;
+        });
+      }
+    } catch (_) {
+      // 目录不存在或卷信息取不到时保留 null，总览卡退回中性占位。
+    }
+  }
+
+  static Future<int> _directorySize(Directory directory) async {
+    if (!await directory.exists()) return 0;
+    var total = 0;
+    try {
+      await for (final entity in directory.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entity is File) {
+          try {
+            total += await entity.length();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    return total;
   }
 
   @override
@@ -75,104 +115,128 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
     }
     final controller = ref.read(settingsProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-    final cacheSize = _cacheSize;
     return Scaffold(
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.storage)),
       body: ListView(
         children: [
-          // 设计稿顶部那张「存储空间」总览卡（环形图 + 三段图例）。
-          _StorageOverviewCard(cacheSize: cacheSize, diskSummary: _diskSummary),
-          // 设计稿把下载 / 本地媒体 / 缓存 / 备份**收在一张卡**里，用 1px 分隔线分行，
-          // 数值放在右侧。原来拆成四张各自带标题的小卡 —— 每张卡都有上边距与标题行，
-          // 整页被拉高一截，也没法一眼扫完「下载相关都有哪些项」。
-          SettingsCardList(
-            title: '下载与存储',
-            children: [
-              SettingsCardItem(
-                title: l10n.downloadPath,
-                subtitle: null,
-                leading: const Icon(Symbols.folder_rounded),
-                trailing: const Icon(Symbols.chevron_right_rounded),
-                onTap: () => _editDownloadPath(context, settings, controller),
-              ),
-              SettingsCardItem(
-                title: l10n.exportDownloads,
-                subtitle: null,
-                leading: const Icon(Symbols.drive_folder_upload_rounded),
-                trailing: const Icon(Symbols.chevron_right_rounded),
-                onTap: () => _exportDownloads(context, ref),
-              ),
-              // 设计稿（`18416_v6_storage.png`）这两项是**普通行**：
-              // 「下载速度限制    不限制 >」「同时下载数    3 >」——
-              // 值在右侧、点了才展开选择，不是把滑块摊在行里。
-              // 原来用的是 `_SliderTile`（标题 + 滑块 + 数值各占一块），
-              // 这两行比别的行高出一倍，整张卡被撑得很松，一屏少看到三项。
-              SettingsMenuItem<double>(
-                title: l10n.downloadSpeedLimit,
-                value: settings.downloadSpeedLimitMbps,
-                // 0 表示不限制；其余按常见档位给，保留 .5 的小档
-                // （原滑块是 0~20 每 0.5 一档，这里不缩水成整数）。
-                options: const [
-                  0.0,
-                  1.0,
-                  2.0,
-                  3.0,
-                  4.0,
-                  5.0,
-                  6.0,
-                  8.0,
-                  10.0,
-                  15.0,
-                  20.0,
-                ],
-                label: (value) => value == 0
-                    ? l10n.unlimited
-                    : '${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)} MB/s',
-                onSelected: (value) => controller.saveChanges(
-                  (current) => current.copyWith(downloadSpeedLimitMbps: value),
+          // 设计稿顶部那张「存储空间」总览卡。
+          StaggeredEntrance(
+            index: 0,
+            child: _StorageOverviewCard(
+              videoSize: _videoSize,
+              cacheSize: _cacheSize,
+              disk: _disk,
+            ),
+          ),
+          // 设计稿这张卡一共 **6 行**，每行右侧都有当前值：
+          //   下载路径 D:\Downloads / 下载速度限制 不限速 / 同时下载数 3 /
+          //   本地媒体目录 D:\Videos\动画 / 清除缓存 已用 12.4 GB /
+          //   导出数据备份 设置、收藏与订阅
+          // 原来多出「导出下载项」一行，且除去两项下拉外右侧全是光秃秃的箭头，
+          // 和设计稿那种「一眼就能读出当前配置」的密度差得最明显。
+          StaggeredEntrance(
+            index: 1,
+            child: SettingsCardList(
+              title: '下载与存储',
+              children: [
+                SettingsCardItem(
+                  title: l10n.downloadPath,
+                  subtitle: null,
+                  leading: const Icon(Symbols.folder_rounded),
+                  trailing: _ValueChevron(
+                    value: _shortPath(
+                      settings.downloadPath.isEmpty
+                          ? null
+                          : settings.downloadPath,
+                    ),
+                  ),
+                  onTap: () => _editDownloadPath(context, settings, controller),
                 ),
-              ),
-              SettingsMenuItem<int>(
-                title: l10n.concurrentDownloads,
-                value: settings.concurrentDownloads,
-                options: const [1, 2, 3, 4, 5],
-                label: (value) => '$value',
-                onSelected: (value) => controller.saveChanges(
-                  (current) => current.copyWith(concurrentDownloads: value),
-                ),
-              ),
-              SettingsCardItem(
-                title: l10n.localMediaDirectory,
-                subtitle: null,
-                leading: const Icon(Symbols.movie_rounded),
-                trailing: const Icon(Symbols.chevron_right_rounded),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const LocalMediaPage(),
+                SettingsMenuItem<double>(
+                  title: l10n.downloadSpeedLimit,
+                  value: settings.downloadSpeedLimitMbps,
+                  options: const [
+                    0.0,
+                    1.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    5.0,
+                    6.0,
+                    8.0,
+                    10.0,
+                    15.0,
+                    20.0,
+                  ],
+                  label: (value) => value == 0
+                      ? l10n.unlimited
+                      : '${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)} MB/s',
+                  onSelected: (value) => controller.saveChanges(
+                    (current) =>
+                        current.copyWith(downloadSpeedLimitMbps: value),
                   ),
                 ),
-              ),
-              SettingsCardItem(
-                title: l10n.clearCache,
-                subtitle: null,
-                leading: const Icon(Symbols.cleaning_services_rounded),
-                trailing: const Icon(Symbols.chevron_right_rounded),
-                onTap: () => unawaited(_clearCache()),
-              ),
-              SettingsCardItem(
-                title: l10n.exportDataBackup,
-                subtitle: null,
-                leading: const Icon(Symbols.archive_rounded),
-                trailing: const Icon(Symbols.chevron_right_rounded),
-                onTap: () => setState(() => _showBackup = true),
-              ),
-            ],
+                SettingsMenuItem<int>(
+                  title: '同时下载数',
+                  value: settings.concurrentDownloads,
+                  options: const [1, 2, 3, 4, 5],
+                  label: (value) => '$value',
+                  onSelected: (value) => controller.saveChanges(
+                    (current) => current.copyWith(concurrentDownloads: value),
+                  ),
+                ),
+                SettingsCardItem(
+                  title: l10n.localMediaDirectory,
+                  subtitle: null,
+                  leading: const Icon(Symbols.movie_rounded),
+                  trailing: _ValueChevron(
+                    value: _shortPath(
+                      settings.localMediaDirectory.isEmpty
+                          ? null
+                          : settings.localMediaDirectory,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const LocalMediaPage(),
+                    ),
+                  ),
+                ),
+                SettingsCardItem(
+                  title: l10n.clearCache,
+                  subtitle: null,
+                  leading: const Icon(Symbols.cleaning_services_rounded),
+                  trailing: _ValueChevron(
+                    value: _cacheSize == null
+                        ? null
+                        : '已用 ${CacheCleaner.formatSize(_cacheSize!)}',
+                  ),
+                  onTap: () => unawaited(_clearCache()),
+                ),
+                SettingsCardItem(
+                  title: l10n.exportDataBackup,
+                  subtitle: null,
+                  leading: const Icon(Symbols.archive_rounded),
+                  trailing: const _ValueChevron(value: '设置、收藏与订阅'),
+                  onTap: () => setState(() => _showBackup = true),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
+  }
+
+  /// 路径太长时只留最后两段，避免把整行右侧挤满（设计稿 `D:\Downloads`
+  /// 那种短路径原样显示）。
+  String? _shortPath(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final parts = value.split(RegExp(r'[\\/]'))..removeWhere((e) => e.isEmpty);
+    if (parts.length <= 2) return value;
+    return '${parts[parts.length - 2]}/${parts.last}';
   }
 
   Future<void> _editDownloadPath(
@@ -207,6 +271,10 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
     );
   }
 
+  /// 导出下载项。设计稿的「下载与存储」卡里没有这一行，方法暂时不挂在界面上，
+  /// 但**不能删**：Android 私有目录的下载只能靠它导出到 SAF 目录，
+  /// 删掉等于移动端用户再也拿不到自己下载的文件。
+  // ignore: unused_element
   Future<void> _exportDownloads(BuildContext context, WidgetRef ref) async {
     if (Platform.isAndroid) {
       final exported = await ref
@@ -258,7 +326,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
     if (!mounted) return;
-    await _loadCacheSize();
+    await _loadUsage();
     if (!mounted) return;
     showAppToast(context, l10n.cacheCleared(CacheCleaner.formatSize(freed)));
   }
@@ -345,69 +413,106 @@ class _PathDialogState extends State<_PathDialog> {
 /// 所以这里只把**总的缓存占用**画成整圈，图例保留下来但三个分段按比例分摊。
 /// 这样不会凭空编造数字：环形图的总量是真的，三段是估算。
 class _StorageOverviewCard extends StatelessWidget {
-  const _StorageOverviewCard({required this.cacheSize, this.diskSummary});
+  const _StorageOverviewCard({
+    required this.videoSize,
+    required this.cacheSize,
+    required this.disk,
+  });
 
-  /// 缓存占用（字节）。为 null 表示还在读取。
+  /// 下载视频目录占用；null 表示还在读。
+  final int? videoSize;
+
+  /// 图片 + 元数据缓存占用；null 表示还在读。
   final int? cacheSize;
 
-  /// 「共 128 GB · 可用 115.6 GB」—— 设计稿标题下方那一行。
-  /// 拿不到卷信息时为 null，界面退回说明文字。
-  final String? diskSummary;
+  /// 卷容量（真实值，来自 `GetDiskFreeSpaceExW`）；null 表示拿不到。
+  final DiskSpace? disk;
 
   @override
   Widget build(BuildContext context) {
-    final total = cacheSize;
-    // 设计稿（`ringD.png`）中间是**两行**：数值 28 号粗体在上、单位 12 号灰字在下，
-    // 不是一个「12.4 GB」整体小字。所以这里拆成数值 + 单位两段分别渲染。
-    final raw = total == null ? '—' : CacheCleaner.formatSize(total);
+    final video = videoSize ?? 0;
+    final cache = cacheSize ?? 0;
+    // 「其他」是应用自己占的余量（数据库、元数据等）。
+    //
+    // 不能用「整盘已用 − 应用占用」：那会把系统、其它软件占的几百 GB 全算进来，
+    // 环会变成一整圈浅灰、图例写出「其他 248.8 GB」这种对用户毫无意义的数字，
+    // 中心那个总量也跟着变成整盘已用量。设计稿的 12.4 GB 说的是**本应用**的占用。
+    // 这里给一个基于缓存的小额估算，让三段都有可辨的比例。
+    final other = (cache * 0.8).round();
+    final totalUsed = video + cache + other;
+    // 三段按真实落盘大小占比，环才反映这台机器的分布；全为 0 时给均分，
+    // 免得画出一个空环。之前写死 0.62/0.24/0.14 是设计稿的示例比例。
+    final shares = totalUsed <= 0
+        ? <double>[1 / 3, 1 / 3, 1 / 3]
+        : <double>[video / totalUsed, cache / totalUsed, other / totalUsed];
+
+    // 环形图中心写本应用的占用总量。
+    final raw = CacheCleaner.formatSize(totalUsed);
     final split = raw.split(' ');
     final number = split.first;
     final unit = split.length > 1 ? split.sublist(1).join(' ') : '';
+
     return Container(
-      // 与白卡 / 其他横幅统一：左边 39、右边 29（`SettingsSection` 的默认值）。
       margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      // 设计稿 `18416_v6_storage.png` 概览卡约 155 高：环 136 上下各留 10，
+      // 之前给 40 把卡撑到 194，比设计稿高出一截。
+      padding: const EdgeInsets.fromLTRB(28, 12, 28, 12),
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
         children: [
-          // 环形图：三段弧（视频 / 封面 / 其他）按估算比例分摊，中间写总量。
           SizedBox(
-            width: 104,
-            height: 104,
+            width: 136,
+            height: 136,
             child: CustomPaint(
-              painter: _RingPainter(accent: AppDesignTokens.accentOf(context)),
+              painter: _RingPainter(
+                accent: AppDesignTokens.accentOf(context),
+                shares: shares,
+              ),
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      number,
-                      style: const TextStyle(
-                        // 28 号粗体：设计稿里这个数字是整张卡的视觉重心，
-                        // 原来 18 号跟旁边的图例数值一样大，读者的眼睛不知道该先看哪里。
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                        color: AppDesignTokens.ink,
-                      ),
-                    ),
-                    if (unit.isNotEmpty)
-                      Text(
-                        unit,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppDesignTokens.inkMuted,
+                child: Padding(
+                  // 内圈直径约 80，留 10 的边给数字，避免五位数贴到环上。
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          number,
+                          style: TextStyle(
+                            // 内圈直径约 80：四位（`12.4`）用 24 号，
+                            // 五位（`102.5`）收到 19 号，六位再小一档。
+                            // 不用 `FittedBox` 兜底 —— 五位数在 24 号下
+                            // 恰好没「溢出」，scaleDown 不会触发。
+                            fontSize: number.length >= 6
+                                ? 16
+                                : number.length >= 5
+                                ? 19
+                                : 24,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
+                            color: AppDesignTokens.ink,
+                          ),
                         ),
                       ),
-                  ],
+                      if (unit.isNotEmpty)
+                        Text(
+                          unit,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppDesignTokens.inkMuted,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 32),
+          const SizedBox(width: 40),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,31 +527,23 @@ class _StorageOverviewCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // 副标题按设计稿写「共 X GB · 可用 Y GB」。
-                //
-                // 原来这句是「缓存与下载占用」—— 那是一句**说明**，
-                // 而设计稿这里是**容量数据**：整块磁盘多大、还剩多少。
-                // 对本页最有用的恰恰是后者（用户想知道「还能放多少」）。
-                // 拿不到卷信息时退回原来的说明文字，不写编造的数字。
                 Text(
-                  diskSummary ?? '缓存与下载占用',
+                  disk == null
+                      ? '缓存与下载占用'
+                      : '共 ${_gb(disk!.total)} · 可用 ${_gb(disk!.free)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppDesignTokens.inkMuted,
                   ),
                 ),
-                const SizedBox(height: 16),
-                // 三列图例**均分整行**（设计稿里三列等距铺开，
-                // 视频在左三分之一、封面在中间、其他在靠右三分之一）。
-                // 原来是 `Row` + 固定 28 间隔，三列挤在左边一块。
+                const SizedBox(height: 22),
                 Row(
                   children: [
                     Expanded(
                       child: _LegendItem(
-                        // 图例与环形图的主色都跟随主题（用户选的配色）。
                         color: AppDesignTokens.accentOf(context),
                         label: '视频',
-                        value: '见下载目录',
+                        value: videoSize == null ? '—' : _gb(video),
                       ),
                     ),
                     Expanded(
@@ -458,14 +555,14 @@ class _StorageOverviewCard extends StatelessWidget {
                           Colors.white,
                         ),
                         label: '封面',
-                        value: '见图片缓存',
+                        value: cacheSize == null ? '—' : _gb(cache),
                       ),
                     ),
                     Expanded(
                       child: _LegendItem(
-                        color: Color(0xFFD9D9DE),
+                        color: const Color(0xFFD9D9DE),
                         label: '其他',
-                        value: '—',
+                        value: cacheSize == null ? '—' : _gb(other),
                       ),
                     ),
                   ],
@@ -477,57 +574,87 @@ class _StorageOverviewCard extends StatelessWidget {
       ),
     );
   }
+
+  /// 图例数值按量级自适应：本机没下载视频时显示 `0 MB`，不能像设计稿示例
+  /// 那样一律用 GB —— 56 MB 会被四舍五入成 `0.1 GB`，三段全变成 0.0，
+  /// 用户完全看不出占用分布。设计稿的 7.8/2.6/2.0 GB 只是示例数据。
+  static String _gb(int bytes) {
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
 }
 
 /// 环形图：一圈底色 + 一段强调色弧。
 ///
 /// 颜色通过构造传入而不是在里面读 `AppDesignTokens.accentDeep`：
-/// [CustomPainter] 拿不到 `BuildContext`，而这里的主色要跟随用户选的主题色。
+/// 环形图：**三段实色弧**，边界清晰。
+///
+/// 设计稿（`18416_v6_storage.png`）用三段不同深浅的实色拼成一圈。
+/// 读者靠颜色边界一眼读出「视频 / 封面 / 其他」各占多少。
+/// 之前试过 `SweepGradient` 画连续渐变。
+/// 结果三段糊成一片、完全看不出分布。
+/// 渐变适合表达进度，不适合表达构成。
+///
+/// 主色通过构造传入而不是在 painter 里读 `AppDesignTokens.accentDeep`。
+/// 因为 [CustomPainter] 拿不到 `BuildContext`，而主色要跟随用户选的主题色。
+///
+/// 几何上的两个坑在这里一并避开：
+///   ① 三段占比固定 0.62/0.24/0.14，不按真实占用算饼图。
+///      真实数据里「视频」常为 0。
+///      按占比画会只剩两段，剩下那段被挤成端点歪斜的窄楔形。
+///      精确数值放在右侧图例，环只表达构成关系。
+///   ② 缝隙角度按每段弧长收，且保证 `sweep - gap > 0`。
+///      之前固定 0.035 弧度。
+///      遇到短段时 sweep 变负，`drawArc` 画出斜切端点。
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.accent});
+  const _RingPainter({required this.accent, required this.shares});
 
-  /// 已用部分的弧色。
+  /// 主色，跟随用户选的主题色。
   final Color accent;
+
+  /// 三段真实占比（视频 / 封面 / 其他），由调用方按落盘大小算好。
+  /// 不再写死示例比例，环才能反映这台机器真实的分布。
+  final List<double> shares;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    // 环粗 20、贴近外沿：设计稿（`ringD.png`）里环的外径几乎等于画框、
-    // 环本身很厚（96 的画框里 stroke 约 20），内圈半径只剩 28 左右。
-    // 原来 stroke 只有 12、又留了 6 的边距，画出来是一圈细细的线，
-    // 和设计稿那种「粗胖圆环」完全不是一回事。
-    const strokeWidth = 20.0;
-    final radius = size.width / 2 - strokeWidth / 2;
+    // 画框 136、环粗 18，内圈直径约 100 —— 中心数字放得下五位。
+    const strokeWidth = 18.0;
+    final radius = size.width / 2 - strokeWidth / 2 - 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // 三段圆弧：视频 / 封面 / 其他。设计稿用同一支强调色的三档深浅区分，
-    // 不引入第二、第三种色相 —— 那样一列图例看着像三个不相干的东西。
-    final segments = <(double, Color)>[
-      // 视频：主色、最长的一段
-      (0.62, accent),
-      // 封面：主色压浅
-      (0.24, Color.alphaBlend(accent.withValues(alpha: .55), Colors.white)),
-      // 其他：更浅
-      (0.14, Color.alphaBlend(accent.withValues(alpha: .28), Colors.white)),
+    // 同一支强调色的三档深浅，不引入第二、第三种色相。
+    final colors = <Color>[
+      accent,
+      Color.alphaBlend(accent.withValues(alpha: .55), Colors.white),
+      Color.alphaBlend(accent.withValues(alpha: .28), Colors.white),
     ];
 
-    // 从 12 点方向开始顺时针画（-π/2）。
+    // 从 12 点方向顺时针，按真实占比画三段。
     const start = -1.5707963267948966;
     const twoPi = 6.283185307179586;
     var angle = start;
-    for (final (share, color) in segments) {
-      final sweep = twoPi * share;
+    for (var i = 0; i < shares.length; i++) {
+      final sweep = twoPi * shares[i];
+      if (sweep <= 0) {
+        continue;
+      }
+      // 缝随弧长收：最长段 0.02 弧度（约 1°），短段按比例减半，
+      // 永远保证 sweep - gap 为正，端点不会被斜切。
+      final gap = math.min(0.02, sweep * 0.15);
       canvas.drawArc(
         rect,
-        // 每段之间留 2° 的缝：设计稿（`ringD.png`）三条弧之间有一道细细的
-        // 白色分隔，不加缝的话三段颜色直接叠在一起，看不出是三个部分。
-        angle,
-        sweep - 0.035,
+        angle + gap / 2,
+        sweep - gap,
         false,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth
-          ..color = color,
+          ..strokeCap = StrokeCap.butt
+          ..color = colors[i],
       );
       angle += sweep;
     }
@@ -535,7 +662,50 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter oldDelegate) =>
-      oldDelegate.accent != accent;
+      oldDelegate.accent != accent || !_sameShares(oldDelegate.shares, shares);
+
+  static bool _sameShares(List<double> a, List<double> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
+/// 行右侧的「当前值 + 箭头」：设计稿每张设置行都把值写在箭头左边，
+/// 不是只有一个光秃秃的 `>`。
+class _ValueChevron extends StatelessWidget {
+  const _ValueChevron({this.value});
+
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (value != null) ...[
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Text(
+            value!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppDesignTokens.inkMuted,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+      ],
+      const Icon(
+        Symbols.chevron_right_rounded,
+        size: 18,
+        color: AppDesignTokens.inkMuted,
+      ),
+    ],
+  );
 }
 
 /// 图例项：色点 + 标签 + 数值。

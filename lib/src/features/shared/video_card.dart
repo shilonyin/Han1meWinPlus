@@ -9,6 +9,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
+import '../../core/developer_mode.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/download_requests.dart';
 import '../../data/local/video_meta_cache.dart';
@@ -400,6 +401,9 @@ class VideoCardTile extends ConsumerWidget {
 
   /// 悬停预览在卡片这一侧的全部接线。
   _CoverHover _coverHover(WidgetRef ref, HoverPreviewState preview) {
+    // 开发者模式不接悬停预览：它既会抓详情页，也会起一路静音解码器，
+    // 与「只加载窗口、不播放」的调试语义冲突。
+    if (developerMode.value) return const _CoverHover();
     // 回调捕获的是 notifier 本身（不是 WidgetRef）：卡片被移出树时
     // `_HoverZoomState.dispose` 还会调一次，那时不该再碰 ref。
     final notifier = ref.read(hoverPreviewProvider.notifier);

@@ -9,6 +9,7 @@ import 'src/app.dart';
 import 'src/core/app_logger.dart';
 import 'src/core/app_notifications.dart';
 import 'src/core/deep_link.dart';
+import 'src/core/developer_mode.dart';
 import 'src/core/media_player_initializer.dart';
 import 'src/core/media_temp_directory.dart';
 import 'src/core/playback_speed_policy.dart';
@@ -134,6 +135,8 @@ Future<void> _runPlayWindow(PlayWindowArgs args) async {
   // 撞车、播放器起不来）只有在对得上两个进程各自的记录时才查得动，所以这里也记。
   AppLogger.instance.info('播放窗口启动 video=${args.videoId}', tag: 'play-window');
   final settings = await SettingsStore(JsonStore()).load();
+  // 播放窗口不挂 AppStartupEffects，全局标志得在这里单独同步一次。
+  developerMode.value = settings.developerMode;
   await WindowChrome.setUseSystemTitleBar(settings.useSystemTitleBar);
   WidgetsBinding.instance.addPostFrameCallback(
     (_) => MediaPlayerInitializer.bootstrap(settings),

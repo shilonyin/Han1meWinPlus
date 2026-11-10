@@ -12,6 +12,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app/app_theme.dart';
 import '../../core/configured_media_kit_video_player.dart';
+import '../../core/developer_mode.dart';
 import '../../core/platform_service.dart';
 import '../../core/playback_hotkey_target.dart';
 import '../../core/route_observer.dart';
@@ -380,6 +381,9 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     _qualityNotifier.value = null;
     _loadedQuality = null;
     if (mounted) setState(() {});
+    // 开发者模式：只把播放页/播放窗口搭起来，不创建播放器、不初始化、
+    // 不打开片源（不触发网络请求与解码器）。界面由 `_buildPlayer` 画纯色占位。
+    if (developerMode.value) return;
     if (previous != null) {
       if (previous.value.isInitialized && previous.value.isPlaying) {
         unawaited(previous.pause().catchError((_) {}));
@@ -555,14 +559,19 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
   /// 不能每次都写 setting.json —— 攒 500ms 再写一次。
   void _persistVolumeIfChanged(double volume) {
     final clamped = volume.clamp(0.0, 1.0);
-    if (_lastPersistedVolume != null && (_lastPersistedVolume! - clamped).abs() < 0.001) return;
+    if (_lastPersistedVolume != null &&
+        (_lastPersistedVolume! - clamped).abs() < 0.001)
+      return;
     _lastPersistedVolume = clamped;
     _volumeSaveTimer?.cancel();
     _volumeSaveTimer = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       final current = ref.read(settingsProvider).valueOrNull;
-      if (current == null || (current.playbackVolume - clamped).abs() < 0.001) return;
-      ref.read(settingsProvider.notifier).saveChanges((s) => s.copyWith(playbackVolume: clamped));
+      if (current == null || (current.playbackVolume - clamped).abs() < 0.001)
+        return;
+      ref
+          .read(settingsProvider.notifier)
+          .saveChanges((s) => s.copyWith(playbackVolume: clamped));
     });
   }
 
@@ -770,6 +779,33 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
   }
 
   Widget _buildPlayer(BuildContext context) {
+    // 开发者模式：纯色占位，明确标注「不会播放」，不显示转圈（否则会被误读成卡死）。
+    if (developerMode.value) {
+      return _PlayerFrame(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: ColoredBox(color: developerCoverColor),
+            ),
+            const Center(
+              child: Text(
+                '开发者模式 · 不播放',
+                style: TextStyle(fontSize: 13, color: Colors.white70),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: PlayerNavCapsule(
+                onBack: widget.onBack,
+                onHome: widget.onHome,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final controller = _controllerNotifier.value;
     if (controller == null || !controller.value.isInitialized) {
       return _PlayerFrame(
@@ -798,12 +834,14 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
                           textAlign: TextAlign.center,
                         ),
                         if (_loadError is! _NoVideoSource)
-                          PressScale(child: IconButton(
-                            color: Colors.white,
-                            tooltip: AppLocalizations.of(context)!.retry,
-                            onPressed: _syncSource,
-                            icon: const Icon(Symbols.refresh_rounded),
-                          )),
+                          PressScale(
+                            child: IconButton(
+                              color: Colors.white,
+                              tooltip: AppLocalizations.of(context)!.retry,
+                              onPressed: _syncSource,
+                              icon: const Icon(Symbols.refresh_rounded),
+                            ),
+                          ),
                       ],
                     ),
             ),
@@ -985,14 +1023,18 @@ class _FullscreenPlayerState extends ConsumerState<_FullscreenPlayer> {
         title: Text(l10n.addKeyframe),
         content: Text(l10n.addKeyframeConfirmation(position)),
         actions: [
-          PressScale(child: TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.cancel),
-          )),
-          PressScale(child: FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.add),
-          )),
+          PressScale(
+            child: TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+          ),
+          PressScale(
+            child: FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.add),
+            ),
+          ),
         ],
       ),
     );

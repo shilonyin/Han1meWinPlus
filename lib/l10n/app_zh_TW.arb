@@ -221,6 +221,8 @@
   "@logsUsage": {"placeholders": {"size": {"type": "String"}, "count": {"type": "int"}}},
   "logFiles": "日誌檔案",
   "exportLogs": "匯出日誌",
+  "copyAllLogs": "複製全部日誌",
+  "copiedAllLogs": "已複製全部日誌",
   "openLogsFolder": "開啟日誌資料夾",
   "clearLogs": "清空日誌",
   "clearLogsDescription": "刪除全部日誌檔案，不影響設定與下載內容",
@@ -940,5 +942,7 @@
   "castLoading": "正在載入投屏內容…",
   "castDisconnect": "中斷投屏",
   "castLoadFailed": "投屏內容載入失敗：{error}",
-  "@castLoadFailed": {"placeholders": {"error": {}}}
+  "@castLoadFailed": {"placeholders": {"error": {}}},
+  "developerMode": "開發者模式",
+  "developerModeDescription": "開啟後影片封面以純色代替，點影片只載入播放視窗而不播放，用於介面與視窗除錯"
 }

@@ -59,7 +59,19 @@ Future<T?> showOptionSettingsDialog<T>({
 }
 
 class _OptionSettingsDialog<T> extends StatefulWidget {
-  const _OptionSettingsDialog({required this.title, required this.current, required this.options, required this.label, required this.cancelLabel, required this.saveLabel, this.groups, this.description, this.optionDescription, this.footer, this.hintStyle});
+  const _OptionSettingsDialog({
+    required this.title,
+    required this.current,
+    required this.options,
+    required this.label,
+    required this.cancelLabel,
+    required this.saveLabel,
+    this.groups,
+    this.description,
+    this.optionDescription,
+    this.footer,
+    this.hintStyle,
+  });
 
   final String title;
   final String? description;
@@ -74,7 +86,8 @@ class _OptionSettingsDialog<T> extends StatefulWidget {
   final TextStyle? hintStyle;
 
   @override
-  State<_OptionSettingsDialog<T>> createState() => _OptionSettingsDialogState<T>();
+  State<_OptionSettingsDialog<T>> createState() =>
+      _OptionSettingsDialogState<T>();
 }
 
 class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
@@ -94,39 +107,69 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return AlertDialog(
-      title: Text(widget.title),
+      // 设计稿里弹窗是大标题 + 宽松留白，不是 Material 默认的紧凑小标题。
+      title: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: Text(
+          widget.title,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface,
+          ),
+        ),
+      ),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (widget.description != null && widget.description!.isNotEmpty) ...[
-              Text(widget.description!, style: widget.hintStyle),
-              const SizedBox(height: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.description != null &&
+                  widget.description!.isNotEmpty) ...[
+                Text(widget.description!, style: widget.hintStyle),
+                const SizedBox(height: 4),
+              ],
+              for (final (groupTitle, options) in _sections) ...[
+                if (groupTitle != null) _groupHeader(groupTitle, scheme),
+                if (groupTitle == null || !_collapsed.contains(groupTitle))
+                  for (final option in options)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(widget.label(option)),
+                      subtitle: widget.optionDescription == null
+                          ? null
+                          : Text(widget.optionDescription!(option)),
+                      trailing: option == _value
+                          ? const Icon(Symbols.check_rounded)
+                          : null,
+                      onTap: () => setState(() => _value = option),
+                    ),
+              ],
+              if (widget.footer != null) ...[
+                const Divider(height: 20),
+                widget.footer!,
+              ],
             ],
-            for (final (groupTitle, options) in _sections) ...[
-              if (groupTitle != null) _groupHeader(groupTitle, scheme),
-              if (groupTitle == null || !_collapsed.contains(groupTitle))
-                for (final option in options)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(widget.label(option)),
-                    subtitle: widget.optionDescription == null ? null : Text(widget.optionDescription!(option)),
-                    trailing: option == _value ? const Icon(Symbols.check_rounded) : null,
-                    onTap: () => setState(() => _value = option),
-                  ),
-            ],
-            if (widget.footer != null) ...[
-              const Divider(height: 20),
-              widget.footer!,
-            ],
-          ]),
+          ),
         ),
       ),
       actions: [
-        PressScale(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(widget.cancelLabel))),
-        PressScale(child: FilledButton(onPressed: () => Navigator.pop(context, _value), child: Text(widget.saveLabel))),
+        PressScale(
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.cancelLabel),
+          ),
+        ),
+        PressScale(
+          child: FilledButton(
+            onPressed: () => Navigator.pop(context, _value),
+            child: Text(widget.saveLabel),
+          ),
+        ),
       ],
     );
   }
@@ -135,15 +178,35 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
   /// 右侧一个箭头，点标题即折叠/展开。
   Widget _groupHeader(String title, ColorScheme scheme) {
     final collapsed = _collapsed.contains(title);
-    return PressScale(child: InkWell(
-      onTap: () => setState(() => collapsed ? _collapsed.remove(title) : _collapsed.add(title)),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 2),
-        child: Row(children: [
-          Expanded(child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w600))),
-          Icon(collapsed ? Symbols.expand_more_rounded : Symbols.expand_less_rounded, size: 18, color: scheme.primary),
-        ]),
+    return PressScale(
+      child: InkWell(
+        onTap: () => setState(
+          () => collapsed ? _collapsed.remove(title) : _collapsed.add(title),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                collapsed
+                    ? Symbols.expand_more_rounded
+                    : Symbols.expand_less_rounded,
+                size: 18,
+                color: scheme.primary,
+              ),
+            ],
+          ),
+        ),
       ),
-    ));
+    );
   }
 }

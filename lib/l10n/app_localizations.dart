@@ -1209,6 +1209,18 @@ abstract class AppLocalizations {
   /// **'Export logs'**
   String get exportLogs;
 
+  /// No description provided for @copyAllLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy all logs'**
+  String get copyAllLogs;
+
+  /// No description provided for @copiedAllLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'All logs copied'**
+  String get copiedAllLogs;
+
   /// No description provided for @openLogsFolder.
   ///
   /// In en, this message translates to:
@@ -5185,6 +5197,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load the cast media: {error}'**
   String castLoadFailed(Object error);
+
+  /// No description provided for @developerMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer mode'**
+  String get developerMode;
+
+  /// No description provided for @developerModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace video covers with solid colors and load the player window without playing, for UI and window debugging'**
+  String get developerModeDescription;
 }
 
 class _AppLocalizationsDelegate

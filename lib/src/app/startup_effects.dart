@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../core/app_notifications.dart';
 import '../core/cast_receiver.dart';
 import '../core/deep_link.dart';
+import '../core/developer_mode.dart';
 import '../core/global_hotkeys.dart';
 import '../core/platform_service.dart';
 import '../core/settings.dart';
@@ -73,6 +74,9 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     ref.listenManual(settingsProvider, (previous, next) {
       final settings = next.valueOrNull;
       if (settings == null) return;
+      // 开发者模式是全局标志：底层封面组件读不到 provider，由这里单向同步。
+      // 独立播放窗口是另一个进程，会各自跑一遍 AppStartupEffects，也会同步到。
+      developerMode.value = settings.developerMode;
       if (settings.autoUpdate && !_checkedForUpdate) {
         _checkedForUpdate = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -195,7 +199,10 @@ class _AppStartupEffectsState extends ConsumerState<AppStartupEffects> {
     // settingsProvider 的回调覆盖（fireImmediately + 变化时触发），两者互补。
     MediaQuery.platformBrightnessOf(context);
     final settings = ref.read(settingsProvider).valueOrNull;
-    if (settings != null) _applyWindowBackdrop(settings);
+    if (settings != null) {
+      developerMode.value = settings.developerMode;
+      _applyWindowBackdrop(settings);
+    }
   }
 
   @override

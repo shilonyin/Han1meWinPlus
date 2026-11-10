@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:g1455/g1455.dart';
@@ -22,6 +23,7 @@ import 'download_group_page.dart';
 import '../video/video_page.dart';
 import '../../core/app_dialog.dart';
 import '../shared/app_top_bar.dart';
+import '../settings/settings_controller.dart';
 
 /// 缓存管理页：顶部「已缓存 / 下载中 / 本地媒体」三状态页签，下面是内容列表。
 ///
@@ -132,13 +134,20 @@ class _CachePageState extends ConsumerState<CachePage>
             actions: _selecting
                 ? _selectionActions(state, [...completed, ...active])
                 : [
-                    PressScale(
-                      child: IconButton(
-                        tooltip: l10n.createGroup,
-                        onPressed: () => showGroupEditor(context, ref),
-                        icon: const Icon(Symbols.create_new_folder_rounded),
+                    // 设计稿 `5661_v6_cache.png`：「本地媒体」页签右上是
+                    // 一枚粉底白字的「添加目录」胶囊，不是一个裸 + 图标。
+                    if (_tabs.index == 2)
+                      _AddDirectoryButton(
+                        onPressed: () => _addLocalMediaDirectory(context, ref),
+                      )
+                    else
+                      PressScale(
+                        child: IconButton(
+                          tooltip: l10n.createGroup,
+                          onPressed: () => showGroupEditor(context, ref),
+                          icon: const Icon(Symbols.create_new_folder_rounded),
+                        ),
                       ),
-                    ),
                     if (_tabs.index == 0)
                       _ClearAllButton(onPressed: _deleteAllCompleted),
                   ],
@@ -354,6 +363,30 @@ class _CachePageState extends ConsumerState<CachePage>
         .read(downloadProvider.notifier)
         .deleteTasks(completed.map((task) => task.id).toSet());
     if (mounted) setState(_selected.clear);
+  }
+
+  /// 「本地媒体」页签的「添加目录」：选一个目录写进设置并重新扫描。
+  ///
+  /// 与 `local_media_page.dart` 的 `_rescan` 同一套路径。
+  /// 这样避免两处各写一份保存/监听逻辑。
+  /// 选完 invalidate `localMediaProvider` 让列表立即刷新。
+  Future<void> _addLocalMediaDirectory(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: l10n.localMediaDirectory,
+    );
+    if (selected == null || selected.isEmpty) return;
+    final controller = ref.read(settingsProvider.notifier);
+    await controller.saveChanges(
+      (current) => current.copyWith(localMediaDirectory: selected),
+    );
+    final repository = ref.read(localMediaRepositoryProvider);
+    await repository.rescan(selected);
+    await repository.watchDirectory(selected);
+    ref.invalidate(localMediaProvider);
   }
 
   /// 打开文件夹：进到分组页看分集列表。
@@ -1330,7 +1363,7 @@ class CacheFolderRowCard extends StatelessWidget {
   }
 }
 
-/// 设计稿右上角的「清理」按钮：灰底胶囊文字按钮。
+/// 设计稿右上角的「清理」按钮：灰底胶囊文字按钮，左侧带一枚文件夹图标。
 class _ClearAllButton extends StatelessWidget {
   const _ClearAllButton({required this.onPressed});
 
@@ -1344,15 +1377,67 @@ class _ClearAllButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(
+                Symbols.folder_off_rounded,
+                size: 15,
+                color: AppDesignTokens.inkSubtle,
+              ),
+              SizedBox(width: 6),
+              Text(
+                '清理',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppDesignTokens.inkSubtle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// 「本地媒体」页签的「添加目录」：粉底白字胶囊。
+class _AddDirectoryButton extends StatelessWidget {
+  const _AddDirectoryButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => PressScale(
+    child: Material(
+      color: AppDesignTokens.accentDeep,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
         child: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          child: Text(
-            '清理',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppDesignTokens.inkSubtle,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Symbols.create_new_folder_rounded,
+                size: 15,
+                color: Colors.white,
+              ),
+              SizedBox(width: 6),
+              Text(
+                '添加目录',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ),

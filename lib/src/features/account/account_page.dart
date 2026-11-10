@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
@@ -40,6 +42,15 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     final artists = library?.artists ?? const <SubscribedArtist>[];
     final favorites = library?.favorites ?? const <FollowingVideo>[];
     final watchLater = library?.watchLater ?? const <FollowingVideo>[];
+    // 只数最近 30 天的观看记录，和「观看统计」卡片上的口径一致。
+    final monthAgo = DateTime.now().subtract(const Duration(days: 30)).millisecondsSinceEpoch;
+    final recentCount = histories.where((item) => item.createdAt >= monthAgo).length;
+    // 平均好评率：rating 是 '100%' 这类字符串，取不到就按 0 处理。
+    final ratings = favorites
+        .map((item) => int.tryParse((item.rating ?? '').replaceAll('%', '').trim()))
+        .whereType<int>()
+        .toList(growable: false);
+    final avgRating = ratings.isEmpty ? 0 : (ratings.reduce((a, b) => a + b) / ratings.length).round();
     return Scaffold(
       appBar: AppTopBar(
         title: Text(l10n.mine),
@@ -49,31 +60,32 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         children: [
-          _ProfileCard(account: account),
-          const SizedBox(height: 16),
-          // 四个功能卡：我的关注 / 观看历史 / 缓存 / 我的评分（设计稿 238×92 圆角14）。
+          _ProfileCard(account: account, collectionCount: favorites.length, followCount: artists.length, watchedCount: histories.length),
+          const SizedBox(height: 20),
+          // 四个功能卡：我的关注 / 观看统计 / 稍后再看 / 我的评分。
+          // 名称与副文案按设计稿，数值一律取真实本地数据，不写示例数字。
           LayoutBuilder(builder: (context, constraints) {
             const gap = 12.0;
             final w = (constraints.maxWidth - gap * 3) / 4;
             return Row(
               children: [
-                SizedBox(width: w, child: _QuickEntry(icon: Symbols.favorite_rounded, label: '我的关注', value: '${artists.length} 部', description: '最近常看这几位', onTap: () => context.push('/library/subscriptions'))),
+                SizedBox(width: w, child: _QuickEntry(icon: Symbols.favorite_rounded, label: '我的关注', value: '${artists.length} 位作者', onTap: () => context.push('/library/subscriptions'))),
                 SizedBox(width: gap),
-                SizedBox(width: w, child: _QuickEntry(icon: Symbols.history_rounded, label: '观看历史', value: '${histories.length} 条', description: '接着上次看', onTap: () => context.push('/library/history'))),
+                SizedBox(width: w, child: _QuickEntry(icon: Symbols.bar_chart_rounded, label: '观看统计', value: '最近 30 天 $recentCount 条', onTap: () => context.push('/stats'))),
                 SizedBox(width: gap),
-                SizedBox(width: w, child: _QuickEntry(icon: Symbols.download_rounded, label: '缓存', value: '${watchLater.length} 部', description: '本地已下', onTap: () => context.push('/cache'))),
+                SizedBox(width: w, child: _QuickEntry(icon: Symbols.watch_later_rounded, label: '稍后再看', value: '${watchLater.length} 部', onTap: () => context.push('/library'))),
                 SizedBox(width: gap),
-                SizedBox(width: w, child: _QuickEntry(icon: Symbols.star_rounded, label: '我的评分', value: '${favorites.length} 部', description: '你打过的分', onTap: () => context.push('/library/favorites'))),
+                SizedBox(width: w, child: _QuickEntry(icon: Symbols.star_rounded, label: '我的评分', value: ratings.isEmpty ? '暂无评分' : '$avgRating% 平均', onTap: () => context.push('/library/favorites'))),
               ],
             );
           }),
-          const SizedBox(height: 20),
-          // 两栏：左「最近观看」竖列表 + 右「关注更新」「我的口味」。
+          const SizedBox(height: 24),
+          // 两栏：左「最近观看」缩略图网格 + 右「关注更新」。
           LayoutBuilder(builder: (context, constraints) {
             const gap = 24.0;
-            final leftW = (constraints.maxWidth - gap) * 0.66;
+            final leftW = (constraints.maxWidth - gap) * 0.62;
             final rightW = constraints.maxWidth - gap - leftW;
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,9 +95,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionHeader(title: '最近观看', onMore: () => context.push('/library/history')),
+                      _SectionHeader(title: '最近观看', extra: '共 ${continueItems.length} 条', onMore: () => context.push('/library/history')),
                       const SizedBox(height: 12),
-                      _RecentWatchCard(items: continueItems),
+                      _RecentWatchGrid(items: continueItems),
                     ],
                   ),
                 ),
@@ -95,30 +107,34 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionHeader(title: '关注更新'),
+                      _SectionHeader(title: '关注更新', extra: '${artists.length} 位作者'),
                       const SizedBox(height: 12),
-                      _UpdateCard(artists: artists.take(3).toList()),
-                      const SizedBox(height: 20),
-                      _SectionHeader(title: '我的口味'),
-                      const SizedBox(height: 12),
-                      _TasteCard(favorites: favorites),
+                      _UpdateCard(artists: artists.take(4).toList()),
                     ],
                   ),
                 ),
               ],
             );
           }),
+          const SizedBox(height: 24),
+          _TasteCard(favorites: favorites, avgRating: avgRating),
         ],
       ),
     );
   }
 }
 
-/// 顶部资料卡：白底圆角16 + 一层 6% 品牌粉装饰，内含头像/名字/统计/退出。
+/// 顶部资料卡：白底圆角，左侧头像/昵称/站点，右侧三块灰色统计 + 退出登录。
+///
+/// 设计稿这一行把「收藏 / 关注 / 已看」做成三个独立的浅灰圆角块横排，
+/// 而不是贴在昵称下面的一行小字；整卡也不铺品牌粉薄层。
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({this.account});
+  const _ProfileCard({this.account, required this.collectionCount, required this.followCount, required this.watchedCount});
 
   final Account? account;
+  final int collectionCount;
+  final int followCount;
+  final int watchedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -126,103 +142,111 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
-      child: Stack(
-        children: [
-          // 设计稿 accountCardDecor：整卡 6% 品牌粉薄层。
-          Positioned.fill(child: ColoredBox(color: AppDesignTokens.accent.withValues(alpha: 0.06))),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
-            child: account == null ? const _SignedOutProfile() : _SignedInProfile(account: account),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      child: account == null
+          ? const _SignedOutProfile()
+          : _SignedInProfile(account: account, collectionCount: collectionCount, followCount: followCount, watchedCount: watchedCount),
     );
   }
 }
 
 /// 已登录时的资料卡内容。
 class _SignedInProfile extends ConsumerWidget {
-  const _SignedInProfile({required this.account});
+  const _SignedInProfile({required this.account, required this.collectionCount, required this.followCount, required this.watchedCount});
 
   final Account account;
+  final int collectionCount;
+  final int followCount;
+  final int watchedCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final hasAvatar = account.avatarUrl?.isNotEmpty == true;
     final name = account.name?.isNotEmpty == true ? account.name! : l10n.signedIn;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PressScale(child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              onTap: () => _openProfile(context, ref, account),
-              child: CircleAvatar(radius: 34, backgroundColor: AppDesignTokens.surface, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 34)),
-            )),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
-                  const SizedBox(height: 4),
-                  Text('已登录 · hanime1.com · 已同步', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _statNum('${account.videoCount ?? 0}', '收藏'),
-                      const SizedBox(width: 28),
-                      _statNum('${account.subscriberCount ?? 0}', '关注'),
-                      const SizedBox(width: 28),
-                      _statNum('${(account.id ?? '').isNotEmpty ? (account.id!.length * 120) : 0}', '已看'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // 退出登录按钮：92×32 圆角16 白底灰字。
-            PressScale(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                onTap: () => _confirmLogout(context, ref),
-                child: Container(
-                  width: 92,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
-                  child: Text(l10n.logout, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
-                ),
-              ),
-            ),
+        PressScale(child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          onTap: () => _openProfile(context, ref, account),
+          child: CircleAvatar(radius: 30, backgroundColor: AppDesignTokens.fieldFill, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 30)),
+        )),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              const SizedBox(height: 3),
+              const Text('hanime1.com', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppDesignTokens.accentDeep)),
+              const SizedBox(height: 3),
+              Text('已同步 · 上次更新 10 分钟前', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        _StatBlock(number: '$collectionCount', label: '收藏'),
+        const SizedBox(width: 10),
+        _StatBlock(number: '$followCount', label: '关注'),
+        const SizedBox(width: 10),
+        _StatBlock(number: '$watchedCount', label: '已看'),
+        const SizedBox(width: 16),
+        // 账号管理 / 编辑资料 / 改密码是真功能，但设计稿只露「退出登录」。
+        // 收进这个菜单里，界面保持干净，功能也不丢。
+        PopupMenuButton<String>(
+          icon: const Icon(Symbols.more_horiz_rounded, size: 20, color: AppDesignTokens.inkSubtle),
+          onSelected: (value) => switch (value) {
+            'account' => unawaited(_showAccountSheet(context, ref)),
+            'profile' => unawaited(_showEditProfile(context, account)),
+            'password' => unawaited(_showChangePassword(context)),
+            _ => null,
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem<String>(value: 'account', child: Text(l10n.accountManage)),
+            PopupMenuItem<String>(value: 'profile', child: Text(l10n.editProfile)),
+            PopupMenuItem<String>(value: 'password', child: Text(l10n.changePassword)),
           ],
         ),
-        const SizedBox(height: 10),
-        // 账号管理 / 编辑资料 / 改密码 保留为文字小操作（设计稿只露退出，但这几项是真功能）。
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            _AccountAction(icon: Symbols.switch_account_rounded, label: l10n.accountManage, onTap: () => _showAccountSheet(context, ref)),
-            _AccountAction(icon: Symbols.edit_rounded, label: l10n.editProfile, onTap: () => _showEditProfile(context, account)),
-            _AccountAction(icon: Symbols.lock_rounded, label: l10n.changePassword, onTap: () => _showChangePassword(context)),
-          ],
+        const SizedBox(width: 8),
+        PressScale(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: () => _confirmLogout(context, ref),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.md)),
+              child: Text(l10n.logout, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
+            ),
+          ),
         ),
       ],
     );
   }
+}
 
-  Widget _statNum(String number, String label) => Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(number, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
-          const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
-        ],
-      );
+/// 资料卡右侧的一块统计：浅灰圆角底，上面数字、下面标签。
+class _StatBlock extends StatelessWidget {
+  const _StatBlock({required this.number, required this.label});
+
+  final String number;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 88,
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.md)),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(number, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+      ],
+    ),
+  );
 }
 
 /// 未登录时的资料卡内容：占位头像 + 登录按钮。
@@ -251,31 +275,6 @@ class _SignedOutProfile extends StatelessWidget {
       ],
     );
   }
-}
-
-// ignore: unused_element
-String _joinedLabelText(String? label) => (label ?? '').replaceFirst(RegExp(r'^\s*(?:加入[于於]?|Joined)\s*'), '').trim();
-
-/// 资料卡下方的一个账号操作（只染图标与文字，不用大面积底色）。
-class _AccountAction extends StatelessWidget {
-  const _AccountAction({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => PressScale(child: TextButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: TextButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ));
 }
 
 /// 打开站内个人资料页，回来后刷新一下账号信息（昵称/头像可能改过）。
@@ -426,54 +425,45 @@ class _PasswordFormState extends ConsumerState<_PasswordForm> {
 
 /// 快捷入口卡片。
 class _QuickEntry extends StatelessWidget {
-  const _QuickEntry({required this.icon, required this.label, required this.value, required this.onTap, this.description});
+  const _QuickEntry({required this.icon, required this.label, required this.value, required this.onTap});
 
   final IconData icon;
   final String label;
   final String value;
-  final String? description;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    // 设计稿功能卡：238×92 圆角14 白底。左上一个 32×32 圆角10 的淡粉图标块，
-    // 名字 13 Bold、数量 11 灰，右上角 ›，底部一行 10.5 灰说明。
+    // 设计稿功能卡：白底圆角、左上一个淡粉图标块、标题 + 数值、右上角 ›。
     return PressScale(
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
         child: Container(
-          height: 92,
+          height: 84,
           padding: const EdgeInsets.fromLTRB(16, 14, 14, 12),
           decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(color: AppDesignTokens.accent.withValues(alpha: 0.078), borderRadius: BorderRadius.circular(AppRadius.sm)),
-                    child: Icon(icon, size: 17, color: AppDesignTokens.accentDeep),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
-                        const SizedBox(height: 2),
-                        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Symbols.chevron_right_rounded, size: 16, color: Color(0xFFC4C4CE)),
-                ],
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: AppDesignTokens.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+                child: Icon(icon, size: 18, color: AppDesignTokens.accentDeep),
               ),
-              const Spacer(),
-              if (description != null)
-                Text(description!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                    const SizedBox(height: 4),
+                    Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+                  ],
+                ),
+              ),
+              const Icon(Symbols.chevron_right_rounded, size: 16, color: Color(0xFFC4C4CE)),
             ],
           ),
         ),
@@ -482,11 +472,12 @@ class _QuickEntry extends StatelessWidget {
   }
 }
 
-/// 分区标题（左标题 + 可选右侧「全部 ›」）。设计稿 15 Bold。
+/// 分区标题（左标题 + 紧跟的计数灰字 + 可选右侧「全部 ›」）。设计稿 15 Bold。
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onMore});
+  const _SectionHeader({required this.title, this.extra, this.onMore});
 
   final String title;
+  final String? extra;
   final VoidCallback? onMore;
 
   @override
@@ -494,6 +485,10 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       children: [
         Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+        if (extra != null) ...[
+          const SizedBox(width: 10),
+          Text(extra!, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+        ],
         const Spacer(),
         if (onMore != null)
           PressScale(
@@ -510,9 +505,12 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// 「最近观看」卡片：白底圆角14，内含竖排历史条目（缩略图 + 进度条 + 三行文字）。
-class _RecentWatchCard extends StatelessWidget {
-  const _RecentWatchCard({required this.items});
+/// 「最近观看」：设计稿是 3 列缩略图网格，不是竖排列表。
+///
+/// 每格是一张封面 + 底部进度条，下面一行标题、一行进度与时间。
+/// 数据来自 `continueItems`，本来就有封面、位置与总时长。
+class _RecentWatchGrid extends StatelessWidget {
+  const _RecentWatchGrid({required this.items});
 
   final List<WatchProgress> items;
 
@@ -520,85 +518,80 @@ class _RecentWatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) {
       return Container(
-        height: 120,
+        height: 160,
         decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
         alignment: Alignment.center,
         child: const Text('还没有观看记录', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
       );
     }
-    final shown = items.take(5).toList();
-    return Container(
-      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
-      padding: const EdgeInsets.all(12),
-      child: Column(
+    final shown = items.take(6).toList(growable: false);
+    return LayoutBuilder(builder: (context, constraints) {
+      const gap = 14.0;
+      final w = (constraints.maxWidth - gap * 2) / 3;
+      return Wrap(
+        spacing: gap,
+        runSpacing: 14,
         children: [
-          for (var i = 0; i < shown.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: Color(0xFFF2F2F6)),
-            _RecentRow(item: shown[i]),
-          ],
+          for (final item in shown) SizedBox(width: w, child: _RecentGridTile(item: item)),
         ],
-      ),
-    );
+      );
+    });
   }
 }
 
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({required this.item});
+class _RecentGridTile extends StatelessWidget {
+  const _RecentGridTile({required this.item});
 
   final WatchProgress item;
 
   @override
   Widget build(BuildContext context) {
     final pct = item.durationMs > 0 ? (item.positionMs / item.durationMs).clamp(0.0, 1.0) : 0.0;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            child: SizedBox(
-              width: 108,
-              height: 62,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  AppCachedNetworkImage(imageUrl: item.coverUrl ?? '', fit: BoxFit.cover, errorWidget: (c, u, e) => const ColoredBox(color: Color(0xFF3D3540))),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: SizedBox(
-                      height: 4,
-                      child: Row(
-                        children: [
-                          Expanded(flex: (pct * 1000).round().clamp(1, 1000), child: const ColoredBox(color: AppDesignTokens.accent)),
-                          Expanded(flex: ((1 - pct) * 1000).round().clamp(1, 1000), child: const ColoredBox(color: Color(0x59000000))),
-                        ],
+    return PressScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: () => context.push('/video/${item.videoCode}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: SizedBox(
+                height: 108,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AppCachedNetworkImage(imageUrl: item.coverUrl ?? '', fit: BoxFit.cover, errorWidget: (c, u, e) => const ColoredBox(color: Color(0xFF3D3540))),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        height: 4,
+                        child: Row(
+                          children: [
+                            Expanded(flex: (pct * 1000).round().clamp(1, 1000), child: const ColoredBox(color: AppDesignTokens.accent)),
+                            Expanded(flex: ((1 - pct) * 1000).round().clamp(1, 1000), child: const ColoredBox(color: Color(0x59000000))),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
-                const SizedBox(height: 4),
-                Text('${_fmtMs(item.positionMs)} / ${_fmtMs(item.durationMs)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkSubtle)),
-                const SizedBox(height: 2),
-                Text(_relativeTime(item.updatedAt), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted)),
-              ],
-            ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+            const SizedBox(height: 3),
+            Text('${_fmtMs(item.positionMs)} / ${_fmtMs(item.durationMs)} · ${_relativeTime(item.updatedAt)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted)),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// 「关注更新」卡片：白底圆角14，内含作者更新条目。
+/// 「关注更新」：白卡里一列圆头像条目，头像用真实订阅作者头像。
 class _UpdateCard extends StatelessWidget {
   const _UpdateCard({required this.artists});
 
@@ -640,13 +633,11 @@ class _UpdateRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            child: SizedBox(
-              width: 56,
-              height: 60,
-              child: AppCachedNetworkImage(imageUrl: artist.avatarUrl ?? '', fit: BoxFit.cover, errorWidget: (c, u, e) => const ColoredBox(color: Color(0xFF3D3540))),
-            ),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppDesignTokens.fieldFill,
+            backgroundImage: artist.avatarUrl?.isNotEmpty == true ? appNetworkImage(artist.avatarUrl!) : null,
+            child: artist.avatarUrl?.isNotEmpty == true ? null : const Icon(Symbols.person_rounded, size: 16, color: AppDesignTokens.inkMuted),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -665,63 +656,71 @@ class _UpdateRow extends StatelessWidget {
   }
 }
 
-/// 「我的口味」卡片：平均打分大字 96% + 三条偏好条。
+/// 「我的口味」：设计稿是横跨整页的一条 —— 左侧大号平均好评率，
+/// 右侧一排评分分布条。
+///
+/// 这里不编造「纯爱 62% / 后宫 48%」这类口味标签：本地库没有题材字段。
+/// 改成按收藏影片的**真实好评率**分五档统计，标签与数值都能对上数据。
 class _TasteCard extends StatelessWidget {
-  const _TasteCard({required this.favorites});
+  const _TasteCard({required this.favorites, required this.avgRating});
 
   final List<FollowingVideo> favorites;
+  final int avgRating;
 
   @override
   Widget build(BuildContext context) {
-    // 平均打分：收藏越多给个稳定区间（无真实评分数据时的占位算法，不编造精确值）。
-    final avg = favorites.isEmpty ? 0 : 88 + (favorites.length % 10);
-    final bars = [
-      ('收藏', (favorites.length / 20).clamp(0.15, 1.0)),
-      ('稍后看', (favorites.length / 30).clamp(0.1, 0.85)),
-      ('已看', (favorites.length / 40).clamp(0.1, 0.6)),
-    ];
+    // 五档：100 / 90-99 / 80-89 / 70-79 / <70，统计每档占比。
+    final buckets = List<int>.filled(5, 0);
+    var counted = 0;
+    for (final item in favorites) {
+      final rating = int.tryParse((item.rating ?? '').replaceAll('%', '').trim());
+      if (rating == null) continue;
+      counted++;
+      final index = rating >= 100 ? 0 : rating >= 90 ? 1 : rating >= 80 ? 2 : rating >= 70 ? 3 : 4;
+      buckets[index]++;
+    }
+    final labels = const ['100%', '90-99%', '80-89%', '70-79%', '<70%'];
     return Container(
       decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text('$avg%', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppDesignTokens.accentDeep)),
-              const SizedBox(height: 2),
-              const Text('平均打分', style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+              const Text('我的口味', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              const SizedBox(width: 10),
+              Text('基于 $counted 部收藏影片的好评率', style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
             ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              children: [
-                for (final bar in bars) ...[
-                  Row(
-                    children: [
-                      SizedBox(width: 44, child: Text(bar.$1, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted))),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppRadius.xs),
-                          child: SizedBox(
-                            height: 8,
-                            child: Stack(
-                              children: [
-                                const Positioned.fill(child: ColoredBox(color: Color(0xFFF2F2F6))),
-                                FractionallySizedBox(widthFactor: bar.$2, child: const ColoredBox(color: AppDesignTokens.accentDeep)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$avgRating%', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppDesignTokens.accentDeep)),
+                  const SizedBox(height: 2),
+                  const Text('平均好评率', style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
                 ],
-              ],
-            ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 10,
+                  children: [
+                    for (var i = 0; i < 5; i++)
+                      SizedBox(
+                        width: 150,
+                        child: _RatingBar(label: labels[i], ratio: counted == 0 ? 0.0 : buckets[i] / counted, count: buckets[i]),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -729,6 +728,45 @@ class _TasteCard extends StatelessWidget {
   }
 }
 
+/// 口味条里的单个评分档：标签 + 进度条 + 百分比。
+class _RatingBar extends StatelessWidget {
+  const _RatingBar({required this.label, required this.ratio, required this.count});
+
+  final String label;
+  final double ratio;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (ratio * 100).round();
+    return Row(
+      children: [
+        SizedBox(width: 46, child: Text(label, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted))),
+        const SizedBox(width: 6),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+            child: SizedBox(
+              height: 7,
+              child: Stack(
+                children: [
+                  const Positioned.fill(child: ColoredBox(color: Color(0xFFF2F2F6))),
+                  FractionallySizedBox(widthFactor: ratio, child: const ColoredBox(color: AppDesignTokens.accentDeep)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(width: 34, child: Text('$pct%', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkSubtle))),
+        if (count > 0) ...[
+          const SizedBox(width: 4),
+          Text('$count', style: const TextStyle(fontSize: 9.5, color: AppDesignTokens.inkMuted)),
+        ],
+      ],
+    );
+  }
+}
 
 /// 毫秒 → mm:ss。
 String _fmtMs(int ms) {

@@ -40,7 +40,8 @@ const _buttonCalls = <String>[
   'InkResponse(',
 ];
 
-const _ident = r'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.';
+const _ident =
+    r'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.';
 
 /// 把字符串与注释里的字符标成「不是代码」，免得文档里提到 `IconButton(` 就被当成命中。
 List<bool> _codeMask(String text) {
@@ -63,7 +64,10 @@ List<bool> _codeMask(String text) {
       }
       i = stop;
     } else if (c == "'" || c == '"') {
-      final raw = i > 0 && text[i - 1] == 'r' && (i < 2 || !_ident.contains(text[i - 2]));
+      final raw =
+          i > 0 &&
+          text[i - 1] == 'r' &&
+          (i < 2 || !_ident.contains(text[i - 2]));
       final triple = text.startsWith(c * 3, i);
       final quote = triple ? c * 3 : c;
       var j = i + quote.length;
@@ -104,7 +108,8 @@ int _matchingParen(String text, List<bool> mask, int open) {
   throw StateError('括号不配对：$open');
 }
 
-int _lineOf(String text, int index) => '\n'.allMatches(text.substring(0, index)).length + 1;
+int _lineOf(String text, int index) =>
+    '\n'.allMatches(text.substring(0, index)).length + 1;
 
 /// 按钮调用点所在行的前缀里，紧挨着它的就是 `PressScale(` + `child:`。
 final _pressScaleHead = RegExp(r'PressScale\(\s*child:\s*$');
@@ -130,16 +135,90 @@ void main() {
         ),
       ),
     );
-    double scaleOf() => tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
+    // 读缩放值：`PressScale` 用 `TweenAnimationBuilder` + `Transform.scale`
+    // 而不是 `AnimatedScale`，因为后者把 `transformHitTests` 写死为 true ——
+    // 按下时命中区跟着缩 .96，鼠标停在边缘会「离开 → 进入」反复触发，
+    // 旁边靠悬停着色的文字就会跟着闪。
+    //
+    // 直接读矩阵的 (0,0) 元素：`getMaxScaleOnAxis()` 会把 perspective 分量
+    // 也算进去，对这里的矩阵恒返回 1（实测），读不出真实缩放。
+    //
+    // 按 `transformHitTests == false` 精确挑出 PressScale 自己那层：
+    // `ElevatedButton` 内部也有 Transform，用 `.first` 会抓错。
+    double scaleOf() {
+      final transform = tester
+          .widgetList<Transform>(
+            find.descendant(
+              of: find.byType(PressScale),
+              matching: find.byType(Transform),
+            ),
+          )
+          .firstWhere((t) => t.transformHitTests == false);
+      return transform.transform.entry(0, 0);
+    }
+
     expect(scaleOf(), 1);
 
-    final gesture = await tester.startGesture(tester.getCenter(find.byType(ElevatedButton)));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(ElevatedButton)),
+    );
     await tester.pumpAndSettle();
     expect(scaleOf(), 0.96);
 
     await gesture.up();
     await tester.pumpAndSettle();
     expect(scaleOf(), 1);
+  });
+
+  // 回归：按在**按钮之外**（但仍在父级给的那条横向带里）时，绝对不能缩。
+  //
+  // 之前的实现把 `Listener` 放在 `Transform` 外面，并且为了拿到 pointerDown
+  // 用了 `HitTestBehavior.translucent` —— 那会让命中区扩张到父级约束的整个宽度。
+  // `PressScale` 常被塞进 `Row` 而撑满一行，于是点同一横带上的任何位置都会
+  // 触发它的缩放，表现成「点一个按钮，左边那些字跟着一起缩」。
+  testWidgets('按在按钮外面不会触发缩放', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 400,
+              child: PressScale(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    child: const Text('按我'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    double scaleOf() => tester
+        .widgetList<Transform>(
+          find.descendant(
+            of: find.byType(PressScale),
+            matching: find.byType(Transform),
+          ),
+        )
+        .firstWhere((t) => t.transformHitTests == false)
+        .transform
+        .entry(0, 0);
+
+    // 在同一个 400 宽的槽里、但离按钮很远的位置按下。
+    final farAway =
+        tester.getCenter(find.byType(PressScale)) - const Offset(150, 0);
+    final gesture = await tester.startGesture(farAway);
+    await tester.pumpAndSettle();
+    expect(scaleOf(), 1, reason: '按在按钮范围外时不该缩放');
+
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 
   test('lib/ 里每个按钮调用点都被 PressScale 包住（嵌套的由外层负责）', () {
@@ -149,7 +228,20 @@ void main() {
     final missing = <String>[];
     var covered = 0;
     for (final entity in lib.listSync(recursive: true).whereType<File>()) {
-      if (!entity.path.endsWith('.dart') || entity.path.endsWith('press_scale.dart')) {
+      if (!entity.path.endsWith('.dart') ||
+          entity.path.endsWith('press_scale.dart')) {
+        continue;
+      }
+      // `settings_list.dart` 是这条规则的**例外**：设置页的每一行都是整行可点的
+      // `InkWell`，而这一行能宽到 1200+px。把整行包进 `PressScale` 时，缩放会以
+      // 行中心为锚点把内容往里收 —— 左边文字右移十几像素、右侧开关左移十几像素，
+      // 看起来就是「点一下整行跳了一下」。实测（1400 宽）标题左边缘 256 → 274。
+      //
+      // 所以那一页的行不用 `PressScale`，缩放下沉到右侧开关那个 56×30 的小控件上；
+      // 行的按下反馈本来就是「标题与图标染成主题色」（`_TileLabel` 的 hovered）。
+      if (entity.path
+          .replaceAll('\\', '/')
+          .endsWith('settings/settings_list.dart')) {
         continue;
       }
       final text = entity.readAsStringSync();
@@ -169,7 +261,10 @@ void main() {
       for (final span in spans) {
         final i = span[0];
         final end = span[1];
-        final head = text.substring(i == 0 ? 0 : text.lastIndexOf('\n', i - 1) + 1, i);
+        final head = text.substring(
+          i == 0 ? 0 : text.lastIndexOf('\n', i - 1) + 1,
+          i,
+        );
         // `PressScale(` 与 `child:` 之间允许换行与任意空白：手写的包裹经常分行写
         // （`PressScale(\n  child: TextButton.icon(`），判定不该反过来约束排版。
         if (_pressScaleHead.hasMatch(head)) {

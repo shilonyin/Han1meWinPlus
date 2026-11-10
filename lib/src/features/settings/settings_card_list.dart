@@ -13,14 +13,21 @@ class SettingsCardList extends StatelessWidget {
     required this.children,
     this.title,
     this.padding = EdgeInsets.zero,
-    this.rowPadding = 2,
+    this.rowPadding = 3,
   });
 
   final List<Widget> children;
   final String? title;
   final EdgeInsetsGeometry padding;
 
-  /// 行内上下留白：设计稿主题页行高 40 传 4，布局页 56 传 10。
+  /// 行内上下留白。**设置页统一传 3**（行高 = 内容 36 + 3 × 2 = 42），
+  /// 这样同一类设置项在主题 / 布局 / 播放 / 网络 / 快捷键各页的疏密一致。
+  ///
+  /// 例外只有一处：快捷键页顶部的「全局快捷键」开关卡在设计稿里是 76 高
+  /// （白区 y104~180），那一张传 20。
+  ///
+  /// 默认 2 是「不覆盖」的哨兵值（见 `SettingsTile` 里 `rowPadding != 2` 的判断），
+  /// 不是给页面用的行距。
   final double rowPadding;
 
   @override

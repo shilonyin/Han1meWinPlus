@@ -33,11 +33,14 @@ class VideoDescriptionView extends ConsumerStatefulWidget {
   final VideoDetail video;
 
   @override
-  ConsumerState<VideoDescriptionView> createState() => _VideoDescriptionViewState();
+  ConsumerState<VideoDescriptionView> createState() =>
+      _VideoDescriptionViewState();
 }
 
 /// 简介默认收起（整块详情都不显示），点标题旁的「展开」才展示
-class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> with AutomaticKeepAliveClientMixin {  var _descriptionExpanded = false;
+class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView>
+    with AutomaticKeepAliveClientMixin {
+  var _descriptionExpanded = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -49,8 +52,12 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
     final description = video.description ?? '';
     final related = visibleRelatedVideos(ref, video.related);
     // 作者 / 上传者 / 简介内容都算「详情」，收起时整块一起隐藏
-    final hasDetails = description.isNotEmpty || video.uploader != null || video.captionTitle != null;
-    void toggleDescription() => setState(() => _descriptionExpanded = !_descriptionExpanded);
+    final hasDetails =
+        description.isNotEmpty ||
+        video.uploader != null ||
+        video.captionTitle != null;
+    void toggleDescription() =>
+        setState(() => _descriptionExpanded = !_descriptionExpanded);
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -59,12 +66,19 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
             children: [
               // 侧栏内容顺序：作者 → 标题（带展开/收起）→ 数据 → 简介 → 标签 → 系列
               _ArtistRow(video: video),
-              _TitleBlock(video: video, hasDetails: hasDetails, expanded: _descriptionExpanded, onToggleDescription: toggleDescription),
+              _TitleBlock(
+                video: video,
+                hasDetails: hasDetails,
+                expanded: _descriptionExpanded,
+                onToggleDescription: toggleDescription,
+              ),
               // 操作排放在标题/数据下面
               VideoActionRow(video: video),
-              if (_descriptionExpanded) _Description(video: video, onToggle: toggleDescription),
+              if (_descriptionExpanded)
+                _Description(video: video, onToggle: toggleDescription),
               _TagList(video: video),
-              if (video.playlist.isNotEmpty) _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
+              if (video.playlist.isNotEmpty)
+                _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
             ],
           ),
         ),
@@ -73,12 +87,20 @@ class _VideoDescriptionViewState extends ConsumerState<VideoDescriptionView> wit
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Text(AppLocalizations.of(context)!.relatedVideos, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              child: Text(
+                AppLocalizations.of(context)!.relatedVideos,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         SliverList.builder(
           itemCount: related.length,
-          itemBuilder: (context, index) => Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: _RelatedVideoTile(video: related[index])),
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _RelatedVideoTile(video: related[index]),
+          ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
@@ -93,11 +115,34 @@ List<VideoCard> visibleRelatedVideos(WidgetRef ref, List<VideoCard> videos) {
   final authors = settings?.blockedAuthors ?? const <String>[];
   final titles = settings?.blockedVideoTitleKeywords ?? const <String>[];
   final tags = settings?.blockedVideoTags ?? const <String>[];
-  return videos.where((video) => !titles.any((keyword) => video.title.toLowerCase().contains(keyword.toLowerCase())) && !authors.any((author) => (video.artist ?? '').toLowerCase().contains(author.toLowerCase())) && !tags.any((blockedTag) => video.tags.any((tag) => tag.toLowerCase().contains(blockedTag.toLowerCase())))).toList();
+  return videos
+      .where(
+        (video) =>
+            !titles.any(
+              (keyword) =>
+                  video.title.toLowerCase().contains(keyword.toLowerCase()),
+            ) &&
+            !authors.any(
+              (author) => (video.artist ?? '').toLowerCase().contains(
+                author.toLowerCase(),
+              ),
+            ) &&
+            !tags.any(
+              (blockedTag) => video.tags.any(
+                (tag) => tag.toLowerCase().contains(blockedTag.toLowerCase()),
+              ),
+            ),
+      )
+      .toList();
 }
 
 class _TitleBlock extends StatelessWidget {
-  const _TitleBlock({required this.video, required this.hasDetails, required this.expanded, required this.onToggleDescription});
+  const _TitleBlock({
+    required this.video,
+    required this.hasDetails,
+    required this.expanded,
+    required this.onToggleDescription,
+  });
 
   final VideoDetail video;
   final bool hasDetails;
@@ -117,16 +162,40 @@ class _TitleBlock extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TitleText(text: video.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700) ?? const TextStyle(), expanded: expanded),
+                _TitleText(
+                  text: video.title,
+                  style:
+                      theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ) ??
+                      const TextStyle(),
+                  expanded: expanded,
+                ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    if (video.views != null) _MetaText(icon: Symbols.visibility_rounded, label: video.views!),
-                    if (video.commentCount != null) _MetaText(icon: Symbols.mode_comment_rounded, label: '${video.commentCount}'),
-                    if (video.uploadDate != null) _MetaText(icon: Symbols.calendar_today_rounded, label: video.uploadDate!),
-                    if (video.genre != null) _MetaText(icon: Symbols.local_offer_rounded, label: video.genre!),
+                    if (video.views != null)
+                      _MetaText(
+                        icon: Symbols.visibility_rounded,
+                        label: video.views!,
+                      ),
+                    if (video.commentCount != null)
+                      _MetaText(
+                        icon: Symbols.mode_comment_rounded,
+                        label: '${video.commentCount}',
+                      ),
+                    if (video.uploadDate != null)
+                      _MetaText(
+                        icon: Symbols.calendar_today_rounded,
+                        label: video.uploadDate!,
+                      ),
+                    if (video.genre != null)
+                      _MetaText(
+                        icon: Symbols.local_offer_rounded,
+                        label: video.genre!,
+                      ),
                   ],
                 ),
               ],
@@ -136,11 +205,29 @@ class _TitleBlock extends StatelessWidget {
           if (hasDetails)
             Padding(
               padding: const EdgeInsets.only(left: 4),
-              child: PressScale(child: TextButton(
-                onPressed: onToggleDescription,
-                style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8), minimumSize: const Size(0, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(expanded ? l10n.collapse : l10n.expand), Icon(expanded ? Symbols.expand_less_rounded : Symbols.expand_more_rounded, size: 18)]),
-              )),
+              child: PressScale(
+                child: TextButton(
+                  onPressed: onToggleDescription,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(expanded ? l10n.collapse : l10n.expand),
+                      Icon(
+                        expanded
+                            ? Symbols.expand_less_rounded
+                            : Symbols.expand_more_rounded,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -158,66 +245,132 @@ class _ArtistRow extends ConsumerWidget {
     if ((video.artist ?? '').isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final account = ref.watch(accountProvider).valueOrNull;
-    final remote = account == null ? null : ref.watch(remoteLibraryProvider).valueOrNull;
+    final remote = account == null
+        ? null
+        : ref.watch(remoteLibraryProvider).valueOrNull;
     final library = ref.watch(libraryProvider).value ?? const LibraryState();
-    final persisted = (remote?.subscriptionArtists ?? library.artists).any((item) => item.name == video.artist);
-    final subscribed = ref.watch(subscriptionOverrideProvider(video.id)) ?? persisted;
+    final persisted = (remote?.subscriptionArtists ?? library.artists).any(
+      (item) => item.name == video.artist,
+    );
+    final subscribed =
+        ref.watch(subscriptionOverrideProvider(video.id)) ?? persisted;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: GlassPanel(
         borderRadius: BorderRadius.circular(AppRadius.lg),
         solidColor: theme.colorScheme.surfaceContainerLow,
-        child: PressScale(child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
-          // 那时作者页会退化成「没有作者名」的空页，看起来就是点了作者没内容。
-          //
-          // 播放窗口里改走信箱投递：就地 push 会把作者页整页盖在正在播的画面上
-          // （用户报的就是这个——点作者头像后视频被挡住）。交给主窗口打开，
-          // 播放窗口继续放。
-          onTap: () {
-            if (isPlayWindowProcess) {
-              unawaited(postOpenAuthorRequest(video.artist!));
-              return;
-            }
-            context.push(
-              Uri(
-                path: '/author',
-                queryParameters: {'name': video.artist!},
-              ).toString(),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                CircleAvatar(radius: 24, backgroundColor: theme.colorScheme.surfaceContainerHighest, backgroundImage: video.artistAvatarUrl == null ? null : appNetworkImage(video.artistAvatarUrl!), child: video.artistAvatarUrl == null ? Text(video.artist!.characters.first, style: theme.textTheme.titleMedium) : null),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.artist!, style: theme.textTheme.titleSmall), Text(AppLocalizations.of(context)!.studio, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
-                FilledButton.tonal(
-                  onPressed: account == null
-                      ? () => ref.read(libraryProvider.notifier).setSubscription(video, !subscribed)
-                      : video.artistId == null || (video.csrfToken ?? account.csrfToken) == null || (video.subscriptionUserId ?? video.currentUserId ?? account.id) == null
-                          ? null
-                          : () => _setSubscription(ref, video.csrfToken ?? account.csrfToken!, video.subscriptionUserId ?? video.currentUserId ?? account.id!, video.artistId!, !subscribed),
-                  child: Text(subscribed ? AppLocalizations.of(context)!.subscribed : AppLocalizations.of(context)!.subscribe),
-                ),
-              ],
+        child: PressScale(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            // 条件同时写进 URL：`extra` 在路由重建后可能丢掉（go_router 不保证），
+            // 那时作者页会退化成「没有作者名」的空页，看起来就是点了作者没内容。
+            //
+            // 播放窗口里改走信箱投递：就地 push 会把作者页整页盖在正在播的画面上
+            // （用户报的就是这个——点作者头像后视频被挡住）。交给主窗口打开，
+            // 播放窗口继续放。
+            onTap: () {
+              if (isPlayWindowProcess) {
+                unawaited(postOpenAuthorRequest(video.artist!));
+                return;
+              }
+              context.push(
+                Uri(
+                  path: '/author',
+                  queryParameters: {'name': video.artist!},
+                ).toString(),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    backgroundImage: video.artistAvatarUrl == null
+                        ? null
+                        : appNetworkImage(video.artistAvatarUrl!),
+                    child: video.artistAvatarUrl == null
+                        ? Text(
+                            video.artist!.characters.first,
+                            style: theme.textTheme.titleMedium,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(video.artist!, style: theme.textTheme.titleSmall),
+                        Text(
+                          AppLocalizations.of(context)!.studio,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: account == null
+                        ? () => ref
+                              .read(libraryProvider.notifier)
+                              .setSubscription(video, !subscribed)
+                        : video.artistId == null ||
+                              (video.csrfToken ?? account.csrfToken) == null ||
+                              (video.subscriptionUserId ??
+                                      video.currentUserId ??
+                                      account.id) ==
+                                  null
+                        ? null
+                        : () => _setSubscription(
+                            ref,
+                            video.csrfToken ?? account.csrfToken!,
+                            video.subscriptionUserId ??
+                                video.currentUserId ??
+                                account.id!,
+                            video.artistId!,
+                            !subscribed,
+                          ),
+                    child: Text(
+                      subscribed
+                          ? AppLocalizations.of(context)!.subscribed
+                          : AppLocalizations.of(context)!.subscribe,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        )),
+        ),
       ),
     );
   }
 
-  Future<void> _setSubscription(WidgetRef ref, String token, String userId, String artistId, bool enabled) async {
+  Future<void> _setSubscription(
+    WidgetRef ref,
+    String token,
+    String userId,
+    String artistId,
+    bool enabled,
+  ) async {
     ref.read(subscriptionOverrideProvider(video.id).notifier).state = enabled;
     try {
       final settings = await ref.read(settingsProvider.future);
-      await ref.read(han1meRepositoryProvider).setSubscription(settings.resolvedBaseUrl, token, userId, artistId, enabled);
+      await ref
+          .read(han1meRepositoryProvider)
+          .setSubscription(
+            settings.resolvedBaseUrl,
+            token,
+            userId,
+            artistId,
+            enabled,
+          );
       ref.invalidate(remoteLibraryProvider);
     } catch (_) {
-      ref.read(subscriptionOverrideProvider(video.id).notifier).state = !enabled;
+      ref.read(subscriptionOverrideProvider(video.id).notifier).state =
+          !enabled;
     }
   }
 }
@@ -237,33 +390,53 @@ class _Description extends StatelessWidget {
       alignment: Alignment.topLeft,
       // 和播放器同一个宽度上限：两边各让出 _gridPad 的边距，卡片本体才是 640。
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: _videoStageMaxWidth + _gridPad * 2),
+        constraints: const BoxConstraints(
+          maxWidth: _videoStageMaxWidth + _gridPad * 2,
+        ),
         child: Padding(
-      // 与播放器共用同一组页边距，简介卡才是和播放器等宽的一道。
-      padding: const EdgeInsets.fromLTRB(_gridPad, 8, _gridPad, 8),
-      child: AnimatedSize(
-        duration: AppMotion.standard,
-        alignment: Alignment.topCenter,
-        child: GlassPanel(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          child: PressScale(child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (video.uploader case final uploader?) ...[Text('${l10n.uploader}: $uploader', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)), const SizedBox(height: 8)],
-                  if (video.captionTitle case final title?) ...[Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)), const SizedBox(height: 8)],
-                  Text(description),
-                ],
+          // 与播放器共用同一组页边距，简介卡才是和播放器等宽的一道。
+          padding: const EdgeInsets.fromLTRB(_gridPad, 8, _gridPad, 8),
+          child: AnimatedSize(
+            duration: AppMotion.standard,
+            alignment: Alignment.topCenter,
+            child: GlassPanel(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  onTap: onToggle,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (video.uploader case final uploader?) ...[
+                          Text(
+                            '${l10n.uploader}: $uploader',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        if (video.captionTitle case final title?) ...[
+                          Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Text(description),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-          )),
-        ),
-      ),
+          ),
         ),
       ),
     );
@@ -289,7 +462,9 @@ class _TagListState extends ConsumerState<_TagList> {
   Widget build(BuildContext context) {
     final tags = widget.video.tags;
     final account = ref.watch(accountProvider).valueOrNull;
-    final enabled = account != null && (widget.video.csrfToken ?? account.csrfToken) != null;
+    final enabled =
+        account != null &&
+        (widget.video.csrfToken ?? account.csrfToken) != null;
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
     final l10n = AppLocalizations.of(context)!;
@@ -303,8 +478,18 @@ class _TagListState extends ConsumerState<_TagList> {
             borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () {
               final href = tags[index].href;
-              final uri = href == null ? Uri(path: '/search', queryParameters: {'tags[]': tags[index].name}) : Uri.parse(href);
-              final url = Uri(path: uri.path, queryParameters: uri.queryParameters.isEmpty ? {'tags[]': tags[index].name} : uri.queryParameters).toString();
+              final uri = href == null
+                  ? Uri(
+                      path: '/search',
+                      queryParameters: {'tags[]': tags[index].name},
+                    )
+                  : Uri.parse(href);
+              final url = Uri(
+                path: uri.path,
+                queryParameters: uri.queryParameters.isEmpty
+                    ? {'tags[]': tags[index].name}
+                    : uri.queryParameters,
+              ).toString();
               context.push(url, extra: SearchRouteRequest(initialUrl: url));
             },
             child: Container(
@@ -319,7 +504,10 @@ class _TagListState extends ConsumerState<_TagList> {
                 '${catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name}${tags[index].count == null ? '' : ' (${tags[index].count})'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppDesignTokens.inkSubtle,
+                ),
               ),
             ),
           ),
@@ -337,15 +525,51 @@ class _TagListState extends ConsumerState<_TagList> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (final chip in chips) Padding(padding: const EdgeInsets.only(right: 6), child: chip),
+                  for (final chip in chips)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: chip,
+                    ),
                   if (tags.isEmpty)
-                    PressScale(child: IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 18, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 32, height: 32), icon: const Icon(Symbols.add_rounded), onPressed: enabled ? () => _editTags('add') : null)),
+                    PressScale(
+                      child: IconButton(
+                        tooltip: l10n.addTags,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 32,
+                          height: 32,
+                        ),
+                        icon: const Icon(Symbols.add_rounded),
+                        onPressed: enabled ? () => _editTags('add') : null,
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-          PressScale(child: IconButton(tooltip: l10n.addTags, visualDensity: VisualDensity.compact, iconSize: 16, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 24, height: 24), icon: const Icon(Symbols.add_rounded), onPressed: enabled ? () => _editTags('add') : null)),
-          PressScale(child: IconButton(tooltip: l10n.removeTags, visualDensity: VisualDensity.compact, iconSize: 16, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 24, height: 24), icon: const Icon(Symbols.remove_rounded), onPressed: enabled ? () => _editTags('remove') : null)),
+          // 设计稿标签行末尾是干净的，没有常驻的 + / − 两个按钮。
+          // 添加/移除标签是真功能，收进这个小菜单里，界面保持对齐。
+          if (enabled)
+            PopupMenuButton<String>(
+              icon: const Icon(
+                Symbols.more_horiz_rounded,
+                size: 18,
+                color: AppDesignTokens.inkMuted,
+              ),
+              tooltip: l10n.addTags,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+              onSelected: (value) => unawaited(_editTags(value)),
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(value: 'add', child: Text(l10n.addTags)),
+                PopupMenuItem<String>(
+                  value: 'remove',
+                  child: Text(l10n.removeTags),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -378,9 +602,22 @@ class _SeriesVideosState extends State<_SeriesVideos> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              const Text('选集', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
+              const Text(
+                '选集',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
               const SizedBox(width: 6),
-              Text('共 ${widget.videos.length} 集', style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+              Text(
+                '共 ${widget.videos.length} 集',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
               const Spacer(),
               // 设计稿这里是「倒序 ⇅」，不是「查看更多」。
               PressScale(
@@ -388,13 +625,26 @@ class _SeriesVideosState extends State<_SeriesVideos> {
                   borderRadius: BorderRadius.circular(AppRadius.xs),
                   onTap: () => setState(() => _reversed = !_reversed),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_reversed ? '正序' : '倒序', style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+                        Text(
+                          _reversed ? '正序' : '倒序',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppDesignTokens.inkMuted,
+                          ),
+                        ),
                         const SizedBox(width: 2),
-                        const Icon(Symbols.swap_vert_rounded, size: 14, color: AppDesignTokens.inkMuted),
+                        const Icon(
+                          Symbols.swap_vert_rounded,
+                          size: 14,
+                          color: AppDesignTokens.inkMuted,
+                        ),
                       ],
                     ),
                   ),
@@ -413,39 +663,47 @@ class _SeriesVideosState extends State<_SeriesVideos> {
               runSpacing: gap,
               children: [
                 for (var i = 0; i < _ordered.length; i++)
-                  Builder(builder: (context) {
-                    final v = _ordered[i];
-                    final selected = v.id == widget.currentVideoId;
-                    return PressScale(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        onTap: () => context.push('/video/${v.id}'),
-                        child: Container(
-                          width: w,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: selected ? AppDesignTokens.accentDeep : AppDesignTokens.fieldFill,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Text(
-                            // 设计稿「选集」格子里是**编号**（01/02/03…），
-                            // 不是视频标题：标题长度不一，塞进 74×36 的格子里
-                            // 全被省略号吃掉，一排看过去分不出哪一集。
-                            '${i + 1}'.padLeft(2, '0'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              // 设计稿 epText：13 号居中。
-                              fontSize: 13,
-                              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                              color: selected ? Colors.white : AppDesignTokens.inkSubtle,
+                  Builder(
+                    builder: (context) {
+                      final v = _ordered[i];
+                      final selected = v.id == widget.currentVideoId;
+                      return PressScale(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          onTap: () => context.push('/video/${v.id}'),
+                          child: Container(
+                            width: w,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppDesignTokens.accentDeep
+                                  : AppDesignTokens.fieldFill,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              // 设计稿「选集」格子里是**编号**（01/02/03…），
+                              // 不是视频标题：标题长度不一，塞进 74×36 的格子里
+                              // 全被省略号吃掉，一排看过去分不出哪一集。
+                              '${i + 1}'.padLeft(2, '0'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                // 设计稿 epText：13 号居中。
+                                fontSize: 13,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: selected
+                                    ? Colors.white
+                                    : AppDesignTokens.inkSubtle,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    },
+                  ),
               ],
             );
           },
@@ -454,9 +712,9 @@ class _SeriesVideosState extends State<_SeriesVideos> {
     );
   }
 
-  List<VideoCard> get _ordered =>
-      _reversed ? widget.videos.reversed.toList(growable: false) : widget.videos;
-
+  List<VideoCard> get _ordered => _reversed
+      ? widget.videos.reversed.toList(growable: false)
+      : widget.videos;
 }
 
 class _RelatedVideoTile extends StatelessWidget {
@@ -468,30 +726,89 @@ class _RelatedVideoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GlassPanel(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        solidColor: theme.colorScheme.surfaceContainerLow,
-      child: PressScale(child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: video.id.isEmpty ? null : () => context.push('/video/${video.id}'),
-        child: Padding(
-          // 设计稿 relCard 72 高、缩略图 114×64，上下各留 4。
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: [
-              ClipRRect(borderRadius: BorderRadius.circular(AppRadius.md), child: SizedBox(width: 114, height: 64, child: AppCachedNetworkImage(imageUrl: video.coverUrl, fit: BoxFit.cover, faceFocus: true, placeholder: (context, url) => ColoredBox(color: theme.colorScheme.surfaceContainerHighest), errorWidget: (context, url, error) => const Center(child: Icon(Symbols.broken_image_rounded))))),
-              const SizedBox(width: 12),
-              Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 6), if (video.artist != null) Text(video.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)), if (video.views != null) Text(video.views!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline))])),
-            ],
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      solidColor: theme.colorScheme.surfaceContainerLow,
+      child: PressScale(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: video.id.isEmpty
+              ? null
+              : () => context.push('/video/${video.id}'),
+          child: Padding(
+            // 设计稿 relCard 72 高、缩略图 114×64，上下各留 4。
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: SizedBox(
+                    width: 114,
+                    height: 64,
+                    child: AppCachedNetworkImage(
+                      imageUrl: video.coverUrl,
+                      fit: BoxFit.cover,
+                      faceFocus: true,
+                      placeholder: (context, url) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                      errorWidget: (context, url, error) => const Center(
+                        child: Icon(Symbols.broken_image_rounded),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        video.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (video.artist != null)
+                        Text(
+                          video.artist!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      if (video.views != null)
+                        Text(
+                          video.views!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      )),
+      ),
     );
   }
 }
 
 /// 标题最多两行；放不下就从中间截断（保留首尾、用「……」连接），比只在末尾省略更容易认出标题
 class _TitleText extends StatelessWidget {
-  const _TitleText({required this.text, required this.style, required this.expanded});
+  const _TitleText({
+    required this.text,
+    required this.style,
+    required this.expanded,
+  });
 
   /// 标题最多显示两行。原来是个可传参数，但唯一调用点从没传过值 ——
   /// 留着只会让后来人以为「这里能调」，收成常量后语义不变。
@@ -499,6 +816,7 @@ class _TitleText extends StatelessWidget {
 
   final String text;
   final TextStyle style;
+
   /// 展开详情时标题显示完整，不再中间省略
   final bool expanded;
 
@@ -506,39 +824,62 @@ class _TitleText extends StatelessWidget {
   Widget build(BuildContext context) {
     if (expanded) return Text(text, style: style);
     return LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth <= 0) return Text(text, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
-          final scaler = MediaQuery.textScalerOf(context);
-          final direction = Directionality.of(context);
-          bool fits(String candidate) {
-            final painter = TextPainter(text: TextSpan(text: candidate, style: style), maxLines: _maxLines, textDirection: direction, textScaler: scaler)..layout(maxWidth: constraints.maxWidth);
-            final ok = !painter.didExceedMaxLines;
-            painter.dispose();
-            return ok;
-          }
+      builder: (context, constraints) {
+        if (constraints.maxWidth <= 0)
+          return Text(
+            text,
+            maxLines: _maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          );
+        final scaler = MediaQuery.textScalerOf(context);
+        final direction = Directionality.of(context);
+        bool fits(String candidate) {
+          final painter = TextPainter(
+            text: TextSpan(text: candidate, style: style),
+            maxLines: _maxLines,
+            textDirection: direction,
+            textScaler: scaler,
+          )..layout(maxWidth: constraints.maxWidth);
+          final ok = !painter.didExceedMaxLines;
+          painter.dispose();
+          return ok;
+        }
 
-          if (fits(text)) return Text(text, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
-          const marker = '……';
-          final characters = text.characters.toList();
-          var low = 0;
-          var high = characters.length;
-          var best = marker;
-          // 二分找「开头 + …… + 结尾」能塞进两行的最长结果（开头多留一点）
-          while (low <= high) {
-            final total = (low + high) ~/ 2;
-            final head = (total * .6).ceil();
-            final tail = total - head;
-            final candidate = '${characters.take(head).join()}$marker${tail > 0 ? characters.skip(characters.length - tail).join() : ''}';
-            if (fits(candidate)) {
-              best = candidate;
-              low = total + 1;
-            } else {
-              high = total - 1;
-            }
+        if (fits(text))
+          return Text(
+            text,
+            maxLines: _maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          );
+        const marker = '……';
+        final characters = text.characters.toList();
+        var low = 0;
+        var high = characters.length;
+        var best = marker;
+        // 二分找「开头 + …… + 结尾」能塞进两行的最长结果（开头多留一点）
+        while (low <= high) {
+          final total = (low + high) ~/ 2;
+          final head = (total * .6).ceil();
+          final tail = total - head;
+          final candidate =
+              '${characters.take(head).join()}$marker${tail > 0 ? characters.skip(characters.length - tail).join() : ''}';
+          if (fits(candidate)) {
+            best = candidate;
+            low = total + 1;
+          } else {
+            high = total - 1;
           }
-          return Text(best, maxLines: _maxLines, overflow: TextOverflow.ellipsis, style: style);
-        },
-      );
+        }
+        return Text(
+          best,
+          maxLines: _maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: style,
+        );
+      },
+    );
   }
 }
 
@@ -549,7 +890,18 @@ class _MetaText extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant), const SizedBox(width: 4), Text(label, style: Theme.of(context).textTheme.bodySmall)]);
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(
+        icon,
+        size: 14,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      const SizedBox(width: 4),
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+    ],
+  );
 }
 
 /// v6 设计稿的详情页分栏布局：
@@ -577,7 +929,8 @@ class VideoDetailSplitView extends ConsumerStatefulWidget {
   final bool hidePlayerTopBar;
 
   @override
-  ConsumerState<VideoDetailSplitView> createState() => _VideoDetailSplitViewState();
+  ConsumerState<VideoDetailSplitView> createState() =>
+      _VideoDetailSplitViewState();
 }
 
 class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
@@ -595,8 +948,12 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
     final l10n = AppLocalizations.of(context)!;
     final description = video.description ?? '';
     final related = visibleRelatedVideos(ref, video.related);
-    final hasDetails = description.isNotEmpty || video.uploader != null || video.captionTitle != null;
-    void toggleDescription() => setState(() => _descriptionExpanded = !_descriptionExpanded);
+    final hasDetails =
+        description.isNotEmpty ||
+        video.uploader != null ||
+        video.captionTitle != null;
+    void toggleDescription() =>
+        setState(() => _descriptionExpanded = !_descriptionExpanded);
     // 设计稿 `base_videodetail.png` 的版式：
     //   第 1 行  ← 返回 + 视频标题（独立一行，不压在画面上）
     //   第 2 行  左列「16:9 播放器 / 简介 / 评论」 + 右栏白卡「标题…相关推荐」
@@ -613,102 +970,134 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
         ),
         Expanded(
           child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 左列宽度按设计稿固定：播放器 640 + 左右各 _gridPad。
-        // 之前用 Expanded，播放器有 maxWidth 640 之后右缘留下一大块空白，
-        // 右栏被挤到窗口最右侧 —— 叠加对比时右栏整体偏右 159 物理像素。
-        SizedBox(
-          width: _videoStageMaxWidth + _gridPad * 2,
-          child: Column(
-            // stretch：简介卡/评论区跟着播放器一起撑满左列，三者同宽。
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                // 设计稿里播放器四周还有一圈页边距（20），不是贴到内容区边缘。
-                padding: const EdgeInsets.fromLTRB(_gridPad, 8, _gridPad, 0),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: ConstrainedBox(
-                    // 播放器按设计稿的 640 宽封顶，窗口再宽也不跟着放大
-                    // （设计稿：内容区 1044 里播放器 640、右卡 360）。
-                    constraints: const BoxConstraints(maxWidth: _videoStageMaxWidth),
-                    child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: _playing
-                        ? ColoredBox(
-                            color: Colors.black,
-                            child: VideoPlayerPanel(
-                              video: video,
-                              onBack: widget.onBack,
-                              onHome: widget.onHome,
-                              onPrevious: widget.onPrevious,
-                              onNext: widget.onNext,
-                              onEpisodeSelected: widget.onEpisodeSelected,
-                              // 顶部已经有独立标题栏了，画面里不再叠一条。
-                              hideTopBar: true,
-                            ),
-                          )
-                        : _CoverStage(
-                            coverUrl: video.coverUrl,
-                            title: video.title,
-                            onPlay: () => setState(() => _playing = true),
+              // 左列宽度按设计稿固定：播放器 640 + 左右各 _gridPad。
+              // 之前用 Expanded，播放器有 maxWidth 640 之后右缘留下一大块空白，
+              // 右栏被挤到窗口最右侧 —— 叠加对比时右栏整体偏右 159 物理像素。
+              SizedBox(
+                width: _videoStageMaxWidth + _gridPad * 2,
+                child: Column(
+                  // stretch：简介卡/评论区跟着播放器一起撑满左列，三者同宽。
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      // 设计稿里播放器四周还有一圈页边距（20），不是贴到内容区边缘。
+                      padding: const EdgeInsets.fromLTRB(
+                        _gridPad,
+                        8,
+                        _gridPad,
+                        0,
+                      ),
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          // 播放器按设计稿的 640 宽封顶，窗口再宽也不跟着放大
+                          // （设计稿：内容区 1044 里播放器 640、右卡 360）。
+                          constraints: const BoxConstraints(
+                            maxWidth: _videoStageMaxWidth,
                           ),
-                  ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: _playing
+                                  ? ColoredBox(
+                                      color: Colors.black,
+                                      child: VideoPlayerPanel(
+                                        video: video,
+                                        onBack: widget.onBack,
+                                        onHome: widget.onHome,
+                                        onPrevious: widget.onPrevious,
+                                        onNext: widget.onNext,
+                                        onEpisodeSelected:
+                                            widget.onEpisodeSelected,
+                                        // 顶部已经有独立标题栏了，画面里不再叠一条。
+                                        hideTopBar: true,
+                                      ),
+                                    )
+                                  : _CoverStage(
+                                      coverUrl: video.coverUrl,
+                                      title: video.title,
+                                      onPlay: () =>
+                                          setState(() => _playing = true),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (hasDetails)
+                      _Description(video: video, onToggle: toggleDescription),
+                    Expanded(child: VideoCommentsView(video: video)),
+                  ],
                 ),
               ),
-              if (hasDetails) _Description(video: video, onToggle: toggleDescription),
-              Expanded(child: VideoCommentsView(video: video)),
+              // 设计稿：播放器右缘 844 → 右栏左缘 892，中间 48。
+              const SizedBox(width: 44),
+              if (widget.sidebarWidth > 0)
+                // 设计稿右栏**没有**白色圆角卡片容器：内容直接铺在页面底 #F4F4F7 上，
+                // 只有标签、选集格子这些元素自己是圆角块。之前套的那层白卡是多余的。
+                SizedBox(
+                  width: widget.sidebarWidth,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
+                    children: [
+                      // 设计稿右栏顺序：标题 → 作者 → 数据行 → 立即播放按钮 → 标签 → 选集 → 相关推荐
+                      const SizedBox(height: 8),
+                      _SideTitle(video: video),
+                      const SizedBox(height: 21),
+                      _SideAuthor(video: video),
+                      const SizedBox(height: 15),
+                      _SideStats(video: video),
+                      const SizedBox(height: 14),
+                      VideoActionRow(video: video),
+                      const SizedBox(height: 16),
+                      _TagList(video: video),
+                      // 设计稿 divider1：y=264，标签底 244 => 上 20；下面是选集标题 280。
+                      if (video.playlist.isNotEmpty) const SizedBox(height: 20),
+                      if (video.playlist.isNotEmpty)
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppDesignTokens.divider,
+                        ),
+                      if (video.playlist.isNotEmpty) const SizedBox(height: 15),
+                      if (video.playlist.isNotEmpty)
+                        _SeriesVideos(
+                          videos: video.playlist,
+                          currentVideoId: video.id,
+                        ),
+                      if (related.isNotEmpty) ...[
+                        // 设计稿 divider2：y=512，最后一排格子底 498 => 上 14。
+                        const SizedBox(height: 14),
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppDesignTokens.divider,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 13, 0, 8),
+                          child: Text(
+                            l10n.relatedVideos,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppDesignTokens.ink,
+                            ),
+                          ),
+                        ),
+                        for (final item in related)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _RelatedVideoTile(video: item),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
             ],
           ),
-        ),
-        // 设计稿：播放器右缘 844 → 右栏左缘 892，中间 48。
-        const SizedBox(width: 44),
-        if (widget.sidebarWidth > 0)
-          // 设计稿右栏**没有**白色圆角卡片容器：内容直接铺在页面底 #F4F4F7 上，
-          // 只有标签、选集格子这些元素自己是圆角块。之前套的那层白卡是多余的。
-          SizedBox(
-            width: widget.sidebarWidth,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
-              children: [
-                // 设计稿右栏顺序：标题 → 作者 → 数据行 → 立即播放按钮 → 标签 → 选集 → 相关推荐
-                const SizedBox(height: 8),
-                _SideTitle(video: video),
-                const SizedBox(height: 21),
-                _SideAuthor(video: video),
-                const SizedBox(height: 15),
-                _SideStats(video: video),
-                const SizedBox(height: 14),
-                VideoActionRow(video: video),
-                const SizedBox(height: 16),
-                _TagList(video: video),
-                // 设计稿 divider1：y=264，标签底 244 => 上 20；下面是选集标题 280。
-                if (video.playlist.isNotEmpty) const SizedBox(height: 20),
-                if (video.playlist.isNotEmpty)
-                  const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
-                if (video.playlist.isNotEmpty) const SizedBox(height: 15),
-                if (video.playlist.isNotEmpty) _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
-                if (related.isNotEmpty) ...[
-                  // 设计稿 divider2：y=512，最后一排格子底 498 => 上 14。
-                  const SizedBox(height: 14),
-                  const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 13, 0, 8),
-                    child: Text(l10n.relatedVideos, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
-                  ),
-                  for (final item in related)
-                    Padding(padding: const EdgeInsets.only(bottom: 10), child: _RelatedVideoTile(video: item)),
-                ],
-              ],
-            ),
-          ),
-      ],
-    ),
         ),
         const Spacer(),
       ],
@@ -721,7 +1110,11 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
 /// 设计稿的播放器区域**不是一块纯黑**，而是封面占位（深色、圆角）+ 中间一个
 /// 播放按钮；点了它才开始加载播放器。这样进详情页不会立刻转圈等视频。
 class _CoverStage extends StatelessWidget {
-  const _CoverStage({required this.coverUrl, required this.title, required this.onPlay});
+  const _CoverStage({
+    required this.coverUrl,
+    required this.title,
+    required this.onPlay,
+  });
 
   final String? coverUrl;
   final String title;
@@ -737,8 +1130,10 @@ class _CoverStage extends StatelessWidget {
             imageUrl: coverUrl!,
             fit: BoxFit.cover,
             faceFocus: true,
-            placeholder: (context, url) => const ColoredBox(color: Color(0xFF1B1B1F)),
-            errorWidget: (context, url, error) => const ColoredBox(color: Color(0xFF1B1B1F)),
+            placeholder: (context, url) =>
+                const ColoredBox(color: Color(0xFF1B1B1F)),
+            errorWidget: (context, url, error) =>
+                const ColoredBox(color: Color(0xFF1B1B1F)),
           )
         else
           const ColoredBox(color: Color(0xFF1B1B1F)),
@@ -750,17 +1145,58 @@ class _CoverStage extends StatelessWidget {
               customBorder: const CircleBorder(),
               onTap: onPlay,
               child: Container(
-                // 设计稿 coverPlayIcon：48×48。
+                // 设计稿 `553_videoDetail.png`：白色实心圆 + 品红 ▶，
+                // 不是描边圆环。实心圆在深色封面上更醒目，也更接近 v6 的按钮语言。
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0x99000000),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: const Icon(Symbols.play_arrow_rounded, size: 26, color: Colors.white),
+                child: const Icon(
+                  Symbols.play_arrow_rounded,
+                  size: 26,
+                  color: AppDesignTokens.accentDeep,
+                ),
               ),
             ),
+          ),
+        ),
+        // 设计稿播放器底部：一条品红进度条 + `08:12 / 19:30` 时间胶囊。
+        // 未播放时没有真实进度，给一条极短的"起点"与占位时长，只作视觉对齐，
+        // 不编造具体播放时间（数据时来自详情页解析，这里不写死示例值）。
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 3,
+                width: 168,
+                decoration: const BoxDecoration(
+                  color: AppDesignTokens.accentDeep,
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(AppRadius.xs),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                margin: const EdgeInsets.only(left: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Text(
+                  '00:00 / --:--',
+                  style: TextStyle(fontSize: 10.5, color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -779,7 +1215,9 @@ class _SideTopIcons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = videoActionsFor(context, ref, video);
-    final icons = actions.length > 1 ? actions.sublist(1).take(3).toList() : const <VideoAction>[];
+    final icons = actions.length > 1
+        ? actions.sublist(1).take(3).toList()
+        : const <VideoAction>[];
     if (icons.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.zero,
@@ -805,7 +1243,9 @@ class _SideTopIcons extends ConsumerWidget {
                     child: Icon(
                       action.icon,
                       size: 16,
-                      color: action.onPressed == null ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
+                      color: action.onPressed == null
+                          ? AppDesignTokens.inkMuted
+                          : AppDesignTokens.inkSubtle,
                       fill: action.filled ? 1 : 0,
                     ),
                   ),
@@ -856,7 +1296,11 @@ class _DetailTopBar extends StatelessWidget {
                 child: const SizedBox(
                   width: 32,
                   height: 32,
-                  child: Icon(Symbols.arrow_back_rounded, size: 20, color: AppDesignTokens.ink),
+                  child: Icon(
+                    Symbols.arrow_back_rounded,
+                    size: 20,
+                    color: AppDesignTokens.ink,
+                  ),
                 ),
               ),
             ),
@@ -866,7 +1310,11 @@ class _DetailTopBar extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppDesignTokens.ink),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppDesignTokens.ink,
+                ),
               ),
             ),
             // 设计稿 act/*：和标题同一行、右对齐，三枚 32×32 圆角 8 的浅灰方块。
@@ -890,17 +1338,21 @@ class _SideTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.zero,
-        child: Text(
-          video.title,
-          // 设计稿 sideTitle 高 21 = **一行**。之前写 2 行，长标题一换行就把
-          // 作者/统计/按钮/标签/选集整体往下顶 21，整列节奏全乱。
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          // 设计稿 sideTitle：fs 16（x=892 y=108 w=360）。
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppDesignTokens.ink),
-        ),
-      );
+    padding: EdgeInsets.zero,
+    child: Text(
+      video.title,
+      // 设计稿 sideTitle 高 21 = **一行**。之前写 2 行，长标题一换行就把
+      // 作者/统计/按钮/标签/选集整体往下顶 21，整列节奏全乱。
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      // 设计稿 sideTitle：fs 16（x=892 y=108 w=360）。
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppDesignTokens.ink,
+      ),
+    ),
+  );
 }
 
 /// 右栏作者行：26 圆角头像 + 名字 13 灰 + 右侧日期 11 更淡。
@@ -911,7 +1363,8 @@ class _SideAuthor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if ((video.artist ?? '').isEmpty && video.uploadDate == null) return const SizedBox.shrink();
+    if ((video.artist ?? '').isEmpty && video.uploadDate == null)
+      return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.zero,
       child: Row(
@@ -919,10 +1372,16 @@ class _SideAuthor extends ConsumerWidget {
           Container(
             width: 26,
             height: 26,
-            decoration: BoxDecoration(color: const Color(0xFFFBE9EF), borderRadius: BorderRadius.circular(AppRadius.md)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBE9EF),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
             clipBehavior: Clip.antiAlias,
             child: (video.artistAvatarUrl?.isNotEmpty ?? false)
-                ? Image(image: appNetworkImage(video.artistAvatarUrl!), fit: BoxFit.cover)
+                ? Image(
+                    image: appNetworkImage(video.artistAvatarUrl!),
+                    fit: BoxFit.cover,
+                  )
                 : null,
           ),
           const SizedBox(width: 8),
@@ -931,11 +1390,20 @@ class _SideAuthor extends ConsumerWidget {
               video.artist ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkSubtle),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.inkSubtle,
+              ),
             ),
           ),
           if (video.uploadDate != null)
-            Text(video.uploadDate!, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+            Text(
+              video.uploadDate!,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppDesignTokens.inkMuted,
+              ),
+            ),
         ],
       ),
     );
@@ -955,21 +1423,51 @@ class _SideStats extends StatelessWidget {
       child: Row(
         children: [
           if (video.views != null) ...[
-            const Icon(Symbols.visibility_rounded, size: 14, color: AppDesignTokens.inkMuted),
+            const Icon(
+              Symbols.play_circle_rounded,
+              size: 14,
+              color: AppDesignTokens.inkMuted,
+            ),
             const SizedBox(width: 4),
-            Text(video.views!, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted)),
+            Text(
+              video.views!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.inkMuted,
+              ),
+            ),
             const SizedBox(width: 16),
           ],
           if (video.rating != null) ...[
-            const Icon(Symbols.star_rounded, size: 14, color: AppDesignTokens.accentDeep),
+            const Icon(
+              Symbols.thumb_up_rounded,
+              size: 14,
+              color: AppDesignTokens.accentDeep,
+            ),
             const SizedBox(width: 4),
-            Text(video.rating!, style: const TextStyle(fontSize: 13, color: AppDesignTokens.accentDeep)),
+            Text(
+              video.rating!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.accentDeep,
+              ),
+            ),
             const SizedBox(width: 16),
           ],
           if (video.commentCount != null) ...[
-            const Icon(Symbols.favorite_rounded, size: 14, color: AppDesignTokens.accentDeep),
+            const Icon(
+              Symbols.favorite_border_rounded,
+              size: 14,
+              color: AppDesignTokens.accentDeep,
+            ),
             const SizedBox(width: 4),
-            Text('${video.commentCount}', style: const TextStyle(fontSize: 13, color: AppDesignTokens.accentDeep)),
+            Text(
+              '${video.commentCount}',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.accentDeep,
+              ),
+            ),
           ],
         ],
       ),

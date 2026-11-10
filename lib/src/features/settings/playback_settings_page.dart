@@ -64,7 +64,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
           // 那些说明文字设计稿放在**页面最底下的注释行**，不是每行都写。
           SettingsCardList(
             // 播放页设计稿每行 **44**（分隔线 166/210/254…），比主题页的 40 松 4。
-            rowPadding: 4,
+            rowPadding: 3,
             children: [
               SettingsCardItem(
                 title: l10n.playerSettings,
@@ -168,7 +168,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
           ),
           SettingsCardList(
             title: '窗口',
-            rowPadding: 4,
+            rowPadding: 3,
             children: [
               // 设计稿第二张卡是「窗口」组，右侧显示「已开启 / 关闭 >」而不是开关。
               // 这里用现有的 `openVideoInWindow`（独立播放窗口）——

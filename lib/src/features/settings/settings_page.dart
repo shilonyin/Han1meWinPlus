@@ -26,12 +26,24 @@ import '../shared/app_top_bar.dart';
 
 /// One entry in the settings navigation, used by both layouts.
 class _SettingsEntry {
-  const _SettingsEntry(this.icon, this.label, this.page, this.route);
+  const _SettingsEntry(
+    this.icon,
+    this.label,
+    this.page,
+    this.route, {
+    this.trailing,
+  });
 
   final IconData icon;
   final String label;
   final Widget page;
   final String route;
+
+  /// 页头标题行右侧的页面专属控件（例如日志页的「复制全部日志」按钮）。
+  ///
+  /// 分栏模式的标题行由 `_SettingsPanes` 统一画；子页自己再画一行按钮的话，
+  /// 按钮会掉到标题下方、和标题不在同一行。把按钮交给外层页头即可对齐。
+  final Widget? trailing;
 }
 
 /// 各设置分类的页头副标题：**与标题同一行、排在标题右侧**的灰字
@@ -152,6 +164,8 @@ List<(String, List<_SettingsEntry>)> _settingsSections(AppLocalizations l10n) =>
             l10n.logs,
             const LogSettingsPage(),
             '/settings/logs',
+            // 设计稿：标题「日志 运行环境与调试信息」与「复制全部日志」同一行。
+            trailing: const CopyLogsButton(),
           ),
           _SettingsEntry(
             Symbols.info_rounded,
@@ -385,6 +399,11 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                               ),
                             ),
                           ],
+                          // 页面专属控件推到最右，与标题同一行。
+                          if (selected.trailing != null) ...[
+                            const Spacer(),
+                            selected.trailing!,
+                          ],
                         ],
                       ),
                     ),
@@ -432,6 +451,12 @@ class _NavItemState extends State<_NavItem> {
     final accent = AppDesignTokens.accentOf(context);
     final foreground = highlighted ? accent : AppDesignTokens.inkSubtle;
     return MouseRegion(
+      // 命中测试按**整行的原始矩形**做，不受子级缩放影响。
+      // 按下时整行会缩到 .96，若命中区跟着缩，鼠标停在边缘就会
+      // 「离开 → 进入」反复触发，文字跟着闪 —— 这也是
+      // `PressScale` 里把 `transformHitTests` 关掉的原因。
+      opaque: true,
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: PressScale(
@@ -544,6 +569,8 @@ class _SettingsCategoryList extends ConsumerWidget {
           for (final section in sections)
             SettingsSection(
               title: sectionTitle(section.$1),
+              // 与宽窗的设置页一致：行高 42（36 + 3 × 2）。
+              rowPadding: 3,
               tiles: [
                 for (final entry in section.$2)
                   SettingsTile.navigation(

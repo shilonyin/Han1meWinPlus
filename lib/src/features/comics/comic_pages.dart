@@ -507,10 +507,12 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
       ),
     );
     if (favorite == null) return;
-    if (favorite)
+    if (favorite) {
       await ref.read(comicLibraryProvider.notifier).setFavorite(card, true);
-    if (!favorite)
+    }
+    if (!favorite) {
       await ref.read(comicLibraryProvider.notifier).setWatchLater(card, true);
+    }
   }
 
   Future<void> _cache(ComicDetail comic) async {
@@ -543,15 +545,17 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
       await ref
           .read(comicCacheProvider.notifier)
           .cache(comic, category: category);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.completed)));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$error')));
+      }
     }
   }
 
@@ -664,11 +668,12 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
   Widget build(BuildContext context) {
     final comic = widget.comic;
     final long = _mode >= 4;
-    if (!_ready)
+    if (!_ready) {
       return Scaffold(
         backgroundColor: _background,
         body: const Center(child: M3EContainedLoadingIndicator()),
       );
+    }
     return Scaffold(
       backgroundColor: _background,
       body: Listener(
@@ -1173,10 +1178,11 @@ class _ComicCachePageState extends ConsumerState<ComicCachePage> {
       );
       context.push('/comics/${entry.id}/read', extra: comic);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$error')));
+      }
     }
   }
 

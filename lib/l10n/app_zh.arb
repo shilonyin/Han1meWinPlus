@@ -208,7 +208,7 @@
   "library": "收藏",
   "cache": "缓存",
   "storage": "存储",
-  "clearCache": "清理缓存",
+  "clearCache": "清除缓存",
   "clearCacheDescription": "清除封面图片与列表信息的缓存，下载内容与观看记录不受影响",
   "cacheUsage": "当前占用 {size}",
   "@cacheUsage": {"placeholders": {"size": {"type": "String"}}},
@@ -221,6 +221,8 @@
   "@logsUsage": {"placeholders": {"size": {"type": "String"}, "count": {"type": "int"}}},
   "logFiles": "日志文件",
   "exportLogs": "导出日志",
+  "copyAllLogs": "复制全部日志",
+  "copiedAllLogs": "已复制全部日志",
   "openLogsFolder": "打开日志文件夹",
   "clearLogs": "清空日志",
   "clearLogsDescription": "删除全部日志文件，不影响设置与下载内容",
@@ -940,5 +942,7 @@
   "castLoading": "正在载入投屏内容…",
   "castDisconnect": "断开投屏",
   "castLoadFailed": "投屏内容载入失败：{error}",
-  "@castLoadFailed": {"placeholders": {"error": {}}}
+  "@castLoadFailed": {"placeholders": {"error": {}}},
+  "developerMode": "开发者模式",
+  "developerModeDescription": "开启后视频封面以纯色代替，点视频只加载播放窗口而不播放，用于界面与窗口调试"
 }

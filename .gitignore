@@ -67,3 +67,10 @@ _icons/
 # Python 缓存（tools/ 下的脚本运行后产生）
 __pycache__/
 *.pyc
+
+# 本地可视化 / 浏览器自动化工具的会话产物（截图、日志、页面快照）
+.dsh-pilot/
+.playwright-mcp/
+
+# 一次性的取色/量色脚本（点号开头的临时文件）
+.tmp_colors.py

@@ -87,11 +87,14 @@ class _Han1meAppState extends ConsumerState<Han1meApp> {
                   enabled:
                       !(settings.amoledMode &&
                           Theme.of(context).brightness == Brightness.dark),
-                  // 开着窗口材质时把画布让出一部分，让 Mica / 亚克力的系统半透明透上来；
+                  // 开着窗口材质时几乎不铺底色：系统已经把 Mica / Acrylic 画在
+                  // 窗口底下，我们这层不透明画布会把材质整个盖住 —— 之前给到
+                  // .78 不透明，只剩 22% 能透上来，主窗口看着像「没生效」，
+                  // 只有自带磨砂的弹窗才显出效果。留极淡一层只为稳住文字对比度。
                   // 纯色模式则铺满，否则背景又变回一片没有色调的灰白。
                   opacity: settings.windowBackdrop == WindowBackdrop.none
                       ? 1
-                      : .78,
+                      : .12,
                   child: AppWindowFrame(
                     child: AppStartupEffects(
                       navigatorKey: _appRouter.navigatorKey,

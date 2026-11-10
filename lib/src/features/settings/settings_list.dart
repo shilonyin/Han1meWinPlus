@@ -65,8 +65,10 @@ class SettingsSection extends StatelessWidget {
   final Widget? bottomInfo;
   final EdgeInsetsGeometry? margin;
 
-  /// 行内上下留白（见 [SettingsTile.rowPadding]）：
-  /// 设计稿主题页 40 行高传 4，布局页 56 行高传 10。
+  /// 行内上下留白（见 [SettingsTile.rowPadding]）。
+  ///
+  /// **设置页统一传 3**（行高 = 36 + 3 × 2 = 42）。以前各页自己定 4/5/10，
+  /// 同一类设置项在主题页 40、播放页 44、布局页 56，翻页时疏密明显不同。
   final double rowPadding;
 
   @override
@@ -279,95 +281,109 @@ class SettingsTile<T> extends StatelessWidget {
     return SettingsHoverTracker(
       enabled: enabled,
       // 开关行的语义**必须**在这儿补：卡片把传进来的 `Switch` 拆成了 onToggle（见
-      // settings_card_list），真开关由 SettingsSwitch 重建，于是读屏只看到「一行 +
-      // 一段文字」——没有开关角色，也念不出当前是开还是关。`toggled` 就是为这个
-      // 传进来的状态；标题由子节点自己报，所以这里不写 label，免得念两遍。
+      // settings_card_list），真开关由 SettingsSwitch 重建，于是读屏只看到
+      // 「一行 + 一段文字」——没有开关角色，也念不出当前是开还是关。
+      // `toggled` 就是为这个传进来的状态；标题由子节点自己报，所以这里不写 label，
+      // 免得念两遍。
+      //
+      // **整行不做按下缩放**：这一行的宽度能到 1200+px，缩到 0.96 时
+      // 内容以**行中心**为锚点向内收，左边文字因此右移十几像素、右侧开关左移
+      // 十几像素 —— 看起来就是「点一下，整行文字跳了一下」。实测（1400 宽时）
+      // 标题左边缘 256 → 274、开关 1102 → 1086，位移肉眼可见。
+      //
+      // 行内本来就有的反馈已经够了：悬停/按下把标题与图标染成主题色
+      // （见 `_TileLabel` 的 `hovered`）。缩放留给真正的小按钮
+      // （`IconButton` / `FilledButton` 那些，见 `press_scale.dart`）。
       child: Semantics(
         container: true,
         toggled: toggled,
         enabled: enabled,
-        child: PressScale(
-          child: InkWell(
-            onTap: _tapHandler(context),
-            onHighlightChanged: _SplitListRow.pressReporterOf(context),
-            hoverColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            // 悬停不铺底色是刻意的（见上），但**焦点**需要一块持续可见的标记：
-            // 三个透明色把 InkWell 自带的焦点高亮也一并关掉了，键盘 Tab 过来时
-            // 整行没有任何变化。这里用主题色压到很淡补回来。
-            focusColor: colorScheme.primary.withValues(alpha: .16),
-            child: Padding(
-              // 行的上下留白：整行高 = 内容 36 + rowPadding × 2。
-              //
-              // 设计稿实测（`17828_v6_hotkey.png` 卡片二的分隔线）：
-              //   230 / 292 / 334 / 376 / 418 / 460 / 502 / 544
-              // 除第一条 62（标题区）外，**严格等差 42** —— 所以快捷键页
-              // 传 `rowPadding: 3`，36 + 3 × 2 = 42。
-              //
-              // 主题页行高 40 同理传 4；布局页 56 传 10。
-              padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                // 显式传了 `rowPadding` 就用它，否则沿用所在分组的松紧
-                // （`SettingsSection.rowPadding` → `_RowPaddingScope`）。
-                vertical: rowPadding != 2
-                    ? rowPadding
-                    : _RowPaddingScope.of(context),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ConstrainedBox(
-                    // 内容高 **36**；再高就看右侧控件（开关 30、键帽 22 都
-                    // 装得下，所以常规行就是这个数）。
-                    constraints: const BoxConstraints(minHeight: 36),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _TileLabel(
-                            title: title,
-                            leading: leading,
-                            description: description,
-                            secondary: secondary,
-                          ),
+        child: InkWell(
+          onTap: _tapHandler(context),
+          onHighlightChanged: _SplitListRow.pressReporterOf(context),
+          hoverColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          // 悬停不铺底色是刻意的（见上），但**焦点**需要一块持续可见的标记：
+          // 三个透明色把 InkWell 自带的焦点高亮也一并关掉了，键盘 Tab 过来时
+          // 整行没有任何变化。这里用主题色压到很淡补回来。
+          focusColor: colorScheme.primary.withValues(alpha: .16),
+          child: Padding(
+            // 行的上下留白：整行高 = 内容 36 + rowPadding × 2。
+            //
+            // 设计稿实测（`17828_v6_hotkey.png` 卡片二的分隔线）：
+            //   230 / 292 / 334 / 376 / 418 / 460 / 502 / 544
+            // 除第一条 62（标题区）外，**严格等差 42** —— 所以快捷键页
+            // 传 `rowPadding: 3`，36 + 3 × 2 = 42。
+            //
+            // 主题页行高 40 同理传 4；布局页 56 传 10。
+            padding: EdgeInsets.symmetric(
+              horizontal: 16,
+              // 显式传了 `rowPadding` 就用它，否则沿用所在分组的松紧
+              // （`SettingsSection.rowPadding` → `_RowPaddingScope`）。
+              vertical: rowPadding != 2
+                  ? rowPadding
+                  : _RowPaddingScope.of(context),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ConstrainedBox(
+                  // 内容高 **36**；再高就看右侧控件（开关 30、键帽 22 都
+                  // 装得下，所以常规行就是这个数）。
+                  constraints: const BoxConstraints(minHeight: 36),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _TileLabel(
+                          title: title,
+                          leading: leading,
+                          description: description,
+                          secondary: secondary,
                         ),
-                        if (value != null) ...[
-                          const SizedBox(width: 12),
-                          DefaultTextStyle.merge(
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: secondary,
-                            ),
-                            child: value!,
+                      ),
+                      if (value != null) ...[
+                        const SizedBox(width: 12),
+                        DefaultTextStyle.merge(
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: secondary,
                           ),
-                        ],
-                        if (trailing != null) ...[
-                          const SizedBox(width: 8),
-                          IconTheme.merge(
-                            data: IconThemeData(color: secondary),
-                            child: trailing!,
-                          ),
-                        ],
-                        if (onToggle != null) ...[
-                          const SizedBox(width: 12),
-                          SettingsSwitch(
+                          child: value!,
+                        ),
+                      ],
+                      if (trailing != null) ...[
+                        const SizedBox(width: 8),
+                        IconTheme.merge(
+                          data: IconThemeData(color: secondary),
+                          child: trailing!,
+                        ),
+                      ],
+                      if (onToggle != null) ...[
+                        const SizedBox(width: 12),
+                        // 缩放只给**开关本身**：它只有 56×30，缩到 0.96 时
+                        // 内容最多位移 1px，看不出跳动；而整行 1200+ 宽时
+                        // 缩放会让文字和开关各向中心收十几像素。
+                        PressScale(
+                          enabled: enabled,
+                          child: SettingsSwitch(
                             value: initialValue ?? false,
                             onChanged: enabled ? onToggle : null,
                           ),
-                        ],
-                        if (radioValue != null) ...[
-                          const SizedBox(width: 12),
-                          _RadioDot(
-                            selected: radioValue == groupValue,
-                            enabled: enabled,
-                          ),
-                        ],
+                        ),
                       ],
-                    ),
+                      if (radioValue != null) ...[
+                        const SizedBox(width: 12),
+                        _RadioDot(
+                          selected: radioValue == groupValue,
+                          enabled: enabled,
+                        ),
+                      ],
+                    ],
                   ),
-                  if (bottom != null) ...[const SizedBox(height: 4), bottom!],
-                ],
-              ),
+                ),
+                if (bottom != null) ...[const SizedBox(height: 4), bottom!],
+              ],
             ),
           ),
         ),
@@ -420,6 +436,10 @@ class _SettingsHoverTrackerState extends State<SettingsHoverTracker> {
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
     return MouseRegion(
+      // 与设置页导航一致：命中区按原始矩形算，不随 `PressScale`
+      // 的按下缩放而收缩，否则悬停色会跟着闪。
+      opaque: true,
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: SettingsHoverScope(hovered: _hovered, child: widget.child),

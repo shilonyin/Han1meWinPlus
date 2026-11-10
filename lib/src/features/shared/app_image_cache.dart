@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path/path.dart' as path;
 
+import '../../core/developer_mode.dart';
 import '../../core/face/face_crop.dart';
 import '../../core/face/face_focus_service.dart';
 
@@ -80,7 +81,8 @@ String imageCacheKey(String url) {
   if (uri == null || uri.queryParameters.isEmpty) return url;
   final kept = <String, String>{};
   uri.queryParameters.forEach((key, value) {
-    if (!_volatileQueryParameters.contains(key.toLowerCase())) kept[key] = value;
+    if (!_volatileQueryParameters.contains(key.toLowerCase()))
+      kept[key] = value;
   });
   // 按字符串切出「不含查询串」的基址，而不是走 Uri.replace —— 后者几次三番
   // 留下孤立的 `?` 或 `#`（replace 把 null 当「不变」，传空串又会留下分隔符）。
@@ -97,16 +99,15 @@ String imageCacheKey(String url) {
 ///
 /// [httpHeaders] 对需要防盗链的站点是**必需**的（Getchu 的图不带 Referer 直接
 /// 403），传了才拿得到图。
-ImageProvider appNetworkImage(
-  String url, {
-  Map<String, String>? httpHeaders,
-}) =>
-    CachedNetworkImageProvider(
-      url,
-      cacheKey: imageCacheKey(url),
-      headers: httpHeaders,
-      cacheManager: appImageCacheManager,
-    );
+ImageProvider appNetworkImage(String url, {Map<String, String>? httpHeaders}) {
+  if (developerMode.value) return developerSolidImage;
+  return CachedNetworkImageProvider(
+    url,
+    cacheKey: imageCacheKey(url),
+    headers: httpHeaders,
+    cacheManager: appImageCacheManager,
+  );
+}
 
 /// 需要额外参数（解码尺寸等）时用这个，别直接 `new CachedNetworkImageProvider`。
 ///
@@ -132,6 +133,7 @@ ImageProvider appCachedImage(
   Map<String, String>? httpHeaders,
   String? cacheKeySuffix,
 }) {
+  if (developerMode.value) return developerSolidImage;
   final baseKey = imageCacheKey(url);
   return CachedNetworkImageProvider(
     url,
@@ -205,11 +207,17 @@ class AppCachedNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 开发者模式：所有封面一律纯色占位，连网络请求都不发。
+    // 放在最前面短路，faceFocus 那条异步人脸检测也一并跳过。
+    if (developerMode.value) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: const ColoredBox(color: developerCoverColor),
+      );
+    }
     if (!faceFocus) return _build(alignment);
-    return _FaceFocusedImage(
-      key: ValueKey<String>(imageUrl),
-      image: this,
-    );
+    return _FaceFocusedImage(key: ValueKey<String>(imageUrl), image: this);
   }
 
   /// [faceImageBuilder] 优先：它需要拿到 [resolved] 才能把裁切位置带上。
@@ -220,29 +228,30 @@ class AppCachedNetworkImage extends StatelessWidget {
   }
 
   Widget _build(Alignment resolved) => CachedNetworkImage(
-        imageUrl: imageUrl,
-        cacheKey: imageCacheKey(imageUrl),
-        cacheManager: appImageCacheManager,
-        fit: fit,
-        width: width,
-        height: height,
-        memCacheWidth: memCacheWidth,
-        alignment: resolved,
-        httpHeaders: httpHeaders,
-        placeholder: placeholder,
-        errorWidget: errorWidget,
-        imageBuilder: _resolvedImageBuilder(resolved),
-        fadeInDuration: fadeInDuration,
-        fadeOutDuration: fadeOutDuration,
-      );
+    imageUrl: imageUrl,
+    cacheKey: imageCacheKey(imageUrl),
+    cacheManager: appImageCacheManager,
+    fit: fit,
+    width: width,
+    height: height,
+    memCacheWidth: memCacheWidth,
+    alignment: resolved,
+    httpHeaders: httpHeaders,
+    placeholder: placeholder,
+    errorWidget: errorWidget,
+    imageBuilder: _resolvedImageBuilder(resolved),
+    fadeInDuration: fadeInDuration,
+    fadeOutDuration: fadeOutDuration,
+  );
 }
 
 /// 和 [ImageWidgetBuilder] 同形，多一个算好的对齐方式。
-typedef FaceImageBuilder = Widget Function(
-  BuildContext context,
-  ImageProvider provider,
-  Alignment alignment,
-);
+typedef FaceImageBuilder =
+    Widget Function(
+      BuildContext context,
+      ImageProvider provider,
+      Alignment alignment,
+    );
 
 /// [AppCachedNetworkImage.faceFocus] 的实现：按检出的人脸挑对齐方式。
 ///
@@ -278,7 +287,10 @@ class _FaceFocusedImageState extends State<_FaceFocusedImage> {
     unawaited(_service.warmUp());
     // headers 要一起带上：Getchu 那类防盗链站点不带 Referer 会 403，
     // 检测这边拿不到图就会被错记成「没有脸」。
-    _service.request(widget.image.imageUrl, httpHeaders: widget.image.httpHeaders);
+    _service.request(
+      widget.image.imageUrl,
+      httpHeaders: widget.image.httpHeaders,
+    );
   }
 
   @override
@@ -301,28 +313,23 @@ class _FaceFocusedImageState extends State<_FaceFocusedImage> {
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
-        // 用布局约束而不是 findRenderObject：首帧还没布局时拿不到尺寸，
-        // 而 LayoutBuilder 一上来就有可用空间，不会漏掉第一次计算。
-        builder: (context, constraints) {
-          final image = widget.image;
-          final size = _targetSize(
-            image.width,
-            image.height,
-            constraints,
-          );
-          if (size != null && size != _alignedFor) {
-            _alignedFor = size;
-            final resolved = faceAlignmentFor(
-              image.imageUrl,
-              size,
-              method: image.faceCropMethod,
-            );
-            _alignment = resolved ?? image.alignment;
-
-          }
-          return image._build(_alignment);
-        },
-      );
+    // 用布局约束而不是 findRenderObject：首帧还没布局时拿不到尺寸，
+    // 而 LayoutBuilder 一上来就有可用空间，不会漏掉第一次计算。
+    builder: (context, constraints) {
+      final image = widget.image;
+      final size = _targetSize(image.width, image.height, constraints);
+      if (size != null && size != _alignedFor) {
+        _alignedFor = size;
+        final resolved = faceAlignmentFor(
+          image.imageUrl,
+          size,
+          method: image.faceCropMethod,
+        );
+        _alignment = resolved ?? image.alignment;
+      }
+      return image._build(_alignment);
+    },
+  );
 }
 
 /// 图片实际会占据的尺寸。
@@ -431,22 +438,16 @@ class _FaceAlignedImageState extends State<FaceAlignedImage> {
   @override
   Widget build(BuildContext context) {
     final url = _url;
-    Widget image(Alignment resolved) => Image(
-          image: widget.provider,
-          fit: widget.fit,
-          alignment: resolved,
-        );
+    Widget image(Alignment resolved) =>
+        Image(image: widget.provider, fit: widget.fit, alignment: resolved);
     if (url == null) return image(widget.alignment);
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = _targetSize(null, null, constraints);
         if (size != null && size != _alignedFor) {
           _alignedFor = size;
-          _alignment = faceAlignmentFor(
-                url,
-                size,
-                method: widget.faceCropMethod,
-              ) ??
+          _alignment =
+              faceAlignmentFor(url, size, method: widget.faceCropMethod) ??
               widget.alignment;
         }
         return image(_alignment);

@@ -189,13 +189,13 @@ ThemeData appTheme(
     ),
     pageTransitionsTheme: _pageTransitionsTheme,
     // 贴底的通栏 SnackBar 在这个布局里显得很重，改成半透明浮动圆角。
-    // 它是浮起来的，同样给一层投影 —— 否则在半透明卡片上像贴纸。
+    // 只留一丝中性阴影，和 dialog / popup 同一套轻量悬浮风格。
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.92),
       contentTextStyle: TextStyle(color: scheme.onSurface),
       actionTextColor: scheme.primary,
-      elevation: 4,
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
@@ -218,40 +218,41 @@ ThemeData appTheme(
       ),
       margin: EdgeInsets.zero,
     ),
-    // 浮窗必须自己带投影：遮罩已经是全透明的（见 `showAppDialog`），背景不再变暗，
-    // 全靠这层阴影把浮窗从页面上托起来。阴影色用主色偏灰（照 morrow），
-    // 压在浅色画布上不会发脏；深色下仍用纯黑。
+    // 浮窗不靠重投影托起来：这套界面是浅色平底 + 白卡，一圈主色偏灰的浓阴影
+    // 会在卡片四周糊出脏边，尤其压在半透明窗口材质上。改成和卡片同一套层级 ——
+    // 1px 极浅描边 + 海拔 2 的一丝中性阴影，只够把浮窗和页面分开即可。
     dialogTheme: DialogThemeData(
-      elevation: 10,
-      shadowColor: _dialogShadow(scheme),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: .10),
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
     ),
     popupMenuTheme: PopupMenuThemeData(
-      elevation: 6,
-      shadowColor: _dialogShadow(scheme),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: .10),
       color: scheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
     ),
-    // 底部弹层同理：它也是浮起来的，需要自己的投影。
+    // 底部弹层同理，只留一丝阴影 + 细描边。
     bottomSheetTheme: BottomSheetThemeData(
-      elevation: 8,
-      shadowColor: _dialogShadow(scheme),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: .10),
       surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
     ),
   );
 }
-
-/// 浮窗投影的颜色。
-Color _dialogShadow(ColorScheme scheme) => scheme.brightness == Brightness.light
-    ? Color.lerp(Colors.black, scheme.primary, .45)!
-    : Colors.black;
 
 extension AppThemeColorSeed on AppThemeColor {
   Color seedColor(String customColor) => switch (this) {

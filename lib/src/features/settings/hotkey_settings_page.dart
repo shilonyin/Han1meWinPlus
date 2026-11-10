@@ -105,7 +105,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
             // `SettingsSection` 自带 `fromLTRB(39, 0, 29, 16)`，底部已经有 16，
             // 这里再补 8 → 16 + 8 = 24。（直接写 24 会变成 40，整张卡下移 16。）
             padding: const EdgeInsets.only(top: 8),
-            rowPadding: 2.5,
+            rowPadding: 3,
             children: [
               SettingsCardItem(
                 title: l10n.hotkeyActionExitFullscreen,
@@ -122,7 +122,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
           // 而不是塞进上面那张快捷键列表里。
           SettingsCardList(
             padding: const EdgeInsets.only(top: 8),
-            rowPadding: 2.5,
+            rowPadding: 3,
             children: [
               SettingsCardItem(
                 title: l10n.hotkeyResetDefaults,

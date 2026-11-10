@@ -72,8 +72,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.initState();
     final query = ref.read(searchQueryProvider(widget.request));
     _textController.text = query.text;
-    if (query.hasSearchCriteria)
+    if (query.hasSearchCriteria) {
       unawaited(ref.read(searchHistoryProvider.notifier).record(query));
+    }
     _searchFocus.addListener(_onFocusChange);
   }
 
@@ -141,13 +142,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       }
     }
     ref.listen<SearchQuery>(searchQueryProvider(request), (previous, next) {
-      if (previous != next && next.hasSearchCriteria)
+      if (previous != next && next.hasSearchCriteria) {
         unawaited(ref.read(searchHistoryProvider.notifier).record(next));
-      if (_textController.text != next.text)
+      }
+      if (_textController.text != next.text) {
         _textController.value = _textController.value.copyWith(
           text: next.text,
           selection: TextSelection.collapsed(offset: next.text.length),
         );
+      }
     });
     void submit(String value) {
       notifier.text(value.trim());
@@ -452,8 +455,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (fieldBox == null ||
         hostBox == null ||
         !fieldBox.hasSize ||
-        !hostBox.hasSize)
+        !hostBox.hasSize) {
       return null;
+    }
     // 输入框在 AppBar 里、面板挂在 body 的 Stack 里，两者是兄弟不是父子，
     // 所以不能用 ancestor 定位，只能各自取全局坐标再相减。
     final fieldTopLeft =
@@ -583,7 +587,9 @@ class _SearchInput extends StatelessWidget {
                               height: 26,
                               decoration: BoxDecoration(
                                 color: AppDesignTokens.fieldFill,
-                                borderRadius: BorderRadius.circular(AppRadius.sm),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.sm,
+                                ),
                               ),
                               child: const Icon(
                                 Symbols.close_rounded,
@@ -953,8 +959,9 @@ class _MoreFiltersMenu extends StatelessWidget {
               options,
               locale,
             );
-            if (selection != null)
+            if (selection != null) {
               notifier.tags(selection.tags, selection.broad);
+            }
           },
           child: Text(
             query.tags.isEmpty

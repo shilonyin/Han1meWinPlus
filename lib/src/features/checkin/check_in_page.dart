@@ -12,13 +12,17 @@ import 'check_in_controller.dart';
 import '../../core/app_dialog.dart';
 import '../shared/app_top_bar.dart';
 
-/// 类型对应的表情（与类型 id 一一对应，便于在日历/明细里一眼区分）。
-const Map<String, String> _typeEmoji = {
-  'masturbation': '🤜',
-  'wetDream': '💤',
-  'sex': '👫',
-  'oral': '👅',
-  'other': '❓',
+/// 类型对应的线性图标。
+///
+/// 原来这里用 emoji 当图标：和全项目统一的
+/// `material_symbols_icons` 混在一套界面里，既不是同一套笔画粗细，也没法
+/// 跟随文字颜色。换成一套 18px 的单色线性图标，与设置行、日历里的图标一致。
+const Map<String, IconData> _typeIcon = {
+  'masturbation': Symbols.front_hand_rounded,
+  'wetDream': Symbols.bedtime_rounded,
+  'sex': Symbols.group_rounded,
+  'oral': Symbols.sentiment_satisfied_rounded,
+  'other': Symbols.help_outline_rounded,
 };
 
 String _typeLabel(AppLocalizations l10n, String id) => switch (id) {
@@ -104,11 +108,9 @@ class _HeroBanner extends ConsumerWidget {
     final points = state.monthTotal * 5;
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [AppDesignTokens.accentDeep, AppDesignTokens.accent],
-        ),
+        // 设计稿（`1675_checkin.png`）是**纯品红**，不是左右渐变。渐变是更早
+        // 一版照 morrow 加的，压在纯色卡片风格里显得跳。
+        color: AppDesignTokens.accentDeep,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -160,34 +162,22 @@ class _HeroBanner extends ConsumerWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              if (count > 0)
-                PressScale(
-                  child: _HeroGhostButton(
-                    icon: Symbols.delete_rounded,
-                    label: l10n.clear,
-                    onTap: () =>
-                        ref.read(checkInProvider.notifier).clearDate(today),
-                  ),
-                )
-              else
-                PressScale(
-                  child: _HeroButton(
-                    icon: Symbols.check_rounded,
-                    label: l10n.checkInNow,
-                    enabled: !isMaxed,
-                    onTap: () => _addCheckIn(context, ref, today),
-                  ),
+              // 设计稿：已签到时只有一枚白药丸「✓ 今日已签到」+ 右侧一行积分灰字。
+              // 之前额外放「清除」和第二个「打卡」按钮，把横幅底部撑成三样控件，
+              // 和设计稿差一截。清除改由长按白药丸触发，功能不丢。
+              PressScale(
+                child: _HeroButton(
+                  icon: count > 0 ? Symbols.check_rounded : Symbols.add_rounded,
+                  label: count > 0 ? '今日已签到' : l10n.checkInNow,
+                  enabled: !isMaxed,
+                  onTap: () => _addCheckIn(context, ref, today),
+                  onLongPress: count > 0
+                      ? () =>
+                            ref.read(checkInProvider.notifier).clearDate(today)
+                      : null,
                 ),
+              ),
               if (count > 0) ...[
-                const SizedBox(width: 12),
-                PressScale(
-                  child: _HeroButton(
-                    icon: Symbols.add_rounded,
-                    label: l10n.checkInNow,
-                    enabled: !isMaxed,
-                    onTap: () => _addCheckIn(context, ref, today),
-                  ),
-                ),
                 const SizedBox(width: 14),
                 Flexible(
                   child: Text(
@@ -200,8 +190,7 @@ class _HeroBanner extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ] else
-                const SizedBox.shrink(),
+              ],
             ],
           ),
         ],
@@ -293,12 +282,14 @@ class _HeroButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.onLongPress,
     this.enabled = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool enabled;
 
   @override
@@ -311,6 +302,7 @@ class _HeroButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           onTap: enabled ? onTap : null,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
@@ -328,51 +320,6 @@ class _HeroButton extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// 横幅次的透明描边按钮（清除用），白字白框压在品红底上。
-class _HeroGhostButton extends StatelessWidget {
-  const _HeroGhostButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    shape: StadiumBorder(
-      side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
-    ),
-    child: PressScale(
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: Colors.white),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -592,7 +539,11 @@ Future<void> _addCheckIn(
             onPressed: () => Navigator.pop(context, id),
             child: Row(
               children: [
-                Text(_typeEmoji[id] ?? ''),
+                Icon(
+                  _typeIcon[id] ?? Symbols.help_outline_rounded,
+                  size: 18,
+                  color: AppDesignTokens.inkSubtle,
+                ),
                 const SizedBox(width: 12),
                 Text(_typeLabel(l10n, id)),
               ],
@@ -640,8 +591,17 @@ Future<void> _openDay(
           for (final entry in grouped.entries)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                '${_typeEmoji[entry.key] ?? ''} ${_typeLabel(l10n, entry.key)} × ${entry.value}',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _typeIcon[entry.key] ?? Symbols.help_outline_rounded,
+                    size: 16,
+                    color: AppDesignTokens.inkSubtle,
+                  ),
+                  const SizedBox(width: 8),
+                  Text('${_typeLabel(l10n, entry.key)} × ${entry.value}'),
+                ],
               ),
             ),
         ],

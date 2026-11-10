@@ -653,6 +653,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportLogs => 'Export logs';
 
   @override
+  String get copyAllLogs => 'Copy all logs';
+
+  @override
+  String get copiedAllLogs => 'All logs copied';
+
+  @override
   String get openLogsFolder => 'Open logs folder';
 
   @override
@@ -2842,4 +2848,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String castLoadFailed(Object error) {
     return 'Failed to load the cast media: $error';
   }
+
+  @override
+  String get developerMode => 'Developer mode';
+
+  @override
+  String get developerModeDescription =>
+      'Replace video covers with solid colors and load the player window without playing, for UI and window debugging';
 }
