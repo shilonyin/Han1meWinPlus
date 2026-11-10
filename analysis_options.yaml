@@ -33,5 +33,11 @@ linter:
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 
+    # 本项目沿用了上游作者的紧凑风格：单行 if 不加花括号，语句另起一行缩进。
+    # 这是刻意的排版选择（见 AGENTS.md「不要跑 dart format」），全仓库上百处都这样，
+    # 统一加括号只会制造与上游无法合并的噪音 diff，所以关掉这条纯风格规则。
+    # 其余 lint（尤其 use_build_context_synchronously）保持开启。
+    curly_braces_in_flow_control_structures: false
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

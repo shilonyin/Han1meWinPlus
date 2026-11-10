@@ -56,11 +56,13 @@ const double _homeBarHeight = AppDesignTokens.topBarHeight;
 /// 使卡片密度保持在可读的范围内，同时把宽度用满。
 
 /// 预热一张封面：图片站点偶发 SSL 握手中断，失败时重试一次。
+/// [context] 可为空 —— 等到信号量放行时页面可能已经销毁，此时直接跳过预热。
 Future<void> precacheCover(
   String url,
   int cacheWidth,
-  BuildContext context,
+  BuildContext? context,
 ) async {
+  if (context == null) return;
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
       await precacheImage(appCachedImage(url, maxWidth: cacheWidth), context);
@@ -1399,7 +1401,11 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
         () async {
           await gate.enter();
           try {
-            await precacheCover(video.coverUrl, cacheWidth, context);
+            // 排队期间页面可能已经被销毁，此时 `State.context` 已失效，直接跳过预热。
+            if (!mounted) return;
+            final coverContext = context;
+            if (!coverContext.mounted) return;
+            await precacheCover(video.coverUrl, cacheWidth, coverContext);
           } finally {
             gate.leave();
           }
