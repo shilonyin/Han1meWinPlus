@@ -376,16 +376,65 @@ class _ArtistRow extends ConsumerWidget {
 }
 
 class _Description extends StatelessWidget {
-  const _Description({required this.video, required this.onToggle});
+  const _Description({
+    required this.video,
+    required this.onToggle,
+    this.compact = false,
+  });
 
   final VideoDetail video;
   final VoidCallback onToggle;
+
+  /// 为 true 时不再叠加 `_gridPad` 页边距与宽度上限：
+  /// 两栏版式里它直接铺满左列 640 宽（设计稿简介卡 x=204 w=640）。
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final description = video.description ?? '';
     final l10n = AppLocalizations.of(context)!;
     if (description.isEmpty) return const SizedBox.shrink();
+    final card = AnimatedSize(
+      duration: AppMotion.standard,
+      alignment: Alignment.topCenter,
+      child: GlassPanel(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
+        child: PressScale(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (video.uploader case final uploader?) ...[
+                    Text(
+                      '${l10n.uploader}: $uploader',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (video.captionTitle case final title?) ...[
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(description),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (compact) return card;
     return Align(
       alignment: Alignment.topLeft,
       // 和播放器同一个宽度上限：两边各让出 _gridPad 的边距，卡片本体才是 640。
@@ -396,47 +445,7 @@ class _Description extends StatelessWidget {
         child: Padding(
           // 与播放器共用同一组页边距，简介卡才是和播放器等宽的一道。
           padding: const EdgeInsets.fromLTRB(_gridPad, 8, _gridPad, 8),
-          child: AnimatedSize(
-            duration: AppMotion.standard,
-            alignment: Alignment.topCenter,
-            child: GlassPanel(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              solidColor: Theme.of(context).colorScheme.surfaceContainerLow,
-              child: PressScale(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  onTap: onToggle,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (video.uploader case final uploader?) ...[
-                          Text(
-                            '${l10n.uploader}: $uploader',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        if (video.captionTitle case final title?) ...[
-                          Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        Text(description),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          child: card,
         ),
       ),
     );
@@ -954,11 +963,136 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
         video.captionTitle != null;
     void toggleDescription() =>
         setState(() => _descriptionExpanded = !_descriptionExpanded);
-    // 设计稿 `base_videodetail.png` 的版式：
-    //   第 1 行  ← 返回 + 视频标题（独立一行，不压在画面上）
-    //   第 2 行  左列「16:9 播放器 / 简介 / 评论」 + 右栏白卡「标题…相关推荐」
-    // 原来播放器直接顶到页面上沿、返回与标题以半透明条压在画面里，右侧栏是
-    // 一条贴边的白色柱面（不是卡片）—— 和设计稿差的就是这两处。
+    // 设计稿 `design_detail.png`：**两栏**版式，整页纵向滚动。
+    //   顶栏：← 返回 + 视频标题（左对齐），右侧 收藏/下载/更多 三枚图标
+    //   主体 Row（宽 1048 居中）：
+    //     左列 640：16:9 封面 → 简介 → 评论
+    //     间隙 48
+    //     右列 360：标题 → 作者 → 数据 → 播放+操作 → 标签 → 选集 → 相关推荐
+    // 尺寸/间距全部取自 `detail_spec.txt`（封面 x=204 w=640、右栏 x=892 w=360，
+    // 即 640 + 48 + 360 = 1048）。
+    const double leftColWidth = 640;
+    const double rightColWidth = 360;
+    const double colGap = 48;
+    const double contentWidth = leftColWidth + colGap + rightColWidth;
+
+    final leftColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: leftColWidth,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _playing
+                  ? ColoredBox(
+                      color: Colors.black,
+                      child: VideoPlayerPanel(
+                        video: video,
+                        onBack: widget.onBack,
+                        onHome: widget.onHome,
+                        onPrevious: widget.onPrevious,
+                        onNext: widget.onNext,
+                        onEpisodeSelected: widget.onEpisodeSelected,
+                        hideTopBar: true,
+                      ),
+                    )
+                  : _CoverStage(
+                      coverUrl: video.coverUrl,
+                      title: video.title,
+                      onPlay: () => setState(() => _playing = true),
+                    ),
+            ),
+          ),
+        ),
+        if (hasDetails) ...[
+          const SizedBox(height: 24),
+          const Text(
+            '简介',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppDesignTokens.ink,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _Description(
+            video: video,
+            onToggle: toggleDescription,
+            compact: true,
+          ),
+        ],
+        const SizedBox(height: 28),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            const Text(
+              '评论',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppDesignTokens.ink,
+              ),
+            ),
+            if (video.commentCount != null) ...[
+              const SizedBox(width: 6),
+              Text(
+                '· ${video.commentCount}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(height: 520, child: VideoCommentsView(video: video)),
+        const SizedBox(height: 32),
+      ],
+    );
+
+    final rightColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SideTitle(video: video),
+        const SizedBox(height: 12),
+        _SideAuthor(video: video),
+        const SizedBox(height: 12),
+        _SideStats(video: video),
+        const SizedBox(height: 14),
+        VideoActionRow(video: video),
+        const SizedBox(height: 14),
+        _TagList(video: video),
+        if (video.playlist.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
+          const SizedBox(height: 14),
+          _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
+        ],
+        if (related.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text(
+            l10n.relatedVideos,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppDesignTokens.ink,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final item in related)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RelatedVideoTile(video: item),
+            ),
+        ],
+        const SizedBox(height: 32),
+      ],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -969,137 +1103,40 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
           video: video,
         ),
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左列宽度按设计稿固定：播放器 640 + 左右各 _gridPad。
-              // 之前用 Expanded，播放器有 maxWidth 640 之后右缘留下一大块空白，
-              // 右栏被挤到窗口最右侧 —— 叠加对比时右栏整体偏右 159 物理像素。
-              SizedBox(
-                width: _videoStageMaxWidth + _gridPad * 2,
-                child: Column(
-                  // stretch：简介卡/评论区跟着播放器一起撑满左列，三者同宽。
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      // 设计稿里播放器四周还有一圈页边距（20），不是贴到内容区边缘。
-                      padding: const EdgeInsets.fromLTRB(
-                        _gridPad,
-                        8,
-                        _gridPad,
-                        0,
-                      ),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: ConstrainedBox(
-                          // 播放器按设计稿的 640 宽封顶，窗口再宽也不跟着放大
-                          // （设计稿：内容区 1044 里播放器 640、右卡 360）。
-                          constraints: const BoxConstraints(
-                            maxWidth: _videoStageMaxWidth,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            child: AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: _playing
-                                  ? ColoredBox(
-                                      color: Colors.black,
-                                      child: VideoPlayerPanel(
-                                        video: video,
-                                        onBack: widget.onBack,
-                                        onHome: widget.onHome,
-                                        onPrevious: widget.onPrevious,
-                                        onNext: widget.onNext,
-                                        onEpisodeSelected:
-                                            widget.onEpisodeSelected,
-                                        // 顶部已经有独立标题栏了，画面里不再叠一条。
-                                        hideTopBar: true,
-                                      ),
-                                    )
-                                  : _CoverStage(
-                                      coverUrl: video.coverUrl,
-                                      title: video.title,
-                                      onPlay: () =>
-                                          setState(() => _playing = true),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (hasDetails)
-                      _Description(video: video, onToggle: toggleDescription),
-                    Expanded(child: VideoCommentsView(video: video)),
-                  ],
-                ),
-              ),
-              // 设计稿：播放器右缘 844 → 右栏左缘 892，中间 48。
-              const SizedBox(width: 44),
-              if (widget.sidebarWidth > 0)
-                // 设计稿右栏**没有**白色圆角卡片容器：内容直接铺在页面底 #F4F4F7 上，
-                // 只有标签、选集格子这些元素自己是圆角块。之前套的那层白卡是多余的。
-                SizedBox(
-                  width: widget.sidebarWidth,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
-                    children: [
-                      // 设计稿右栏顺序：标题 → 作者 → 数据行 → 立即播放按钮 → 标签 → 选集 → 相关推荐
-                      const SizedBox(height: 8),
-                      _SideTitle(video: video),
-                      const SizedBox(height: 21),
-                      _SideAuthor(video: video),
-                      const SizedBox(height: 15),
-                      _SideStats(video: video),
-                      const SizedBox(height: 14),
-                      VideoActionRow(video: video),
-                      const SizedBox(height: 16),
-                      _TagList(video: video),
-                      // 设计稿 divider1：y=264，标签底 244 => 上 20；下面是选集标题 280。
-                      if (video.playlist.isNotEmpty) const SizedBox(height: 20),
-                      if (video.playlist.isNotEmpty)
-                        const Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: AppDesignTokens.divider,
-                        ),
-                      if (video.playlist.isNotEmpty) const SizedBox(height: 15),
-                      if (video.playlist.isNotEmpty)
-                        _SeriesVideos(
-                          videos: video.playlist,
-                          currentVideoId: video.id,
-                        ),
-                      if (related.isNotEmpty) ...[
-                        // 设计稿 divider2：y=512，最后一排格子底 498 => 上 14。
-                        const SizedBox(height: 14),
-                        const Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: AppDesignTokens.divider,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 13, 0, 8),
-                          child: Text(
-                            l10n.relatedVideos,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppDesignTokens.ink,
-                            ),
-                          ),
-                        ),
-                        for (final item in related)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _RelatedVideoTile(video: item),
-                          ),
+          child: LayoutBuilder(
+            builder: (context, viewport) {
+              final wide = viewport.maxWidth >= contentWidth + _gridPad * 2;
+              final body = wide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(width: leftColWidth, child: leftColumn),
+                        const SizedBox(width: colGap),
+                        SizedBox(width: rightColWidth, child: rightColumn),
                       ],
-                    ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        leftColumn,
+                        const SizedBox(height: 24),
+                        rightColumn,
+                      ],
+                    );
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(_gridPad, 8, _gridPad, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: contentWidth),
+                      child: body,
+                    ),
                   ),
                 ),
-            ],
+              );
+            },
           ),
         ),
-        const Spacer(),
       ],
     );
   }
@@ -1261,7 +1298,8 @@ class _SideTopIcons extends ConsumerWidget {
 /// 详情页顶部独立标题行：← 返回 + 视频标题（设计稿里它不压在画面上）。
 const double _gridPad = 20;
 
-/// 播放器/简介卡共用的宽度上限（设计稿：内容区 1044 里播放器 640）。
+/// 播放器宽度上限。叠加比对 + 像素实测：设计稿播放器水平 228..867，即 640 宽，
+/// 高度 360，正好 16:9。
 const double _videoStageMaxWidth = 640;
 
 class _DetailTopBar extends StatelessWidget {
@@ -1284,9 +1322,18 @@ class _DetailTopBar extends StatelessWidget {
     // 标题才不会一路顶到右缘。
     const double trailingWidth = 3 * 32 + 2 * 6;
     return SizedBox(
-      height: 44,
+      // 像素实测：设计稿标题文字落在 y=23~37，播放器上缘 y=64。
+      // 这个顶栏在 SafeArea 里、不会自动让过自绘标题栏，所以要自己让出
+      // `windowControlsHeight`（28）—— 否则整行会顶到窗口按钮上。
+      // 28 + 56 = 84，标题正落在设计稿的高度上。
+      height: AppDesignTokens.windowControlsHeight + 56,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(_gridPad, 0, _gridPad, 0),
+        padding: EdgeInsets.fromLTRB(
+          _gridPad,
+          AppDesignTokens.windowControlsHeight,
+          _gridPad,
+          0,
+        ),
         child: Row(
           children: [
             PressScale(
