@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -211,32 +213,35 @@ class _Hero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景与设计稿一致：冷紫蓝纯渐变铺底 + 两团低透明光斑，
-              // 再叠一层垂直淡出接白色面板。不用模糊封面图——那会把人物糊成一团暖棕雾，
-              // 色调还跟着封面走，和稿子的冷色渐变对不上。
-              const _HeroFallback(),
-              const Positioned(
-                right: -80,
-                top: -140,
-                child: _HeroGlow(size: 440),
-              ),
-              const Positioned(
-                right: 240,
-                top: 40,
-                child: _HeroGlow(size: 300),
-              ),
+              // 背景就是**视频自身的封面**：放大模糊铺满，再靠一层垂直渐变让它
+              // 「渐变显示」——顶部略压暗保证白字可读、中部透出海报、底部淡出到页底
+              // 接白色面板。设计稿里的纯渐变与光斑只是没有真实图时的占位。
+              if (cover != null && cover.isNotEmpty)
+                ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  child: AppCachedNetworkImage(
+                    imageUrl: cover,
+                    fit: BoxFit.cover,
+                    width: viewport.maxWidth,
+                    height: 380,
+                    errorWidget: (context, url, error) =>
+                        const _HeroFallback(),
+                  ),
+                )
+              else
+                const _HeroFallback(),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0x00000000),
-                      Color(0x00000000),
-                      Color(0xB3F4F4F7),
+                      Color(0x661B1B28),
+                      Color(0x001B1B28),
+                      Color(0x99F4F4F7),
                       Color(0xFFF4F4F7),
                     ],
-                    stops: [0.0, 0.42, 0.78, 1.0],
+                    stops: [0.0, 0.32, 0.80, 1.0],
                   ),
                 ),
               ),
@@ -385,23 +390,6 @@ class _HeroFallback extends StatelessWidget {
         end: Alignment.bottomRight,
         colors: [Color(0xFF202238), Color(0xFF4A4C6E), Color(0xFF8E90AE)],
       ),
-    ),
-  );
-}
-
-/// Hero 背景里的低透明圆形光斑，给纯渐变加一点层次。
-class _HeroGlow extends StatelessWidget {
-  const _HeroGlow({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: const BoxDecoration(
-      shape: BoxShape.circle,
-      color: Color(0x14FFFFFF),
     ),
   );
 }
