@@ -178,7 +178,10 @@ class _VideoDetailImmersiveViewState
       case 2:
         return _InfoTab(video: video);
       case 3:
-        return _RelatedTab(video: video);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+          child: _RelatedTab(video: video),
+        );
       default:
         return _OverviewTab(video: video);
     }
@@ -210,34 +213,53 @@ class _Hero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景：封面模糊放大；没有封面时用同一套渐变兜底。
+              // 背景：封面模糊放大，但**压到半透明**再叠两层渐变——
+              // 一层水平（右侧渐渐透出页底白）、一层垂直（底部淡出接白色面板）。
+              // Baka 那种渐变显示的通透感来自这里：不是一整块不透明的模糊图。
               if (cover != null && cover.isNotEmpty)
-                ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 44, sigmaY: 44),
-                  child: AppCachedNetworkImage(
-                    imageUrl: cover,
-                    fit: BoxFit.cover,
-                    width: viewport.maxWidth,
-                    height: 380,
-                    errorWidget: (context, url, error) =>
-                        const _HeroFallback(),
+                Opacity(
+                  opacity: 0.55,
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 44, sigmaY: 44),
+                    child: AppCachedNetworkImage(
+                      imageUrl: cover,
+                      fit: BoxFit.cover,
+                      width: viewport.maxWidth,
+                      height: 380,
+                      errorWidget: (context, url, error) =>
+                          const _HeroFallback(),
+                    ),
                   ),
                 )
               else
                 const _HeroFallback(),
-              // 顶部压暗 + 底部淡出到页底，保证白字可读、又能自然接上白色面板。
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xCC1B1B28),
+                      Color(0x801B1B28),
+                      Color(0x33F4F4F7),
+                      Color(0xCCF4F4F7),
+                    ],
+                    stops: [0.0, 0.35, 0.75, 1.0],
+                  ),
+                ),
+              ),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xB31B1B28),
-                      Color(0x661B1B28),
-                      Color(0x00F4F4F7),
+                      Color(0x00000000),
+                      Color(0x00000000),
+                      Color(0xB3F4F4F7),
                       Color(0xFFF4F4F7),
                     ],
-                    stops: [0.0, 0.45, 0.82, 1.0],
+                    stops: [0.0, 0.42, 0.78, 1.0],
                   ),
                 ),
               ),
@@ -287,8 +309,8 @@ class _Hero extends ConsumerWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             child: SizedBox(
-                              width: 150,
-                              height: 210,
+                              width: 220,
+                              height: 308,
                               child: cover != null && cover.isNotEmpty
                                   ? AppCachedNetworkImage(
                                       imageUrl: cover,
@@ -358,7 +380,6 @@ class _Hero extends ConsumerWidget {
                                       _HeroRating(rating: video.rating!),
                                   ],
                                 ),
-                                const SizedBox(height: 24),
                               ],
                             ),
                           ),
@@ -518,71 +539,56 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
-    child: Column(
+    // 概览只放「剧情简介 + 基本信息」两栏，跟 Baka 的概览页一致；
+    // 选集归到「信息」Tab、相关推荐归到「相关」Tab，不在概览下面堆长内容。
+    padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+    child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.description,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppDesignTokens.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    video.description ?? '',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.7,
-                      color: AppDesignTokens.inkSubtle,
-                    ),
-                  ),
-                ],
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.description,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                ),
               ),
-            ),
-            const SizedBox(width: 48),
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '基本信息',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppDesignTokens.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoTab(video: video, compact: true),
-                ],
+              const SizedBox(height: 12),
+              Text(
+                video.description ?? '',
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.55,
+                  color: AppDesignTokens.inkSubtle,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        if (video.playlist.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
-          const SizedBox(height: 24),
-          _EpisodeGrid(video: video),
-        ],
-        if (video.related.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
-          const SizedBox(height: 24),
-          _RelatedTab(video: video, compact: true),
-        ],
+        const SizedBox(width: 32),
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '基本信息',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _InfoTab(video: video, compact: true),
+            ],
+          ),
+        ),
       ],
     ),
   );
@@ -606,7 +612,7 @@ class _InfoTab extends StatelessWidget {
       if (video.artist != null) ('作者', video.artist!),
       if (video.genre != null) ('分类', video.genre!),
     ];
-    return Column(
+    final list = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!compact)
@@ -621,7 +627,7 @@ class _InfoTab extends StatelessWidget {
         if (!compact) const SizedBox(height: 16),
         for (final row in rows)
           Padding(
-            padding: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
                 SizedBox(
@@ -652,6 +658,27 @@ class _InfoTab extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
           ),
       ],
+    );
+    if (compact) return list;
+    // 独立的「信息」Tab：基本信息 + 选集（选集不再堆在概览底部）。
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          list,
+          if (video.playlist.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppDesignTokens.divider,
+            ),
+            const SizedBox(height: 24),
+            _EpisodeGrid(video: video),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -736,28 +763,25 @@ class _EpisodeGrid extends StatelessWidget {
 
 /// 相关 Tab：缩略图 + 标题 + 播放量的行卡片。
 class _RelatedTab extends StatelessWidget {
-  const _RelatedTab({required this.video, this.compact = false});
+  const _RelatedTab({required this.video});
 
   final VideoDetail video;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final items = compact ? video.related.take(3).toList() : video.related;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!compact)
-          const Text(
-            '相关推荐',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
-            ),
+        const Text(
+          '相关推荐',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppDesignTokens.ink,
           ),
-        if (!compact) const SizedBox(height: 16),
-        for (final item in items)
+        ),
+        const SizedBox(height: 16),
+        for (final item in video.related)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: PressScale(
