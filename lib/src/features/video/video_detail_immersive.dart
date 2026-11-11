@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,7 +177,7 @@ class _VideoDetailImmersiveViewState
         return _InfoTab(video: video);
       case 3:
         return Padding(
-          padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+          padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
           child: _RelatedTab(video: video),
         );
       default:
@@ -213,20 +211,20 @@ class _Hero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景就是**视频自身的封面**：放大模糊铺满，再靠一层垂直渐变让它
-              // 「渐变显示」——顶部略压暗保证白字可读、中部透出海报、底部淡出到页底
-              // 接白色面板。设计稿里的纯渐变与光斑只是没有真实图时的占位。
+              // 背景复用项目里 Getchu 新番详情页的做法：封面原图**不模糊**，
+              // 只靠一层由透明到不透明的渐变遮罩把它渐渐收进页底白
+              // （顶部 55% 底色、中部 88%、底部 100%），整幅图不是实体铺满。
+              // 另叠一层很薄的顶部压暗，让白字在这套浅色遮罩上仍然读得清。
               if (cover != null && cover.isNotEmpty)
-                ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: AppCachedNetworkImage(
-                    imageUrl: cover,
-                    fit: BoxFit.cover,
-                    width: viewport.maxWidth,
-                    height: 380,
-                    errorWidget: (context, url, error) =>
-                        const _HeroFallback(),
-                  ),
+                AppCachedNetworkImage(
+                  imageUrl: cover,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  width: viewport.maxWidth,
+                  height: 380,
+                  fadeInDuration: Duration.zero,
+                  errorWidget: (context, url, error) =>
+                      const _HeroFallback(),
                 )
               else
                 const _HeroFallback(),
@@ -235,13 +233,24 @@ class _Hero extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
+                    colors: [Color(0x991B1B28), Color(0x001B1B28)],
+                    stops: [0.0, 0.35],
+                  ),
+                ),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
-                      Color(0x661B1B28),
-                      Color(0x001B1B28),
-                      Color(0x99F4F4F7),
+                      Color(0x00000000),
+                      Color(0x00000000),
+                      Color(0x8CF4F4F7),
+                      Color(0xE0F4F4F7),
                       Color(0xFFF4F4F7),
                     ],
-                    stops: [0.0, 0.32, 0.80, 1.0],
+                    stops: [0.0, 0.35, 0.62, 0.86, 1.0],
                   ),
                 ),
               ),
@@ -523,7 +532,7 @@ class _OverviewTab extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     // 概览只放「剧情简介 + 基本信息」两栏，跟 Baka 的概览页一致；
     // 选集归到「信息」Tab、相关推荐归到「相关」Tab，不在概览下面堆长内容。
-    padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+    padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -644,7 +653,7 @@ class _InfoTab extends StatelessWidget {
     if (compact) return list;
     // 独立的「信息」Tab：基本信息 + 选集（选集不再堆在概览底部）。
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+      padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -743,102 +752,100 @@ class _EpisodeGrid extends StatelessWidget {
   );
 }
 
-/// 相关 Tab：缩略图 + 标题 + 播放量的行卡片。
+/// 相关 Tab：按封面正常比例（16:9）排成卡片网格，不铺成横条。
 class _RelatedTab extends StatelessWidget {
   const _RelatedTab({required this.video});
 
   final VideoDetail video;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '相关推荐',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
-          ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        '相关推荐',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: AppDesignTokens.ink,
         ),
-        const SizedBox(height: 16),
-        for (final item in video.related)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: PressScale(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                onTap: item.id.isEmpty
-                    ? null
-                    : () => context.push('/video/${item.id}'),
-                child: Container(
-                  height: 72,
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppDesignTokens.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    border: Border.all(color: AppDesignTokens.stroke),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: SizedBox(
-                          width: 108,
-                          height: 60,
-                          child: AppCachedNetworkImage(
-                            imageUrl: item.coverUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) =>
-                                const ColoredBox(color: Color(0xFF3D3540)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppDesignTokens.ink,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              [
-                                if (item.artist != null) item.artist!,
-                                if (item.views != null) item.views!,
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppDesignTokens.inkMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Symbols.chevron_right_rounded,
-                        size: 18,
-                        color: AppDesignTokens.inkMuted,
-                      ),
-                    ],
-                  ),
-                ),
+      ),
+      const SizedBox(height: 16),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 16.0;
+          const minCardWidth = 220.0;
+          final cols = ((constraints.maxWidth + gap) / (minCardWidth + gap))
+              .floor()
+              .clamp(1, 10);
+          final width =
+              (constraints.maxWidth - gap * (cols - 1)) / cols;
+          return Wrap(
+            spacing: gap,
+            runSpacing: 20,
+            children: [
+              for (final item in video.related)
+                SizedBox(width: width, child: _RelatedCard(item: item)),
+            ],
+          );
+        },
+      ),
+    ],
+  );
+}
+
+/// 单张相关视频卡：16:9 封面在上，标题与作者/播放量在下。
+class _RelatedCard extends StatelessWidget {
+  const _RelatedCard({required this.item});
+
+  final VideoCard item;
+
+  @override
+  Widget build(BuildContext context) => PressScale(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      onTap: item.id.isEmpty ? null : () => context.push('/video/${item.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: AppCachedNetworkImage(
+                imageUrl: item.coverUrl,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) =>
+                    const ColoredBox(color: Color(0xFF3D3540)),
               ),
             ),
           ),
-      ],
-    );
-  }
+          const SizedBox(height: 10),
+          Text(
+            item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppDesignTokens.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            [
+              if (item.artist != null) item.artist!,
+              if (item.views != null) item.views!,
+            ].join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppDesignTokens.inkMuted,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
