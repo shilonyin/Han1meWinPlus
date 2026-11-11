@@ -545,6 +545,7 @@ class _HistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cover = item.coverUrl;
     return Container(
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,
@@ -561,7 +562,19 @@ class _HistoryRow extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  const ColoredBox(color: Color(0xFF3D3540)),
+                  // 封面：有地址就真实加载，没有（旧记录）或加载失败时退回占位色。
+                  if (cover != null && cover.isNotEmpty)
+                    AppCachedNetworkImage(
+                      imageUrl: cover,
+                      fit: BoxFit.cover,
+                      faceFocus: true,
+                      placeholder: (context, url) =>
+                          const ColoredBox(color: Color(0xFF3D3540)),
+                      errorWidget: (context, url, error) =>
+                          const ColoredBox(color: Color(0xFF3D3540)),
+                    )
+                  else
+                    const ColoredBox(color: Color(0xFF3D3540)),
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: SizedBox(

@@ -646,7 +646,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
     }
     unawaited(
       _watchController
-          .addTime(widget.video.id, widget.video.title, watchedMs)
+          .addTime(
+            widget.video.id,
+            widget.video.title,
+            watchedMs,
+            coverUrl: widget.video.coverUrl,
+          )
           .catchError((_) {}),
     );
   }

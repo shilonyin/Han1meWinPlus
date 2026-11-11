@@ -40,15 +40,19 @@ class WatchProgress {
 }
 
 class WatchHistory {
-  const WatchHistory({required this.id, required this.videoCode, required this.title, required this.watchedMs, required this.date, required this.createdAt});
+  const WatchHistory({required this.id, required this.videoCode, required this.title, required this.watchedMs, required this.date, required this.createdAt, this.coverUrl});
   final String id;
   final String videoCode;
   final String title;
   final int watchedMs;
   final String date;
   final int createdAt;
-  Map<String, dynamic> toJson() => {'id': id, 'videoCode': videoCode, 'title': title, 'watchedMs': watchedMs, 'date': date, 'createdAt': createdAt};
-  factory WatchHistory.fromJson(Map<String, dynamic> json) => WatchHistory(id: json['id'] as String? ?? '', videoCode: json['videoCode'] as String? ?? '', title: json['title'] as String? ?? '', watchedMs: json['watchedMs'] as int? ?? 0, date: json['date'] as String? ?? '', createdAt: json['createdAt'] as int? ?? 0);
+
+  /// 封面地址。旧记录没有这一项（早期版本不保存），为 null 时列表里退回占位色。
+  final String? coverUrl;
+
+  Map<String, dynamic> toJson() => {'id': id, 'videoCode': videoCode, 'title': title, 'watchedMs': watchedMs, 'date': date, 'createdAt': createdAt, if (coverUrl != null) 'coverUrl': coverUrl};
+  factory WatchHistory.fromJson(Map<String, dynamic> json) => WatchHistory(id: json['id'] as String? ?? '', videoCode: json['videoCode'] as String? ?? '', title: json['title'] as String? ?? '', watchedMs: json['watchedMs'] as int? ?? 0, date: json['date'] as String? ?? '', createdAt: json['createdAt'] as int? ?? 0, coverUrl: json['coverUrl'] as String?);
 }
 
 class Playlist {

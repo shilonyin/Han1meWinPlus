@@ -19,6 +19,7 @@ import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
+import '../shared/bouncy_toggle_icon.dart';
 import '../shared/app_image_cache.dart';
 import 'play_window.dart';
 import 'video_actions.dart';
@@ -467,6 +468,54 @@ class _TagListState extends ConsumerState<_TagList> {
     ref.invalidate(videoDetailProvider(widget.video.id));
   }
 
+  /// 点标签跳到该标签的搜索结果。
+  void _openTagScoped(int index) {
+    final tags = widget.video.tags;
+    final href = tags[index].href;
+    final uri = href == null
+        ? Uri(path: '/search', queryParameters: {'tags[]': tags[index].name})
+        : Uri.parse(href);
+    final url = Uri(
+      path: uri.path,
+      queryParameters: uri.queryParameters.isEmpty
+          ? {'tags[]': tags[index].name}
+          : uri.queryParameters,
+    ).toString();
+    context.push(url, extra: SearchRouteRequest(initialUrl: url));
+  }
+
+  Widget _chip(BuildContext context, int index) {
+    final tags = widget.video.tags;
+    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
+    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
+    return PressScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: () => _openTagScoped(index),
+        child: Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppDesignTokens.fieldFill,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Text(
+            '${catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name}${tags[index].count == null ? '' : ' (${tags[index].count})'}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 标签超出可视宽度时直接隐藏多余的，末尾放一个「⋯」——点它展开看**全部**标签。
+  ///
+  /// 之前是横向滚动，标签被截一半、看着像「显示不全」；而且溢出的 chip 会压到右侧
+  /// 那个「⋯」上，点「⋯」反而命中 chip 跳到搜索页。改成按实际宽度算能放几颗，
+  /// 放下几颗是几颗，多的收进「⋯」的菜单里。
   @override
   Widget build(BuildContext context) {
     final tags = widget.video.tags;
@@ -474,114 +523,139 @@ class _TagListState extends ConsumerState<_TagList> {
     final enabled =
         account != null &&
         (widget.video.csrfToken ?? account.csrfToken) != null;
-    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
-    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
-    final l10n = AppLocalizations.of(context)!;
     if (tags.isEmpty && !enabled) return const SizedBox.shrink();
-    // 设计稿 tagBg：48×24、圆角 8、字号 11、横向间距 8。
-    // ActionChip 的默认高度/内边距和这组数值对不上，直接自绘。
-    final chips = <Widget>[
-      for (var index = 0; index < tags.length; index++)
-        PressScale(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            onTap: () {
-              final href = tags[index].href;
-              final uri = href == null
-                  ? Uri(
-                      path: '/search',
-                      queryParameters: {'tags[]': tags[index].name},
-                    )
-                  : Uri.parse(href);
-              final url = Uri(
-                path: uri.path,
-                queryParameters: uri.queryParameters.isEmpty
-                    ? {'tags[]': tags[index].name}
-                    : uri.queryParameters,
-              ).toString();
-              context.push(url, extra: SearchRouteRequest(initialUrl: url));
-            },
-            child: Container(
-              height: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppDesignTokens.fieldFill,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Text(
-                '${catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name}${tags[index].count == null ? '' : ' (${tags[index].count})'}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppDesignTokens.inkSubtle,
+
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          // 先估算每颗 chip 宽度（按文字长度），累计到放不下为止，并给末尾「⋯」留位置。
+          const moreWidth = 34.0;
+          const gap = 6.0;
+          final widths = <double>[];
+          for (var i = 0; i < tags.length; i++) {
+            final label = _labelOf(context, i);
+            // 11px 字号下中文约 1em/字、数字/字母约 0.6em；水平 padding 20。粗估即可，
+            // chip 本身用 ellipsis 兜底，误差只影响「多显示还是少显示一颗」。
+            final textW = _estimateTextWidth(label, 11);
+            widths.add(textW + 20);
+          }
+          var used = 0.0;
+          var visible = 0;
+          for (var i = 0; i < widths.length; i++) {
+            final add = widths[i] + (i == 0 ? 0 : gap);
+            final needMore = (i + 1) < widths.length; // 这颗之后还有
+            final reserve = needMore ? moreWidth + gap : 0;
+            if (used + add + reserve > maxWidth) break;
+            used += add;
+            visible++;
+          }
+          // 至少显示一颗，避免一个都放不下时整行空白。
+          if (visible == 0 && tags.isNotEmpty) visible = 1;
+          final hidden = tags.length - visible;
+
+          return Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < visible; i++)
+                        Padding(
+                          padding: EdgeInsets.only(right: gap),
+                          child: _chip(context, i),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
-    ];
-    // 设计稿是**一行**标签（末尾跟着 + / − 两个按钮），不再折成两排、也没有
-    // 展开/收起那一行。标签多了就在这一行里横向滚动。
-    return Padding(
-      // 设计稿标签行 y 220、左缘与右栏同 x，不需要左右内边距。
-      padding: EdgeInsets.zero,
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final chip in chips)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: chip,
-                    ),
-                  if (tags.isEmpty)
-                    PressScale(
-                      child: IconButton(
-                        tooltip: l10n.addTags,
-                        visualDensity: VisualDensity.compact,
-                        iconSize: 18,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints.tightFor(
-                          width: 32,
-                          height: 32,
-                        ),
-                        icon: const Icon(Symbols.add_rounded),
-                        onPressed: enabled ? () => _editTags('add') : null,
+              if (hidden > 0)
+                PressScale(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    onTap: () => _showAllTags(context, visible),
+                    child: Container(
+                      width: 28,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppDesignTokens.fieldFill,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: const Icon(
+                        Symbols.more_horiz_rounded,
+                        size: 16,
+                        color: AppDesignTokens.inkSubtle,
                       ),
                     ),
-                ],
-              ),
-            ),
-          ),
-          // 设计稿标签行末尾是干净的，没有常驻的 + / − 两个按钮。
-          // 添加/移除标签是真功能，收进这个小菜单里，界面保持对齐。
-          if (enabled)
-            PopupMenuButton<String>(
-              icon: const Icon(
-                Symbols.more_horiz_rounded,
-                size: 18,
-                color: AppDesignTokens.inkMuted,
-              ),
-              tooltip: l10n.addTags,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-              onSelected: (value) => unawaited(_editTags(value)),
-              itemBuilder: (context) => [
-                PopupMenuItem<String>(value: 'add', child: Text(l10n.addTags)),
-                PopupMenuItem<String>(
-                  value: 'remove',
-                  child: Text(l10n.removeTags),
+                  ),
+                )
+              else if (enabled)
+                PressScale(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    onTap: () => _editTags('add'),
+                    child: Container(
+                      width: 28,
+                      height: 24,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Symbols.add_rounded,
+                        size: 16,
+                        color: AppDesignTokens.inkMuted,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
+  }
+
+  String _labelOf(BuildContext context, int index) {
+    final tags = widget.video.tags;
+    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
+    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
+    final name = catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name;
+    return tags[index].count == null ? name : '$name (${tags[index].count})';
+  }
+
+  /// 「⋯」展开：列出被隐藏的标签，点其中一项跳到该标签的搜索。
+  Future<void> _showAllTags(BuildContext context, int from) async {
+    final tags = widget.video.tags;
+    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
+    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
+    if (from >= tags.length) return;
+    final selected = await showMenu<int>(
+      context: context,
+      position: RelativeRect.fromLTRB(200, 300, 24, 0),
+      items: [
+        for (var i = from; i < tags.length; i++)
+          PopupMenuItem<int>(
+            value: i,
+            child: Text(
+              '${catalog?.localizeTag(tags[i].name, localeKey) ?? tags[i].name}${tags[i].count == null ? '' : ' (${tags[i].count})'}',
+              style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle),
+            ),
+          ),
+      ],
+    );
+    if (selected != null && mounted) _openTagScoped(selected);
+  }
+
+  double _estimateTextWidth(String text, double fontSize) {
+    var w = 0.0;
+    for (final rune in text.runes) {
+      final ch = String.fromCharCode(rune);
+      // 中日韩全角约 1em；ASCII 约 0.55em。
+      w += ch.codeUnitAt(0) > 0x2E80 ? fontSize : fontSize * 0.55;
+    }
+    return w;
   }
 }
 
@@ -1277,13 +1351,13 @@ class _SideTopIcons extends ConsumerWidget {
                       color: AppDesignTokens.fieldFill,
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: Icon(
-                      action.icon,
+                    child: BouncyToggleIcon(
+                      icon: action.icon,
                       size: 16,
+                      filled: action.filled,
                       color: action.onPressed == null
                           ? AppDesignTokens.inkMuted
                           : AppDesignTokens.inkSubtle,
-                      fill: action.filled ? 1 : 0,
                     ),
                   ),
                 ),
