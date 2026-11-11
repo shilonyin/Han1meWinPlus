@@ -22,6 +22,7 @@ import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
+import '../shared/bouncy_toggle_icon.dart';
 import 'download_picker_sheet.dart';
 import 'download_queue.dart';
 import 'play_window.dart';
@@ -99,11 +100,11 @@ class VideoActionRow extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Center(
-                    child: Icon(
-                      action.icon,
+                    child: BouncyToggleIcon(
+                      icon: action.icon,
                       size: 20,
+                      filled: action.filled,
                       color: action.onPressed == null ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
-                      fill: action.filled ? 1 : 0,
                     ),
                   ),
                 ),
