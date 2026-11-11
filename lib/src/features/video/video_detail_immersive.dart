@@ -186,7 +186,7 @@ class _VideoDetailImmersiveViewState
     switch (_tab) {
       case 1:
         return SizedBox(
-          height: 520,
+          height: 900,
           child: VideoCommentsView(video: video),
         );
       case 2:
@@ -227,17 +227,16 @@ class _Hero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景复用项目里 Getchu 新番详情页的做法：封面原图**不模糊**，
-              // 只靠一层由透明到不透明的渐变遮罩把它渐渐收进页底白
-              // （顶部 55% 底色、中部 88%、底部 100% 的面板纯白），整幅图不是实体铺满。
-              // Hero 比内容高 50，底部这段是纯渐变呼吸区，Tab 栏不会贴着按钮。
+              // 背景与 GetchuBackdrop 完全一致：封面原图不模糊，只叠**单层**
+              // 由 55% → 88% → 100% 页底白的渐变遮罩，图就这样平滑收进面板。
+              // 之前额外叠的顶部压暗层会在两层交界处压出一条硬边，已去掉。
               if (cover != null && cover.isNotEmpty)
                 AppCachedNetworkImage(
                   imageUrl: cover,
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                   width: viewport.maxWidth,
-                  height: 380,
+                  height: 430,
                   fadeInDuration: Duration.zero,
                   errorWidget: (context, url, error) =>
                       const _HeroFallback(),
@@ -249,24 +248,12 @@ class _Hero extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0x991B1B28), Color(0x001B1B28)],
-                    stops: [0.0, 0.35],
-                  ),
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
                     colors: [
-                      Color(0x00000000),
-                      Color(0x00000000),
                       Color(0x8CFFFFFF),
                       Color(0xE0FFFFFF),
                       Color(0xFFFFFFFF),
                     ],
-                    stops: [0.0, 0.35, 0.62, 0.86, 1.0],
+                    stops: [0.0, 0.55, 1.0],
                   ),
                 ),
               ),
@@ -287,7 +274,7 @@ class _Hero extends ConsumerWidget {
                               child: Icon(
                                 Symbols.arrow_back_rounded,
                                 size: 22,
-                                color: Colors.white,
+                                color: AppDesignTokens.ink,
                               ),
                             ),
                           ),
@@ -301,7 +288,7 @@ class _Hero extends ConsumerWidget {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: AppDesignTokens.ink,
                             ),
                           ),
                         ),
@@ -345,7 +332,7 @@ class _Hero extends ConsumerWidget {
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.white,
+                                    color: AppDesignTokens.ink,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -359,7 +346,7 @@ class _Hero extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 13,
-                                    color: Color(0xD9FFFFFF),
+                                    color: AppDesignTokens.inkSubtle,
                                   ),
                                 ),
                                 const Spacer(),
@@ -413,7 +400,7 @@ class _HeroFallback extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF202238), Color(0xFF4A4C6E), Color(0xFF8E90AE)],
+        colors: [Color(0xFFD8D9E4), Color(0xFFECECF3), Color(0xFFFFFFFF)],
       ),
     ),
   );
