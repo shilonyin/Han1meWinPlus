@@ -60,18 +60,20 @@ class VideoActionRow extends ConsumerWidget {
       padding: EdgeInsets.zero,
       child: Row(
         children: [
+          // 设计稿 bigPlayBtn：200×40、圆角 12。**定宽**，不随容器拉伸——
+          // 之前用 Expanded 把按钮撑满整行，和右侧三枚 40 方块之间的距离忽大忽小。
           if (play != null)
-            Expanded(
-              child: PressScale(
+            PressScale(
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 onTap: play.onPressed,
                 child: Container(
-                  // 主按钮吃掉剩余宽度：右栏内宽只有 304，写死宽度再加 Spacer 时
-                  // 三个 40 的圆图标会被挤出卡片右缘，最后一个直接被裁掉。
-                  // 设计稿 bigPlayBtn：200×40、圆角 12。
+                  width: 200,
                   height: 40,
-                  decoration: BoxDecoration(color: AppDesignTokens.accentDeep, borderRadius: BorderRadius.circular(AppRadius.md)),
+                  decoration: BoxDecoration(
+                    color: AppDesignTokens.accentDeep,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -83,16 +85,15 @@ class VideoActionRow extends ConsumerWidget {
                 ),
               ),
             ),
-            ),
           for (final action in smalls) ...[
-            // 设计稿这一组是**圆形**图标（♡ / 😊 / ⋯），不是圆角方块；
-            // 而且不带底色，靠图标本身立在白卡上。
+            // 设计稿 collect/download/more：40×40、圆角 8 的浅灰方块；
+            // 与主按钮、以及彼此之间统一留 8 的间隙（之前是 4，贴着按钮）。
+            const SizedBox(width: 8),
             PressScale(
               child: InkWell(
                 customBorder: const CircleBorder(),
                 onTap: action.onPressed,
                 child: Container(
-                  // 设计稿 collect/download/more：40×40、圆角 8 的浅灰方块。
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
@@ -110,7 +111,6 @@ class VideoActionRow extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 4),
           ],
         ],
       ),

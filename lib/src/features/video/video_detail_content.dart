@@ -463,12 +463,13 @@ class _TagList extends ConsumerStatefulWidget {
 }
 
 class _TagListState extends ConsumerState<_TagList> {
+  bool _expanded = false;
+
   Future<void> _editTags(String mode) async {
     await context.push('/video/${widget.video.id}/tags/$mode');
     ref.invalidate(videoDetailProvider(widget.video.id));
   }
 
-  /// 点标签跳到该标签的搜索结果。
   void _openTagScoped(int index) {
     final tags = widget.video.tags;
     final href = tags[index].href;
@@ -484,10 +485,15 @@ class _TagListState extends ConsumerState<_TagList> {
     context.push(url, extra: SearchRouteRequest(initialUrl: url));
   }
 
-  Widget _chip(BuildContext context, int index) {
+  String _chipLabel(int index) {
     final tags = widget.video.tags;
     final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
     final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
+    final name = catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name;
+    return tags[index].count == null ? name : '$name (${tags[index].count})';
+  }
+
+  Widget _chip(int index) {
     return PressScale(
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -501,7 +507,7 @@ class _TagListState extends ConsumerState<_TagList> {
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Text(
-            '${catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name}${tags[index].count == null ? '' : ' (${tags[index].count})'}',
+            _chipLabel(index),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
@@ -511,11 +517,23 @@ class _TagListState extends ConsumerState<_TagList> {
     );
   }
 
-  /// 标签超出可视宽度时直接隐藏多余的，末尾放一个「⋯」——点它展开看**全部**标签。
-  ///
-  /// 之前是横向滚动，标签被截一半、看着像「显示不全」；而且溢出的 chip 会压到右侧
-  /// 那个「⋯」上，点「⋯」反而命中 chip 跳到搜索页。改成按实际宽度算能放几颗，
-  /// 放下几颗是几颗，多的收进「⋯」的菜单里。
+  /// 精确测量一颗 chip 的宽度（11px 字号 + 水平 padding 20）。
+  double _chipWidth(int index) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: _chipLabel(index),
+        style: const TextStyle(fontSize: 11),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final w = tp.width + 20; // 左右各 10 的 padding
+    tp.dispose();
+    return w;
+  }
+
+  /// 标签行：默认单行，能放几颗放几颗（撑满整行），多余的隐藏，末尾给「⋯」；
+  /// 点「⋯」在**原位展开成多排**显示全部，再点收起。
   @override
   Widget build(BuildContext context) {
     final tags = widget.video.tags;
@@ -525,138 +543,119 @@ class _TagListState extends ConsumerState<_TagList> {
         (widget.video.csrfToken ?? account.csrfToken) != null;
     if (tags.isEmpty && !enabled) return const SizedBox.shrink();
 
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth;
-          // 先估算每颗 chip 宽度（按文字长度），累计到放不下为止，并给末尾「⋯」留位置。
-          const moreWidth = 34.0;
-          const gap = 6.0;
-          final widths = <double>[];
-          for (var i = 0; i < tags.length; i++) {
-            final label = _labelOf(context, i);
-            // 11px 字号下中文约 1em/字、数字/字母约 0.6em；水平 padding 20。粗估即可，
-            // chip 本身用 ellipsis 兜底，误差只影响「多显示还是少显示一颗」。
-            final textW = _estimateTextWidth(label, 11);
-            widths.add(textW + 20);
-          }
-          var used = 0.0;
-          var visible = 0;
-          for (var i = 0; i < widths.length; i++) {
-            final add = widths[i] + (i == 0 ? 0 : gap);
-            final needMore = (i + 1) < widths.length; // 这颗之后还有
-            final reserve = needMore ? moreWidth + gap : 0;
-            if (used + add + reserve > maxWidth) break;
-            used += add;
-            visible++;
-          }
-          // 至少显示一颗，避免一个都放不下时整行空白。
-          if (visible == 0 && tags.isNotEmpty) visible = 1;
-          final hidden = tags.length - visible;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 6.0;
 
-          return Row(
+        // 展开态：多排 Wrap 显示全部 + 收起按钮。
+        if (_expanded) {
+          return Wrap(
+            spacing: gap,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < visible; i++)
-                        Padding(
-                          padding: EdgeInsets.only(right: gap),
-                          child: _chip(context, i),
-                        ),
-                    ],
+              for (var i = 0; i < tags.length; i++) _chip(i),
+              _collapseButton(),
+            ],
+          );
+        }
+
+        // 收起态：单行。算出这一行放得下几颗，给末尾「⋯」留位置。
+        final maxWidth = constraints.maxWidth;
+        final widths = [for (var i = 0; i < tags.length; i++) _chipWidth(i)];
+        const moreWidth = 28.0; // 「⋯」按钮
+        var used = 0.0;
+        var visible = 0;
+        for (var i = 0; i < widths.length; i++) {
+          final add = widths[i] + (i == 0 ? 0 : gap);
+          final hasMore = (i + 1) < widths.length;
+          final reserve = hasMore ? moreWidth + gap : 0;
+          if (used + add + reserve > maxWidth) break;
+          used += add;
+          visible++;
+        }
+        if (visible == 0 && tags.isNotEmpty) visible = 1;
+        final hidden = tags.length - visible;
+
+        return Row(
+          children: [
+            Expanded(
+              child: ClipRect(
+                child: Row(
+                  children: [
+                    for (var i = 0; i < visible; i++)
+                      Padding(
+                        padding: EdgeInsets.only(right: gap),
+                        child: _chip(i),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (hidden > 0)
+              PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  onTap: () => setState(() => _expanded = true),
+                  child: Container(
+                    width: 28,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppDesignTokens.fieldFill,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Symbols.more_horiz_rounded,
+                      size: 16,
+                      color: AppDesignTokens.inkSubtle,
+                    ),
+                  ),
+                ),
+              )
+            else if (enabled)
+              PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  onTap: () => _editTags('add'),
+                  child: Container(
+                    width: 28,
+                    height: 24,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Symbols.add_rounded,
+                      size: 16,
+                      color: AppDesignTokens.inkMuted,
+                    ),
                   ),
                 ),
               ),
-              if (hidden > 0)
-                PressScale(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    onTap: () => _showAllTags(context, visible),
-                    child: Container(
-                      width: 28,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppDesignTokens.fieldFill,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: const Icon(
-                        Symbols.more_horiz_rounded,
-                        size: 16,
-                        color: AppDesignTokens.inkSubtle,
-                      ),
-                    ),
-                  ),
-                )
-              else if (enabled)
-                PressScale(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    onTap: () => _editTags('add'),
-                    child: Container(
-                      width: 28,
-                      height: 24,
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Symbols.add_rounded,
-                        size: 16,
-                        color: AppDesignTokens.inkMuted,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _collapseButton() => PressScale(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      onTap: () => setState(() => _expanded = false),
+      child: Container(
+        width: 28,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppDesignTokens.fieldFill,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: const Icon(
+          Symbols.keyboard_arrow_up_rounded,
+          size: 16,
+          color: AppDesignTokens.inkSubtle,
+        ),
       ),
-    );
-  }
-
-  String _labelOf(BuildContext context, int index) {
-    final tags = widget.video.tags;
-    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
-    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
-    final name = catalog?.localizeTag(tags[index].name, localeKey) ?? tags[index].name;
-    return tags[index].count == null ? name : '$name (${tags[index].count})';
-  }
-
-  /// 「⋯」展开：列出被隐藏的标签，点其中一项跳到该标签的搜索。
-  Future<void> _showAllTags(BuildContext context, int from) async {
-    final tags = widget.video.tags;
-    final catalog = ref.watch(searchOptionCatalogProvider).valueOrNull;
-    final localeKey = searchOptionLocaleKey(Localizations.localeOf(context));
-    if (from >= tags.length) return;
-    final selected = await showMenu<int>(
-      context: context,
-      position: RelativeRect.fromLTRB(200, 300, 24, 0),
-      items: [
-        for (var i = from; i < tags.length; i++)
-          PopupMenuItem<int>(
-            value: i,
-            child: Text(
-              '${catalog?.localizeTag(tags[i].name, localeKey) ?? tags[i].name}${tags[i].count == null ? '' : ' (${tags[i].count})'}',
-              style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle),
-            ),
-          ),
-      ],
-    );
-    if (selected != null && mounted) _openTagScoped(selected);
-  }
-
-  double _estimateTextWidth(String text, double fontSize) {
-    var w = 0.0;
-    for (final rune in text.runes) {
-      final ch = String.fromCharCode(rune);
-      // 中日韩全角约 1em；ASCII 约 0.55em。
-      w += ch.codeUnitAt(0) > 0x2E80 ? fontSize : fontSize * 0.55;
-    }
-    return w;
-  }
+    ),
+  );
 }
 
 class _SeriesVideos extends StatefulWidget {
