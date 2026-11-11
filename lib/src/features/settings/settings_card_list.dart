@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../core/app_design_tokens.dart';
+import '../../core/app_responsive.dart';
 import 'settings_glass_controls.dart';
+import 'settings_pane_scope.dart';
 import 'settings_list.dart';
 
 class SettingsCardList extends StatelessWidget {
@@ -44,31 +46,36 @@ class SettingsCardList extends StatelessWidget {
     // 而 `SettingsCardItem` 本身就是把 `.tile` 渲染出来的 StatelessWidget，
     // 直接当 widget 传给 `SettingsSection.tiles`（它收 `List<Widget>`）即可，
     // 顺序天然保持，包装与否都无所谓。
-    return Padding(
-      padding: padding,
-      child: SettingsList(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        contentPadding: EdgeInsets.zero,
-        sections: [
-          SettingsSection(
-            rowPadding: rowPadding,
-            title: title == null
-                ? null
-                : Text(
-                    title!,
-                    // 设计稿（`setTitle`）的卡片标题是**墨色 13 号粗体**，不是主题色：
-                    // 原来取 `colorScheme.primary`，换紫主题后每条分组标题都是紫的，
-                    // 和下面那列设置项抢注意力。标题只需要「区分分组」，不需要强调。
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppDesignTokens.ink,
+    return LayoutBuilder(
+      builder: (context, constraints) => Padding(
+        padding: padding,
+        child: SettingsList(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          contentPadding: EdgeInsets.zero,
+          // 内容宽度按可用宽度推导：宽窗不再钉死在 settingsListMaxWidth，
+          // 否则 2560 窗口里整列设置项挤在中间、两侧空出一大片。
+          maxWidth: settingsContentWidth(constraints.maxWidth),
+          sections: [
+            SettingsSection(
+              rowPadding: rowPadding,
+              title: title == null
+                  ? null
+                  : Text(
+                      title!,
+                      // 设计稿（`setTitle`）的卡片标题是**墨色 13 号粗体**，不是主题色：
+                      // 原来取 `colorScheme.primary`，换紫主题后每条分组标题都是紫的，
+                      // 和下面那列设置项抢注意力。标题只需要「区分分组」，不需要强调。
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppDesignTokens.ink,
+                      ),
                     ),
-                  ),
-            tiles: children,
-          ),
-        ],
+              tiles: children,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -162,7 +169,7 @@ class SettingsSliderItem extends SettingsCardItem {
     // 「标题行 36 + 滑块行 44」= 80 高，正好是设计稿 40 的两倍 ——
     // 一屏在「文字大小」这里就被吃掉一整行的空间。
     //
-    // 所以：滑块拿一个固定 200 宽跟在标题后面，数值跟在滑块右边。
+    // 所以：滑块跟在标题后面、数值再跟在滑块右边，宽度按可用宽度收。
     // 行高仍由 36 的 `ConstrainedBox` 管，整行回到 40。
     value: Builder(
       builder: (context) => LayoutBuilder(
@@ -171,20 +178,27 @@ class SettingsSliderItem extends SettingsCardItem {
           // 右侧紧跟 `100%` 灰字。原来它挂在 `bottom` 里单独占一整行（行高 80），
           // 现在并到标题行右侧，行高回到 40。
           //
-          // 宽度取 `min(380, 可用 - 60)`：380 是设计稿的值，减 60 留给右侧的
+          // 宽度取 `min(基准 380, 可用 - 基准 60)`：减 60 留给右侧的
           // `100%` 文字与间距。窄窗口（<900，以及 widget 测试默认的 800×600）
-          // 里写死 380 会直接撑爆行宽抛 `RenderFlex overflowed`，
-          // 所以要跟着可用宽度收。
-          final sliderWidth = math.min(380.0, constraints.maxWidth - 60);
+          // 里写死会直接撑爆行宽抛 `RenderFlex overflowed`，所以要跟着可用宽度收。
+          // 380/60/80 是设计稿实测的基准，随文字缩放一起放大，避免放大后
+          // 滑块与数值挤在一起。
+          final minSliderWidth = AppResponsive.scaled(context, 80);
+          final sliderWidth = math.min(
+            AppResponsive.scaled(context, 380),
+            constraints.maxWidth - AppResponsive.scaled(context, 60),
+          );
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: sliderWidth < 80 ? 80 : sliderWidth,
-                // 高度 38：给 32 时滑块被压得太扁，和设计稿那种「有一定厚度」的
+                width: sliderWidth < minSliderWidth
+                    ? minSliderWidth
+                    : sliderWidth,
+                // 高度基准 38：给 32 时滑块被压得太扁，和设计稿那种「有一定厚度」的
                 // 轨道不像；给满 44 又会让这一行比别的行高出 6。
                 // 38 是两者折中，行高和相邻行只差 1~2px，看不出来。
-                height: 38,
+                height: AppResponsive.scaled(context, 38),
                 child: SettingsSlider(
                   value: value,
                   min: min,
@@ -193,7 +207,7 @@ class SettingsSliderItem extends SettingsCardItem {
                   onChanged: onChanged,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: AppResponsive.scaled(context, 12)),
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -260,20 +274,22 @@ class SettingsMenuItem<T> extends SettingsCardItem {
     // 之前这里塞了一个 `PopupMenuButton`，它在右侧渲染出来的是一个 **⋮ 菜单图标** ——
     // 一列下来每行右边都挂着一个三点菜单，和设计稿那串「值 + 箭头」完全不是一回事，
     // 用户也看不出当前选的是哪个值。
-    value: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label(value),
-          style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
-        ),
-        const SizedBox(width: 4),
-        const Icon(
-          Symbols.chevron_right_rounded,
-          size: 18,
-          color: AppDesignTokens.inkSubtle,
-        ),
-      ],
+    value: Builder(
+      builder: (context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label(value),
+            style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+          ),
+          SizedBox(width: AppResponsive.scaled(context, 4)),
+          const Icon(
+            Symbols.chevron_right_rounded,
+            size: 18,
+            color: AppDesignTokens.inkSubtle,
+          ),
+        ],
+      ),
     ),
     enabled: enabled,
   );

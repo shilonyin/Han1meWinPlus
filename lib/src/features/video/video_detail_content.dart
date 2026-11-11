@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_design_tokens.dart';
 import '../shared/glass/glass_panel.dart';
 import '../../../l10n/app_localizations.dart';
@@ -1129,7 +1130,14 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
           ],
         ),
         const SizedBox(height: 10),
-        SizedBox(height: 520, child: VideoCommentsView(video: video)),
+        // 评论容器高度随文字缩放，放大后评论行不被固定高裁掉，上限取视口高。
+        SizedBox(
+          height: AppResponsive.scaled(context, 520).clamp(
+            0.0,
+            MediaQuery.sizeOf(context).height,
+          ),
+          child: VideoCommentsView(video: video),
+        ),
         const SizedBox(height: 32),
       ],
     );

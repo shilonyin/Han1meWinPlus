@@ -11,6 +11,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/cast_receiver.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/settings.dart';
 import '../../core/configured_media_kit_video_player.dart';
 import '../../data/remote/han1me_http_client.dart';
@@ -1098,8 +1099,12 @@ class _MirrorSettingsDialogState extends State<_MirrorSettingsDialog> {
     final inputError = _probeResults['#input'];
     return AlertDialog(
       title: Text(l10n.customMirrorSite),
+      // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
       content: SizedBox(
-        width: 520,
+        width: AppResponsive.scaled(context, 520).clamp(
+          0.0,
+          AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

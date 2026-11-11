@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_dialog.dart';
+import '../../core/app_responsive.dart';
 import '../shared/press_scale.dart';
 
 /// 单选项分组：给「站点」这种既有 Hanime1 系、又有 AV 视频源的列表加一层分类，
@@ -120,8 +121,12 @@ class _OptionSettingsDialogState<T> extends State<_OptionSettingsDialog<T>> {
           ),
         ),
       ),
+      // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
       content: SizedBox(
-        width: 420,
+        width: AppResponsive.scaled(context, 420).clamp(
+          0.0,
+          AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

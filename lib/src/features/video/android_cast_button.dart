@@ -11,6 +11,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/video.dart';
 import '../../core/app_dialog.dart';
+import '../../core/app_responsive.dart';
 import '../shared/press_scale.dart';
 
 class AndroidCastButton extends ConsumerWidget {
@@ -54,8 +55,12 @@ class AndroidCastButton extends ConsumerWidget {
             });
             return AlertDialog(
               title: Text(AppLocalizations.of(context)!.castToDevice),
+              // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
               content: SizedBox(
-                width: 360,
+                width: AppResponsive.scaled(context, 360).clamp(
+                  0.0,
+                  AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+                ),
                 child: devices.isEmpty
                     ? const Center(child: CircularProgressIndicator())
                     : ListView.builder(

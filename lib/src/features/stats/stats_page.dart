@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../data/local/watch_repository.dart';
 import '../shared/app_top_bar.dart';
 
@@ -42,48 +43,46 @@ class StatsPage extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               const gap = 12.0;
-              final w = (constraints.maxWidth - gap * 3) / 4;
-              return Row(
+              // 最小卡宽随文字缩放，放大后数值与环比不挤在一行。
+              // 列数由可用宽度推导，窄窗经 Wrap 折行，不再写死四列。
+              final minCardWidth = AppResponsive.scaled(context, 180);
+              final cardWidth = AppResponsive.cardWidthFor(
+                availableWidth: constraints.maxWidth,
+                minCardWidth: minCardWidth,
+                gap: gap,
+                maxColumns: 4,
+              );
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
                 children: [
-                  SizedBox(
-                    width: w,
-                    child: _StatCard(
+                  for (final card in <Widget>[
+                    _StatCard(
                       label: '总观看时长',
                       value: stats.totalLabel,
                       unit: '小时',
                       delta: stats.totalDelta,
                     ),
-                  ),
-                  const SizedBox(width: gap),
-                  SizedBox(
-                    width: w,
-                    child: _StatCard(
+                    _StatCard(
                       label: '已看集数',
                       value: '${stats.count}',
                       unit: '集',
                       delta: stats.countDelta,
                     ),
-                  ),
-                  const SizedBox(width: gap),
-                  SizedBox(
-                    width: w,
-                    child: _StatCard(
+                    _StatCard(
                       label: '平均完播',
                       value: '${stats.completion}',
                       unit: '%',
                       delta: stats.completionDelta,
                     ),
-                  ),
-                  const SizedBox(width: gap),
-                  SizedBox(
-                    width: w,
-                    child: _StatCard(
+                    _StatCard(
                       label: '平均单集',
                       value: stats.avgLabel,
                       unit: '分钟',
                       delta: stats.avgDelta,
                     ),
-                  ),
+                  ])
+                    SizedBox(width: cardWidth, child: card),
                 ],
               );
             },
@@ -95,17 +94,24 @@ class StatsPage extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               const gap = 20.0;
-              final w = (constraints.maxWidth - gap) / 2;
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // 两张图表卡按可用宽度均分，窄窗折成单列，避免固定两列把柱子压扁。
+              final minCardWidth = AppResponsive.scaled(context, 320);
+              final cardWidth = AppResponsive.cardWidthFor(
+                availableWidth: constraints.maxWidth,
+                minCardWidth: minCardWidth,
+                gap: gap,
+                maxColumns: 2,
+              );
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
                 children: [
                   SizedBox(
-                    width: w,
+                    width: cardWidth,
                     child: _DistributionCard(rows: stats.distribution),
                   ),
-                  const SizedBox(width: gap),
                   SizedBox(
-                    width: w,
+                    width: cardWidth,
                     child: _HourCard(hours: stats.hours, peak: stats.peakLabel),
                   ),
                 ],
@@ -292,7 +298,11 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 96,
+    // 基准高随文字缩放，放大后内容不被固定高裁掉，上限取视口高。
+    height: AppResponsive.scaled(context, 96).clamp(
+      0.0,
+      MediaQuery.sizeOf(context).height,
+    ),
     padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
     decoration: BoxDecoration(
       color: AppDesignTokens.surface,
@@ -364,7 +374,11 @@ class _TrendCard extends StatelessWidget {
       (max, d) => math.max(max, d.minutes),
     );
     return Container(
-      height: 236,
+      // 基准高随文字缩放，放大后内容不被固定高裁掉，上限取视口高。
+      height: AppResponsive.scaled(context, 236).clamp(
+        0.0,
+        MediaQuery.sizeOf(context).height,
+      ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,
@@ -483,7 +497,11 @@ class _DistributionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 300,
+    // 基准高随文字缩放，放大后内容不被固定高裁掉，上限取视口高。
+    height: AppResponsive.scaled(context, 300).clamp(
+      0.0,
+      MediaQuery.sizeOf(context).height,
+    ),
     padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
     decoration: BoxDecoration(
       color: AppDesignTokens.surface,
@@ -568,7 +586,11 @@ class _HourCard extends StatelessWidget {
       if (value > max) max = value;
     }
     return Container(
-      height: 300,
+      // 基准高随文字缩放，放大后内容不被固定高裁掉，上限取视口高。
+      height: AppResponsive.scaled(context, 300).clamp(
+        0.0,
+        MediaQuery.sizeOf(context).height,
+      ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,

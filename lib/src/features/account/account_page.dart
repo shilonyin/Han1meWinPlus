@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_design_tokens.dart';
 import '../shared/app_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -295,7 +296,19 @@ Future<void> _showEditProfile(BuildContext context, Account account) => showAppD
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.editProfile),
-        content: SizedBox(width: 360, child: SingleChildScrollView(child: _ProfileForm(account: account, onDone: () => Navigator.pop(dialogContext)))),
+        // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
+        content: SizedBox(
+          width: AppResponsive.scaled(context, 360).clamp(
+            0.0,
+            AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+          ),
+          child: SingleChildScrollView(
+            child: _ProfileForm(
+              account: account,
+              onDone: () => Navigator.pop(dialogContext),
+            ),
+          ),
+        ),
         actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel)))],
       ),
     );
@@ -305,7 +318,16 @@ Future<void> _showChangePassword(BuildContext context) => showAppDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(AppLocalizations.of(dialogContext)!.changePassword),
-        content: SizedBox(width: 360, child: SingleChildScrollView(child: _PasswordForm(onDone: () => Navigator.pop(dialogContext)))),
+        // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
+        content: SizedBox(
+          width: AppResponsive.scaled(context, 360).clamp(
+            0.0,
+            AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+          ),
+          child: SingleChildScrollView(
+            child: _PasswordForm(onDone: () => Navigator.pop(dialogContext)),
+          ),
+        ),
         actions: [PressScale(child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppLocalizations.of(dialogContext)!.cancel)))],
       ),
     );

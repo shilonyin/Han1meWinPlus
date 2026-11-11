@@ -9,6 +9,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_motion.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_radius.dart';
 import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
@@ -81,7 +82,12 @@ class _VideoDetailImmersiveViewState
         // 内容面板至少铺满 Hero 以下的视口高度，跟 Getchu 新番详情页一样
         // 一直延伸到底，不在下方露出一大片页面底色。
         final minPanelHeight =
-            (viewport.maxHeight - 430).clamp(0.0, double.infinity);
+            (viewport.maxHeight -
+                    AppResponsive.scaled(
+                      context,
+                      AppResponsive.isCompact(viewport.maxWidth) ? 360 : 430,
+                    ))
+                .clamp(0.0, double.infinity);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,7 +98,9 @@ class _VideoDetailImmersiveViewState
                 onPlay: () => setState(() => _playing = true),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                padding: EdgeInsets.symmetric(
+              horizontal: AppResponsive.gutterFor(viewport.maxWidth),
+            ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: minPanelHeight),
                   child: Container(
@@ -185,15 +193,24 @@ class _VideoDetailImmersiveViewState
   Widget _buildTab(BuildContext context, VideoDetail video) {
     switch (_tab) {
       case 1:
+        // 评论容器高度跟随文字缩放，并以视口高为上限，避免放大后列表被裁断。
         return SizedBox(
-          height: 900,
+          height: AppResponsive.scaled(context, 900).clamp(
+            0.0,
+            MediaQuery.sizeOf(context).height,
+          ),
           child: VideoCommentsView(video: video),
         );
       case 2:
         return _InfoTab(video: video);
       case 3:
         return Padding(
-          padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
+          padding: EdgeInsets.fromLTRB(
+  28,
+  AppResponsive.scaled(context, 56),
+  28,
+  AppResponsive.scaled(context, 32),
+),
           child: _RelatedTab(video: video),
         );
       default:
@@ -221,9 +238,24 @@ class _Hero extends ConsumerWidget {
     final primary = actions.isNotEmpty ? actions.first : null;
     return LayoutBuilder(
       builder: (context, viewport) {
-        final wide = viewport.maxWidth >= 900;
+        final wide = !AppResponsive.isCompact(viewport.maxWidth);
+        final heroHeight = AppResponsive.scaled(context, wide ? 430 : 360);
+        final topPad = AppResponsive.scaled(context, 20);
+        final bottomPad = AppResponsive.scaled(context, 50);
+        final titleHeight = AppResponsive.scaled(context, 32);
+        final titleGap = AppResponsive.scaled(context, 20);
+        final gutter = AppResponsive.gutterFor(viewport.maxWidth);
+        // 海报与右侧按钮共用同一段行高，底边才永远齐平；宽度按设计稿比例反推。
+        final rowHeight = (heroHeight -
+                topPad -
+                bottomPad -
+                titleHeight -
+                titleGap)
+            .clamp(120.0, double.infinity);
+        final posterHeight = rowHeight;
+        final posterWidth = posterHeight * (220 / 308);
         return SizedBox(
-          height: 430,
+          height: heroHeight,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -236,7 +268,7 @@ class _Hero extends ConsumerWidget {
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                   width: viewport.maxWidth,
-                  height: 430,
+                  height: heroHeight,
                   fadeInDuration: Duration.zero,
                   errorWidget: (context, url, error) =>
                       const _HeroFallback(),
@@ -258,7 +290,12 @@ class _Hero extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(28, 20, 28, 50),
+                padding: EdgeInsets.fromLTRB(
+                  gutter,
+                  topPad,
+                  gutter,
+                  bottomPad,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -268,9 +305,9 @@ class _Hero extends ConsumerWidget {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                             onTap: onBack,
-                            child: const SizedBox(
-                              width: 32,
-                              height: 32,
+                            child: SizedBox(
+                              width: titleHeight,
+                              height: titleHeight,
                               child: Icon(
                                 Symbols.arrow_back_rounded,
                                 size: 22,
@@ -294,7 +331,7 @@ class _Hero extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: titleGap),
                     Expanded(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,8 +340,8 @@ class _Hero extends ConsumerWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             child: SizedBox(
-                              width: 220,
-                              height: 308,
+                              width: posterWidth,
+                              height: posterHeight,
                               child: cover != null && cover.isNotEmpty
                                   ? AppCachedNetworkImage(
                                       imageUrl: cover,
@@ -320,7 +357,7 @@ class _Hero extends ConsumerWidget {
                                     ),
                             ),
                           ),
-                          const SizedBox(width: 28),
+                          SizedBox(width: AppResponsive.scaled(context, 28)),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,7 +389,7 @@ class _Hero extends ConsumerWidget {
                                 const Spacer(),
                                 if (video.tags.isNotEmpty)
                                   _HeroTags(tags: video.tags),
-                                const SizedBox(height: 16),
+                                SizedBox(height: AppResponsive.scaled(context, 16)),
                                 Row(
                                   children: [
                                     if (primary != null)
@@ -535,7 +572,12 @@ class _OverviewTab extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     // 概览只放「剧情简介 + 基本信息」两栏，跟 Baka 的概览页一致；
     // 选集归到「信息」Tab、相关推荐归到「相关」Tab，不在概览下面堆长内容。
-    padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
+    padding: EdgeInsets.fromLTRB(
+  28,
+  AppResponsive.scaled(context, 56),
+  28,
+  AppResponsive.scaled(context, 32),
+),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -656,7 +698,12 @@ class _InfoTab extends StatelessWidget {
     if (compact) return list;
     // 独立的「信息」Tab：基本信息 + 选集（选集不再堆在概览底部）。
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 56, 28, 32),
+      padding: EdgeInsets.fromLTRB(
+  28,
+  AppResponsive.scaled(context, 56),
+  28,
+  AppResponsive.scaled(context, 32),
+),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -723,7 +770,7 @@ class _EpisodeGrid extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     onTap: () => context.push('/video/${item.id}'),
                     child: Container(
-                      width: 100,
+                      width: AppResponsive.scaled(context, 100),
                       height: 40,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
@@ -777,12 +824,12 @@ class _RelatedTab extends StatelessWidget {
       LayoutBuilder(
         builder: (context, constraints) {
           const gap = 16.0;
-          const minCardWidth = 220.0;
-          final cols = ((constraints.maxWidth + gap) / (minCardWidth + gap))
-              .floor()
-              .clamp(1, 10);
-          final width =
-              (constraints.maxWidth - gap * (cols - 1)) / cols;
+          final minCardWidth = AppResponsive.scaled(context, 220);
+          final width = AppResponsive.cardWidthFor(
+            availableWidth: constraints.maxWidth,
+            minCardWidth: minCardWidth,
+            gap: gap,
+          );
           return Wrap(
             spacing: gap,
             runSpacing: 20,

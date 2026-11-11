@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_design_tokens.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_shell.dart';
 import '../shared/press_scale.dart';
 import 'about_page.dart';
@@ -272,7 +273,13 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                 //
                 // 用选中项当锚点而不是分组标题，是因为标题的字号、行高改动都会
                 // 连带影响它的位置，而条目的高度（32）和粉底是稳定的。
-                padding: const EdgeInsets.fromLTRB(4, 60, 0, 12),
+                // 60 是设计稿锚点反推的基准，顶部/底部留白随文字缩放一起变化。
+                padding: EdgeInsets.fromLTRB(
+                  4,
+                  AppResponsive.scaled(context, 60),
+                  0,
+                  AppResponsive.scaled(context, 12),
+                ),
                 children: [
                   for (var group = 0; group < sections.length; group++) ...[
                     Padding(
@@ -293,9 +300,9 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                       // 比同一栏里的条目文字更醒目，11 号看着像脚注。
                       padding: EdgeInsets.fromLTRB(
                         24,
-                        group == 0 ? 16 : 22,
+                        AppResponsive.scaled(context, group == 0 ? 16 : 22),
                         20,
-                        4,
+                        AppResponsive.scaled(context, 4),
                       ),
                       child: Semantics(
                         header: true,
@@ -315,7 +322,9 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppResponsive.scaled(context, 12),
+                      ),
                       // 设计稿没有「分组卡」的底 —— 条目本身就是透明行，只有选中项铺淡粉底。
                       child: Column(
                         children: [
@@ -362,49 +371,68 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                     // 中间那 66 里，28 是外层 Padding 让给窗口按钮悬浮带的，
                     // 剩下 38 再减去标题行自身的行高余量，落在 33 上正好。
                     // 下边距 10：设计稿标题字底 y85、横幅顶 y104，中间 19。
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(28, 33, 28, 10),
-                      child: Row(
-                        // 22 的基线差：20 号标题与 13 号灰字按基线对齐看起来才整齐，
-                        // 用 `CrossAxisAlignment.baseline` 会把 Row 撑到标题的行高，
-                        // 这里用 `end` + 一点下移更稳（两者的行盒都按自身字号算）。
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            selected.label,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppDesignTokens.ink,
-                            ),
+                    // 页头与下面的横幅、设置列用同一个可用宽度限宽居中，
+                    // 2560 窗口里才不会一个贴左边、一个缩在中间。
+                    SettingsContentFrame(
+                      child: Padding(
+                        // 水平留白按窗口宽度分档；上下 33/10 是设计稿基准，
+                        // 随文字缩放一起放大，避免放大后标题贴到窗口按钮带。
+                        padding: EdgeInsets.fromLTRB(
+                          AppResponsive.gutterFor(
+                            MediaQuery.sizeOf(context).width,
                           ),
-                          if (_settingsSubtitles[selected.route.split('/').last]
-                              case final subtitle?) ...[
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Padding(
-                                // 让副标题的基线贴到标题基线上：
-                                // 20 号字的底部到基线还有约 5px 的 descender
-                                // 余量，13 号字只要 3，所以往下补 2。
-                                padding: const EdgeInsets.only(bottom: 2),
-                                child: Text(
-                                  subtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppDesignTokens.inkMuted,
+                          AppResponsive.scaled(context, 33),
+                          AppResponsive.gutterFor(
+                            MediaQuery.sizeOf(context).width,
+                          ),
+                          AppResponsive.scaled(context, 10),
+                        ),
+                        child: Row(
+                          // 22 的基线差：20 号标题与 13 号灰字按基线对齐看起来才整齐，
+                          // 用 `CrossAxisAlignment.baseline` 会把 Row 撑到标题的行高，
+                          // 这里用 `end` + 一点下移更稳（两者的行盒都按自身字号算）。
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              selected.label,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppDesignTokens.ink,
+                              ),
+                            ),
+                            if (_settingsSubtitles[selected.route.split('/').last]
+                                case final subtitle?) ...[
+                              SizedBox(
+                                width: AppResponsive.scaled(context, 12),
+                              ),
+                              Flexible(
+                                child: Padding(
+                                  // 让副标题的基线贴到标题基线上：
+                                  // 20 号字的底部到基线还有约 5px 的 descender
+                                  // 余量，13 号字只要 3，所以往下补 2（基准随文字缩放）。
+                                  padding: EdgeInsets.only(
+                                    bottom: AppResponsive.scaled(context, 2),
+                                  ),
+                                  child: Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppDesignTokens.inkMuted,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
+                            // 页面专属控件推到最右，与标题同一行。
+                            if (selected.trailing != null) ...[
+                              const Spacer(),
+                              selected.trailing!,
+                            ],
                           ],
-                          // 页面专属控件推到最右，与标题同一行。
-                          if (selected.trailing != null) ...[
-                            const Spacer(),
-                            selected.trailing!,
-                          ],
-                        ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -470,7 +498,8 @@ class _NavItemState extends State<_NavItem> {
             // 条目行高 32：设计稿并排对比（`navside.png`）里相邻两项的
             // 文字基线距约 38，减去 13 号字的行高余量约 6 就是 32。
             // 原来 36，整列下来多出一百多像素，一屏少看到「存储 / 其他」两组。
-            height: 32,
+            // 32 是设计稿基准，随文字缩放一起放大，放大后行高才装得下条目文字。
+            height: AppResponsive.scaled(context, 32),
             child: Row(
               children: [
                 // 设计稿选中竖条：3×20，常驻占位避免跳动；颜色跟随主题。
@@ -480,7 +509,7 @@ class _NavItemState extends State<_NavItem> {
                       ? Center(
                           child: Container(
                             width: 3,
-                            height: 20,
+                            height: AppResponsive.scaled(context, 20),
                             decoration: BoxDecoration(
                               color: accent,
                               borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -489,12 +518,15 @@ class _NavItemState extends State<_NavItem> {
                         )
                       : null,
                 ),
-                const SizedBox(width: 9),
+                SizedBox(width: AppResponsive.scaled(context, 9)),
                 Expanded(
                   child: Container(
                     // 设计稿选中项：淡粉整行底 160×32 圆角8。
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    // 32 与左右 12 都是基准，随文字缩放一起放大，条目文字才不会贴边。
+                    height: AppResponsive.scaled(context, 32),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppResponsive.scaled(context, 12),
+                    ),
                     decoration: BoxDecoration(
                       color: widget.selected
                           ? AppDesignTokens.navSelectedWash
@@ -504,7 +536,7 @@ class _NavItemState extends State<_NavItem> {
                     child: Row(
                       children: [
                         Icon(widget.icon, size: 16, color: foreground),
-                        const SizedBox(width: 10),
+                        SizedBox(width: AppResponsive.scaled(context, 10)),
                         Expanded(
                           child: Text(
                             widget.label,
@@ -523,7 +555,7 @@ class _NavItemState extends State<_NavItem> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: AppResponsive.scaled(context, 8)),
               ],
             ),
           ),
@@ -565,6 +597,8 @@ class _SettingsCategoryList extends ConsumerWidget {
         contentPadding: EdgeInsets.only(
           bottom: MediaQuery.paddingOf(context).bottom,
         ),
+        // 窄屏单栏也按可用宽度限宽，窗口拉宽时不让分类列表一条条铺到边缘。
+        maxWidth: settingsContentWidth(MediaQuery.sizeOf(context).width),
         sections: [
           for (final section in sections)
             SettingsSection(

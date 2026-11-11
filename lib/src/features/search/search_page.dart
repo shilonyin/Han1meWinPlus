@@ -10,6 +10,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../data/assets/search_option_catalog.dart';
 import '../../data/remote/han1me_api.dart'
     show CloudflareChallengeException, SearchResult;
@@ -173,6 +174,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     // 设计稿的「分类列表页」和「搜索结果页」是两种布局：分类页没有顶栏搜索框，
     // 而是「页头大标题 + 统计行」，也没有分类页签行。
     final browseMode = query.text.trim().isEmpty && query.genre.isNotEmpty;
+    // 搜索框基准宽随文字缩放，放大后 hint 不会被裁。
+    // 上限取视口六成，给左侧题材标题留出空间，窄窗下也不会把整行挤爆。
+    final fieldWidth = AppResponsive.scaled(context, 420).clamp(
+      0.0,
+      MediaQuery.sizeOf(context).width * 0.6,
+    );
 
     final pageWidget = Scaffold(
       // 设计稿顶栏：左侧返回按钮 32×32 圆角10，右侧搜索框撑满剩余宽度
@@ -217,12 +224,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       ),
                     ),
                     const Spacer(),
-                    // 设计稿的搜索框是右侧一条固定宽度的小框，不跟着窗口拉长 ——
+                    // 设计稿的搜索框是右侧一条定宽小框，不跟着窗口拉长。
                     // 撑满整行会变成一条横贯页面的长条，和设计稿差得很远。
+                    // 定宽仍要随文字缩放，否则放大后 hint 会被裁掉。
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
+                      constraints: BoxConstraints(maxWidth: fieldWidth),
                       child: SizedBox(
-                        width: 420,
+                        width: fieldWidth,
                         child: KeyedSubtree(
                           key: _fieldKey,
                           child: _SearchInput(
@@ -1071,8 +1079,12 @@ class _DateFilterDialogState extends State<_DateFilterDialog> {
     ];
     return AlertDialog(
       title: Text(l10n.releaseDateTitle),
+      // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
       content: SizedBox(
-        width: 360,
+        width: AppResponsive.scaled(context, 360).clamp(
+          0.0,
+          AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1253,8 +1265,12 @@ class _TagFilterDialogState extends State<_TagFilterDialog>
     final dialogHeight = (availableHeight - 120).clamp(180.0, 520.0).toDouble();
     return AlertDialog(
       title: Text(l10n.tags),
+      // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
       content: SizedBox(
-        width: 560,
+        width: AppResponsive.scaled(context, 560).clamp(
+          0.0,
+          AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+        ),
         height: dialogHeight,
         child: Column(
           children: [

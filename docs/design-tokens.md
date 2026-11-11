@@ -16,6 +16,7 @@
 | `lib/src/core/color_contrast.dart` | 对比度判定与兜底换色（纯函数） | 任何 `BuildContext` 相关的东西 |
 | `lib/src/core/progressive_fade.dart` | 遮罩渐变（五阶 alpha） | widget 或状态 |
 | `lib/src/core/app_scroll_behavior.dart` | 滚动条/滚轮行为 | — |
+| `lib/src/core/app_responsive.dart` | **有推导规则**的尺寸：按窗口宽度算留白/内容宽度/列数，按文字缩放算间距与控件高度 | 设计稿上量出来的固定基准值（那些在 `app_design_tokens.dart`） |
 
 判断标准只有一条：**这个值有规则吗**。
 - 有规则（按明暗推导、按尺寸分档、按语义取语义色）→ 收进令牌模块，调用点只做**选择**。
@@ -115,8 +116,8 @@ static const topBarTabBaselineGap = 12.5;
 ```
 
 不会失效的例子（不值得记）：某一行 `EdgeInsets.symmetric(horizontal: 16)`。
-横向间距目前没有统一令牌，因为设计稿里它基本恒为 16/20/24 三档，写死不会走样；
-一旦发现同一个语义出现第三种值，再收令牌。
+横向间距的**基准值**仍没有统一令牌（设计稿里基本恒为 16/20/24 三档），但**随窗口
+变化的留白**不走这里，见下面的「响应式」。写死只在同一窗口尺寸下成立。
 
 ## 间距：目前没有令牌，为什么
 
@@ -126,3 +127,29 @@ static const topBarTabBaselineGap = 12.5;
 
 真要做的话，第一步不是造 `AppSpacing.sm`，而是**先确认设计稿的间距阶梯**（4/8/12/16/24/32？），
 再决定用哪种表达。在那之前，遵守一条就够了：**同一个组件内的间距用同一个数**。
+
+## 响应式：宽度与缩放是两条线
+
+全应用的文字缩放由 `app_widget.dart` 把 `TextScaler.linear(settings.textScale)` 写进
+`MediaQuery`，普通 `Text` 会自动缩放。没跟着变的只有 **`Text` 之外的部分**：
+容器高度、间距、网格列数、内容区宽度。这些写死就会出现宽屏下内容挤在中间一小块、
+放大文字后固定高度把列表裁断。
+
+`AppResponsive` 收的是**有推导规则**的量，和 `AppDesignTokens` 的分工是：
+
+| 场景 | 用什么 | 例子 |
+| --- | --- | --- |
+| 设计稿上量出来的固定基准 | `AppDesignTokens` | 侧栏 176、顶栏 112 |
+| 随文字缩放变化的间距/控件高 | `AppResponsive.scaled(context, base)` | 按钮高 40、卡片间距 16 |
+| 随窗口宽度变化的留白/内容宽 | `gutterFor` / `contentWidthFor` | 1280 用 24、2560 用 48 |
+| 卡片网格列数与卡宽 | `columnsFor` / `cardWidthFor` | 不再写死 4 列 |
+
+两条**不能混**：布局宽度不要用 `scaled`。放大文字时把内容区一起拉宽，行宽会跟着失控；
+宽度一律按可用宽度推导。反过来，按钮高度也不要按窗口宽度算，窗口拉宽和字号放大是两件事。
+
+断点只有两个：`compactBreakpoint = 900`（单列/抽屉）、`expandedBreakpoint = 1600`
+（内容限宽 1400 后居中）。不要为某个页面再加第三个断点 —— 断点的价值在统一，
+各页面各定一个就等于没有断点。
+
+写固定宽高之前先问：这个值在 1280 宽和 2560 宽下应该一样吗？在 80% 和 140% 字号下
+应该一样吗？两个都答「是」才写字面量。

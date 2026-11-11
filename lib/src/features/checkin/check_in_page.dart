@@ -4,6 +4,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../domain/models/check_in.dart';
@@ -82,6 +83,14 @@ class CheckInPage extends ConsumerWidget {
             Center(child: Text(l10n.loadFailed('$error'), style: _tSubtle)),
         data: (state) => LayoutBuilder(
           builder: (context, constraints) {
+            final viewHeight = MediaQuery.sizeOf(context).height;
+            // 单列时日历靠父高度摊开格子，高度随文字缩放，避免放大后格子被压扁。
+            // 上限取视口高，窗口变矮时不让单块内容高过一屏。
+            final mainHeight = AppResponsive.scaled(context, 620).clamp(0.0, viewHeight);
+            final statsHeight = AppResponsive.scaled(context, 600).clamp(0.0, viewHeight);
+            // 侧栏基准宽随文字缩放，放大后统计文字不被挤窄。
+            // 主区用 Expanded 吃掉剩余，窗口变宽时不会把侧栏一起拉宽。
+            final statsWidth = AppResponsive.scaled(context, 300);
             final main = Column(
               children: [
                 _TodayCard(state: state),
@@ -94,9 +103,9 @@ class CheckInPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                 child: Column(
                   children: [
-                    SizedBox(height: 620, child: main),
+                    SizedBox(height: mainHeight, child: main),
                     const SizedBox(height: 16),
-                    SizedBox(height: 600, child: _StatsColumn(state: state)),
+                    SizedBox(height: statsHeight, child: _StatsColumn(state: state)),
                   ],
                 ),
               );
@@ -108,7 +117,7 @@ class CheckInPage extends ConsumerWidget {
                 children: [
                   Expanded(child: main),
                   const SizedBox(width: 16),
-                  SizedBox(width: 300, child: _StatsColumn(state: state)),
+                  SizedBox(width: statsWidth, child: _StatsColumn(state: state)),
                 ],
               ),
             );

@@ -9,6 +9,7 @@ import '../settings/settings_card_list.dart';
 import '../shared/press_scale.dart';
 import 'cache_format.dart';
 import '../../core/app_dialog.dart';
+import '../../core/app_responsive.dart';
 
 /// 打开分组设置弹窗。
 ///
@@ -69,8 +70,12 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
     return AlertDialog(
       title: Text(group == null ? l10n.createGroup : l10n.groupSettings),
       contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      // 对话框基准宽随文字缩放，放大后内容不被挤窄，上限取内容区宽保证小窗不溢出。
       content: SizedBox(
-        width: 380,
+        width: AppResponsive.scaled(context, 380).clamp(
+          0.0,
+          AppResponsive.contentWidthFor(MediaQuery.sizeOf(context).width),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

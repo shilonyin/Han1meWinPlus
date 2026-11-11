@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
 import '../../core/app_design_tokens.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_notifications.dart';
 import '../../core/settings.dart';
 import '../../core/system_tray.dart';
@@ -46,21 +47,28 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
         // （横幅顶 y104、标题字顶 y66，中间只有 38），这里再垫 12 会把它
         // 整体挤低一截，��屏少看到好几项设置。底部留 12 保留（滚到最底时
         // 最后一张卡不贴着窗口下沿）。
-        padding: const EdgeInsets.only(bottom: 12),
+        // 底部 12 是设计稿基准，随文字缩放一起变化。
+        padding: EdgeInsets.only(bottom: AppResponsive.scaled(context, 12)),
         children: [
           // 设计稿「当前主题」预览横幅：粉底大卡，左边是主题名（中文 + 英文）+ 一行
           // 品牌色/圆角/设计体系说明，右边是一小块界面缩略图，让人一眼看出这套配色
           // 长什么样。切主题色时它会跟着变 —— 这是「选配色」这件事最直接的反馈。
-          _ThemePreviewBanner(settings: settings),
+          // 横幅、配色卡、设置列各自用 SettingsContentFrame 按可用宽度限宽，
+          // 宽窗口下才不会横幅铺满整行、设置列却缩在中间，左右边缘错开。
+          SettingsContentFrame(
+            child: _ThemePreviewBanner(settings: settings),
+          ),
           // 设计稿「配色方案」：一张白色圆角卡，标题 + 8 个色圆横排，点一下即时切换
           // （不再是一个打开调色罗盘的列表行）。色圆选中项外层加一圈白底环。
-          _ColorSchemeCard(
-            settings: settings,
-            onPick: (color) => controller.saveChanges(
-              (current) =>
-                  current.copyWith(useMonetColors: false, themeColor: color),
+          SettingsContentFrame(
+            child: _ColorSchemeCard(
+              settings: settings,
+              onPick: (color) => controller.saveChanges(
+                (current) =>
+                    current.copyWith(useMonetColors: false, themeColor: color),
+              ),
+              onCustom: () => _pickThemeColor(context, controller, settings),
             ),
-            onCustom: () => _pickThemeColor(context, controller, settings),
           ),
           SettingsCardList(
             title: l10n.appearanceAndDisplay,
@@ -275,6 +283,8 @@ class _ColorSchemeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = settings.useMonetColors ? null : settings.themeColor;
+    // 卡内间距以设计稿实测值为基准、随文字缩放一起放大；放大后若留白不变，
+    // 标题、色块行与提示语会挤在一起。
     return Container(
       // 设计稿白卡实测 x424~1251，而内容区从 385 起（见 `settings_list.dart` 的
       // 卡片外边距）—— 左右各留 39 / 29。这里写成 12 会让卡片宽出一大截，
@@ -283,7 +293,12 @@ class _ColorSchemeCard extends StatelessWidget {
       // 上下内边距 14：设计稿这张卡高 138（y268~406），我们的是 144 ——
       // 多出的 6 来自上下各 16 的内边距。收到 14 之后整块落到 138，
       // 省下来的这几像素正好给下面那张外观卡留出余量。
-      padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        AppResponsive.scaled(context, 14),
+        24,
+        AppResponsive.scaled(context, 14),
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -301,7 +316,7 @@ class _ColorSchemeCard extends StatelessWidget {
           ),
           // 标题→色块：设计稿标题字底 299、色块外框顶 312（外框 56 高，内芯 48
           // 居中，所以内芯顶 316），中间实际不到 12。
-          const SizedBox(height: 12),
+          SizedBox(height: AppResponsive.scaled(context, 12)),
           // 色块间距 14：设计稿两个色块的**外框左边缘**步长是 62（514-452），
           // 外框宽 56 → 间距 6。之前写 14 是按内芯 48 估的，步长变成 62+6=68，
           // 一排放不下 8 个，视觉上整排被撑开、右半边明显比设计稿松。
@@ -309,8 +324,8 @@ class _ColorSchemeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Wrap(
-                spacing: 6,
-                runSpacing: 12,
+                spacing: AppResponsive.scaled(context, 6),
+                runSpacing: AppResponsive.scaled(context, 12),
                 children: [
                   for (final preset in _presets)
                     Builder(
@@ -378,15 +393,15 @@ class _ColorSchemeCard extends StatelessWidget {
               // 摆在这里既不挤也不撑高卡片。
               Padding(
                 // 与 56 高的色块垂直居中：色块 56、文字行高约 16 → (56-16)/2 = 20
-                padding: const EdgeInsets.only(top: 20),
+                padding: EdgeInsets.only(top: AppResponsive.scaled(context, 20)),
                 child: PressScale(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     onTap: onCustom,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppResponsive.scaled(context, 4),
+                        vertical: AppResponsive.scaled(context, 2),
                       ),
                       child: Text(
                         '自定义…',
@@ -403,7 +418,7 @@ class _ColorSchemeCard extends StatelessWidget {
             ],
           ),
           // 色块→提示语：设计稿内芯底 363、提示字顶 374，中间 11。
-          const SizedBox(height: 8),
+          SizedBox(height: AppResponsive.scaled(context, 8)),
           const Text(
             '点击切换主题色，全局即时生效',
             style: TextStyle(fontSize: 10, color: Color(0xFF9595A0)),
@@ -436,6 +451,8 @@ class _ThemePreviewBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 文字块的行距与内边距都是基准值，随文字缩放一起放大；缩略窗口保持
+    // 设计稿的固定比例不跟着放大，否则会盖住左侧的三行文字。
     final active = settings.useMonetColors ? null : settings.themeColor;
     final accent = accentOf(context, settings);
     final name = _themeName(active, settings.useMonetColors);
@@ -456,7 +473,12 @@ class _ThemePreviewBanner extends StatelessWidget {
       // 用 `constraints: minHeight` 而不是固定高度：文字块（当前主题 / 主题名 /
       // 品牌色三行）约 118，比 111 高，钉死会把第一行裁掉一半（实测过）。
       constraints: const BoxConstraints(minHeight: 147),
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        AppResponsive.scaled(context, 18),
+        24,
+        AppResponsive.scaled(context, 18),
+      ),
       decoration: BoxDecoration(
         // 设计稿（`pvBanner`）是**淡粉底**，不是白卡 —— 它和下面那张白色的
         // 「配色方案」卡拉开层次，一眼能看出「这块是当前状态、下面是可选项」。
@@ -493,7 +515,7 @@ class _ThemePreviewBanner extends StatelessWidget {
                     letterSpacing: 0.4,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: AppResponsive.scaled(context, 6)),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -510,7 +532,7 @@ class _ThemePreviewBanner extends StatelessWidget {
                       ),
                     ),
                     if (name.$2.isNotEmpty) ...[
-                      const SizedBox(width: 10),
+                      SizedBox(width: AppResponsive.scaled(context, 10)),
                       Text(
                         name.$2,
                         style: TextStyle(
@@ -523,7 +545,7 @@ class _ThemePreviewBanner extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: AppResponsive.scaled(context, 6)),
                 Text(
                   '品牌色 $hex · 圆角 16 · Material 3',
                   style: const TextStyle(
