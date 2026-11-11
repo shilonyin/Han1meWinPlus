@@ -12,6 +12,7 @@ import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_detail_content.dart';
+import 'video_detail_immersive.dart';
 import 'video_player_panel.dart';
 
 // 播放页的内容布局：主窗口的播放页和「独立播放窗口」共用这一份，
@@ -261,7 +262,7 @@ class _TabletVideoLayout extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(
-                child: VideoDetailSplitView(
+                child: VideoDetailImmersiveView(
                   video: video,
                   sidebarWidth: effectiveSidebar,
                   onBack: onBack,
