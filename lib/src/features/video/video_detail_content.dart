@@ -494,23 +494,30 @@ class _TagListState extends ConsumerState<_TagList> {
   }
 
   Widget _chip(int index) {
-    return PressScale(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () => _openTagScoped(index),
-        child: Container(
-          height: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppDesignTokens.fieldFill,
+    // 用 IntrinsicWidth 按内容自然撑宽：展开态用 Wrap 时父级是无界宽度约束，
+    // 直接放 PressScale/Container 会被撑满整行（标签竖排成列的 bug）；写死宽度又
+    // 会把文字挤成省略号。IntrinsicWidth 正好取两者之间——按文字实际宽度排。
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: 24,
+        child: PressScale(
+          child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
-          child: Text(
-            _chipLabel(index),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+            onTap: () => _openTagScoped(index),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppDesignTokens.fieldFill,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Text(
+                _chipLabel(index),
+                maxLines: 1,
+                softWrap: false,
+                style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+              ),
+            ),
           ),
         ),
       ),
