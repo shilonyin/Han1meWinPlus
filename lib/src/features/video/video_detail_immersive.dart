@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -213,40 +211,19 @@ class _Hero extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景：封面模糊放大，但**压到半透明**再叠两层渐变——
-              // 一层水平（右侧渐渐透出页底白）、一层垂直（底部淡出接白色面板）。
-              // Baka 那种渐变显示的通透感来自这里：不是一整块不透明的模糊图。
-              if (cover != null && cover.isNotEmpty)
-                Opacity(
-                  opacity: 0.55,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 44, sigmaY: 44),
-                    child: AppCachedNetworkImage(
-                      imageUrl: cover,
-                      fit: BoxFit.cover,
-                      width: viewport.maxWidth,
-                      height: 380,
-                      errorWidget: (context, url, error) =>
-                          const _HeroFallback(),
-                    ),
-                  ),
-                )
-              else
-                const _HeroFallback(),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xCC1B1B28),
-                      Color(0x801B1B28),
-                      Color(0x33F4F4F7),
-                      Color(0xCCF4F4F7),
-                    ],
-                    stops: [0.0, 0.35, 0.75, 1.0],
-                  ),
-                ),
+              // 背景与设计稿一致：冷紫蓝纯渐变铺底 + 两团低透明光斑，
+              // 再叠一层垂直淡出接白色面板。不用模糊封面图——那会把人物糊成一团暖棕雾，
+              // 色调还跟着封面走，和稿子的冷色渐变对不上。
+              const _HeroFallback(),
+              const Positioned(
+                right: -80,
+                top: -140,
+                child: _HeroGlow(size: 440),
+              ),
+              const Positioned(
+                right: 240,
+                top: 40,
+                child: _HeroGlow(size: 300),
               ),
               const DecoratedBox(
                 decoration: BoxDecoration(
@@ -408,6 +385,23 @@ class _HeroFallback extends StatelessWidget {
         end: Alignment.bottomRight,
         colors: [Color(0xFF202238), Color(0xFF4A4C6E), Color(0xFF8E90AE)],
       ),
+    ),
+  );
+}
+
+/// Hero 背景里的低透明圆形光斑，给纯渐变加一点层次。
+class _HeroGlow extends StatelessWidget {
+  const _HeroGlow({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: const BoxDecoration(
+      shape: BoxShape.circle,
+      color: Color(0x14FFFFFF),
     ),
   );
 }
