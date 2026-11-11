@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,45 +76,58 @@ class _VideoDetailImmersiveViewState
         ),
       );
     }
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Hero(
-            video: video,
-            onBack: widget.onBack,
-            onPlay: () => setState(() => _playing = true),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppDesignTokens.surface,
-                borderRadius: BorderRadius.circular(AppRadius.xl),
+    return LayoutBuilder(
+      builder: (context, viewport) {
+        // 内容面板至少铺满 Hero 以下的视口高度，跟 Getchu 新番详情页一样
+        // 一直延伸到底，不在下方露出一大片页面底色。
+        final minPanelHeight =
+            (viewport.maxHeight - 430).clamp(0.0, double.infinity);
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Hero(
+                video: video,
+                onBack: widget.onBack,
+                onPlay: () => setState(() => _playing = true),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _tabBar(),
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppDesignTokens.divider,
-                  ),
-                  AnimatedSwitcher(
-                    duration: motionDuration(context, AppMotion.brief),
-                    child: KeyedSubtree(
-                      key: ValueKey(_tab),
-                      child: _buildTab(context, video),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: minPanelHeight),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(AppRadius.xl),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _tabBar(),
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppDesignTokens.divider,
+                        ),
+                        AnimatedSwitcher(
+                          duration: motionDuration(context, AppMotion.brief),
+                          child: KeyedSubtree(
+                            key: ValueKey(_tab),
+                            child: _buildTab(context, video),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -207,14 +223,14 @@ class _Hero extends ConsumerWidget {
       builder: (context, viewport) {
         final wide = viewport.maxWidth >= 900;
         return SizedBox(
-          height: 380,
+          height: 430,
           child: Stack(
             fit: StackFit.expand,
             children: [
               // 背景复用项目里 Getchu 新番详情页的做法：封面原图**不模糊**，
               // 只靠一层由透明到不透明的渐变遮罩把它渐渐收进页底白
-              // （顶部 55% 底色、中部 88%、底部 100%），整幅图不是实体铺满。
-              // 另叠一层很薄的顶部压暗，让白字在这套浅色遮罩上仍然读得清。
+              // （顶部 55% 底色、中部 88%、底部 100% 的面板纯白），整幅图不是实体铺满。
+              // Hero 比内容高 50，底部这段是纯渐变呼吸区，Tab 栏不会贴着按钮。
               if (cover != null && cover.isNotEmpty)
                 AppCachedNetworkImage(
                   imageUrl: cover,
@@ -246,16 +262,16 @@ class _Hero extends ConsumerWidget {
                     colors: [
                       Color(0x00000000),
                       Color(0x00000000),
-                      Color(0x8CF4F4F7),
-                      Color(0xE0F4F4F7),
-                      Color(0xFFF4F4F7),
+                      Color(0x8CFFFFFF),
+                      Color(0xE0FFFFFF),
+                      Color(0xFFFFFFFF),
                     ],
                     stops: [0.0, 0.35, 0.62, 0.86, 1.0],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+                padding: const EdgeInsets.fromLTRB(28, 20, 28, 50),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -794,58 +810,98 @@ class _RelatedTab extends StatelessWidget {
   );
 }
 
-/// 单张相关视频卡：16:9 封面在上，标题与作者/播放量在下。
+/// 封面真实宽高比缓存：同一张图只解析一次，滚动时不再反复解码。
+final Map<String, double> _coverAspectCache = <String, double>{};
+
+/// 读取封面实际尺寸并返回宽高比，取不到时退回 16:9。
+Future<double> _coverAspect(String url) async {
+  final cached = _coverAspectCache[url];
+  if (cached != null) return cached;
+  if (url.isEmpty) return 16 / 9;
+  try {
+    final stream = appNetworkImage(url).resolve(const ImageConfiguration());
+    final completer = Completer<ui.Image>();
+    late ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        if (!completer.isCompleted) completer.complete(info.image);
+        stream.removeListener(listener);
+      },
+      onError: (Object error, StackTrace? stack) {
+        if (!completer.isCompleted) completer.completeError(error);
+      },
+    );
+    stream.addListener(listener);
+    final image = await completer.future.timeout(const Duration(seconds: 8));
+    final ratio = image.width / image.height;
+    _coverAspectCache[url] = ratio;
+    return ratio;
+  } catch (_) {
+    return 16 / 9;
+  }
+}
+
+/// 单张相关视频卡：封面按自身真实比例显示，标题与作者/播放量在下。
 class _RelatedCard extends StatelessWidget {
   const _RelatedCard({required this.item});
 
   final VideoCard item;
 
   @override
-  Widget build(BuildContext context) => PressScale(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      onTap: item.id.isEmpty ? null : () => context.push('/video/${item.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: AppCachedNetworkImage(
-                imageUrl: item.coverUrl,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) =>
-                    const ColoredBox(color: Color(0xFF3D3540)),
+  Widget build(BuildContext context) => FutureBuilder<double>(
+    future: _coverAspect(item.coverUrl),
+    builder: (context, snapshot) {
+      // 极端长条会撑坏网格，收敛到 0.56~1.9，仍保留竖版与横版的区别。
+      final ratio = (snapshot.data ?? 16 / 9).clamp(0.56, 1.9);
+      return PressScale(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: item.id.isEmpty
+              ? null
+              : () => context.push('/video/${item.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: AspectRatio(
+                  aspectRatio: ratio,
+                  child: AppCachedNetworkImage(
+                    imageUrl: item.coverUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) =>
+                        const ColoredBox(color: Color(0xFF3D3540)),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 10),
+              Text(
+                item.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppDesignTokens.ink,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                [
+                  if (item.artist != null) item.artist!,
+                  if (item.views != null) item.views!,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppDesignTokens.inkMuted,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            item.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppDesignTokens.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            [
-              if (item.artist != null) item.artist!,
-              if (item.views != null) item.views!,
-            ].join(' · '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppDesignTokens.inkMuted,
-            ),
-          ),
-        ],
-      ),
-    ),
+        ),
+      );
+    },
   );
 }
