@@ -69,10 +69,10 @@ class SettingsCardList extends StatelessWidget {
                       // 设计稿（`setTitle`）的卡片标题是**墨色 13 号粗体**，不是主题色：
                       // 原来取 `colorScheme.primary`，换紫主题后每条分组标题都是紫的，
                       // 和下面那列设置项抢注意力。标题只需要「区分分组」，不需要强调。
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppDesignTokens.ink,
+                        color: AppDesignTokens.inkOf(context),
                       ),
                     ),
               tiles: children,
@@ -215,7 +215,7 @@ class SettingsSliderItem extends SettingsCardItem {
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontSize: 13,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
             ],
@@ -283,13 +283,13 @@ class SettingsMenuItem<T> extends SettingsCardItem {
         children: [
           Text(
             label(value),
-            style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+            style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMutedOf(context)),
           ),
           SizedBox(width: AppResponsive.scaled(context, 4)),
-          const Icon(
+          Icon(
             Symbols.chevron_right_rounded,
             size: 18,
-            color: AppDesignTokens.inkSubtle,
+            color: AppDesignTokens.inkSubtleOf(context),
           ),
         ],
       ),

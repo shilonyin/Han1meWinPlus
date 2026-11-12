@@ -580,7 +580,7 @@ class _SplitListGroup extends StatelessWidget {
       // 原来取 `colorScheme.surface` —— 那一层跟着主题种子走，换成紫/蓝主题时
       // 整张卡会泛出紫灰或蓝灰，和设计稿的「白卡 + 浅灰底」那种干净对比差很远。
       // 所以这里固定用设计稿的白，不跟主题色（与侧栏、顶栏同属设计稿的基准面）。
-      solidColor: AppDesignTokens.surface,
+      solidColor: AppDesignTokens.surfaceOf(context),
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -602,12 +602,12 @@ class _SplitListGroup extends StatelessWidget {
             ),
           for (var i = 0; i < children.length; i++) ...[
             if (i > 0)
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
                 indent: 16,
                 endIndent: 16,
-                color: Color(0xFFF0F0F3),
+                color: AppDesignTokens.dividerOf(context),
               ),
             // 卡片**首行上沿 / 末行下沿**要单独补一段留白。
             //
