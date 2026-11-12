@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 
 import '../../core/app_radius.dart';
 import '../../core/app_design_tokens.dart';
+import '../../core/app_responsive.dart';
 import '../../core/platform_paths.dart';
 
 /// 日志页底部那排「本地数据」卡：人脸缓存 / 观看历史 / 图片缓存。
@@ -37,23 +38,26 @@ class LogLocalDataSection extends StatelessWidget {
             ),
           ),
         ),
-        // 设计稿（`7468_v6_log.png`）底部是**三张各自带圆角的小白卡**，
-        // 每张一个指标：标签 / 大号数值 / 文件名。原来把它们塞进同一张
-        // 大白卡的三列里，卡片边界没了，看起来像一整块表格而不是三张数据卡。
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Expanded(
-              child: _LocalDataTile(
+        // 设计稿（`7468_v6_log.png`）底部是**三张各自带圆角的小白卡**。
+        // 之前写死 `Row + 3 个 Expanded`：宽窗口下三张卡被拉得很宽、空白很多，
+        // 窗口一窄又挤成一排塞不下。改成按可用宽度推导：窄屏单列、中屏两列、
+        // 宽屏三列，卡片宽度跟着窗口走，不再一成三列。
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = AppResponsive.cardWidthFor(
+              availableWidth: constraints.maxWidth,
+              minCardWidth: AppResponsive.scaled(context, 220),
+              gap: 12,
+              maxColumns: 3,
+            );
+            const tiles = <Widget>[
+              _LocalDataTile(
                 label: '人脸缓存',
                 // 与 `FaceFocusService` 的 `_storeFile` 同名（那里是私有的）。
                 file: 'face_focus.json',
                 unit: '条',
               ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: _LocalDataTile(
+              _LocalDataTile(
                 label: '观看历史',
                 // 观看记录落在 `watch_store.json`（见 `WatchController._save`），
                 // 不是 `han1me_history.json` —— 之前写错文件名导致永远显示 0。
@@ -63,17 +67,22 @@ class LogLocalDataSection extends StatelessWidget {
                 countKey: 'histories',
                 unit: '条',
               ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: _LocalDataTile(
+              _LocalDataTile(
                 label: '图片缓存',
                 // 图片缓存索引文件名见 `app_image_cache.dart`。
                 file: 'han1me_images.json',
                 unit: '个文件',
               ),
-            ),
-          ],
+            ];
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final tile in tiles)
+                  SizedBox(width: width, child: tile),
+              ],
+            );
+          },
         ),
       ],
     );

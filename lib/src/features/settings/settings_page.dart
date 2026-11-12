@@ -406,7 +406,11 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                               SizedBox(
                                 width: AppResponsive.scaled(context, 12),
                               ),
+                              // 副标题必须 flex: 0：默认 flex: 1 会和后面的 Spacer
+                              // 平分剩余宽度，把页头右侧的 trailing 按钮（如「复制全部
+                              // 日志」）顶到整行中间、而不是紧贴内容区右缘。
                               Flexible(
+                                flex: 0,
                                 child: Padding(
                                   // 让副标题的基线贴到标题基线上：
                                   // 20 号字的底部到基线还有约 5px 的 descender

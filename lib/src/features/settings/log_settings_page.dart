@@ -12,6 +12,7 @@ import '../../core/app_design_tokens.dart';
 import '../../core/app_dialog.dart';
 import '../../core/app_logger.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../shared/app_toast.dart';
 import '../shared/press_scale.dart';
 import 'log_local_data_card.dart';
@@ -84,18 +85,37 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
             networkLabel: networkLabel,
           ),
           const SizedBox(height: 20),
-          // 设计稿在「运行环境」下面紧跟一块**最近日志**（时间 / 级别 / 正文的
-          // 实时列表）。原来这一页只有「日志文件」列表 —— 用户想看刚刚发生了什么，
-          // 还得先打开文件、再从头翻到尾，而且新日志不会自己出现。
-          _RecentLogsCard(
-            onExport: () => unawaited(_export()),
-            onOpenFolder: () => unawaited(_openFolder()),
-            onClear: () => unawaited(_clear()),
+          // 宽屏下把「最近日志」和「本地数据」并排：日志占 2/3 宽显示更多行，
+          // 本地数据竖排在右 1/3。原来全屏也竖着堆，最近日志被压得很矮、
+          // 右半边整片空着，窗口再宽也没多显示一行日志。
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final recent = _RecentLogsCard(
+                onExport: () => unawaited(_export()),
+                onOpenFolder: () => unawaited(_openFolder()),
+                onClear: () => unawaited(_clear()),
+              );
+              const localData = LogLocalDataSection();
+              if (AppResponsive.isCompact(constraints.maxWidth)) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    recent,
+                    const SizedBox(height: 20),
+                    localData,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 2, child: recent),
+                  const SizedBox(width: 20),
+                  const Expanded(flex: 1, child: localData),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 20),
-          // 设计稿底部那排「本地数据」卡（人脸缓存 / 观看历史 / 图片缓存）。
-          // 数值来自实际落盘文件，没有的显示 0 —— 不写死示例数字。
-          const LogLocalDataSection(),
         ],
       )),
     );
@@ -483,32 +503,32 @@ class _EnvironmentCard extends StatelessWidget {
         children: [
           const _CardTitle('运行环境'),
           const SizedBox(height: 18),
-          // 设计稿（`7468_v6_log.png`）是 **2×2 表格**：版本 / 系统 /
-          // 引擎 / 网络，两列等宽、两行。原来用 `Wrap` 让四项随宽度乱排，
-          // 第四项还写成「日志 1.38 MB · 1 个文件」—— 那是文件信息，
-          // 不是运行环境，混在这张卡里层级不对。
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _EnvField(label: '版本', value: appLoggerVersionLabel),
-              ),
-              Expanded(
-                child: _EnvField(label: '系统', value: _platformLabel()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _EnvField(label: '引擎', value: engine),
-              ),
-              Expanded(
-                child: _EnvField(label: '网络', value: networkLabel),
-              ),
-            ],
+          // 设计稿（`7468_v6_log.png`）是 2×2 表格。宽窗口下排成 2×2 会白白
+          // 浪费一整行的高度，信息密度跟不上窗口 —— 所以按可用宽度推导列数，
+          // 窄窗口保持两列，宽窗口一行能放四个（版本 / 系统 / 引擎 / 网络）。
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final fields = <Widget>[
+                _EnvField(label: '版本', value: appLoggerVersionLabel),
+                _EnvField(label: '系统', value: _platformLabel()),
+                _EnvField(label: '引擎', value: engine),
+                _EnvField(label: '网络', value: networkLabel),
+              ];
+              final width = AppResponsive.cardWidthFor(
+                availableWidth: constraints.maxWidth,
+                minCardWidth: AppResponsive.scaled(context, 240),
+                gap: 18,
+                maxColumns: 4,
+              );
+              return Wrap(
+                spacing: 18,
+                runSpacing: 18,
+                children: [
+                  for (final f in fields)
+                    SizedBox(width: width, child: f),
+                ],
+              );
+            },
           ),
         ],
       ),
