@@ -779,7 +779,7 @@ class VideoCardTile extends ConsumerWidget {
     // 现在取设计稿的 #5F5F6B：比 onSurfaceVariant 再深一点，压在 #F4F4F7 上够清楚，
     // 又比标题浅一档，不会和标题抢。这一层不跟主题色走（设计稿的基准面）。
     // 深色主题下用同级的浅一档灰，浅色主题下仍是设计稿的 #5F5F6B。
-    // 这里用 theme.brightness 而非 Of(context%：_details 是纯函数式方法，没有 context。
+    // 这里用 theme.brightness 而非 Of(context)：_details 是纯函数式方法，没有 context。
     final metaInk = theme.brightness == Brightness.dark
         ? const Color(0xFFA8A8B4)
         : AppDesignTokens.inkSubtle;
