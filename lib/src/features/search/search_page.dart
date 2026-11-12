@@ -192,7 +192,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               toolbarHeight: 56,
               leadingWidth: 0,
               automaticallyImplyLeading: false,
-              backgroundColor: AppDesignTokens.pageBackground,
+              backgroundColor: AppDesignTokens.pageBackgroundOf(context),
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               titleSpacing: 0,
@@ -209,10 +209,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   children: [
                     Text(
                       query.genre,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: AppDesignTokens.ink,
+                        color: AppDesignTokens.inkOf(context),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -257,7 +257,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               toolbarHeight: 112,
               leadingWidth: 0,
               automaticallyImplyLeading: false,
-              backgroundColor: AppDesignTokens.pageBackground,
+              backgroundColor: AppDesignTokens.pageBackgroundOf(context),
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               titleSpacing: 0,
@@ -276,10 +276,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             color: const Color(0xFFF1F1F5),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Symbols.arrow_back_rounded,
                             size: 16,
-                            color: AppDesignTokens.inkSubtle,
+                            color: AppDesignTokens.inkSubtleOf(context),
                           ),
                         ),
                       ),
@@ -439,7 +439,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       // 直接把它们塞进裸 Row 时那个祖先不存在 —— release 下不会红屏，但点击
       // 直接失效，表现就是「点里番进去以后，侧栏其他项都点不动了」。
       return Material(
-        color: AppDesignTokens.pageBackground,
+        color: AppDesignTokens.pageBackgroundOf(context),
         child: Row(
           children: [
             const AppDesktopSidebar(),
@@ -559,7 +559,7 @@ class _SearchInput extends StatelessWidget {
     // 占位字被压得看不见）。
     final height = compact ? 34.0 : 48.0;
     final radius = compact ? AppRadius.pill : AppRadius.md;
-    final fill = compact ? AppDesignTokens.fieldFill : AppDesignTokens.surface;
+    final fill = compact ? AppDesignTokens.fieldFillOf(context) : AppDesignTokens.surfaceOf(context);
     final verticalPad = compact ? 8.0 : 14.0;
     final iconSize = compact ? 16.0 : 18.0;
     final fontSize = compact ? 12.5 : 14.0;
@@ -571,7 +571,7 @@ class _SearchInput extends StatelessWidget {
         autofocus: autoFocus,
         textInputAction: TextInputAction.search,
         onSubmitted: onSubmitted,
-        style: TextStyle(fontSize: fontSize, color: AppDesignTokens.ink),
+        style: TextStyle(fontSize: fontSize, color: AppDesignTokens.inkOf(context)),
         decoration: InputDecoration(
           isDense: true,
           hintText: hintText,
@@ -612,16 +612,16 @@ class _SearchInput extends StatelessWidget {
                               height: 26,
                               decoration: BoxDecoration(
                                 color: compact
-                                    ? AppDesignTokens.surface
-                                    : AppDesignTokens.fieldFill,
+                                    ? AppDesignTokens.surfaceOf(context)
+                                    : AppDesignTokens.fieldFillOf(context),
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.sm,
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Symbols.close_rounded,
                                 size: 14,
-                                color: AppDesignTokens.inkSubtle,
+                                color: AppDesignTokens.inkSubtleOf(context),
                               ),
                             ),
                           ),
@@ -730,16 +730,16 @@ class _CategoryStatsBar extends StatelessWidget {
           if (total != null && total! > 0) ...[
             Text(
               '共 $total 部作品',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             const SizedBox(width: 16),
-            const Text(
+            Text(
               '按更新时间倒序 · 向下滚动自动加载',
-              style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+              style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context)),
             ),
           ],
           const Spacer(),
@@ -747,7 +747,7 @@ class _CategoryStatsBar extends StatelessWidget {
             height: 28,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppDesignTokens.fieldFill,
+              color: AppDesignTokens.fieldFillOf(context),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Row(
@@ -770,7 +770,7 @@ class _CategoryStatsBar extends StatelessWidget {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: selected
-                                  ? AppDesignTokens.surface
+                                  ? AppDesignTokens.surfaceOf(context)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(AppRadius.xs),
                             ),
@@ -782,8 +782,8 @@ class _CategoryStatsBar extends StatelessWidget {
                                     ? FontWeight.w600
                                     : FontWeight.w400,
                                 color: selected
-                                    ? AppDesignTokens.ink
-                                    : AppDesignTokens.inkSubtle,
+                                    ? AppDesignTokens.inkOf(context)
+                                    : AppDesignTokens.inkSubtleOf(context),
                               ),
                             ),
                           ),

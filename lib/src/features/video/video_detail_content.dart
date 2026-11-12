@@ -509,14 +509,14 @@ class _TagListState extends ConsumerState<_TagList> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppDesignTokens.fieldFill,
+                color: AppDesignTokens.fieldFillOf(context),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
                 _chipLabel(index),
                 maxLines: 1,
                 softWrap: false,
-                style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+                style: TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtleOf(context)),
               ),
             ),
           ),
@@ -610,13 +610,13 @@ class _TagListState extends ConsumerState<_TagList> {
                     height: 24,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppDesignTokens.fieldFill,
+                      color: AppDesignTokens.fieldFillOf(context),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Symbols.more_horiz_rounded,
                       size: 16,
-                      color: AppDesignTokens.inkSubtle,
+                      color: AppDesignTokens.inkSubtleOf(context),
                     ),
                   ),
                 ),
@@ -630,10 +630,10 @@ class _TagListState extends ConsumerState<_TagList> {
                     width: 28,
                     height: 24,
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Symbols.add_rounded,
                       size: 16,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 ),
@@ -653,13 +653,13 @@ class _TagListState extends ConsumerState<_TagList> {
         height: 24,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppDesignTokens.fieldFill,
+          color: AppDesignTokens.fieldFillOf(context),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
-        child: const Icon(
+        child: Icon(
           Symbols.keyboard_arrow_up_rounded,
           size: 16,
-          color: AppDesignTokens.inkSubtle,
+          color: AppDesignTokens.inkSubtleOf(context),
         ),
       ),
     ),
@@ -692,20 +692,20 @@ class _SeriesVideosState extends State<_SeriesVideos> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              const Text(
+              Text(
                 '选集',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 '共 ${widget.videos.length} 集',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
               const Spacer(),
@@ -724,16 +724,16 @@ class _SeriesVideosState extends State<_SeriesVideos> {
                       children: [
                         Text(
                           _reversed ? '正序' : '倒序',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppDesignTokens.inkMuted,
+                            color: AppDesignTokens.inkMutedOf(context),
                           ),
                         ),
                         const SizedBox(width: 2),
-                        const Icon(
+                        Icon(
                           Symbols.swap_vert_rounded,
                           size: 14,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ],
                     ),
@@ -768,7 +768,7 @@ class _SeriesVideosState extends State<_SeriesVideos> {
                             decoration: BoxDecoration(
                               color: selected
                                   ? AppDesignTokens.accentDeep
-                                  : AppDesignTokens.fieldFill,
+                                  : AppDesignTokens.fieldFillOf(context),
                               borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: Text(
@@ -786,7 +786,7 @@ class _SeriesVideosState extends State<_SeriesVideos> {
                                     : FontWeight.w400,
                                 color: selected
                                     ? Colors.white
-                                    : AppDesignTokens.inkSubtle,
+                                    : AppDesignTokens.inkSubtleOf(context),
                               ),
                             ),
                           ),
@@ -1097,12 +1097,12 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
         ),
         if (hasDetails) ...[
           const SizedBox(height: 24),
-          const Text(
+          Text(
             '简介',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(height: 10),
@@ -1117,21 +1117,21 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            const Text(
+            Text(
               '评论',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             if (video.commentCount != null) ...[
               const SizedBox(width: 6),
               Text(
                 '· ${video.commentCount}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
             ],
@@ -1164,7 +1164,7 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
         _TagList(video: video),
         if (video.playlist.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const Divider(height: 1, thickness: 1, color: AppDesignTokens.divider),
+          Divider(height: 1, thickness: 1, color: AppDesignTokens.dividerOf(context)),
           const SizedBox(height: 14),
           _SeriesVideos(videos: video.playlist, currentVideoId: video.id),
         ],
@@ -1172,10 +1172,10 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
           const SizedBox(height: 24),
           Text(
             l10n.relatedVideos,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(height: 12),
@@ -1370,7 +1370,7 @@ class _SideTopIcons extends ConsumerWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppDesignTokens.fieldFill,
+                      color: AppDesignTokens.fieldFillOf(context),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: BouncyToggleIcon(
@@ -1378,8 +1378,8 @@ class _SideTopIcons extends ConsumerWidget {
                       size: 16,
                       filled: action.filled,
                       color: action.onPressed == null
-                          ? AppDesignTokens.inkMuted
-                          : AppDesignTokens.inkSubtle,
+                          ? AppDesignTokens.inkMutedOf(context)
+                          : AppDesignTokens.inkSubtleOf(context),
                     ),
                   ),
                 ),
@@ -1436,13 +1436,13 @@ class _DetailTopBar extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 onTap: onBack,
-                child: const SizedBox(
+                child: SizedBox(
                   width: 32,
                   height: 32,
                   child: Icon(
                     Symbols.arrow_back_rounded,
                     size: 20,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
               ),
@@ -1453,10 +1453,10 @@ class _DetailTopBar extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
             ),
@@ -1489,10 +1489,10 @@ class _SideTitle extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       // 设计稿 sideTitle：fs 16（x=892 y=108 w=360）。
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: AppDesignTokens.ink,
+        color: AppDesignTokens.inkOf(context),
       ),
     ),
   );
@@ -1533,18 +1533,18 @@ class _SideAuthor extends ConsumerWidget {
               video.artist ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
           ),
           if (video.uploadDate != null)
             Text(
               video.uploadDate!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
         ],
@@ -1566,17 +1566,17 @@ class _SideStats extends StatelessWidget {
       child: Row(
         children: [
           if (video.views != null) ...[
-            const Icon(
+            Icon(
               Symbols.play_circle_rounded,
               size: 14,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
             const SizedBox(width: 4),
             Text(
               video.views!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
             const SizedBox(width: 16),

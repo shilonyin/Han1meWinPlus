@@ -116,8 +116,8 @@ class _VideoDetailImmersiveViewState
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: minPanelHeight),
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: AppDesignTokens.surface,
+                    decoration: BoxDecoration(
+                      color: AppDesignTokens.surfaceOf(context),
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(AppRadius.xl),
                       ),
@@ -127,10 +127,10 @@ class _VideoDetailImmersiveViewState
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _tabBar(),
-                        const Divider(
+                        Divider(
                           height: 1,
                           thickness: 1,
-                          color: AppDesignTokens.divider,
+                          color: AppDesignTokens.dividerOf(context),
                         ),
                         AnimatedSwitcher(
                           duration: motionDuration(context, AppMotion.brief),
@@ -176,8 +176,8 @@ class _VideoDetailImmersiveViewState
                             ? FontWeight.w600
                             : FontWeight.w400,
                         color: _tab == i
-                            ? AppDesignTokens.ink
-                            : AppDesignTokens.inkMuted,
+                            ? AppDesignTokens.inkOf(context)
+                            : AppDesignTokens.inkMutedOf(context),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -323,7 +323,7 @@ class _Hero extends ConsumerWidget {
                               child: Icon(
                                 Symbols.arrow_back_rounded,
                                 size: 22,
-                                color: AppDesignTokens.ink,
+                                color: AppDesignTokens.inkOf(context),
                               ),
                             ),
                           ),
@@ -334,10 +334,10 @@ class _Hero extends ConsumerWidget {
                             video.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: AppDesignTokens.ink,
+                              color: AppDesignTokens.inkOf(context),
                             ),
                           ),
                         ),
@@ -378,10 +378,10 @@ class _Hero extends ConsumerWidget {
                                   video.title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w700,
-                                    color: AppDesignTokens.ink,
+                                    color: AppDesignTokens.inkOf(context),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -393,9 +393,9 @@ class _Hero extends ConsumerWidget {
                                   ].join(' · '),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: AppDesignTokens.inkSubtle,
+                                    color: AppDesignTokens.inkSubtleOf(context),
                                   ),
                                 ),
                                 const Spacer(),
@@ -489,9 +489,9 @@ class _HeroTags extends StatelessWidget {
                 ),
                 child: Text(
                   tag.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
               ),
@@ -533,7 +533,7 @@ class _HeroButton extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: dark ? Colors.white : AppDesignTokens.ink,
+              color: dark ? Colors.white : AppDesignTokens.inkOf(context),
             ),
             const SizedBox(width: 8),
             Text(
@@ -541,7 +541,7 @@ class _HeroButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: dark ? Colors.white : AppDesignTokens.ink,
+                color: dark ? Colors.white : AppDesignTokens.inkOf(context),
               ),
             ),
           ],
@@ -562,10 +562,10 @@ class _HeroRating extends StatelessWidget {
     children: [
       Text(
         rating,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 40,
           fontWeight: FontWeight.w700,
-          color: AppDesignTokens.ink,
+          color: AppDesignTokens.inkOf(context),
         ),
       ),
       const SizedBox(width: 6),
@@ -600,19 +600,19 @@ class _OverviewTab extends StatelessWidget {
             children: [
               Text(
                 AppLocalizations.of(context)!.description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 video.description ?? '',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.55,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ),
             ],
@@ -624,12 +624,12 @@ class _OverviewTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 '基本信息',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -664,12 +664,12 @@ class _InfoTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!compact)
-          const Text(
+          Text(
             '基本信息',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
         if (!compact) const SizedBox(height: 16),
@@ -682,18 +682,18 @@ class _InfoTab extends StatelessWidget {
                   width: 88,
                   child: Text(
                     row.$1,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     row.$2,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                   ),
                 ),
@@ -701,9 +701,9 @@ class _InfoTab extends StatelessWidget {
             ),
           ),
         if (rows.isEmpty)
-          const Text(
+          Text(
             '暂无信息',
-            style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+            style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context)),
           ),
       ],
     );
@@ -722,10 +722,10 @@ class _InfoTab extends StatelessWidget {
           list,
           if (video.playlist.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Divider(
+            Divider(
               height: 1,
               thickness: 1,
-              color: AppDesignTokens.divider,
+              color: AppDesignTokens.dividerOf(context),
             ),
             const SizedBox(height: 24),
             _EpisodeGrid(video: video),
@@ -748,20 +748,20 @@ class _EpisodeGrid extends StatelessWidget {
     children: [
       Row(
         children: [
-          const Text(
+          Text(
             '选集',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             '共 ${video.playlist.length} 集',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
         ],
@@ -788,7 +788,7 @@ class _EpisodeGrid extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: selected
                             ? AppDesignTokens.accentDeep
-                            : AppDesignTokens.fieldFill,
+                            : AppDesignTokens.fieldFillOf(context),
                         borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: Text(
@@ -800,7 +800,7 @@ class _EpisodeGrid extends StatelessWidget {
                               : FontWeight.w400,
                           color: selected
                               ? Colors.white
-                              : AppDesignTokens.inkSubtle,
+                              : AppDesignTokens.inkSubtleOf(context),
                         ),
                       ),
                     ),
@@ -824,12 +824,12 @@ class _RelatedTab extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text(
+      Text(
         '相关推荐',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: AppDesignTokens.ink,
+          color: AppDesignTokens.inkOf(context),
         ),
       ),
       const SizedBox(height: 16),
@@ -925,10 +925,10 @@ class _RelatedCard extends StatelessWidget {
                 item.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(height: 6),
@@ -939,9 +939,9 @@ class _RelatedCard extends StatelessWidget {
                 ].join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
             ],
