@@ -12,6 +12,7 @@ import '../shared/press_scale.dart';
 import 'check_in_controller.dart';
 import '../../core/app_dialog.dart';
 import '../shared/app_top_bar.dart';
+import '../shared/fade_slide_in.dart';
 
 /// 类型对应的线性图标。
 ///
@@ -94,9 +95,15 @@ class CheckInPage extends ConsumerWidget {
             final statsWidth = AppResponsive.scaled(context, 300);
             final main = Column(
               children: [
-                _TodayCard(state: state),
+                FadeSlideIn(
+                  order: 0,
+                  child: _TodayCard(state: state),
+                ),
                 const SizedBox(height: 16),
-                _MonthCalendar(state: state),
+                FadeSlideIn(
+                  order: 1,
+                  child: _MonthCalendar(state: state),
+                ),
               ],
             );
             if (constraints.maxWidth < 900) {
@@ -118,7 +125,13 @@ class CheckInPage extends ConsumerWidget {
                 children: [
                   Expanded(child: main),
                   const SizedBox(width: 16),
-                  SizedBox(width: statsWidth, child: _StatsColumn(state: state)),
+                  SizedBox(
+                    width: statsWidth,
+                    child: FadeSlideIn(
+                      order: 2,
+                      child: _StatsColumn(state: state),
+                    ),
+                  ),
                 ],
               ),
             );

@@ -46,6 +46,10 @@ void main() {
     'lib/src/features/search/search_page.dart': {bareKey: 1},
     'lib/src/features/settings/color_compass_dialog.dart': {bareKey: 1},
     'lib/src/features/stats/stats_page.dart': {bareKey: 1},
+    // 组内入场错开步长：只是让几块内容/柱子先后出现，不是动效时长本身；
+    // 减少动画时整段被跳过（motionEnabledOf 为假时直接到终态），故不套 motionDuration。
+    'lib/src/features/shared/fade_slide_in.dart': {'_staggerStep': 1},
+    'lib/src/features/shared/grow_bar.dart': {'_staggerStep': 1},
   };
 
   /// 只扫 feature 层。core 层的播放器心跳、网络超时不在这个守卫的范围内，

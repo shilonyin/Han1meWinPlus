@@ -9,6 +9,8 @@ import '../../core/app_radius.dart';
 import '../../core/app_responsive.dart';
 import '../../data/local/watch_repository.dart';
 import '../shared/app_top_bar.dart';
+import '../shared/grow_bar.dart';
+import '../shared/fade_slide_in.dart';
 
 /// 「统计」：按 v6 设计稿（`1792_stats.png`）排成数据看板。
 ///
@@ -56,40 +58,24 @@ class StatsPage extends ConsumerWidget {
                 spacing: gap,
                 runSpacing: gap,
                 children: [
-                  for (final card in <Widget>[
-                    _StatCard(
-                      label: '总观看时长',
-                      value: stats.totalLabel,
-                      unit: '小时',
-                      delta: stats.totalDelta,
+                  for (var i = 0; i < _statCards(stats).length; i++)
+                    SizedBox(
+                      width: cardWidth,
+                      child: FadeSlideIn(
+                        order: i,
+                        child: _statCards(stats)[i],
+                      ),
                     ),
-                    _StatCard(
-                      label: '已看集数',
-                      value: '${stats.count}',
-                      unit: '集',
-                      delta: stats.countDelta,
-                    ),
-                    _StatCard(
-                      label: '平均完播',
-                      value: '${stats.completion}',
-                      unit: '%',
-                      delta: stats.completionDelta,
-                    ),
-                    _StatCard(
-                      label: '平均单集',
-                      value: stats.avgLabel,
-                      unit: '分钟',
-                      delta: stats.avgDelta,
-                    ),
-                  ])
-                    SizedBox(width: cardWidth, child: card),
                 ],
               );
             },
           ),
           const SizedBox(height: 20),
           // 观看趋势：近 30 天每日观看分钟数的柱状图。
-          _TrendCard(days: stats.days),
+          FadeSlideIn(
+            order: 4,
+            child: _TrendCard(days: stats.days),
+          ),
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -108,11 +94,17 @@ class StatsPage extends ConsumerWidget {
                 children: [
                   SizedBox(
                     width: cardWidth,
-                    child: _DistributionCard(rows: stats.distribution),
+                    child: FadeSlideIn(
+                      order: 5,
+                      child: _DistributionCard(rows: stats.distribution),
+                    ),
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _HourCard(hours: stats.hours, peak: stats.peakLabel),
+                    child: FadeSlideIn(
+                      order: 6,
+                      child: _HourCard(hours: stats.hours, peak: stats.peakLabel),
+                    ),
                   ),
                 ],
               );
@@ -123,6 +115,34 @@ class StatsPage extends ConsumerWidget {
     );
   }
 }
+
+/// 四张概览统计卡，抽成函数是为了在布局处按 index 给它们错开入场。
+List<Widget> _statCards(_Stats stats) => [
+  _StatCard(
+    label: '总观看时长',
+    value: stats.totalLabel,
+    unit: '小时',
+    delta: stats.totalDelta,
+  ),
+  _StatCard(
+    label: '已看集数',
+    value: '${stats.count}',
+    unit: '集',
+    delta: stats.countDelta,
+  ),
+  _StatCard(
+    label: '平均完播',
+    value: '${stats.completion}',
+    unit: '%',
+    delta: stats.completionDelta,
+  ),
+  _StatCard(
+    label: '平均单集',
+    value: stats.avgLabel,
+    unit: '分钟',
+    delta: stats.avgDelta,
+  ),
+];
 
 /// 从真实观看记录算出看板需要的全部指标。
 ///
@@ -424,18 +444,18 @@ class _TrendCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                for (final day in days)
+                for (var i = 0; i < days.length; i++)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: FractionallySizedBox(
-                        heightFactor: maxMinutes <= 0
+                      child: GrowBar(
+                        factor: maxMinutes <= 0
                             ? 0.02
-                            : (day.minutes / maxMinutes).clamp(0.02, 1.0),
-                        alignment: Alignment.bottomCenter,
+                            : (days[i].minutes / maxMinutes).clamp(0.02, 1.0),
+                        order: i,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: day.minutes > 0
+                            color: days[i].minutes > 0
                                 ? AppDesignTokens.accent
                                 : AppDesignTokens.dividerOf(context),
                             borderRadius: const BorderRadius.vertical(
@@ -543,8 +563,9 @@ class _DistributionCard extends StatelessWidget {
                         const Positioned.fill(
                           child: ColoredBox(color: Color(0xFFF2F2F6)),
                         ),
-                        FractionallySizedBox(
-                          widthFactor: row.ratio,
+                        GrowBar(
+                          factor: row.ratio,
+                          axis: Axis.horizontal,
                           child: const ColoredBox(
                             color: AppDesignTokens.accentDeep,
                           ),
@@ -624,11 +645,11 @@ class _HourCard extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: FractionallySizedBox(
-                        heightFactor: max == 0
+                      child: GrowBar(
+                        factor: max == 0
                             ? 0.02
                             : (hours[h] / max).clamp(0.02, 1.0),
-                        alignment: Alignment.bottomCenter,
+                        order: h,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: hours[h] >= max && max > 0
