@@ -354,7 +354,7 @@ class _SettingsPanesState extends State<_SettingsPanes> {
               // 右侧内容区的底：#F4F4F7（设计稿 `pageBackground`）。左栏保持透明白
               // —— 白卡压在浅灰上才看得出边界，压在纯白上就糊成一片。
               child: ColoredBox(
-                color: AppDesignTokens.pageBackground,
+                color: AppDesignTokens.pageBackgroundOf(context),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -395,10 +395,10 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                           children: [
                             Text(
                               selected.label,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: AppDesignTokens.ink,
+                                color: AppDesignTokens.inkOf(context),
                               ),
                             ),
                             if (_settingsSubtitles[selected.route.split('/').last]
@@ -422,9 +422,9 @@ class _SettingsPanesState extends State<_SettingsPanes> {
                                     subtitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      color: AppDesignTokens.inkMuted,
+                                      color: AppDesignTokens.inkMutedOf(context),
                                     ),
                                   ),
                                 ),
@@ -481,7 +481,7 @@ class _NavItemState extends State<_NavItem> {
     final highlighted = widget.selected || _hovered;
     // 选中 / 悬停都用主题色（用户选的配色，见 `accentOf`）。
     final accent = AppDesignTokens.accentOf(context);
-    final foreground = highlighted ? accent : AppDesignTokens.inkSubtle;
+    final foreground = highlighted ? accent : AppDesignTokens.inkSubtleOf(context);
     return MouseRegion(
       // 命中测试按**整行的原始矩形**做，不受子级缩放影响。
       // 按下时整行会缩到 .96，若命中区跟着缩，鼠标停在边缘就会

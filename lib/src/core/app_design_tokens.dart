@@ -158,4 +158,65 @@ abstract final class AppDesignTokens {
 
   /// 分区标题字号（设计稿 22）
   static const sectionTitleSize = 22.0;
+
+  // ── 明暗自适应色（按 Theme 的 Brightness 取浅/深两套值）──────────────
+  //
+  // 上面那批 static const 是**浅色设计稿基准值**，v6 改造时只做了浅色，所以整个
+  // 界面能正常显示、但切深色主题时一片不变（页面还是白底黑字）。下面这一组是它的
+  // 明暗双层版：浅色档返回上面那批原值（视觉零变化），深色档返回配套的深色值。
+  //
+  // 迁移方式：把 `AppDesignTokens.ink` 换成 `AppDesignTokens.inkOf(context)`，
+  // 其余同理。存量 static const 保留不删——没迁移完的页面继续用浅色值能编译、
+  // 能显示，只是那些地方还不吃深色；分批改完再收口。
+  //
+  // 深色值不是随手调的：以中性冷灰为基底（#121215 / #1C1C21），和浅色那套
+  // #F4F4F7 / #FFFFFF 是同一明度阶梯的翻转，卡片仍比页面亮一档、描边仍比卡片淡，
+  // 层级关系保持不变，只是极性反过来。
+
+  static bool _isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  /// 页面底：浅 #F4F4F7 / 深 #121215。
+  static Color pageBackgroundOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF121215) : pageBackground;
+
+  /// 卡片 / 侧栏 / 弹层底板：浅 #FFFFFF / 深 #1C1C21。
+  static Color surfaceOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF1C1C21) : surface;
+
+  /// 比卡片再高一档的浮起面（深色下弹窗、悬浮卡用它和普通卡片拉开）。
+  static Color surfaceRaisedOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF26262C) : surface;
+
+  /// 分隔描边：浅 #E2E2E8 / 深 #2E2E36。
+  static Color strokeOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF2E2E36) : stroke;
+
+  /// 组内细线：浅 #ECECF1 / 深 #26262C。
+  static Color dividerOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF26262C) : divider;
+
+  /// 正文：浅 #1B1B1F / 深 #ECECF1。
+  static Color inkOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFECECF1) : ink;
+
+  /// 次级正文：浅 #5F5F6B / 深 #A8A8B4。
+  static Color inkSubtleOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFA8A8B4) : inkSubtle;
+
+  /// 说明文字：浅 #8A8A96 / 深 #78788480，深色下再淡一点才不抢戏。
+  static Color inkMutedOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF7C7C88) : inkMuted;
+
+  /// 输入框 / 选中行底色：浅 #EDEDF2 / 深 #26262C。
+  static Color fieldFillOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF26262C) : fieldFill;
+
+  /// 账号卡底：浅 #F6F6F9 / 深 #232329。
+  static Color accountCardFillOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF232329) : accountCardFill;
+
+  /// 开关关闭轨道：浅 #B7B7B9 / 深 #4A4A54。
+  static Color switchTrackOffOf(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF4A4A54) : switchTrackOff;
 }

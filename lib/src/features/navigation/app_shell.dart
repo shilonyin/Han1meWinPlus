@@ -117,7 +117,7 @@ class _AppShellState extends ConsumerState<AppShell>
         // 页面底统一是设计稿的 #F4F4F7：侧栏是纯白，内容区是浅灰，
         // 白卡压在浅灰上才有层次。原来透的是主题 surface，
         // 换成粉色/蓝色主题时整块底会泛色，白卡和底色就分不开了。
-        backgroundColor: AppDesignTokens.pageBackground,
+        backgroundColor: AppDesignTokens.pageBackgroundOf(context),
         drawer: largeScreen
             ? null
             : _AppDrawer(navigationShell: widget.navigationShell),
@@ -419,8 +419,8 @@ class _DrawerAccountCard extends StatelessWidget {
         // 之前用的是白底 + 1px 描边，于是它和侧栏的白糊成一片，只剩下一条细线，
         // 看着像「多出来一条分割线」，不像一张卡。
         color: compact
-            ? AppDesignTokens.accountCardFill
-            : AppDesignTokens.surface,
+            ? AppDesignTokens.accountCardFillOf(context)
+            : AppDesignTokens.surfaceOf(context),
         elevation: compact ? 0 : null,
         shape: compact
             ? RoundedRectangleBorder(borderRadius: AppRadius.all(AppRadius.sm))
@@ -460,11 +460,11 @@ class _DrawerAccountCard extends StatelessWidget {
                               // 行高收紧到 1.2：设计稿这张卡是定高 56，名字 + 间距 +
                               // 账号两行加起来要落在头像那 32 里；按默认行高算是 34，
                               // 卡就会被撑到 58，底部整块跟着往上挤。
-                              ? const TextStyle(
+                              ? TextStyle(
                                   fontSize: 12,
                                   height: 1.2,
                                   fontWeight: FontWeight.w700,
-                                  color: AppDesignTokens.ink,
+                                  color: AppDesignTokens.inkOf(context),
                                 )
                               : textTheme.titleMedium,
                         ),
@@ -474,10 +474,10 @@ class _DrawerAccountCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: compact
-                              ? const TextStyle(
+                              ? TextStyle(
                                   fontSize: 10.5,
                                   height: 1.2,
-                                  color: AppDesignTokens.inkMuted,
+                                  color: AppDesignTokens.inkMutedOf(context),
                                 )
                               : textTheme.bodySmall,
                         ),
@@ -633,9 +633,9 @@ class AppDesktopSidebar extends ConsumerWidget {
       // 侧栏是设计稿里唯一一块纯白面板，右边那条 1px 把它和 #F4F4F7 的页面底分开。
       // 原来这里不铺底、靠外面的 Scaffold 底色透上来，换成浅灰页面底之后侧栏就
       // 和白卡糊成一片了。
-      decoration: const BoxDecoration(
-        color: AppDesignTokens.surface,
-        border: Border(right: BorderSide(color: AppDesignTokens.divider)),
+      decoration: BoxDecoration(
+        color: AppDesignTokens.surfaceOf(context),
+        border: Border(right: BorderSide(color: AppDesignTokens.dividerOf(context))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -731,7 +731,7 @@ class _SidebarItem extends StatelessWidget {
     // 设计稿截图里是胭脂粉，那是因为设计稿画的是「玫瑰」这套配色 —— 粉不是写死的值。
     final foreground = selected
         ? AppDesignTokens.accentOf(context)
-        : AppDesignTokens.inkSubtle;
+        : AppDesignTokens.inkSubtleOf(context);
     return Padding(
       // 行距 52 = 上 9 + 选中底 34 + 下 9；左右各 16 让选中底正好 144 宽、起点 x=16，
       // 与设计稿 navBg/home（61..94、16..159）逐像素对齐。
@@ -809,10 +809,10 @@ class _SidebarGroupDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, top, 16, bottom),
-      child: const Divider(
+      child: Divider(
         height: 1,
         thickness: 1,
-        color: AppDesignTokens.divider,
+        color: AppDesignTokens.dividerOf(context),
       ),
     );
   }
