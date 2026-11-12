@@ -34,10 +34,6 @@ String _typeLabel(AppLocalizations l10n, String id) => switch (id) {
   _ => l10n.other,
 };
 
-/// 文字灰只有三档（ink / inkSubtle / inkMuted），这里集中成两条快捷样式，
-/// 避免各处再随手写第四种灰。
-const TextStyle _tSubtle = TextStyle(color: AppDesignTokens.inkSubtle);
-
 /// 「冲了么」：纯本地的每日打卡日历（连续签到横幅 + 月历热力图 + 侧栏统计）。
 ///
 /// 视觉按 p_checkin.png 设计稿重做，全部颜色取自 [AppDesignTokens]。
@@ -54,7 +50,7 @@ class CheckInPage extends ConsumerWidget {
       // 这里沿用同一个 AppBar，标题字号压到设计稿的 19-20 Bold。
       appBar: AppTopBar(
         automaticallyImplyLeading: false,
-        title: const Text.rich(
+        title: Text.rich(
           TextSpan(
             children: [
               TextSpan(
@@ -62,7 +58,7 @@ class CheckInPage extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               TextSpan(
@@ -70,7 +66,7 @@ class CheckInPage extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
             ],
@@ -80,7 +76,12 @@ class CheckInPage extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: M3EContainedLoadingIndicator()),
         error: (error, _) =>
-            Center(child: Text(l10n.loadFailed('$error'), style: _tSubtle)),
+            Center(
+          child: Text(
+            l10n.loadFailed('$error'),
+            style: TextStyle(color: AppDesignTokens.inkSubtleOf(context)),
+          ),
+        ),
         data: (state) => LayoutBuilder(
           builder: (context, constraints) {
             final viewHeight = MediaQuery.sizeOf(context).height;
@@ -235,7 +236,7 @@ class _MonthCalendar extends ConsumerWidget {
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
@@ -247,10 +248,10 @@ class _MonthCalendar extends ConsumerWidget {
                 children: [
                   Text(
                     '${month.year} / ${month.month.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                   ),
                   const Spacer(),
@@ -280,7 +281,7 @@ class _MonthCalendar extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                           color: i >= 5
                               ? AppDesignTokens.accentDeep
-                              : AppDesignTokens.inkSubtle,
+                              : AppDesignTokens.inkSubtleOf(context),
                         ),
                       ),
                     ),
@@ -316,12 +317,12 @@ class _MonthCalendar extends ConsumerWidget {
                         ? AppDesignTokens.accentDeep
                         : count == 1
                         ? AppDesignTokens.accent.withValues(alpha: .42)
-                        : AppDesignTokens.pageBackground;
+                        : AppDesignTokens.pageBackgroundOf(context);
                     final fg = !inMonth
-                        ? AppDesignTokens.inkMuted.withValues(alpha: .55)
+                        ? AppDesignTokens.inkMutedOf(context).withValues(alpha: .55)
                         : count > 0
                         ? Colors.white
-                        : AppDesignTokens.inkSubtle;
+                        : AppDesignTokens.inkSubtleOf(context);
                     return PressScale(
                       child: Material(
                         color: bg,
@@ -383,7 +384,7 @@ class _NavIconButton extends StatelessWidget {
       child: SizedBox(
         width: 20,
         height: 28,
-        child: Icon(icon, size: 14, color: AppDesignTokens.inkMuted),
+        child: Icon(icon, size: 14, color: AppDesignTokens.inkMutedOf(context)),
       ),
     ),
   );
@@ -438,11 +439,11 @@ class _StatsColumn extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       '天 · 全部记录',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppDesignTokens.inkMuted,
+                        color: AppDesignTokens.inkMutedOf(context),
                       ),
                     ),
                   ],
@@ -453,18 +454,18 @@ class _StatsColumn extends StatelessWidget {
                 children: [
                   Text(
                     '${state.records.length} 次',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     '累计打卡次数',
                     style: TextStyle(
                       fontSize: 10,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 ],
@@ -472,8 +473,8 @@ class _StatsColumn extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        const _SideCard(
+        SizedBox(height: 14),
+        _SideCard(
           title: '颜色说明',
           child: Column(
             children: [
@@ -482,7 +483,7 @@ class _StatsColumn extends StatelessWidget {
               _LegendRow(color: Color(0xFFC986A1), label: '打卡 1 次'),
               SizedBox(height: 12),
               _LegendRow(
-                color: AppDesignTokens.pageBackground,
+                color: AppDesignTokens.pageBackgroundOf(context),
                 label: '未打卡',
                 muted: true,
               ),
@@ -523,7 +524,7 @@ class _SideCard extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
     decoration: BoxDecoration(
-      color: AppDesignTokens.surface,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
     ),
     child: Column(
@@ -531,10 +532,10 @@ class _SideCard extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
           ),
         ),
         const SizedBox(height: 18),
@@ -555,7 +556,7 @@ class _StatRow extends StatelessWidget {
     children: [
       Text(
         label,
-        style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtle),
+        style: TextStyle(fontSize: 11, color: AppDesignTokens.inkSubtleOf(context)),
       ),
       const Spacer(),
       Text(
@@ -597,7 +598,7 @@ class _LegendRow extends StatelessWidget {
         label,
         style: TextStyle(
           fontSize: 10,
-          color: muted ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
+          color: muted ? AppDesignTokens.inkMutedOf(context) : AppDesignTokens.inkSubtleOf(context),
         ),
       ),
     ],
@@ -620,7 +621,7 @@ class _TypeDistributionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(icon, size: 18, color: AppDesignTokens.inkMuted),
+      Icon(icon, size: 18, color: AppDesignTokens.inkMutedOf(context)),
       const SizedBox(width: 10),
       SizedBox(
         width: 44,
@@ -628,9 +629,9 @@ class _TypeDistributionRow extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppDesignTokens.inkSubtle,
+            color: AppDesignTokens.inkSubtleOf(context),
           ),
         ),
       ),
@@ -641,7 +642,7 @@ class _TypeDistributionRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value: count == 0 ? 0 : fraction,
             minHeight: 7,
-            backgroundColor: AppDesignTokens.fieldFill,
+            backgroundColor: AppDesignTokens.fieldFillOf(context),
             valueColor: const AlwaysStoppedAnimation(
               AppDesignTokens.accentDeep,
             ),
@@ -677,7 +678,7 @@ Future<void> _addCheckIn(
                 Icon(
                   _typeIcon[id] ?? Symbols.help_outline_rounded,
                   size: 18,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
                 const SizedBox(width: 12),
                 Text(_typeLabel(l10n, id)),
@@ -732,7 +733,7 @@ Future<void> _openDay(
                   Icon(
                     _typeIcon[entry.key] ?? Symbols.help_outline_rounded,
                     size: 16,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                   const SizedBox(width: 8),
                   Text('${_typeLabel(l10n, entry.key)} × ${entry.value}'),

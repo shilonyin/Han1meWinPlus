@@ -162,7 +162,7 @@ class _RadioSettingsPage<T> extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(39, i == 0 ? 0 : 25, 29, 0),
               child: PressScale(
                 child: Material(
-                  color: Colors.white,
+                  color: AppDesignTokens.surfaceOf(context),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -210,12 +210,12 @@ class _RadioSettingsPage<T> extends StatelessWidget {
                               children: [
                                 Text(
                                   label(options[i]),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     // 15 号粗体：设计稿的选项名比副标题明显一号，
                                     // 扫一眼先看到「自动 / 默认 / Getchu」这三个词。
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: AppDesignTokens.ink,
+                                    color: AppDesignTokens.inkOf(context),
                                   ),
                                 ),
                                 if (description != null) ...[
@@ -224,9 +224,9 @@ class _RadioSettingsPage<T> extends StatelessWidget {
                                     description!(options[i]),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppDesignTokens.inkMuted,
+                                      color: AppDesignTokens.inkMutedOf(context),
                                     ),
                                   ),
                                 ],
@@ -251,7 +251,7 @@ class _RadioSettingsPage<T> extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(39, 14, 29, 24),
             child: Text(
               '数据源可在「设置 · 网络」里单独配置代理。',
-              style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted),
+              style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context)),
             ),
           ),
         ],
@@ -285,7 +285,7 @@ class _RadioCircle extends StatelessWidget {
       border: Border.all(
         color: selected
             ? color
-            : AppDesignTokens.inkSubtle.withValues(alpha: .45),
+            : AppDesignTokens.inkSubtleOf(context).withValues(alpha: .45),
         width: selected ? 2 : 1.5,
       ),
     ),

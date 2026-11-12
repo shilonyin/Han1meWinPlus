@@ -142,7 +142,7 @@ class _ProfileCard extends StatelessWidget {
     final account = this.account;
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
+      decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.lg)),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
       child: account == null
           ? const _SignedOutProfile()
@@ -171,7 +171,7 @@ class _SignedInProfile extends ConsumerWidget {
         PressScale(child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           onTap: () => _openProfile(context, ref, account),
-          child: CircleAvatar(radius: 30, backgroundColor: AppDesignTokens.fieldFill, backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 30)),
+          child: CircleAvatar(radius: 30, backgroundColor: AppDesignTokens.fieldFillOf(context), backgroundImage: hasAvatar ? appNetworkImage(account.avatarUrl!) : null, child: hasAvatar ? null : const Icon(Symbols.person_rounded, size: 30)),
         )),
         const SizedBox(width: 16),
         Expanded(
@@ -179,11 +179,11 @@ class _SignedInProfile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
               const SizedBox(height: 3),
               const Text('hanime1.com', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppDesignTokens.accentDeep)),
               const SizedBox(height: 3),
-              Text('已同步 · 上次更新 10 分钟前', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+              Text('已同步 · 上次更新 10 分钟前', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context))),
             ],
           ),
         ),
@@ -197,7 +197,7 @@ class _SignedInProfile extends ConsumerWidget {
         // 账号管理 / 编辑资料 / 改密码是真功能，但设计稿只露「退出登录」。
         // 收进这个菜单里，界面保持干净，功能也不丢。
         PopupMenuButton<String>(
-          icon: const Icon(Symbols.more_horiz_rounded, size: 20, color: AppDesignTokens.inkSubtle),
+          icon: Icon(Symbols.more_horiz_rounded, size: 20, color: AppDesignTokens.inkSubtleOf(context)),
           onSelected: (value) => switch (value) {
             'account' => unawaited(_showAccountSheet(context, ref)),
             'profile' => unawaited(_showEditProfile(context, account)),
@@ -217,8 +217,8 @@ class _SignedInProfile extends ConsumerWidget {
             onTap: () => _confirmLogout(context, ref),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.md)),
-              child: Text(l10n.logout, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle)),
+              decoration: BoxDecoration(color: AppDesignTokens.fieldFillOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
+              child: Text(l10n.logout, style: TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtleOf(context))),
             ),
           ),
         ),
@@ -238,13 +238,13 @@ class _StatBlock extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 88,
     padding: const EdgeInsets.symmetric(vertical: 10),
-    decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.md)),
+    decoration: BoxDecoration(color: AppDesignTokens.fieldFillOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(number, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+        Text(number, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context))),
       ],
     ),
   );
@@ -464,7 +464,7 @@ class _QuickEntry extends StatelessWidget {
         child: Container(
           height: 84,
           padding: const EdgeInsets.fromLTRB(16, 14, 14, 12),
-          decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+          decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
           child: Row(
             children: [
               Container(
@@ -479,9 +479,9 @@ class _QuickEntry extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
                     const SizedBox(height: 4),
-                    Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+                    Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context))),
                   ],
                 ),
               ),
@@ -506,19 +506,19 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+        Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
         if (extra != null) ...[
           const SizedBox(width: 10),
-          Text(extra!, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+          Text(extra!, style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
         ],
         const Spacer(),
         if (onMore != null)
           PressScale(
             child: InkWell(
               onTap: onMore,
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Text('全部 ›', style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+                child: Text('全部 ›', style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMutedOf(context))),
               ),
             ),
           ),
@@ -541,9 +541,9 @@ class _RecentWatchGrid extends StatelessWidget {
     if (items.isEmpty) {
       return Container(
         height: 160,
-        decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+        decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
         alignment: Alignment.center,
-        child: const Text('还没有观看记录', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+        child: Text('还没有观看记录', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
       );
     }
     final shown = items.take(6).toList(growable: false);
@@ -603,9 +603,9 @@ class _RecentGridTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+            Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
             const SizedBox(height: 3),
-            Text('${_fmtMs(item.positionMs)} / ${_fmtMs(item.durationMs)} · ${_relativeTime(item.updatedAt)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted)),
+            Text('${_fmtMs(item.positionMs)} / ${_fmtMs(item.durationMs)} · ${_relativeTime(item.updatedAt)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMutedOf(context))),
           ],
         ),
       ),
@@ -624,13 +624,13 @@ class _UpdateCard extends StatelessWidget {
     if (artists.isEmpty) {
       return Container(
         height: 100,
-        decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+        decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
         alignment: Alignment.center,
-        child: const Text('还没有关注任何作者', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+        child: Text('还没有关注任何作者', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
       );
     }
     return Container(
-      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+      decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
@@ -657,16 +657,16 @@ class _UpdateRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: AppDesignTokens.fieldFill,
+            backgroundColor: AppDesignTokens.fieldFillOf(context),
             backgroundImage: artist.avatarUrl?.isNotEmpty == true ? appNetworkImage(artist.avatarUrl!) : null,
-            child: artist.avatarUrl?.isNotEmpty == true ? null : const Icon(Symbols.person_rounded, size: 16, color: AppDesignTokens.inkMuted),
+            child: artist.avatarUrl?.isNotEmpty == true ? null : Icon(Symbols.person_rounded, size: 16, color: AppDesignTokens.inkMutedOf(context)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+                Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
                 const SizedBox(height: 4),
                 const Text('有更新', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppDesignTokens.accentDeep)),
               ],
@@ -703,16 +703,16 @@ class _TasteCard extends StatelessWidget {
     }
     final labels = const ['100%', '90-99%', '80-89%', '70-79%', '<70%'];
     return Container(
-      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.md)),
+      decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.md)),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('我的口味', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              Text('我的口味', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
               const SizedBox(width: 10),
-              Text('基于 $counted 部收藏影片的好评率', style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+              Text('基于 $counted 部收藏影片的好评率', style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMutedOf(context))),
             ],
           ),
           const SizedBox(height: 14),
@@ -725,7 +725,7 @@ class _TasteCard extends StatelessWidget {
                 children: [
                   Text('$avgRating%', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppDesignTokens.accentDeep)),
                   const SizedBox(height: 2),
-                  const Text('平均好评率', style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted)),
+                  Text('平均好评率', style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context))),
                 ],
               ),
               const SizedBox(width: 24),
@@ -763,7 +763,7 @@ class _RatingBar extends StatelessWidget {
     final pct = (ratio * 100).round();
     return Row(
       children: [
-        SizedBox(width: 46, child: Text(label, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted))),
+        SizedBox(width: 46, child: Text(label, style: TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMutedOf(context)))),
         const SizedBox(width: 6),
         Expanded(
           child: ClipRRect(
@@ -780,10 +780,10 @@ class _RatingBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        SizedBox(width: 34, child: Text('$pct%', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkSubtle))),
+        SizedBox(width: 34, child: Text('$pct%', textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: AppDesignTokens.inkSubtleOf(context)))),
         if (count > 0) ...[
           const SizedBox(width: 4),
-          Text('$count', style: const TextStyle(fontSize: 9.5, color: AppDesignTokens.inkMuted)),
+          Text('$count', style: TextStyle(fontSize: 9.5, color: AppDesignTokens.inkMutedOf(context))),
         ],
       ],
     );

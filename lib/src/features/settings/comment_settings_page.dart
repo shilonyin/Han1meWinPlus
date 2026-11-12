@@ -120,7 +120,10 @@ class _CommentStatsCard extends StatelessWidget {
       decoration: BoxDecoration(
         // 淡强调色底：设计稿这张卡是粉色底、压在浅灰页面底上，
         // 靠底色把它和下面那张白卡区分成「概览」与「设置」两层。
-        color: Color.alphaBlend(accent.withValues(alpha: .06), Colors.white),
+        color: Color.alphaBlend(
+          accent.withValues(alpha: .06),
+          AppDesignTokens.surfaceOf(context),
+        ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -173,7 +176,7 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted),
+          style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context)),
         ),
       ],
     ),

@@ -34,9 +34,9 @@ class StatsPage extends ConsumerWidget {
         children: [
           // 页头副标题「最近 30 天」单独一行；页面标题由 AppTopBar 画，
           // 不在这里重复一遍（之前两层标题叠在一起，比设计稿多一行）。
-          const Text(
+          Text(
             '最近 30 天',
-            style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+            style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context)),
           ),
           const SizedBox(height: 16),
           // 四张概览卡：总观看时长 / 已看集数 / 平均完播 / 平均单集。
@@ -305,7 +305,7 @@ class _StatCard extends StatelessWidget {
     ),
     padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
     decoration: BoxDecoration(
-      color: AppDesignTokens.surface,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
     ),
     child: Column(
@@ -313,9 +313,9 @@ class _StatCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11.5,
-            color: AppDesignTokens.inkMuted,
+            color: AppDesignTokens.inkMutedOf(context),
           ),
         ),
         const SizedBox(height: 6),
@@ -325,19 +325,19 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             if (unit.isNotEmpty) ...[
               const SizedBox(width: 4),
               Text(
                 unit,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ),
             ],
@@ -381,7 +381,7 @@ class _TrendCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
@@ -389,18 +389,18 @@ class _TrendCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 '观看趋势',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 '每日观看分钟数',
-                style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context)),
               ),
               const Spacer(),
               Container(
@@ -437,7 +437,7 @@ class _TrendCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: day.minutes > 0
                                 ? AppDesignTokens.accent
-                                : AppDesignTokens.divider,
+                                : AppDesignTokens.dividerOf(context),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(AppRadius.xs),
                             ),
@@ -452,34 +452,34 @@ class _TrendCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 '1',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '5',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '10',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '15',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '20',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '25',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '30',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
             ],
           ),
@@ -504,18 +504,18 @@ class _DistributionCard extends StatelessWidget {
     ),
     padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
     decoration: BoxDecoration(
-      color: AppDesignTokens.surface,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '观看分布',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
           ),
         ),
         const SizedBox(height: 18),
@@ -526,9 +526,9 @@ class _DistributionCard extends StatelessWidget {
                 width: 44,
                 child: Text(
                   row.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ),
@@ -557,10 +557,10 @@ class _DistributionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 '${row.value}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
             ],
@@ -593,26 +593,26 @@ class _HourCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '观看时段',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             peak,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
           const SizedBox(height: 20),
@@ -648,26 +648,26 @@ class _HourCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 '0:00',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '6:00',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '12:00',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '18:00',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
               Text(
                 '23:00',
-                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
               ),
             ],
           ),

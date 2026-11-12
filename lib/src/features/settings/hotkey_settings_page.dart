@@ -330,7 +330,9 @@ class _ComboChip extends StatelessWidget {
         // 一块蓝灰、紫主题下一块紫灰 —— 而键帽表达的是「键盘上的一个键」，
         // 它不该带配色倾向。设计稿里它就是一格中性浅灰。
         // 出错时仍然用容器的错误色，那是语义色，需要和普通键帽区分开。
-        color: warning ? colorScheme.errorContainer : const Color(0xFFF2F2F5),
+        color: warning
+            ? colorScheme.errorContainer
+            : AppDesignTokens.fieldFillOf(context),
         // 圆角取 `AppRadius.xs`（6）：设计稿键帽的圆角实测只有 3~4px
         //（左边缘从 y257 的 x1133 收到 y260 的 x1131），比原来的 8 小一半，
         // 6 是令牌里最接近的一档。守卫测试不允许写数字字面量。
@@ -346,7 +348,7 @@ class _ComboChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: warning
               ? colorScheme.onErrorContainer
-              : AppDesignTokens.inkSubtle,
+              : AppDesignTokens.inkSubtleOf(context),
         ),
       ),
     );
