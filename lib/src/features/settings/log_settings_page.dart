@@ -71,7 +71,14 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
     return Scaffold(
       backgroundColor: AppDesignTokens.pageBackground,
       appBar: embedded ? null : AppBar(title: Text(l10n.logs)),
-      body: SettingsSubPageBody(child: ListView(
+      body: SettingsSubPageBody(child: LayoutBuilder(
+        builder: (context, vp) {
+          // 日志卡按视口剩余高度算能显示多少行：一屏越高、宽屏下并排后
+          // 左侧日志区越高，就显示越多行，不再写死 6 条把下半屏空着。
+          // 上方固定占位（内边距 + 页头 + 环境卡 + 间距）约 250，标题行 + 卡片内边距约 60，
+          // 每行约 22（11 号字 × 1.4 行高 + 上下各 3 内边距）。留 32 底部内边距。
+          final logRows = ((vp.maxHeight - 250 - 60) / 22).floor();
+          return ListView(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         children: [
           // 分栏模式下标题与右侧按钮由 `_SettingsPanes` 统一画在同一行；
@@ -94,6 +101,8 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
                 onExport: () => unawaited(_export()),
                 onOpenFolder: () => unawaited(_openFolder()),
                 onClear: () => unawaited(_clear()),
+                // 至少 6 行，宽屏高窗口按算出的行数显示更多。
+                visibleRows: logRows < 6 ? 6 : logRows,
               );
               const localData = LogLocalDataSection();
               if (AppResponsive.isCompact(constraints.maxWidth)) {
@@ -117,6 +126,8 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
             },
           ),
         ],
+          );
+        },
       )),
     );
   }
@@ -210,7 +221,12 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
 /// 为什么读内存而不是读文件：落盘是异步排队的，刚发生的日志要晚一拍才写进去，
 /// 而且每来一行都重读整个文件既慢又会让列表跳动。
 class _RecentLogsCard extends StatelessWidget {
-  const _RecentLogsCard({this.onExport, this.onOpenFolder, this.onClear});
+  const _RecentLogsCard({
+    this.onExport,
+    this.onOpenFolder,
+    this.onClear,
+    this.visibleRows = 6,
+  });
 
   /// 设计稿只画了「全部」胶囊，导出 / 打开文件夹 / 清空没有位置。
   /// 这些是真实功能不能删，收进标题行右侧的一个小菜单里，既不占一行、
@@ -219,8 +235,10 @@ class _RecentLogsCard extends StatelessWidget {
   final VoidCallback? onOpenFolder;
   final VoidCallback? onClear;
 
-  /// 最多显示多少行。设计稿那块面板大约 6 行高，再多就把下面的卡全挤出去了。
-  static const _visible = 6;
+  /// 最多显示多少行，由外层按「视口剩余高度 / 每行高」算出来再传进来。
+  /// 宽屏、高窗口下一屏能容下更多行就显示更多，不再写死 6 条浪费纵向空间。
+  /// 默认 6 是独立路由（窄窗）下的保底值。
+  final int visibleRows;
 
   @override
   Widget build(BuildContext context) {
@@ -230,8 +248,9 @@ class _RecentLogsCard extends StatelessWidget {
         final all = AppLogger.instance.recent;
         // 取最后 N 条：列表是追加式的，最新的在最下面，
         // 屏幕上要看到的是「刚刚发生的那几条」。
-        final entries = all.length > _visible
-            ? all.sublist(all.length - _visible)
+        final rows = visibleRows.clamp(1, 200);
+        final entries = all.length > rows
+            ? all.sublist(all.length - rows)
             : all;
         return _SurfaceCard(
           child: Column(
