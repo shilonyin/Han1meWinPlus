@@ -327,18 +327,18 @@ class _ColorSchemeCard extends StatelessWidget {
         AppResponsive.scaled(context, 14),
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '配色方案',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1B1B1F),
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           // 标题→色块：设计稿标题字底 299、色块外框顶 312（外框 56 高，内芯 48
@@ -396,7 +396,7 @@ class _ColorSchemeCard extends StatelessWidget {
                                   ),
                                   border: preset == AppThemeColor.white
                                       ? Border.all(
-                                          color: const Color(0xFFE4E4EA),
+                                          color: AppDesignTokens.strokeOf(context),
                                         )
                                       : null,
                                 ),
@@ -446,9 +446,9 @@ class _ColorSchemeCard extends StatelessWidget {
           ),
           // 色块→提示语：设计稿内芯底 363、提示字顶 374，中间 11。
           SizedBox(height: AppResponsive.scaled(context, 8)),
-          const Text(
+          Text(
             '点击切换主题色，全局即时生效',
-            style: TextStyle(fontSize: 10, color: Color(0xFF9595A0)),
+            style: TextStyle(fontSize: 10, color: AppDesignTokens.inkMutedOf(context)),
           ),
         ],
       ),
@@ -512,7 +512,7 @@ class _ThemePreviewBanner extends StatelessWidget {
         // 底色取强调色压到很淡（约 5%），这样换主题色时它也跟着变。
         color: Color.alphaBlend(
           accent.withValues(alpha: .05),
-          AppDesignTokens.surface,
+          AppDesignTokens.surfaceOf(context),
         ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
@@ -628,7 +628,7 @@ class _MiniWindow extends StatelessWidget {
     decoration: BoxDecoration(
       // 设计稿（`miniD.png`）的缩略图是**白底卡片**，不是浅灰底 ——
       // 它压在淡粉的横幅上，白底才和「这是一块界面」对得上。
-      color: Colors.white,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
     ),
     child: Stack(
@@ -637,16 +637,16 @@ class _MiniWindow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 顶部一条通栏浅灰横条（设计稿：圆角 6、高约 14、铺满可用宽度）。
-            _miniBar(width: double.infinity, height: 14),
+            _miniBar(context, width: double.infinity, height: 14),
             const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 左：一块大的浅灰块（设计稿里是内容占位）。
-                Expanded(flex: 3, child: _miniBar(height: 44)),
+                Expanded(flex: 3, child: _miniBar(context, height: 44)),
                 const SizedBox(width: 10),
                 // 右：一块方形的浅灰块。
-                Expanded(flex: 2, child: _miniBar(height: 44)),
+                Expanded(flex: 2, child: _miniBar(context, height: 44)),
               ],
             ),
           ],
@@ -708,13 +708,13 @@ class _MiniWindow extends StatelessWidget {
   );
 
   /// 缩略图里的浅灰占位块（设计稿的 `pvMiniBar` / `pvMiniCard`）。
-  Widget _miniBar({double width = double.infinity, required double height}) =>
+  Widget _miniBar(BuildContext context, {double width = double.infinity, required double height}) =>
       Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
           // 设计稿的占位块是极浅的灰（在纯白卡上才看得出来）。
-          color: const Color(0xFFF2F2F5),
+          color: AppDesignTokens.fieldFillOf(context),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
       );

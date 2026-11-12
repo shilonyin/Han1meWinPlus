@@ -266,7 +266,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 // 顶栏落在设计稿的页面底（#F4F4F7）上，白色从下方的卡片开始。
                 // 原来铺的是 appBarTheme 的不透明面 —— 那一层跟着主题色种子走，
                 // 换成粉色/蓝色主题时顶栏会泛色，和下面那片中性灰接不上。
-                color: AppDesignTokens.pageBackground,
+                color: AppDesignTokens.pageBackgroundOf(context),
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
@@ -743,7 +743,7 @@ class _HomeSearchField extends StatelessWidget {
           focusNode: focusNode,
           textInputAction: TextInputAction.search,
           onSubmitted: onSubmitted,
-          style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+          style: TextStyle(fontSize: 13, color: AppDesignTokens.inkOf(context)),
           decoration: InputDecoration(
             isDense: true,
             hintText: l10n.searchHint,
@@ -752,7 +752,7 @@ class _HomeSearchField extends StatelessWidget {
               color: AppDesignTokens.fieldHint,
             ),
             filled: true,
-            fillColor: AppDesignTokens.fieldFill,
+            fillColor: AppDesignTokens.fieldFillOf(context),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
@@ -2160,7 +2160,7 @@ class _SectionHeader extends StatelessWidget {
           height: 20,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppDesignTokens.surface : Colors.transparent,
+            color: selected ? AppDesignTokens.surfaceOf(context) : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Text(
@@ -2168,7 +2168,9 @@ class _SectionHeader extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               fontSize: 11,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? AppDesignTokens.ink : AppDesignTokens.inkSubtle,
+              color: selected
+                  ? AppDesignTokens.inkOf(context)
+                  : AppDesignTokens.inkSubtleOf(context),
             ),
           ),
         ),
@@ -2188,7 +2190,7 @@ class _SectionHeader extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: AppDesignTokens.sectionTitleSize,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(width: 8),
@@ -2202,7 +2204,7 @@ class _SectionHeader extends StatelessWidget {
               '共 $count 部',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 13,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
           ),
@@ -2211,7 +2213,7 @@ class _SectionHeader extends StatelessWidget {
             height: 28,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppDesignTokens.fieldFill,
+              color: AppDesignTokens.fieldFillOf(context),
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
