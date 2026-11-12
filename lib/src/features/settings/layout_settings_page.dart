@@ -56,7 +56,7 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
         children: [
           // 设计稿最上面那块「当前布局预览」：一张白卡，里面是一幅迷你界面示意，
           // 侧栏 / 顶栏 / 卡片列数随之变化 —— 用户调开关前就能看到结果长什么样。
-          const SettingsContentFrame(child: _LayoutPreview()),
+          const _LayoutPreview(),
           // 卡标题用 `l10n.general`（「常规」/「General」）。
           // 设计稿那张卡没有标题，但测试与无障碍都依赖它给这一组分名字
           // （`layout_settings_test.dart` 会校验它在），所以保留。

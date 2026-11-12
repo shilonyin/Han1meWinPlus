@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_motion.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../domain/models/video.dart';
 import '../shared/press_scale.dart';
 import 'video_comments.dart';
@@ -191,11 +192,19 @@ class _CompactVideoLayout extends StatelessWidget {
   final bool hidePlayerTopBar;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.topCenter,
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 1280),
-      child: _VideoTabsView(
+  Widget build(BuildContext context) => Builder(
+    builder: (context) {
+      // 视频页是宽内容（播放器 + 信息面板），按可用宽度推导限宽、宽窗居中。
+      // 原来写死 1280，2560 窗口下右侧空出一大片，和其它页面的推导宽度不一致。
+      final width = AppResponsive.contentWidthFor(
+        MediaQuery.sizeOf(context).width,
+        cap: AppResponsive.wideContentCap,
+      );
+      return Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: width),
+          child: _VideoTabsView(
         video: video,
         scrollBehavior: scrollBehavior,
         showPlayer: true,
@@ -203,10 +212,12 @@ class _CompactVideoLayout extends StatelessWidget {
         onHome: onHome,
         onPrevious: onPrevious,
         onNext: onNext,
-        onEpisodeSelected: onEpisodeSelected,
-        hidePlayerTopBar: hidePlayerTopBar,
-      ),
-    ),
+            onEpisodeSelected: onEpisodeSelected,
+            hidePlayerTopBar: hidePlayerTopBar,
+          ),
+        ),
+      );
+    },
   );
 }
 

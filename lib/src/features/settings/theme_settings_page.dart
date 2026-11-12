@@ -54,22 +54,18 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
           // 设计稿「当前主题」预览横幅：粉底大卡，左边是主题名（中文 + 英文）+ 一行
           // 品牌色/圆角/设计体系说明，右边是一小块界面缩略图，让人一眼看出这套配色
           // 长什么样。切主题色时它会跟着变 —— 这是「选配色」这件事最直接的反馈。
-          // 横幅、配色卡、设置列各自用 SettingsContentFrame 按可用宽度限宽，
-          // 宽窗口下才不会横幅铺满整行、设置列却缩在中间，左右边缘错开。
-          SettingsContentFrame(
-            child: _ThemePreviewBanner(settings: settings),
-          ),
+          // 宽度已由外层 SettingsSubPageBody 统一推导；横幅、配色卡、设置列都直接
+          // 铺满父宽度，三者左右边缘自然对齐，不再各自限宽导致错位。
+          _ThemePreviewBanner(settings: settings),
           // 设计稿「配色方案」：一张白色圆角卡，标题 + 8 个色圆横排，点一下即时切换
           // （不再是一个打开调色罗盘的列表行）。色圆选中项外层加一圈白底环。
-          SettingsContentFrame(
-            child: _ColorSchemeCard(
-              settings: settings,
-              onPick: (color) => controller.saveChanges(
-                (current) =>
-                    current.copyWith(useMonetColors: false, themeColor: color),
-              ),
-              onCustom: () => _pickThemeColor(context, controller, settings),
+          _ColorSchemeCard(
+            settings: settings,
+            onPick: (color) => controller.saveChanges(
+              (current) =>
+                  current.copyWith(useMonetColors: false, themeColor: color),
             ),
+            onCustom: () => _pickThemeColor(context, controller, settings),
           ),
           SettingsCardList(
             title: l10n.appearanceAndDisplay,

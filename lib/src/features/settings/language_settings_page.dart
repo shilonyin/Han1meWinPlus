@@ -39,14 +39,13 @@ class LanguageSettingsPage extends ConsumerWidget {
       body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1000),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+          // 宽度已由外层 SettingsSubPageBody 统一推导，这里不再套 Center + 1000，
+          // 否则两层各限一次，宽窗口下卡片比横幅窄一截、左右不齐。
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                     // 分栏模式下页头由 `_SettingsPanes` 统一画（标题 + 副标题），
                     // 这里再画一次会重复成「语言 / 界面与内容的显示语言」两行。
                     if (!embeddedInSettingsPanes(context))
@@ -94,9 +93,7 @@ class LanguageSettingsPage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ],
