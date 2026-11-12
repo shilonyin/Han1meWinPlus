@@ -350,18 +350,18 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
             children: [
               Text(
                 l10n.watchHistory,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 '共 ${all.length} 条',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
               const Spacer(),
@@ -371,27 +371,27 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
                 child: TextField(
                   controller: _search,
                   onChanged: (v) => setState(() => _keyword = v),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                   decoration: InputDecoration(
                     isDense: true,
                     hintText: '在历史中搜索',
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       fontSize: 12,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                     filled: true,
-                    fillColor: AppDesignTokens.fieldFill,
+                    fillColor: AppDesignTokens.fieldFillOf(context),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 8,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Symbols.search_rounded,
                       size: 16,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                     prefixIconConstraints: const BoxConstraints(
                       minWidth: 34,
@@ -427,7 +427,7 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
                       style: TextStyle(
                         fontSize: 12,
                         color: all.isEmpty
-                            ? AppDesignTokens.inkMuted
+                            ? AppDesignTokens.inkMutedOf(context)
                             : AppDesignTokens.accentDeep,
                       ),
                     ),
@@ -460,9 +460,9 @@ class _LocalHistoryState extends ConsumerState<_LocalHistory> {
               ? Center(
                   child: Text(
                     l10n.noWatchHistory,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 )
@@ -511,7 +511,7 @@ class _GroupChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? AppDesignTokens.accent.withValues(alpha: 0.12)
-              : AppDesignTokens.fieldFill,
+              : AppDesignTokens.fieldFillOf(context),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Text(
@@ -521,7 +521,7 @@ class _GroupChip extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: selected
                 ? AppDesignTokens.accentDeep
-                : AppDesignTokens.inkMuted,
+                : AppDesignTokens.inkMutedOf(context),
           ),
         ),
       ),
@@ -548,7 +548,7 @@ class _HistoryRow extends StatelessWidget {
     final cover = item.coverUrl;
     return Container(
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -606,10 +606,10 @@ class _HistoryRow extends StatelessWidget {
                   item.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -617,9 +617,9 @@ class _HistoryRow extends StatelessWidget {
                   '$duration · ${item.date}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ],
@@ -628,9 +628,9 @@ class _HistoryRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             item.date,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
           const SizedBox(width: 12),
@@ -660,10 +660,10 @@ class _HistoryRow extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           PopupMenuButton<String>(
-            icon: const Icon(
+            icon: Icon(
               Symbols.more_horiz_rounded,
               size: 18,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
             onSelected: (value) => onDelete(),
             itemBuilder: (context) => [
@@ -824,9 +824,9 @@ class _SubscriptionsLayoutState extends State<_SubscriptionsLayout> {
               ? Center(
                   child: Text(
                     widget.emptyMessage,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 )
@@ -891,20 +891,20 @@ class _SubscriptionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       child: Row(
         children: [
-          const Text(
+          Text(
             '关注',
             style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(width: 10),
           Text(
             '$total 位作者 · $updated 位有更新',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
           const Spacer(),
@@ -914,24 +914,24 @@ class _SubscriptionHeader extends StatelessWidget {
             child: TextField(
               controller: search,
               onChanged: onSearchChanged,
-              style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+              style: TextStyle(fontSize: 13, color: AppDesignTokens.inkOf(context)),
               decoration: InputDecoration(
                 isDense: true,
                 hintText: '搜索作者',
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   fontSize: 12,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
                 filled: true,
-                fillColor: AppDesignTokens.fieldFill,
+                fillColor: AppDesignTokens.fieldFillOf(context),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
                 ),
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Symbols.search_rounded,
                   size: 16,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
                 prefixIconConstraints: const BoxConstraints(
                   minWidth: 34,
@@ -953,24 +953,24 @@ class _SubscriptionHeader extends StatelessWidget {
             height: 34,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: AppDesignTokens.surface,
+              color: AppDesignTokens.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: AppDesignTokens.stroke),
+              border: Border.all(color: AppDesignTokens.strokeOf(context)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Text(
                   '最近更新',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
                 SizedBox(width: 4),
                 Icon(
                   Symbols.keyboard_arrow_down_rounded,
                   size: 16,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ],
             ),
@@ -1040,7 +1040,7 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? AppDesignTokens.accentDeep
-                : AppDesignTokens.fieldFill,
+                : AppDesignTokens.fieldFillOf(context),
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Text(
@@ -1048,7 +1048,7 @@ class _FilterChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected ? Colors.white : AppDesignTokens.inkSubtle,
+              color: selected ? Colors.white : AppDesignTokens.inkSubtleOf(context),
             ),
           ),
         ),
@@ -1083,9 +1083,9 @@ class _FollowingArtistCard extends StatelessWidget {
         onLongPress: onLongPress,
         child: Container(
           decoration: BoxDecoration(
-            color: AppDesignTokens.surface,
+            color: AppDesignTokens.surfaceOf(context),
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppDesignTokens.divider),
+            border: Border.all(color: AppDesignTokens.dividerOf(context)),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -1097,11 +1097,11 @@ class _FollowingArtistCard extends StatelessWidget {
                 // 不是承载颜色的「亮点时刻」：按项目自己的中性面规范
                 // （三档灰 + 单一强调色）换成一层纯中性底，让头像和名字
                 // 自己说话，也避免和卡片白底之间再夹一层彩色。
-                color: AppDesignTokens.fieldFill,
+                color: AppDesignTokens.fieldFillOf(context),
                 alignment: Alignment.center,
                 child: CircleAvatar(
                   radius: 24,
-                  backgroundColor: AppDesignTokens.surface,
+                  backgroundColor: AppDesignTokens.surfaceOf(context),
                   backgroundImage: hasAvatar
                       ? appNetworkImage(artist.avatarUrl!)
                       : null,
@@ -1130,10 +1130,10 @@ class _FollowingArtistCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppDesignTokens.ink,
+                          color: AppDesignTokens.inkOf(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1142,9 +1142,9 @@ class _FollowingArtistCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                       const Spacer(),
@@ -1158,7 +1158,7 @@ class _FollowingArtistCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: hasUpdates
                                 ? AppDesignTokens.accentDeep
-                                : AppDesignTokens.fieldFill,
+                                : AppDesignTokens.fieldFillOf(context),
                             borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                           child: Text(
@@ -1170,7 +1170,7 @@ class _FollowingArtistCard extends StatelessWidget {
                                   : FontWeight.w500,
                               color: hasUpdates
                                   ? Colors.white
-                                  : AppDesignTokens.inkSubtle,
+                                  : AppDesignTokens.inkSubtleOf(context),
                             ),
                           ),
                         ),
@@ -1215,7 +1215,7 @@ class _LocalPlaylistList extends StatelessWidget {
       return Center(
         child: Text(
           AppLocalizations.of(context)!.noPlaylists,
-          style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+          style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMutedOf(context)),
         ),
       );
     }
@@ -1271,9 +1271,9 @@ class _Playlists extends ConsumerWidget {
             ? Center(
                 child: Text(
                   l10n.noPlaylists,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               )
@@ -1466,9 +1466,9 @@ class _PlaylistGridCard extends StatelessWidget {
         // 白底 + 大圆角 + 一圈极细描边，不铺重阴影：卡片靠描边从页面底上立起来，
         // 观感与「稍后看/收藏」的影片网格一致。
         decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppDesignTokens.stroke, width: 1),
+          border: Border.all(color: AppDesignTokens.strokeOf(context), width: 1),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -1504,22 +1504,22 @@ class _PlaylistGridCard extends StatelessWidget {
                                       // 封面加载失败（网络/缓存写盘失败）时给个占位图标，
                                       // 别把异常原文画在卡片上。
                                       errorWidget: (context, url, error) =>
-                                          const ColoredBox(
-                                            color: AppDesignTokens.fieldFill,
+                                          ColoredBox(
+                                            color: AppDesignTokens.fieldFillOf(context),
                                             child: Icon(
                                               Symbols.playlist_play_rounded,
                                               size: 40,
-                                              color: AppDesignTokens.inkMuted,
+                                              color: AppDesignTokens.inkMutedOf(context),
                                             ),
                                           ),
                                     ),
                                   )
                                 : ColoredBox(
-                                    color: AppDesignTokens.fieldFill,
-                                    child: const Icon(
+                                    color: AppDesignTokens.fieldFillOf(context),
+                                    child: Icon(
                                       Symbols.playlist_play_rounded,
                                       size: 40,
-                                      color: AppDesignTokens.inkMuted,
+                                      color: AppDesignTokens.inkMutedOf(context),
                                     ),
                                   ),
                           ),
@@ -1532,10 +1532,10 @@ class _PlaylistGridCard extends StatelessWidget {
                         playlist.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppDesignTokens.ink,
+                          color: AppDesignTokens.inkOf(context),
                         ),
                       ),
                     ),
@@ -1649,12 +1649,12 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
                       fit: BoxFit.cover,
                       memCacheWidth: 960,
                       faceFocus: true,
-                      errorWidget: (context, url, error) => const ColoredBox(
-                        color: AppDesignTokens.fieldFill,
+                      errorWidget: (context, url, error) => ColoredBox(
+                        color: AppDesignTokens.fieldFillOf(context),
                         child: Icon(
                           Symbols.playlist_play_rounded,
                           size: 48,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                     ),
@@ -2055,9 +2055,9 @@ class _SelectableVideosState extends ConsumerState<_SelectableVideos> {
             ? Center(
                 child: Text(
                   widget.emptyMessage,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               )

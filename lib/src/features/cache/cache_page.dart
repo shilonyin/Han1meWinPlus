@@ -103,7 +103,7 @@ class _CachePageState extends ConsumerState<CachePage>
         final active = state.tasks.where(isActiveTask).toList(growable: false);
         return Scaffold(
           // 设计稿页面底是 #F4F4F7（比纯白暗一点），白卡片/存储条压在上面才立得住。
-          backgroundColor: AppDesignTokens.pageBackground,
+          backgroundColor: AppDesignTokens.pageBackgroundOf(context),
           appBar: AppTopBar(
             backgroundColor: Colors.transparent,
             leading: _selecting
@@ -125,10 +125,10 @@ class _CachePageState extends ConsumerState<CachePage>
                         )),
             title: Text(
               _selecting ? l10n.selectedItems(_selected.length) : l10n.cache,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             actions: _selecting
@@ -169,7 +169,7 @@ class _CachePageState extends ConsumerState<CachePage>
                       indicatorSize: TabBarIndicatorSize.label,
                       dividerColor: Colors.transparent,
                       labelColor: AppDesignTokens.accentDeep,
-                      unselectedLabelColor: AppDesignTokens.inkSubtle,
+                      unselectedLabelColor: AppDesignTokens.inkSubtleOf(context),
                       labelStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -566,7 +566,7 @@ class _StorageBar extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -579,16 +579,16 @@ class _StorageBar extends StatelessWidget {
             children: [
               Text(
                 '已用 $usedLabel',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 '128 GB 可用',
-                style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context)),
               ),
             ],
           ),
@@ -620,8 +620,8 @@ class _StorageBar extends StatelessWidget {
                             0,
                             1000,
                           ),
-                          child: const ColoredBox(
-                            color: AppDesignTokens.stroke,
+                          child: ColoredBox(
+                            color: AppDesignTokens.strokeOf(context),
                           ),
                         ),
                       ],
@@ -641,7 +641,7 @@ class _StorageBar extends StatelessWidget {
                       label: '封面 ${fmt(coverBytes)}',
                     ),
                     _LegendDot(
-                      color: AppDesignTokens.stroke,
+                      color: AppDesignTokens.strokeOf(context),
                       label: '其他 ${fmt(otherBytes)}',
                     ),
                   ],
@@ -673,7 +673,7 @@ class _LegendDot extends StatelessWidget {
       const SizedBox(width: 6),
       Text(
         label,
-        style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtle),
+        style: TextStyle(fontSize: 12, color: AppDesignTokens.inkSubtleOf(context)),
       ),
     ],
   );
@@ -745,14 +745,14 @@ class _ActiveTab extends ConsumerWidget {
             Icon(
               Symbols.download_done_rounded,
               size: 48,
-              color: AppDesignTokens.inkMuted.withValues(alpha: .8),
+              color: AppDesignTokens.inkMutedOf(context).withValues(alpha: .8),
             ),
             const SizedBox(height: 12),
             Text(
               l10n.cacheEmptyActive,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
           ],
@@ -813,10 +813,10 @@ class _ActiveTab extends ConsumerWidget {
                         task.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppDesignTokens.ink,
+                          color: AppDesignTokens.inkOf(context),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -824,9 +824,9 @@ class _ActiveTab extends ConsumerWidget {
                         taskDetailLine(task),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                     ],
@@ -847,7 +847,7 @@ class _ActiveTab extends ConsumerWidget {
                     size: 22,
                     color: isSelected
                         ? AppDesignTokens.accentDeep
-                        : AppDesignTokens.inkMuted,
+                        : AppDesignTokens.inkMutedOf(context),
                   )
                 else ...[
                   if (task.status == DownloadStatus.paused ||
@@ -863,7 +863,7 @@ class _ActiveTab extends ConsumerWidget {
                   _RowAction(
                     tooltip: l10n.play,
                     icon: Symbols.open_in_new_rounded,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                     onTap: () => openVideo(context, ref, task.videoCode),
                   ),
                 ],
@@ -911,7 +911,7 @@ class _CacheToolbar extends StatelessWidget {
           Icon(
             Symbols.folder_rounded,
             size: 16,
-            color: AppDesignTokens.inkMuted,
+            color: AppDesignTokens.inkMutedOf(context),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -919,9 +919,9 @@ class _CacheToolbar extends StatelessWidget {
               summary,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
           ),
@@ -943,10 +943,10 @@ class _CacheToolbar extends StatelessWidget {
               tooltip: l10n.groupSettings,
               visualDensity: VisualDensity.compact,
               onPressed: onManageGroups,
-              icon: const Icon(
+              icon: Icon(
                 Symbols.tune_rounded,
                 size: 20,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
           ),
@@ -1018,23 +1018,23 @@ class _EmptyCache extends StatelessWidget {
           Icon(
             Symbols.video_library_rounded,
             size: 56,
-            color: AppDesignTokens.inkMuted.withValues(alpha: .8),
+            color: AppDesignTokens.inkMutedOf(context).withValues(alpha: .8),
           ),
           const SizedBox(height: 14),
           Text(
             l10n.noCache,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             l10n.emptyCacheHint,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
         ],
@@ -1059,7 +1059,7 @@ class _RowCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: AppDesignTokens.surface,
+    color: AppDesignTokens.surfaceOf(context),
     borderRadius: BorderRadius.circular(AppRadius.md),
     clipBehavior: Clip.antiAlias,
     child: PressScale(
@@ -1093,12 +1093,12 @@ class _RowThumb extends StatelessWidget {
               faceUrl: cover!.faceUrl,
               fit: BoxFit.cover,
             )
-          : const ColoredBox(
-              color: AppDesignTokens.fieldFill,
+          : ColoredBox(
+              color: AppDesignTokens.fieldFillOf(context),
               child: Icon(
                 Symbols.movie_rounded,
                 size: 22,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
     ),
@@ -1130,8 +1130,8 @@ class _StatusPill extends StatelessWidget {
       bg = const Color(0xFFFCE8EE);
       fg = AppDesignTokens.accentDeep;
     } else {
-      bg = AppDesignTokens.fieldFill;
-      fg = AppDesignTokens.inkSubtle;
+      bg = AppDesignTokens.fieldFillOf(context);
+      fg = AppDesignTokens.inkSubtleOf(context);
     }
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1186,10 +1186,10 @@ class CacheVideoRowCard extends ConsumerWidget {
                   task.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -1197,9 +1197,9 @@ class CacheVideoRowCard extends ConsumerWidget {
                   taskDetailLine(task),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               ],
@@ -1217,7 +1217,7 @@ class CacheVideoRowCard extends ConsumerWidget {
           _RowAction(
             tooltip: l10n.deleteCache,
             icon: Symbols.delete_outline_rounded,
-            color: AppDesignTokens.inkSubtle,
+            color: AppDesignTokens.inkSubtleOf(context),
             onTap: () => _confirmDelete(context, ref),
           ),
         ],
@@ -1319,10 +1319,10 @@ class CacheFolderRowCard extends StatelessWidget {
                   group.id == 'default' ? l10n.cachedDownloads : group.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -1330,9 +1330,9 @@ class CacheFolderRowCard extends StatelessWidget {
                   '${l10n.folderContents(tasks.length)} · ${formatBytes(bytes)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               ],
@@ -1344,7 +1344,7 @@ class CacheFolderRowCard extends StatelessWidget {
             filled: true,
             update: active.isNotEmpty,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _RowAction(
             tooltip: l10n.play,
             icon: Symbols.play_arrow_rounded,
@@ -1354,7 +1354,7 @@ class CacheFolderRowCard extends StatelessWidget {
           _RowAction(
             tooltip: l10n.moreActions,
             icon: Symbols.more_horiz_rounded,
-            color: AppDesignTokens.inkSubtle,
+            color: AppDesignTokens.inkSubtleOf(context),
             onTap: onTap,
           ),
         ],
@@ -1372,7 +1372,7 @@ class _ClearAllButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PressScale(
     child: Material(
-      color: AppDesignTokens.fieldFill,
+      color: AppDesignTokens.fieldFillOf(context),
       borderRadius: BorderRadius.circular(AppRadius.pill),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -1381,11 +1381,11 @@ class _ClearAllButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(
                 Symbols.folder_off_rounded,
                 size: 15,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
               SizedBox(width: 6),
               Text(
@@ -1393,7 +1393,7 @@ class _ClearAllButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ),
             ],
@@ -1463,22 +1463,22 @@ class _LocalMediaTab extends ConsumerWidget {
             Icon(
               Symbols.video_library_rounded,
               size: 48,
-              color: AppDesignTokens.inkMuted.withValues(alpha: .8),
+              color: AppDesignTokens.inkMutedOf(context).withValues(alpha: .8),
             ),
             const SizedBox(height: 12),
             Text(
               l10n.localMediaEmpty,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.localMediaHint,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
           ],
@@ -1502,7 +1502,7 @@ class _LocalMediaTab extends ConsumerWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         return Material(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.md),
           clipBehavior: Clip.antiAlias,
           child: PressScale(
@@ -1533,10 +1533,10 @@ class _LocalMediaTab extends ConsumerWidget {
                             entry.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppDesignTokens.ink,
+                              color: AppDesignTokens.inkOf(context),
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -1544,9 +1544,9 @@ class _LocalMediaTab extends ConsumerWidget {
                             entry.path,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppDesignTokens.inkMuted,
+                              color: AppDesignTokens.inkMutedOf(context),
                             ),
                           ),
                         ],

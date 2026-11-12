@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../explore/explore_controller.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_design_tokens.dart';
 import 'home_categories_page.dart';
 import 'recommendation_settings_page.dart';
 import 'settings_controller.dart';
@@ -150,7 +151,7 @@ class _LayoutPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             // 「当前布局预览」小标签：设计稿里是墨色 12 号粗体，
             // 在白卡**外面**左对齐（不是卡内标题）。
             padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
@@ -159,7 +160,7 @@ class _LayoutPreview extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1B1B1F),
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
           ),
@@ -169,7 +170,7 @@ class _LayoutPreview extends StatelessWidget {
             height: 127,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppDesignTokens.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
             child: Row(
@@ -181,7 +182,7 @@ class _LayoutPreview extends StatelessWidget {
                     width: 84,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F5),
+                      color: AppDesignTokens.fieldFillOf(context),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Column(
@@ -197,9 +198,9 @@ class _LayoutPreview extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        _previewBar(width: 48),
+                        _previewBar(context, width: 48),
                         const SizedBox(height: 8),
-                        _previewBar(width: 40),
+                        _previewBar(context, width: 40),
                       ],
                     ),
                   ),
@@ -222,7 +223,7 @@ class _LayoutPreview extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(child: _previewBar(height: 12)),
+                          Expanded(child: _previewBar(context, height: 12)),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -235,7 +236,7 @@ class _LayoutPreview extends StatelessWidget {
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF2F2F5),
+                                    color: AppDesignTokens.fieldFillOf(context),
                                     borderRadius: BorderRadius.circular(
                                       AppRadius.sm,
                                     ),
@@ -258,14 +259,14 @@ class _LayoutPreview extends StatelessWidget {
   }
 
   /// 预览图里的浅灰占位条。
-  static Widget _previewBar({
+  static Widget _previewBar(BuildContext context, {
     double width = double.infinity,
     double height = 6,
   }) => Container(
     width: width,
     height: height,
     decoration: BoxDecoration(
-      color: const Color(0xFFE4E4EA),
+      color: AppDesignTokens.strokeOf(context),
       borderRadius: BorderRadius.circular(height / 2),
     ),
   );
