@@ -76,6 +76,16 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
             // 统一到 42 之后整页仍能完整显示：两张预览卡约 300，8 行 × 42 = 336。
             rowPadding: 3,
             children: [
+              // 「主题模式」：跟随系统 / 浅色 / 深色。玻璃退役那次（e0942ae）把整块
+              // _ThemeModePanel 连同这里的亮暗切换一起删了，此后用户无法再切亮暗。
+              // 现在只补回这一项，不复活玻璃材质那套控件。
+              SettingsCardItem(
+                title: l10n.themeMode,
+                subtitle: _themeModeLabel(l10n, settings.themeMode),
+                leading: const Icon(Symbols.brightness_6_rounded),
+                trailing: const Icon(Symbols.chevron_right_rounded),
+                onTap: () => _pickThemeMode(context, controller, settings),
+              ),
               // 「配色方案」已经提到上面的 _ColorSchemeCard（设计稿是横向色圆，不是列表行）。
               SettingsCardItem(
                 title: l10n.dynamicColor,
@@ -185,6 +195,26 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
           ),
         ],
       )),
+    );
+  }
+
+  /// 主题模式三档：跟随系统 / 浅色 / 深色，走统一的选项弹层。
+  Future<void> _pickThemeMode(
+    BuildContext context,
+    SettingsController controller,
+    AppSettings settings,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showOptionSettingsDialog<AppThemeMode>(
+      context: context,
+      title: l10n.themeMode,
+      current: settings.themeMode,
+      options: AppThemeMode.values,
+      label: (mode) => _themeModeLabel(l10n, mode),
+    );
+    if (selected == null || selected == settings.themeMode) return;
+    await controller.saveChanges(
+      (current) => current.copyWith(themeMode: selected),
     );
   }
 
@@ -712,6 +742,12 @@ Color _hexColor(String hex) {
   final value = int.tryParse('ff$hex', radix: 16);
   return value == null ? const Color(0xff6750a4) : Color(value);
 }
+
+String _themeModeLabel(AppLocalizations l10n, AppThemeMode mode) => switch (mode) {
+  AppThemeMode.system => l10n.followSystem,
+  AppThemeMode.light => l10n.light,
+  AppThemeMode.dark => l10n.dark,
+};
 
 String _backdropLabel(AppLocalizations l10n, WindowBackdrop backdrop) =>
     switch (backdrop) {

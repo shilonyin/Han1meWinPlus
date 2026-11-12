@@ -1032,6 +1032,14 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
   /// 不是一进来就开始加载播放器：进详情页先看封面，点了播放才创建播放器。
   var _playing = false;
 
+  /// 「播放」：默认弹独立播放窗口，拉不起来才回退内嵌播放器。
+  Future<void> _play(BuildContext context, VideoDetail video) async {
+    final opened = await openVideoInPlayWindow(context, ref, video.id);
+    if (opened) return;
+    if (!mounted) return;
+    setState(() => _playing = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final video = widget.video;
@@ -1082,7 +1090,7 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
                   : _CoverStage(
                       coverUrl: video.coverUrl,
                       title: video.title,
-                      onPlay: () => setState(() => _playing = true),
+                      onPlay: () => _play(context, video),
                     ),
             ),
           ),

@@ -17,6 +17,7 @@ import '../shared/app_image_cache.dart';
 import '../shared/press_scale.dart';
 import 'video_actions.dart';
 import 'video_comments.dart';
+import 'play_window.dart';
 import 'video_player_panel.dart';
 
 /// 沉浸式视频详情页：上半部是铺满的 Hero（模糊背景 + 竖版海报 + 标签 + 主操作），
@@ -60,6 +61,17 @@ class _VideoDetailImmersiveViewState
 
   static const _tabs = ['概览', '评论', '信息', '相关'];
 
+  /// 「立即播放 / 开始观看」：默认弹独立播放窗口（多窗口方案），
+  /// 拉不起来（窗口 exe 缺失、非 Windows 等）才回退到本页内嵌播放器。
+  /// 之前这里直接 setState 内嵌，独立播放窗口就再也没出现过。
+  Future<void> _play(BuildContext context, VideoDetail video) async {
+    final opened =
+        await openVideoInPlayWindow(context, ref, video.id);
+    if (opened) return;
+    if (!mounted) return;
+    setState(() => _playing = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final video = widget.video;
@@ -95,7 +107,7 @@ class _VideoDetailImmersiveViewState
               _Hero(
                 video: video,
                 onBack: widget.onBack,
-                onPlay: () => setState(() => _playing = true),
+                onPlay: () => _play(context, video),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(
