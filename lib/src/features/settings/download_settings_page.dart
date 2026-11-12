@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../core/settings.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 import '../shared/app_top_bar.dart';
 
 class DownloadSettingsPage extends ConsumerWidget {
@@ -18,7 +19,7 @@ class DownloadSettingsPage extends ConsumerWidget {
     final speed = settings.downloadSpeedLimitMbps;
     return Scaffold(
       appBar: AppTopBar(title: Text(l10n.downloadSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
             SettingsCardList(children: [
@@ -29,7 +30,7 @@ class DownloadSettingsPage extends ConsumerWidget {
               SettingsCardItem(title: l10n.groupNameTraditional, trailing: Switch(value: settings.groupNameTraditional, onChanged: (value) => controller.saveChanges((current) => current.copyWith(groupNameTraditional: value))), enabled: settings.autoGroupDownloads),
            ]),
         ],
-      ),
+      )),
     );
   }
 }

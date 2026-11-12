@@ -16,6 +16,7 @@ import '../../data/local/update_installer.dart';
 import '../shared/app_toast.dart';
 import '../shared/press_scale.dart';
 import 'settings_pane_scope.dart';
+import 'settings_sub_page.dart';
 import 'settings_controller.dart';
 import 'settings_list.dart';
 
@@ -94,7 +95,7 @@ class AboutPage extends ConsumerWidget {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.aboutTitle)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿（`7330_v6_about.png`）这一页是**满宽**的：
           // 信息卡、四块许可条、免责声明卡都撑满内容区（x384~1251），
@@ -130,7 +131,7 @@ class AboutPage extends ConsumerWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 

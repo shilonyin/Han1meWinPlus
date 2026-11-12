@@ -18,11 +18,11 @@ class KeyframesPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.keyframeManagement)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           const _KeyframeVideoList(),
         ],
-      ),
+      )),
     );
   }
 }

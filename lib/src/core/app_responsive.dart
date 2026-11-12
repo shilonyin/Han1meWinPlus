@@ -19,8 +19,18 @@ abstract final class AppResponsive {
   /// 宽窗断点：达到此宽度后内容区限宽，不再跟着窗口一起拉宽。
   static const expandedBreakpoint = 1600.0;
 
-  /// 宽窗下正文的最大宽度。超过这个行宽，一行要读的字太多，眼睛容易串行。
+  /// 宽窗下**正文**的最大宽度。超过这个行宽，一行要读的字太多，眼睛容易串行。
+  ///
+  /// 只适用于成段的正文。表格型内容（设置分组、数据卡片）宽一点更好用，
+  /// 调用点传 [wideContentStart] 以上的 `cap` 覆盖本值，别被这一条坑住。
   static const contentWidthCap = 1400.0;
+
+  /// 表格型内容（设置列表、数据看板）的宽度上限。
+  ///
+  /// 取值远大于 [contentWidthCap]，因为这类内容不是「一行读到底」的正文，
+  /// 2560 窗口里铺开到 2200 也没问题；真正该收的是正文。上限定在这里是为了
+  /// 超宽屏（4K 竖屏拼多窗）不至于把一行设置项拉得眼睛追不上。
+  static const wideContentCap = 2200.0;
 
   static bool isCompact(double width) => width < compactBreakpoint;
 
@@ -49,11 +59,14 @@ abstract final class AppResponsive {
   }
 
   /// 内容区实际宽度。窄窗铺满（只扣留白），宽窗限宽后由调用方居中。
-  static double contentWidthFor(double availableWidth) {
+  ///
+  /// [cap] 默认 [contentWidthCap]（正文行宽）。表格型内容传 [wideContentCap]，
+  /// 否则 2560 窗口里设置卡片会挤在 1400 宽、两侧空出一大片。
+  static double contentWidthFor(double availableWidth, {double cap = contentWidthCap}) {
     final usable =
         (availableWidth - gutterFor(availableWidth) * 2).clamp(0.0, double.infinity);
     if (isExpanded(availableWidth)) {
-      return math.min(usable, contentWidthCap);
+      return math.min(usable, cap);
     }
     return usable;
   }

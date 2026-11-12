@@ -18,10 +18,16 @@ bool embeddedInSettingsPanes(BuildContext context) =>
 ///
 /// 窄窗若直接取 [AppResponsive.contentWidthFor] 的结果，会再扣一份留白，
 /// 横幅里主题名那一行会被缩略图的让位挤到溢出，所以窄窗返回完整可用宽度。
+///
+/// 上限用 [AppResponsive.wideContentCap] 而不是正文那一档：设置是成片的卡片列表，
+/// 不是一行读到底的正文。用正文的 1400 会让 2560 窗口里卡片挤在中间、两侧空一大片。
 double settingsContentWidth(double availableWidth) =>
     AppResponsive.isCompact(availableWidth)
         ? availableWidth
-        : AppResponsive.contentWidthFor(availableWidth);
+        : AppResponsive.contentWidthFor(
+            availableWidth,
+            cap: AppResponsive.wideContentCap,
+          );
 
 /// 把设置内容按可用宽度限宽后居中。
 ///

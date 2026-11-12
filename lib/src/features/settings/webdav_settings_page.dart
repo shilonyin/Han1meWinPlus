@@ -52,7 +52,7 @@ class _WebDavSettingsPageState extends ConsumerState<WebDavSettingsPage> {
               leading: settingsSubPageBack(context),
               title: Text(l10n.webDavSettings),
             ),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿顶部的「已连接」状态卡：一眼看出连的是哪台服务器、上次同步什么时候。
           // 没配置时显示「未配置」，引导去填地址 —— 比一个孤零零的开关有用得多。
@@ -118,7 +118,7 @@ class _WebDavSettingsPageState extends ConsumerState<WebDavSettingsPage> {
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -177,7 +177,7 @@ class _WebDavStatusCard extends StatelessWidget {
         : AppDesignTokens.inkMuted;
     return Container(
       // 与白卡 / 其他横幅统一：左边 39、右边 29（`SettingsSection` 的默认值）。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,

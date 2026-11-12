@@ -27,7 +27,7 @@ class PlayerSettingsPage extends ConsumerWidget {
     final libmpv = settings.playerEngine == PlayerEngine.libMpv;
     return Scaffold(
       appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.playerSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           SettingsCardList(children: [
@@ -41,7 +41,7 @@ class PlayerSettingsPage extends ConsumerWidget {
             _OptionTile(icon: Symbols.auto_awesome_rounded, title: l10n.superResolution, value: _superResolutionLabel(l10n, settings.superResolutionMode), enabled: libmpv, onTap: libmpv ? () => _pickSuperResolution(context, ref, settings) : null),
           ]),
         ],
-      ),
+      )),
     );
   }
 

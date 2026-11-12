@@ -52,11 +52,11 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.interfaceLayout)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿最上面那块「当前布局预览」：一张白卡，里面是一幅迷你界面示意，
           // 侧栏 / 顶栏 / 卡片列数随之变化 —— 用户调开关前就能看到结果长什么样。
-          const _LayoutPreview(),
+          const SettingsContentFrame(child: _LayoutPreview()),
           // 卡标题用 `l10n.general`（「常规」/「General」）。
           // 设计稿那张卡没有标题，但测试与无障碍都依赖它给这一组分名字
           // （`layout_settings_test.dart` 会校验它在），所以保留。
@@ -120,7 +120,7 @@ class _LayoutSettingsPageState extends ConsumerState<LayoutSettingsPage> {
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -144,8 +144,9 @@ class _LayoutPreview extends StatelessWidget {
     const showSidebar = true;
 
     return Container(
-      // 与白卡同一套外边距（`SettingsSection` 的 39/29）。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      // 左右外边距交给外层 SettingsContentFrame（已按可用宽度推导并居中）；
+      // 这里只留竖直间距，避免左右各多扣一份导致预览卡比下方卡片窄。
+      margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

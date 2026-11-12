@@ -17,6 +17,7 @@ import '../shared/press_scale.dart';
 import 'log_local_data_card.dart';
 import 'settings_controller.dart';
 import 'settings_pane_scope.dart';
+import 'settings_sub_page.dart';
 
 /// 「日志」：查看、导出、清空应用日志。
 ///
@@ -69,7 +70,7 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
     return Scaffold(
       backgroundColor: AppDesignTokens.pageBackground,
       appBar: embedded ? null : AppBar(title: Text(l10n.logs)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         children: [
           // 分栏模式下标题与右侧按钮由 `_SettingsPanes` 统一画在同一行；
@@ -96,7 +97,7 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
           // 数值来自实际落盘文件，没有的显示 0 —— 不写死示例数字。
           const LogLocalDataSection(),
         ],
-      ),
+      )),
     );
   }
 

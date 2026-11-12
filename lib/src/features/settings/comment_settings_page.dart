@@ -52,7 +52,7 @@ class _CommentSettingsPageState extends ConsumerState<CommentSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.commentSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿顶部那张**粉色统计卡**：三格并排（评论总数 / 屏蔽词 / 屏蔽用户），
           // 每格一个醒目的大数字 + 下面一行小标签。
@@ -91,7 +91,7 @@ class _CommentSettingsPageState extends ConsumerState<CommentSettingsPage> {
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -115,7 +115,7 @@ class _CommentStatsCard extends StatelessWidget {
     final active = settings.commentsEnabled;
     return Container(
       // 与白卡同一套外边距（`SettingsSection` 的 39/29）。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       decoration: BoxDecoration(
         // 淡强调色底：设计稿这张卡是粉色底、压在浅灰页面底上，

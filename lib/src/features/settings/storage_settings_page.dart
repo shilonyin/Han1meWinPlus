@@ -119,7 +119,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.storage)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿顶部那张「存储空间」总览卡。
           StaggeredEntrance(
@@ -226,7 +226,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -453,7 +453,7 @@ class _StorageOverviewCard extends StatelessWidget {
     final unit = split.length > 1 ? split.sublist(1).join(' ') : '';
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       // 设计稿 `18416_v6_storage.png` 概览卡约 155 高：环 136 上下各留 10，
       // 之前给 40 把卡撑到 194，比设计稿高出一截。
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 12),

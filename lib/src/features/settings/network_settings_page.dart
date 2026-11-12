@@ -73,7 +73,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.networkSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿顶部的网络状态横幅：绿底 + 「网络正常」+ 当前代理说明，右侧是大号延迟。
           // 它回答的是「我现在能不能连上」这件事，而下面那些开关都是「怎么连」——
@@ -212,7 +212,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
               ],
             ),
         ],
-      ),
+      )),
     );
   }
 
@@ -536,7 +536,7 @@ class _NetworkStatusBannerState extends State<_NetworkStatusBanner> {
     return Container(
       // 与白卡 / 其他横幅统一：左边 39、右边 29（`SettingsSection` 的默认值）。
       // 原来写 12/12，横幅比卡片左右各宽出一截，右边缘直接贴到窗口上。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       decoration: BoxDecoration(
         color: background,

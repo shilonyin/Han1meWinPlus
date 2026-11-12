@@ -33,7 +33,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.recommendationFilters)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           SettingsCardList(
             title: l10n.filters,
@@ -49,7 +49,7 @@ class _RecommendationSettingsPageState extends ConsumerState<RecommendationSetti
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 

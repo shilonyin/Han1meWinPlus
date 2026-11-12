@@ -9,6 +9,7 @@ import '../../core/app_design_tokens.dart';
 import '../../core/settings.dart';
 import 'settings_controller.dart';
 import 'settings_pane_scope.dart';
+import 'settings_sub_page.dart';
 
 /// 语言设置页。
 ///
@@ -35,7 +36,7 @@ class LanguageSettingsPage extends ConsumerWidget {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.languageSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
           Center(
@@ -99,7 +100,7 @@ class LanguageSettingsPage extends ConsumerWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 

@@ -9,6 +9,7 @@ import '../../core/app_radius.dart';
 import '../../core/global_hotkeys.dart';
 import '../../core/player_hotkey_registry.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 import 'settings_controller.dart';
 import 'settings_pane_scope.dart';
 
@@ -46,7 +47,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.settingsHotkeys)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // ① 全局快捷键卡：**只有一行**（标题 + 副标题 + 开关）。
           //
@@ -133,7 +134,7 @@ class _HotkeySettingsPageState extends ConsumerState<HotkeySettingsPage> {
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 

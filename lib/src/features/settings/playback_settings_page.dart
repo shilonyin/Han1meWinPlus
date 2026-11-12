@@ -51,7 +51,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.playbackSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         children: [
           // 设计稿（`pb1.png` / `pb2.png`）：**两张卡**，第一张没有标题（9 项），
           // 第二张标题是「窗口」（3 项），最底下一行灰字注释。
@@ -205,7 +205,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }

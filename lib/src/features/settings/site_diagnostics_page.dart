@@ -178,7 +178,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             ],
           ),
         ),
-        body: ListView(
+        body: SettingsSubPageBody(child: ListView(
           padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
           children: [
             // 说明与按钮**同一行**：左边两行小字（说明 + 「检测在本机实时进行」），
@@ -229,7 +229,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             const SizedBox(height: 21),
             _addressSection(context, l10n),
           ],
-        ),
+        )),
       ),
     );
   }

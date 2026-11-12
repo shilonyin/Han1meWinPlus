@@ -31,7 +31,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.backupSettings)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
           SettingsCardList(
@@ -42,7 +42,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
           ),
           if (busy) const Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
         ],
-      ),
+      )),
     );
   }
 

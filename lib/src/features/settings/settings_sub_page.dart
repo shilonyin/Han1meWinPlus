@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'settings_pane_scope.dart';
+
 /// 设置页内「二级页」的返回通道。
 ///
 /// 设置页在宽窗下是「左分类 + 右内容」（`_SettingsPanes`），用 `context.push` 打开二级页会
@@ -23,4 +25,29 @@ class SettingsSubPageScope extends InheritedWidget {
 Widget? settingsSubPageBack(BuildContext context) {
   final onBack = SettingsSubPageScope.maybeOnBack(context);
   return onBack == null ? null : BackButton(onPressed: onBack);
+}
+/// 设置二级页的正文容器，把子页的滚动内容按可用宽度限宽并居中。
+///
+/// 之前各子页直接 `body: ListView(...)`，分组卡片靠 `SettingsSection` 的 39/29 外边距撑开。
+/// 卡片本身又被 `SettingsList` 的 `maxWidth`（默认 1000）限宽居中。
+/// 两层一叠加，宽窗口下白卡又窄又贴左，右侧空出大片，和顶部横幅的宽度也对不上。
+/// 把宽度推导收到这一层之后，子页里的横幅与卡片都只留竖直间距。
+/// 宽窗才真正铺开并对齐。
+///
+/// 直接包住 `ListView`，`shrinkWrap` 由调用方决定，这里只管宽度与居中。
+class SettingsSubPageBody extends StatelessWidget {
+  const SettingsSubPageBody({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: settingsContentWidth(constraints.maxWidth),
+        child: child,
+      ),
+    ),
+  );
 }

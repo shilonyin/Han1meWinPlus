@@ -18,6 +18,7 @@ import 'color_compass_dialog.dart';
 import 'option_settings_dialog.dart';
 import 'settings_controller.dart';
 import 'settings_card_list.dart';
+import 'settings_sub_page.dart';
 import 'settings_pane_scope.dart';
 
 class ThemeSettingsPage extends ConsumerStatefulWidget {
@@ -42,7 +43,7 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.themeAndColor)),
-      body: ListView(
+      body: SettingsSubPageBody(child: ListView(
         // 顶部不再留 12：设计稿里「主题与色彩」页头下面直接就是那张淡粉横幅
         // （横幅顶 y104、标题字顶 y66，中间只有 38），这里再垫 12 会把它
         // 整体挤低一截，��屏少看到好几项设置。底部留 12 保留（滚到最底时
@@ -187,7 +188,7 @@ class _ThemeSettingsPageState extends ConsumerState<ThemeSettingsPage> {
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -289,7 +290,7 @@ class _ColorSchemeCard extends StatelessWidget {
       // 设计稿白卡实测 x424~1251，而内容区从 385 起（见 `settings_list.dart` 的
       // 卡片外边距）—— 左右各留 39 / 29。这里写成 12 会让卡片宽出一大截，
       // 最右边几乎顶到窗口边缘。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       // 上下内边距 14：设计稿这张卡高 138（y268~406），我们的是 144 ——
       // 多出的 6 来自上下各 16 的内边距。收到 14 之后整块落到 138，
       // 省下来的这几像素正好给下面那张外观卡留出余量。
@@ -463,7 +464,7 @@ class _ThemePreviewBanner extends StatelessWidget {
       // 这里原来写 12/12：横幅比卡片左右各宽出 27/17，右边缘一直顶到窗口，
       // 和设计稿「横幅与卡片左右同一条线」对不上 —— 屏幕上看着就是右半边
       // 溢出去、左右不齐。
-      margin: const EdgeInsets.fromLTRB(39, 0, 29, 12),
+      margin: const EdgeInsets.only(bottom: 12),
       // 横幅总体最小高度 **147**（设计稿 y104~251）。
       //
       // 内边距放在这里、高度也在这里管：「内容区高度 = 总高 - 上下内边距」

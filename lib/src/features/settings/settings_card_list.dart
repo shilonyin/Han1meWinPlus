@@ -6,7 +6,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_responsive.dart';
 import 'settings_glass_controls.dart';
-import 'settings_pane_scope.dart';
 import 'settings_list.dart';
 
 class SettingsCardList extends StatelessWidget {
@@ -53,11 +52,15 @@ class SettingsCardList extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           contentPadding: EdgeInsets.zero,
-          // 内容宽度按可用宽度推导：宽窗不再钉死在 settingsListMaxWidth，
-          // 否则 2560 窗口里整列设置项挤在中间、两侧空出一大片。
-          maxWidth: settingsContentWidth(constraints.maxWidth),
+          // 宽度已由外层 `SettingsSubPageBody` 按可用宽度限好并居中（设置首页那条
+          // 路径则由调用方自己包 frame）。这里直接用父级宽度，不再二次推导 ——
+          // 否则会在已限宽的父级上再扣一份 gutter，卡片比可用宽度窄一圈。
+          maxWidth: constraints.maxWidth,
           sections: [
             SettingsSection(
+              // 宽度已由 `settingsContentWidth` 统一推导并居中，这里不再左右各扣
+              // 39/29 —— 再扣一层，卡片就比可用宽度窄一截，右侧空出来的地方看着像没对齐。
+              margin: const EdgeInsets.only(bottom: 16),
               rowPadding: rowPadding,
               title: title == null
                   ? null
