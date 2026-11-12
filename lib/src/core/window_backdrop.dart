@@ -49,9 +49,15 @@ class WindowBackdropEffect {
         case WindowBackdrop.none:
           await Window.setEffect(effect: WindowEffect.disabled);
         case WindowBackdrop.mica:
+          // 先关一次再重设：某些 Windows build 上 DWM 收到「同一种材质、只换 dark」
+          // 时不会重绘，切主题后窗口背景仍停在旧深浅（看起来像「主题没生效」）。
+          // 先 disabled 再 mica 能强制重建材质，深/浅就会真正跟过去。
+          await Window.setEffect(effect: WindowEffect.disabled);
           await Window.setEffect(effect: WindowEffect.mica, dark: dark);
         case WindowBackdrop.acrylic:
           // Acrylic 需要一层底色，深色下压暗一点，否则浅色主题的文字会看不清。
+          // 同 mica：先关再设，避免只换 dark 时不重绘。
+          await Window.setEffect(effect: WindowEffect.disabled);
           await Window.setEffect(
             effect: WindowEffect.acrylic,
             color: dark ? const Color(0xcc101114) : const Color(0xccf7f7fb),
