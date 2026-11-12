@@ -174,13 +174,13 @@ class _WebDavStatusCard extends StatelessWidget {
     final connected = configured && settings.webDavEnabled;
     final accent = connected
         ? const Color(0xFF2E7D4F)
-        : AppDesignTokens.inkMuted;
+        : AppDesignTokens.inkMutedOf(context);
     return Container(
       // 与白卡 / 其他横幅统一：左边 39、右边 29（`SettingsSection` 的默认值）。
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
@@ -216,16 +216,16 @@ class _WebDavStatusCard extends StatelessWidget {
               settings.webDavUrl,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
           ] else ...[
             const SizedBox(height: 6),
-            const Text(
+            Text(
               '填写服务器地址、账号与密码后即可跨设备同步',
-              style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted),
+              style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context)),
             ),
           ],
         ],

@@ -60,14 +60,14 @@ class SiteGroupsPage extends ConsumerWidget {
     final groups = ref.watch(siteGroupsProvider).valueOrNull;
     if (groups == null) return const Scaffold(body: Center(child: M3EContainedLoadingIndicator()));
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: AppTopBar(leading: settingsSubPageBack(context), title: Text(l10n.siteGroups)),
       // 用 Sliver 组合而不是 ReorderableListView 的 header/footer —— 后者的 footer 区域
       // 在桌面端收不到指针事件（同「首页快捷分类」那页踩过的坑）。
       body: CustomScrollView(slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          sliver: SliverToBoxAdapter(child: Text(l10n.siteGroupsDescription, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted, height: 1.4))),
+          sliver: SliverToBoxAdapter(child: Text(l10n.siteGroupsDescription, style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMutedOf(context), height: 1.4))),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -83,9 +83,9 @@ class SiteGroupsPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppDesignTokens.surface,
+                  color: AppDesignTokens.surfaceOf(context),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(color: AppDesignTokens.stroke),
+                  border: Border.all(color: AppDesignTokens.strokeOf(context)),
                 ),
                 child: _groupCard(context, ref, groups, index, l10n),
               ),
@@ -106,24 +106,24 @@ class SiteGroupsPage extends ConsumerWidget {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
         dense: true,
-        leading: ReorderableDragStartListener(index: index, child: const Icon(Symbols.drag_indicator_rounded, color: AppDesignTokens.inkMuted)),
-        title: Text(siteGroupName(group, l10n), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
-        subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+        leading: ReorderableDragStartListener(index: index, child: Icon(Symbols.drag_indicator_rounded, color: AppDesignTokens.inkMutedOf(context))),
+        title: Text(siteGroupName(group, l10n), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDesignTokens.inkOf(context))),
+        subtitle: Text(l10n.siteHostsCount(group.hosts.length), style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          PressScale(child: IconButton(tooltip: l10n.siteGroupRename, color: AppDesignTokens.inkSubtle, onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20))),
-          PressScale(child: IconButton(tooltip: l10n.delete, color: AppDesignTokens.inkSubtle, onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
+          PressScale(child: IconButton(tooltip: l10n.siteGroupRename, color: AppDesignTokens.inkSubtleOf(context), onPressed: () => _rename(context, ref, groups, index), icon: const Icon(Symbols.edit_rounded, size: 20))),
+          PressScale(child: IconButton(tooltip: l10n.delete, color: AppDesignTokens.inkSubtleOf(context), onPressed: multiple ? () => _delete(context, ref, groups, index) : null, icon: const Icon(Symbols.remove_circle_rounded, size: 20))),
         ]),
       ),
       if (group.hosts.isEmpty)
-        Padding(padding: const EdgeInsets.fromLTRB(56, 0, 16, 12), child: Align(alignment: Alignment.centerLeft, child: Text(l10n.siteGroupEmpty, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)))),
+        Padding(padding: EdgeInsets.fromLTRB(56, 0, 16, 12), child: Align(alignment: Alignment.centerLeft, child: Text(l10n.siteGroupEmpty, style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))))),
       for (final host in group.hosts) ...[
-        const Divider(height: 1, thickness: 1, indent: 56, endIndent: 16, color: Color(0xFFF0F0F3)),
+        Divider(height: 1, thickness: 1, indent: 56, endIndent: 16, color: AppDesignTokens.dividerOf(context)),
         ListTile(
           dense: true,
           contentPadding: const EdgeInsets.only(left: 56, right: 8),
-          title: Text(siteHostLabel(host, l10n), style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink)),
-          subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n), style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
-          trailing: PressScale(child: IconButton(tooltip: l10n.siteGroupMoveTo, color: AppDesignTokens.inkSubtle, onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20))),
+          title: Text(siteHostLabel(host, l10n), style: TextStyle(fontSize: 13, color: AppDesignTokens.inkOf(context))),
+          subtitle: siteHostHint(host, l10n).isEmpty ? null : Text(siteHostHint(host, l10n), style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
+          trailing: PressScale(child: IconButton(tooltip: l10n.siteGroupMoveTo, color: AppDesignTokens.inkSubtleOf(context), onPressed: multiple ? () => _move(context, ref, groups, index, host) : null, icon: const Icon(Symbols.drive_file_move_rounded, size: 20))),
         ),
       ],
     ]);
@@ -197,16 +197,16 @@ class SiteGroupsPage extends ConsumerWidget {
           autofocus: true,
           textInputAction: TextInputAction.done,
           onSubmitted: (value) => Navigator.pop(context, value.trim()),
-          style: const TextStyle(fontSize: 14, color: AppDesignTokens.ink),
+          style: TextStyle(fontSize: 14, color: AppDesignTokens.inkOf(context)),
           decoration: InputDecoration(
             labelText: l10n.siteGroupName,
             helperText: l10n.siteGroupNameHint,
-            labelStyle: const TextStyle(color: AppDesignTokens.inkMuted),
-            helperStyle: const TextStyle(color: AppDesignTokens.inkMuted),
+            labelStyle: TextStyle(color: AppDesignTokens.inkMutedOf(context)),
+            helperStyle: TextStyle(color: AppDesignTokens.inkMutedOf(context)),
             filled: true,
-            fillColor: AppDesignTokens.fieldFill,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.stroke)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.stroke)),
+            fillColor: AppDesignTokens.fieldFillOf(context),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide(color: AppDesignTokens.strokeOf(context))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide(color: AppDesignTokens.strokeOf(context))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: const BorderSide(color: AppDesignTokens.accent)),
           ),
         ),

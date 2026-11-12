@@ -86,7 +86,7 @@ class SettingsSwitch extends StatelessWidget {
             activeTrackColor: Theme.of(context).colorScheme.primary,
             // 关闭态的轨道：设计稿是**实心中灰**（实测 #B7B7B9）。
             // 禁用态再压淡一档，表示它不可操作。
-            inactiveTrackColor: AppDesignTokens.switchTrackOff.withValues(
+            inactiveTrackColor: AppDesignTokens.switchTrackOffOf(context).withValues(
               alpha: disabled ? .5 : 1,
             ),
             // 圆钮永远是**白色实心**（设计稿两种状态都是白色圆钮）。

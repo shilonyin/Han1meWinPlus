@@ -575,9 +575,9 @@ class _ThemePreviewBanner extends StatelessWidget {
                 SizedBox(height: AppResponsive.scaled(context, 6)),
                 Text(
                   '品牌色 $hex · 圆角 16 · Material 3',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               ],

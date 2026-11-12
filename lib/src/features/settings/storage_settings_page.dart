@@ -458,7 +458,7 @@ class _StorageOverviewCard extends StatelessWidget {
       // 之前给 40 把卡撑到 194，比设计稿高出一截。
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 12),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -494,16 +494,16 @@ class _StorageOverviewCard extends StatelessWidget {
                                 : 24,
                             fontWeight: FontWeight.w700,
                             height: 1.1,
-                            color: AppDesignTokens.ink,
+                            color: AppDesignTokens.inkOf(context),
                           ),
                         ),
                       ),
                       if (unit.isNotEmpty)
                         Text(
                           unit,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppDesignTokens.inkMuted,
+                            color: AppDesignTokens.inkMutedOf(context),
                           ),
                         ),
                     ],
@@ -518,12 +518,12 @@ class _StorageOverviewCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   '存储空间',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -531,9 +531,9 @@ class _StorageOverviewCard extends StatelessWidget {
                   disk == null
                       ? '缓存与下载占用'
                       : '共 ${_gb(disk!.total)} · 可用 ${_gb(disk!.free)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -691,18 +691,18 @@ class _ValueChevron extends StatelessWidget {
             value!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
         ),
         const SizedBox(width: 4),
       ],
-      const Icon(
+      Icon(
         Symbols.chevron_right_rounded,
         size: 18,
-        color: AppDesignTokens.inkMuted,
+        color: AppDesignTokens.inkMutedOf(context),
       ),
     ],
   );
@@ -740,9 +740,9 @@ class _LegendItem extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
             ],
@@ -755,10 +755,10 @@ class _LegendItem extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
         ],

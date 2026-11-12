@@ -27,14 +27,14 @@ class LogLocalDataSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
             '本地数据',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
         ),
@@ -123,7 +123,7 @@ class _LocalDataTile extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: Column(
@@ -132,9 +132,9 @@ class _LocalDataTile extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppDesignTokens.inkSubtle,
+                color: AppDesignTokens.inkSubtleOf(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -152,9 +152,9 @@ class _LocalDataTile extends StatelessWidget {
               file,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
           ],

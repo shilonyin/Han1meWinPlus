@@ -83,12 +83,12 @@ class LanguageSettingsPage extends ConsumerWidget {
                       onTap: () => _select(ref, AppLanguage.english),
                     ),
                     const SizedBox(height: 16),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         '切换后界面与内容语言将立即更新',
                         style: TextStyle(
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                           fontSize: 12,
                         ),
                       ),
@@ -123,8 +123,8 @@ class _PageHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: AppDesignTokens.ink,
+          style: TextStyle(
+            color: AppDesignTokens.inkOf(context),
             fontSize: 20,
             fontWeight: FontWeight.w700,
             height: 1.2,
@@ -133,7 +133,7 @@ class _PageHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           subtitle,
-          style: const TextStyle(color: AppDesignTokens.inkMuted, fontSize: 13),
+          style: TextStyle(color: AppDesignTokens.inkMutedOf(context), fontSize: 13),
         ),
       ],
     );
@@ -157,7 +157,7 @@ class _LanguageOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppDesignTokens.surface,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: PressScale(
         child: InkWell(
@@ -174,7 +174,7 @@ class _LanguageOptionCard extends StatelessWidget {
               border: Border.all(
                 color: selected
                     ? AppDesignTokens.accentOf(context)
-                    : AppDesignTokens.stroke,
+                    : AppDesignTokens.strokeOf(context),
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -187,8 +187,8 @@ class _LanguageOptionCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          color: AppDesignTokens.ink,
+                        style: TextStyle(
+                          color: AppDesignTokens.inkOf(context),
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           height: 1.3,
@@ -197,8 +197,8 @@ class _LanguageOptionCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: AppDesignTokens.inkSubtle,
+                        style: TextStyle(
+                          color: AppDesignTokens.inkSubtleOf(context),
                           fontSize: 12,
                           height: 1.3,
                         ),
@@ -231,7 +231,7 @@ class _SelectionBadge extends StatelessWidget {
         height: 22,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: AppDesignTokens.stroke, width: 2),
+          border: Border.all(color: AppDesignTokens.strokeOf(context), width: 2),
         ),
       );
     }

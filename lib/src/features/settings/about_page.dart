@@ -91,7 +91,7 @@ class AboutPage extends ConsumerWidget {
       ],
     );
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: embeddedInSettingsPanes(context)
           ? null
           : AppBar(title: Text(l10n.aboutTitle)),
@@ -313,7 +313,7 @@ class _AboutHeader extends StatelessWidget {
       // 中间差 28，减去锁标 svg 自带的上下留白约 4，内边距落在 24。
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -342,18 +342,18 @@ class _AboutHeader extends StatelessWidget {
                   children: [
                     Text(
                       version.isEmpty ? '版本 —' : '版本 $version',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AppDesignTokens.inkSubtle,
+                        color: AppDesignTokens.inkSubtleOf(context),
                         height: 1.3,
                       ),
                     ),
                     Text(
                       ' · ${l10n.thirdPartyClient}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppDesignTokens.inkMuted,
+                        color: AppDesignTokens.inkMutedOf(context),
                         height: 1.3,
                       ),
                     ),
@@ -414,7 +414,7 @@ class _AboutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -429,22 +429,22 @@ class _AboutCard extends StatelessWidget {
                 header: true,
                 child: Text(
                   heading,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
               ),
             ),
           for (var index = 0; index < rows.length; index++) ...[
             if (index > 0)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Divider(
                   height: 1,
                   thickness: 1,
-                  color: AppDesignTokens.divider,
+                  color: AppDesignTokens.dividerOf(context),
                 ),
               ),
             rows[index],
@@ -474,7 +474,7 @@ class _DisclaimerCard extends StatelessWidget {
     children: [
       // 「免责声明」标题在**卡片外面**（设计稿 `ab_disc.png` 放大图）：
       // 它和下面那张白卡是两个独立元素，标题左对齐、与卡片左缘齐平。
-      const Padding(
+      Padding(
         // 标题到卡片的间距 6：设计稿里「免责声明」字底到白卡顶只隔十几像素，
         // 原来给 10，比设计稿松一截，整页往下多出一行空隙。
         padding: EdgeInsets.fromLTRB(0, 0, 0, 6),
@@ -483,24 +483,24 @@ class _DisclaimerCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
           ),
         ),
       ),
       Container(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
         decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
-        child: const Text(
+        child: Text(
           '· 本应用不存储、不托管任何视频内容，所有内容均来自第三方站点。\n'
           '· 本应用仅作为播放器与浏览工具，使用者需自行承担使用风险。\n'
           '· 请遵守所在地区的法律法规，仅用于个人学习与研究。',
           style: TextStyle(
             fontSize: 12,
             height: 1.9,
-            color: AppDesignTokens.inkSubtle,
+            color: AppDesignTokens.inkSubtleOf(context),
           ),
         ),
       ),
@@ -525,41 +525,41 @@ class _DeveloperModeCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(0, 0, 0, 6),
           child: Text(
             '开发者选项',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
             ),
           ),
         ),
         Container(
           padding: const EdgeInsets.fromLTRB(20, 6, 12, 6),
           decoration: BoxDecoration(
-            color: AppDesignTokens.surface,
+            color: AppDesignTokens.surfaceOf(context),
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           child: SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
               l10n.developerMode,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 l10n.developerModeDescription,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   height: 1.5,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
               ),
             ),
@@ -579,12 +579,12 @@ class _CopyrightFooter extends StatelessWidget {
   const _CopyrightFooter();
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
     child: Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
       child: Text(
         '© 2026 shilonyin · 基于 Han1mePlus 修改 · 遵循 AGPL-3.0 协议',
-        style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted),
+        style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context)),
       ),
     ),
   );
@@ -612,10 +612,10 @@ class _AboutItem extends StatelessWidget {
           final hovered = SettingsHoverScope.of(context);
           final titleColor = hovered
               ? AppDesignTokens.accent
-              : AppDesignTokens.ink;
+              : AppDesignTokens.inkOf(context);
           final trailColor = hovered
               ? AppDesignTokens.accent
-              : AppDesignTokens.inkMuted;
+              : AppDesignTokens.inkMutedOf(context);
           return PressScale(
             child: InkWell(
               onTap: onTap,
@@ -685,9 +685,9 @@ class _AboutItem extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.end,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12.5,
-                                        color: AppDesignTokens.inkMuted,
+                                        color: AppDesignTokens.inkMutedOf(context),
                                         height: 1.3,
                                       ),
                                     ),

@@ -54,10 +54,10 @@ class HomeCategoriesPage extends ConsumerWidget {
     void save(List<String> titles) => controller.saveChanges((current) => current.copyWith(homeQuickCategories: titles));
 
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: AppTopBar(
         leading: settingsSubPageBack(context),
-        title: Text(l10n.homeQuickCategories, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+        title: Text(l10n.homeQuickCategories, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
       ),
       // 用 Sliver 组合而不是 ReorderableListView 的 header/footer：后者的 footer 区域
       // 在桌面端收不到指针事件，导致「可选分类」点不动。
@@ -89,22 +89,22 @@ class HomeCategoriesPage extends ConsumerWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: Text('${index + 1}', style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted)),
+                      child: Text('${index + 1}', style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMutedOf(context))),
                     ),
                     PressScale(
                       child: IconButton(
                         tooltip: l10n.delete,
                         onPressed: () => save([...selected]..removeAt(index)),
                         icon: const Icon(Symbols.remove_circle_rounded, size: 20),
-                        color: AppDesignTokens.inkMuted,
+                        color: AppDesignTokens.inkMutedOf(context),
                         splashRadius: 20,
                       ),
                     ),
                     ReorderableDragStartListener(
                       index: index,
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Icon(Symbols.drag_indicator_rounded, size: 20, color: AppDesignTokens.inkMuted),
+                        child: Icon(Symbols.drag_indicator_rounded, size: 20, color: AppDesignTokens.inkMutedOf(context)),
                       ),
                     ),
                   ],
@@ -122,7 +122,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                   if (sections.isEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                      child: Text(l10n.homeQuickCategoriesNeedsNetwork, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkSubtle)),
+                      child: Text(l10n.homeQuickCategoriesNeedsNetwork, style: TextStyle(fontSize: 13, color: AppDesignTokens.inkSubtleOf(context))),
                     )
                   else
                     for (final raw in available)
@@ -130,7 +130,7 @@ class HomeCategoriesPage extends ConsumerWidget {
                         title: label(raw),
                         enabled: !isFull,
                         onTap: isFull ? null : () => save([...selected, raw]),
-                        leading: const Icon(Symbols.add_circle_rounded, size: 20, color: AppDesignTokens.inkMuted),
+                        leading: Icon(Symbols.add_circle_rounded, size: 20, color: AppDesignTokens.inkMutedOf(context)),
                       ),
                 ],
               ),
@@ -160,7 +160,7 @@ class _CategoryRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: PressScale(child: InkWell(
@@ -177,7 +177,7 @@ class _CategoryRow extends StatelessWidget {
               child: Row(
                 children: [
                   if (leading != null) ...[
-                    IconTheme.merge(data: const IconThemeData(color: AppDesignTokens.inkSubtle), child: leading!),
+                    IconTheme.merge(data: IconThemeData(color: AppDesignTokens.inkSubtleOf(context)), child: leading!),
                     const SizedBox(width: 12),
                   ],
                   Expanded(
@@ -185,7 +185,7 @@ class _CategoryRow extends StatelessWidget {
                       title,
                       style: TextStyle(
                         fontSize: 15,
-                        color: enabled ? AppDesignTokens.ink : AppDesignTokens.inkMuted,
+                        color: enabled ? AppDesignTokens.inkOf(context) : AppDesignTokens.inkMutedOf(context),
                       ),
                     ),
                   ),
@@ -214,7 +214,7 @@ class _SectionTitle extends StatelessWidget {
             Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppDesignTokens.accent)),
             if (hint case final hint?) ...[
               const SizedBox(height: 4),
-              Text(hint, style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+              Text(hint, style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
             ],
           ],
         ),

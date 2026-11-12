@@ -130,11 +130,11 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     // 否则换了主题色后这一页会偏离设计稿。
     return Theme(
       data: theme.copyWith(
-        scaffoldBackgroundColor: AppDesignTokens.pageBackground,
+        scaffoldBackgroundColor: AppDesignTokens.pageBackgroundOf(context),
         appBarTheme: theme.appBarTheme.copyWith(
-          backgroundColor: AppDesignTokens.pageBackground,
+          backgroundColor: AppDesignTokens.pageBackgroundOf(context),
           surfaceTintColor: Colors.transparent,
-          foregroundColor: AppDesignTokens.ink,
+          foregroundColor: AppDesignTokens.inkOf(context),
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
@@ -154,10 +154,10 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             children: [
               Text(
                 l10n.siteDiagnostics,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(width: 18),
@@ -168,10 +168,10 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                   'DNS · 连接 · 证书 · 站点结构 · 登录',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               ),
@@ -192,19 +192,19 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                     children: [
                       Text(
                         '依次检测 DNS 解析、网络连接、证书、站点结构与登录状态',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           height: 1.6,
-                          color: AppDesignTokens.inkSubtle,
+                          color: AppDesignTokens.inkSubtleOf(context),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '检测在本机实时进行，不会上传任何数据',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
                           height: 1.5,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                     ],
@@ -312,7 +312,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     ),
     DiagnosticStatus.skipped => (
       Symbols.remove_rounded,
-      AppDesignTokens.inkMuted,
+      AppDesignTokens.inkMutedOf(context),
     ),
   };
 
@@ -385,9 +385,9 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
   Widget _whiteCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppDesignTokens.stroke),
+        border: Border.all(color: AppDesignTokens.strokeOf(context)),
       ),
       child: child,
     );
@@ -404,10 +404,10 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
             if (title != null) ...[
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                 ),
               ),
               const SizedBox(height: 6),
@@ -422,7 +422,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
 
   Widget _rowDivider() => FractionallySizedBox(
     alignment: Alignment.centerLeft,
-    child: Container(height: 1, color: AppDesignTokens.divider),
+    child: Container(height: 1, color: AppDesignTokens.dividerOf(context)),
   );
 
   /// 诊断结果的一行：状态图标 + 标题/详情 + 右侧状态文字。
@@ -438,7 +438,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
     required DiagnosticKind kind,
   }) {
     final (icon, color) = result == null
-        ? (Symbols.radio_button_unchecked_rounded, AppDesignTokens.inkMuted)
+        ? (Symbols.radio_button_unchecked_rounded, AppDesignTokens.inkMutedOf(context))
         : _statusVisual(context, result.status);
     final measurement = result?.latencyMs == null
         ? null
@@ -469,8 +469,8 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: result == null
-                        ? AppDesignTokens.inkMuted
-                        : AppDesignTokens.ink,
+                        ? AppDesignTokens.inkMutedOf(context)
+                        : AppDesignTokens.inkOf(context),
                   ),
                 ),
                 if (detail.isNotEmpty)
@@ -480,10 +480,10 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                       // 延迟放在**最后**（设计稿是 `hanime1.com → 203.0.113.42 · 12ms`），
                       // 而不是挂在最前面。一行以域名/状态开头更好扫读，耗时是补充信息。
                       measurement == null ? detail : '$detail · $measurement',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         height: 1.4,
-                        color: AppDesignTokens.inkMuted,
+                        color: AppDesignTokens.inkMutedOf(context),
                       ),
                     ),
                   ),
@@ -580,21 +580,21 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '地址实测延迟',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               '直连状态下各候选地址的握手延迟',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.5,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
             if (_proxyActive)
@@ -602,10 +602,10 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   l10n.addressLatencyProxyNotice,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.5,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ),
@@ -643,7 +643,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
                       width: 1,
                       height: (right.length * 44).toDouble(),
                       margin: const EdgeInsets.symmetric(horizontal: 24),
-                      color: AppDesignTokens.divider,
+                      color: AppDesignTokens.dividerOf(context),
                     ),
                     Expanded(
                       child: Column(
@@ -675,7 +675,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
   /// 没测到的显示灰色 `--`，不用「未能测速」四个字，一行里不塞句子。
   Widget _addressRow(BuildContext context, String host, int? ms) {
     final color = ms == null
-        ? AppDesignTokens.inkMuted
+        ? AppDesignTokens.inkMutedOf(context)
         : ms <= 60
         ? _okColor(context)
         : ms <= 150
@@ -692,7 +692,7 @@ class _SiteDiagnosticsPageState extends ConsumerState<SiteDiagnosticsPage> {
               host,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: AppDesignTokens.ink),
+              style: TextStyle(fontSize: 13, color: AppDesignTokens.inkOf(context)),
             ),
           ),
           const SizedBox(width: 12),

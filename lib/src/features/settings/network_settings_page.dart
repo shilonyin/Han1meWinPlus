@@ -381,12 +381,12 @@ class _ProxyModeSegments extends StatelessWidget {
           // 「代理模式」是卡内的第一行标题（设计稿：13 号粗体墨色，
           // 与下面其他行的标题同字号），不是分组小标题。原来给 14 号 w500，
           // 比下面「内置 Hosts」那行还轻，层级是反的。
-          const Text(
+          Text(
             '代理模式',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
               height: 1.25,
             ),
           ),
@@ -428,7 +428,7 @@ class _ProxyModeSegments extends StatelessWidget {
                         // 不是透明 —— 透明的话在白卡上看不出按钮的边界。
                         color: settings.proxyMode == value
                             ? AppDesignTokens.accentOf(context)
-                            : AppDesignTokens.fieldFill,
+                            : AppDesignTokens.fieldFillOf(context),
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
                       child: Text(
@@ -442,7 +442,7 @@ class _ProxyModeSegments extends StatelessWidget {
                               : FontWeight.w500,
                           color: settings.proxyMode == value
                               ? Colors.white
-                              : AppDesignTokens.inkSubtle,
+                              : AppDesignTokens.inkSubtleOf(context),
                         ),
                       ),
                     ),
@@ -460,9 +460,9 @@ class _ProxyModeSegments extends StatelessWidget {
           const SizedBox(height: 19),
           Text(
             hint,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
         ],
@@ -573,9 +573,9 @@ class _NetworkStatusBannerState extends State<_NetworkStatusBanner> {
                 const SizedBox(height: 6),
                 Text(
                   '当前代理：$_modeLabel · 内置 Hosts ${widget.settings.useBuiltInHosts ? '已启用' : '未启用'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ],
@@ -594,11 +594,11 @@ class _NetworkStatusBannerState extends State<_NetworkStatusBanner> {
                     color: accent,
                   ),
                 ),
-                const Text(
+                Text(
                   '延迟',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                   ),
                 ),
               ],

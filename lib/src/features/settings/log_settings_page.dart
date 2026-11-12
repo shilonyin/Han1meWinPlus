@@ -69,7 +69,7 @@ class _LogSettingsPageState extends ConsumerState<LogSettingsPage> {
         : '${_proxyLabel(settings.proxyMode)} · '
               '${settings.useBuiltInHosts ? '内置 Hosts 已启用' : '内置 Hosts 未启用'}';
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: embedded ? null : AppBar(title: Text(l10n.logs)),
       body: SettingsSubPageBody(child: LayoutBuilder(
         builder: (context, vp) {
@@ -264,7 +264,7 @@ class _RecentLogsCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                   ),
                   const Spacer(),
@@ -274,10 +274,10 @@ class _RecentLogsCard extends StatelessWidget {
                   // 但功能要留。用小菜单而不是再排一条卡，版面才和设计稿一致。
                   PopupMenuButton<String>(
                     tooltip: '更多',
-                    icon: const Icon(
+                    icon: Icon(
                       Symbols.more_horiz_rounded,
                       size: 18,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                     padding: EdgeInsets.zero,
                     onSelected: (value) {
@@ -306,7 +306,7 @@ class _RecentLogsCard extends StatelessWidget {
                     '暂无日志。应用运行时的信息会实时出现在这里。',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppDesignTokens.inkMuted,
+                      color: AppDesignTokens.inkMutedOf(context),
                     ),
                   ),
                 )
@@ -322,10 +322,10 @@ class _RecentLogsCard extends StatelessWidget {
                           width: 62,
                           child: Text(
                             entry.timeLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
-                              color: AppDesignTokens.inkMuted,
+                              color: AppDesignTokens.inkMutedOf(context),
                             ),
                           ),
                         ),
@@ -341,7 +341,7 @@ class _RecentLogsCard extends StatelessWidget {
                               color: switch (entry.level) {
                                 LogLevel.error => const Color(0xFFC62828),
                                 LogLevel.warning => const Color(0xFFB26A00),
-                                _ => AppDesignTokens.inkSubtle,
+                                _ => AppDesignTokens.inkSubtleOf(context),
                               },
                             ),
                           ),
@@ -352,11 +352,11 @@ class _RecentLogsCard extends StatelessWidget {
                             entry.text,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
                               height: 1.4,
-                              color: AppDesignTokens.ink,
+                              color: AppDesignTokens.inkOf(context),
                             ),
                           ),
                         ),
@@ -451,10 +451,10 @@ class _PageHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                   height: 1.2,
                 ),
               ),
@@ -464,9 +464,9 @@ class _PageHeader extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppDesignTokens.inkMuted,
+                    color: AppDesignTokens.inkMutedOf(context),
                     height: 1.3,
                   ),
                 ),
@@ -492,9 +492,9 @@ class _SurfaceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppDesignTokens.stroke),
+        border: Border.all(color: AppDesignTokens.strokeOf(context)),
       ),
       child: child,
     );
@@ -600,9 +600,9 @@ class _EnvField extends StatelessWidget {
             width: 44,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
                 height: 1.5,
               ),
             ),
@@ -611,9 +611,9 @@ class _EnvField extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
                 height: 1.5,
               ),
             ),
@@ -633,10 +633,10 @@ class _CardTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppDesignTokens.ink,
+        color: AppDesignTokens.inkOf(context),
         height: 1.3,
       ),
     );
@@ -653,14 +653,14 @@ class _Pill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: AppDesignTokens.fieldFill,
+        color: AppDesignTokens.fieldFillOf(context),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: AppDesignTokens.inkMuted,
+          color: AppDesignTokens.inkMutedOf(context),
           height: 1.2,
         ),
       ),

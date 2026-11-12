@@ -201,7 +201,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage> {
             padding: const EdgeInsets.fromLTRB(39, 4, 29, 24),
             child: Text(
               '「独立播放窗口」开启后，视频会在单独的窗口里播放，关闭主窗口不会中断。',
-              style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMuted),
+              style: TextStyle(fontSize: 11, color: AppDesignTokens.inkMutedOf(context)),
             ),
           ),
         ],
