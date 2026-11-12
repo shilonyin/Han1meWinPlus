@@ -232,7 +232,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     final page = Theme(
       data: detailTheme,
       child: Scaffold(
-        backgroundColor: AppDesignTokens.pageBackground,
+        backgroundColor: AppDesignTokens.pageBackgroundOf(context),
         body: content,
       ),
     );
@@ -243,7 +243,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     if (!widget.inPlayWindow &&
         MediaQuery.sizeOf(context).width >= 900) {
       return Material(
-        color: AppDesignTokens.pageBackground,
+        color: AppDesignTokens.pageBackgroundOf(context),
         child: Row(
           children: [const AppDesktopSidebar(), Expanded(child: page)],
         ),

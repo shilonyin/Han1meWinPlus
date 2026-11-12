@@ -66,7 +66,7 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
       title: Text(l10n.localMedia),
     );
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       // 顶栏挂 g1455 的 scroll edge：列表滚到它下面时被模糊淡出。
       extendBodyBehindAppBar: true,
       appBar: glassScrollEdgeAppBar(bar),
@@ -77,9 +77,9 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text('本地媒体', style: TextStyle(fontSize: 19.5, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              Text('本地媒体', style: TextStyle(fontSize: 19.5, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
               const SizedBox(width: 10),
-              Text('从本机添加的视频', style: const TextStyle(fontSize: 12, color: AppDesignTokens.inkMuted)),
+              Text('从本机添加的视频', style: TextStyle(fontSize: 12, color: AppDesignTokens.inkMutedOf(context))),
               const Spacer(),
               _AccentButton(icon: Symbols.add_rounded, label: l10n.localMediaPickDirectory, onPressed: _scanning ? null : _pickDirectory),
             ],
@@ -88,7 +88,7 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
 
           // ── 目录信息卡 ─────────────────────────────────────────────
           Container(
-            decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
+            decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.lg)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
@@ -104,9 +104,9 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(directory.isEmpty ? l10n.localMediaHint : directory, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
+                      Text(directory.isEmpty ? l10n.localMediaHint : directory, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppDesignTokens.inkOf(context))),
                       const SizedBox(height: 4),
-                      Text(_metaLabel(l10n, entries), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+                      Text(_metaLabel(l10n, entries), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMutedOf(context))),
                     ],
                   ),
                 ),
@@ -120,9 +120,9 @@ class _LocalMediaPageState extends ConsumerState<LocalMediaPage> {
           // ── 全部视频：标题 + 计数 ──────────────────────────────────
           Row(
             children: [
-              const Text('全部视频', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.ink)),
+              Text('全部视频', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context))),
               const SizedBox(width: 8),
-              Text('共 ${entries.length} 个', style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+              Text('共 ${entries.length} 个', style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMutedOf(context))),
             ],
           ),
           const SizedBox(height: 12),
@@ -164,7 +164,7 @@ class _MediaRow extends StatelessWidget {
     final dot = name.lastIndexOf('.');
     final ext = dot <= 0 ? '' : name.substring(dot + 1).toUpperCase();
     return Material(
-      color: AppDesignTokens.surface,
+      color: AppDesignTokens.surfaceOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: PressScale(child: InkWell(
@@ -177,7 +177,7 @@ class _MediaRow extends StatelessWidget {
               Container(
                 width: 88,
                 height: 50,
-                decoration: BoxDecoration(color: AppDesignTokens.ink, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                decoration: BoxDecoration(color: AppDesignTokens.inkOf(context), borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: const Icon(Symbols.play_arrow_rounded, size: 22, color: Colors.white),
               ),
               const SizedBox(width: 14),
@@ -186,9 +186,9 @@ class _MediaRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(entry.title.isNotEmpty ? entry.title : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppDesignTokens.ink)),
+                    Text(entry.title.isNotEmpty ? entry.title : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppDesignTokens.inkOf(context))),
                     const SizedBox(height: 5),
-                    Text('${_formatSize(entry.fileSize)} · ${_formatDate(entry.modifiedAt)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMuted)),
+                    Text('${_formatSize(entry.fileSize)} · ${_formatDate(entry.modifiedAt)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, color: AppDesignTokens.inkMutedOf(context))),
                   ],
                 ),
               ),
@@ -196,8 +196,8 @@ class _MediaRow extends StatelessWidget {
               if (ext.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.xs)),
-                  child: Text(ext, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppDesignTokens.inkMuted)),
+                  decoration: BoxDecoration(color: AppDesignTokens.fieldFillOf(context), borderRadius: BorderRadius.circular(AppRadius.xs)),
+                  child: Text(ext, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppDesignTokens.inkMutedOf(context))),
                 ),
               const SizedBox(width: 14),
               PressScale(
@@ -228,18 +228,18 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppDesignTokens.surface, borderRadius: BorderRadius.circular(AppRadius.lg)),
+      decoration: BoxDecoration(color: AppDesignTokens.surfaceOf(context), borderRadius: BorderRadius.circular(AppRadius.lg)),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
       child: Column(
         children: [
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.lg)),
-            child: const Icon(Symbols.video_library_rounded, size: 30, color: AppDesignTokens.inkMuted),
+            decoration: BoxDecoration(color: AppDesignTokens.fieldFillOf(context), borderRadius: BorderRadius.circular(AppRadius.lg)),
+            child: Icon(Symbols.video_library_rounded, size: 30, color: AppDesignTokens.inkMutedOf(context)),
           ),
           const SizedBox(height: 16),
-          Text(l10n.localMediaEmpty, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppDesignTokens.inkSubtle)),
+          Text(l10n.localMediaEmpty, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppDesignTokens.inkSubtleOf(context))),
           const SizedBox(height: 18),
           _AccentButton(icon: Symbols.folder_open_rounded, label: l10n.localMediaPickDirectory, onPressed: onPick),
         ],
@@ -262,7 +262,7 @@ class _AccentButton extends StatelessWidget {
     return PressScale(
       enabled: enabled,
       child: Material(
-        color: enabled ? AppDesignTokens.accent : AppDesignTokens.fieldFill,
+        color: enabled ? AppDesignTokens.accent : AppDesignTokens.fieldFillOf(context),
         borderRadius: BorderRadius.circular(AppRadius.sm),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -272,9 +272,9 @@ class _AccentButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 16, color: enabled ? Colors.white : AppDesignTokens.inkMuted),
+                Icon(icon, size: 16, color: enabled ? Colors.white : AppDesignTokens.inkMutedOf(context)),
                 const SizedBox(width: 6),
-                Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: enabled ? Colors.white : AppDesignTokens.inkMuted)),
+                Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: enabled ? Colors.white : AppDesignTokens.inkMutedOf(context))),
               ],
             ),
           ),
@@ -295,11 +295,11 @@ class _SoftButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final fg = enabled ? AppDesignTokens.inkSubtle : AppDesignTokens.inkMuted;
+    final fg = enabled ? AppDesignTokens.inkSubtleOf(context) : AppDesignTokens.inkMutedOf(context);
     return PressScale(
       enabled: enabled,
       child: Material(
-        color: AppDesignTokens.fieldFill,
+        color: AppDesignTokens.fieldFillOf(context),
         borderRadius: BorderRadius.circular(AppRadius.sm),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

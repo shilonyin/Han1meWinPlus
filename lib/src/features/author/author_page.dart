@@ -234,10 +234,10 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 21,
                       fontWeight: FontWeight.w700,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -245,9 +245,9 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                     '更新频繁 · 共 $videoCount 部作品',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppDesignTokens.inkSubtle,
+                      color: AppDesignTokens.inkSubtleOf(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -280,7 +280,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: subscribed
-                        ? AppDesignTokens.fieldFill
+                        ? AppDesignTokens.fieldFillOf(context)
                         : AppDesignTokens.accentDeep,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
@@ -293,7 +293,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                             : Symbols.favorite_border_rounded,
                         size: 15,
                         color: subscribed
-                            ? AppDesignTokens.inkSubtle
+                            ? AppDesignTokens.inkSubtleOf(context)
                             : Colors.white,
                       ),
                       const SizedBox(width: 6),
@@ -303,7 +303,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: subscribed
-                              ? AppDesignTokens.inkSubtle
+                              ? AppDesignTokens.inkSubtleOf(context)
                               : Colors.white,
                         ),
                       ),
@@ -324,16 +324,16 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
     children: [
       Text(
         number,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: AppDesignTokens.ink,
+          color: AppDesignTokens.inkOf(context),
         ),
       ),
       const SizedBox(height: 2),
       Text(
         label,
-        style: const TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMuted),
+        style: TextStyle(fontSize: 10.5, color: AppDesignTokens.inkMutedOf(context)),
       ),
     ],
   );
@@ -446,7 +446,7 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
           padding: const EdgeInsets.all(32),
           child: Text(
             '这位作者还没有填写简介',
-            style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMuted),
+            style: TextStyle(fontSize: 13, color: AppDesignTokens.inkMutedOf(context)),
           ),
         ),
       );
@@ -455,10 +455,10 @@ class _AuthorPageState extends ConsumerState<AuthorPage> {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       child: Text(
         bio,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           height: 1.7,
-          color: AppDesignTokens.ink,
+          color: AppDesignTokens.inkOf(context),
         ),
       ),
     );

@@ -189,7 +189,7 @@ class _UnderlineTabState extends State<UnderlineTab> {
                     fontSize: 13,
                     color: highlighted
                         ? (widget.selectedColor ?? scheme.primary)
-                        : AppDesignTokens.inkSubtle,
+                        : AppDesignTokens.inkSubtleOf(context),
                     fontWeight: highlighted ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),

@@ -27,7 +27,7 @@ class GetchuPreviewPage extends ConsumerWidget {
     final selectedMonth = GetchuPreviewMonth.parse(month);
     final result = ref.watch(getchuPreviewsProvider(selectedMonth.value));
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: _buildAppBar(context, l10n),
       body: Column(
         children: [
@@ -115,17 +115,17 @@ class GetchuPreviewPage extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     return AppBar(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       titleSpacing: PreviewGridMetrics.horizontalPadding,
       title: Text(
         l10n.getchuPreviews,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: AppDesignTokens.ink,
+          color: AppDesignTokens.inkOf(context),
           height: 1.2,
         ),
       ),
@@ -201,9 +201,9 @@ class _MonthNavigation extends StatelessWidget {
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(_kCardRadius),
-        border: Border.all(color: AppDesignTokens.stroke),
+        border: Border.all(color: AppDesignTokens.strokeOf(context)),
       ),
       child: Row(
         children: [
@@ -269,7 +269,7 @@ class _NavArrow extends StatelessWidget {
       message: tooltip,
       child: PressScale(
         child: Material(
-          color: AppDesignTokens.fieldFill,
+          color: AppDesignTokens.fieldFillOf(context),
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -281,7 +281,7 @@ class _NavArrow extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 20,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ),
             ),
@@ -323,10 +323,10 @@ class _GroupHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppDesignTokens.ink,
+              color: AppDesignTokens.inkOf(context),
               height: 1.2,
             ),
           ),
@@ -351,20 +351,20 @@ class _Unavailable extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Symbols.event_busy_rounded,
               size: 56,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
             const SizedBox(height: 16),
             Text(
               error == null
                   ? l10n.noGetchuPreviews
                   : l10n.getchuPreviewUnavailable,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppDesignTokens.ink,
+                color: AppDesignTokens.inkOf(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -374,7 +374,7 @@ class _Unavailable extends StatelessWidget {
                 onPressed: onRetry,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppDesignTokens.accentDeep,
-                  side: const BorderSide(color: AppDesignTokens.stroke),
+                  side: BorderSide(color: AppDesignTokens.strokeOf(context)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),

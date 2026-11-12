@@ -118,10 +118,10 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
       appBar: AppTopBar(
         title: Text(
           l10n.previews,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
           ),
         ),
         actions: [
@@ -309,9 +309,9 @@ class _MonthNavigation extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppDesignTokens.stroke),
+          border: Border.all(color: AppDesignTokens.strokeOf(context)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -321,9 +321,9 @@ class _MonthNavigation extends StatelessWidget {
                 child: IconButton(
                   tooltip: l10n.previousMonth,
                   onPressed: onPrevious,
-                  icon: const Icon(
+                  icon: Icon(
                     Symbols.chevron_left_rounded,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ),
@@ -337,10 +337,10 @@ class _MonthNavigation extends StatelessWidget {
                     icon: const Icon(Symbols.calendar_month_rounded, size: 18),
                     label: Text(
                       l10n.previewMonth(month.label),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppDesignTokens.ink,
+                        color: AppDesignTokens.inkOf(context),
                       ),
                     ),
                   ),
@@ -353,8 +353,8 @@ class _MonthNavigation extends StatelessWidget {
                   icon: Icon(
                     Symbols.chevron_right_rounded,
                     color: onNext == null
-                        ? AppDesignTokens.inkMuted
-                        : AppDesignTokens.inkSubtle,
+                        ? AppDesignTokens.inkMutedOf(context)
+                        : AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
               ),
@@ -511,12 +511,12 @@ class _PreviewHeader extends StatelessWidget {
             memCacheWidth: 960,
             faceFocus: true,
             fadeInDuration: Duration.zero,
-            errorWidget: (context, url, error) => const ColoredBox(
-              color: AppDesignTokens.fieldFill,
+            errorWidget: (context, url, error) => ColoredBox(
+              color: AppDesignTokens.fieldFillOf(context),
               child: Icon(
                 Symbols.image_rounded,
                 size: 32,
-                color: AppDesignTokens.inkMuted,
+                color: AppDesignTokens.inkMutedOf(context),
               ),
             ),
           ),
@@ -525,10 +525,10 @@ class _PreviewHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text(
           feed.title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
             height: 1.3,
           ),
         ),
@@ -538,9 +538,9 @@ class _PreviewHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Text(
             feed.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppDesignTokens.inkSubtle,
+              color: AppDesignTokens.inkSubtleOf(context),
               height: 1.5,
             ),
           ),
@@ -565,7 +565,7 @@ class _PreviewCard extends ConsumerWidget {
     return CardHover(
       builder: (context, hovered) => PressScale(
         child: Material(
-          color: AppDesignTokens.surface,
+          color: AppDesignTokens.surfaceOf(context),
           borderRadius: BorderRadius.circular(AppRadius.md),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -575,7 +575,7 @@ class _PreviewCard extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppDesignTokens.stroke),
+                border: Border.all(color: AppDesignTokens.strokeOf(context)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,12 +594,12 @@ class _PreviewCard extends ConsumerWidget {
                           faceFocus: true,
                           fadeInDuration: Duration.zero,
                           errorWidget: (context, url, error) =>
-                              const ColoredBox(
-                                color: AppDesignTokens.fieldFill,
+                              ColoredBox(
+                                color: AppDesignTokens.fieldFillOf(context),
                                 child: Icon(
                                   Symbols.image_rounded,
                                   size: 24,
-                                  color: AppDesignTokens.inkMuted,
+                                  color: AppDesignTokens.inkMutedOf(context),
                                 ),
                               ),
                         ),
@@ -616,10 +616,10 @@ class _PreviewCard extends ConsumerWidget {
                           item.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppDesignTokens.ink,
+                            color: AppDesignTokens.inkOf(context),
                             height: 1.3,
                           ),
                         ),
@@ -629,9 +629,9 @@ class _PreviewCard extends ConsumerWidget {
                             author,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppDesignTokens.inkSubtle,
+                              color: AppDesignTokens.inkSubtleOf(context),
                               height: 1.3,
                             ),
                           ),
@@ -648,9 +648,9 @@ class _PreviewCard extends ConsumerWidget {
                                   item.releaseDate!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: AppDesignTokens.inkMuted,
+                                    color: AppDesignTokens.inkMutedOf(context),
                                     height: 1.3,
                                   ),
                                 ),
@@ -749,19 +749,19 @@ List<Widget> _groupedPreviewSlivers(
               const SizedBox(width: 8),
               Text(
                 entry.key.isEmpty ? '其他' : entry.key,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppDesignTokens.ink,
+                  color: AppDesignTokens.inkOf(context),
                   height: 1.3,
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 '${entry.value.length} 部新作',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                   height: 1.3,
                 ),
               ),

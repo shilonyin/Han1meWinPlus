@@ -97,7 +97,7 @@ class VideoActionRow extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppDesignTokens.fieldFill,
+                    color: AppDesignTokens.fieldFillOf(context),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Center(
@@ -105,7 +105,7 @@ class VideoActionRow extends ConsumerWidget {
                       icon: action.icon,
                       size: 20,
                       filled: action.filled,
-                      color: action.onPressed == null ? AppDesignTokens.inkMuted : AppDesignTokens.inkSubtle,
+                      color: action.onPressed == null ? AppDesignTokens.inkMutedOf(context) : AppDesignTokens.inkSubtleOf(context),
                     ),
                   ),
                 ),

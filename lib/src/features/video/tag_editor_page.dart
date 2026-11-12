@@ -109,7 +109,7 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
         Navigator.pop(context);
       },
       child: Scaffold(
-        backgroundColor: AppDesignTokens.pageBackground,
+        backgroundColor: AppDesignTokens.pageBackgroundOf(context),
         body: Column(
           children: [
             _header(context, title),
@@ -118,9 +118,9 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppDesignTokens.surface,
+                    color: AppDesignTokens.surfaceOf(context),
                     borderRadius: BorderRadius.circular(AppRadius.lg),
-                    border: Border.all(color: AppDesignTokens.stroke),
+                    border: Border.all(color: AppDesignTokens.strokeOf(context)),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -161,15 +161,15 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
                 child: Container(
                   width: 32,
                   height: 32,
-                  decoration: BoxDecoration(color: AppDesignTokens.fieldFill, borderRadius: BorderRadius.circular(AppRadius.sm)),
-                  child: const Icon(Icons.chevron_left_rounded, size: 20, color: AppDesignTokens.inkSubtle),
+                  decoration: BoxDecoration(color: AppDesignTokens.fieldFillOf(context), borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  child: Icon(Icons.chevron_left_rounded, size: 20, color: AppDesignTokens.inkSubtleOf(context)),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.ink),
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppDesignTokens.inkOf(context)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -177,7 +177,7 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
                 widget.mode == TagEditorMode.add ? '为作品添加本地标签' : '为作品移除已有标签',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12.5, color: AppDesignTokens.inkMuted),
+                style: TextStyle(fontSize: 12.5, color: AppDesignTokens.inkMutedOf(context)),
               ),
             ),
             const SizedBox(width: 12),
@@ -204,7 +204,7 @@ class _TagEditorPageState extends ConsumerState<TagEditorPage> {
   /// 设置还没加载出来时的等待页：同样套设计稿的页头与页底，避免先闪一帧系统 AppBar。
   Widget _loadingScaffold(BuildContext context, String title) {
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       body: Column(
         children: [
           _header(context, title),

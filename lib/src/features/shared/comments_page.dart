@@ -66,19 +66,19 @@ class CommentsPage extends ConsumerWidget {
     final sort = ref.watch(contentCommentSortProvider(target));
     final canWrite = account != null && settings?.commentsEnabled == true;
     return Scaffold(
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       appBar: AppTopBar(
-        backgroundColor: AppDesignTokens.surface,
+        backgroundColor: AppDesignTokens.surfaceOf(context),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         titleSpacing: 0,
         title: Text(
           l10n.commentsTitle(title),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 19,
             fontWeight: FontWeight.w700,
-            color: AppDesignTokens.ink,
+            color: AppDesignTokens.inkOf(context),
           ),
         ),
         actions: [
@@ -97,14 +97,14 @@ class CommentsPage extends ConsumerWidget {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppDesignTokens.divider),
+          child: Container(height: 1, color: AppDesignTokens.dividerOf(context)),
         ),
       ),
       body: settings?.commentsEnabled != true
           ? Center(
               child: Text(
                 l10n.commentsDisabled,
-                style: const TextStyle(color: AppDesignTokens.inkMuted),
+                style: TextStyle(color: AppDesignTokens.inkMutedOf(context)),
               ),
             )
           : ref
@@ -125,8 +125,8 @@ class CommentsPage extends ConsumerWidget {
                       ? Center(
                           child: Text(
                             l10n.noComments,
-                            style: const TextStyle(
-                              color: AppDesignTokens.inkMuted,
+                            style: TextStyle(
+                              color: AppDesignTokens.inkMutedOf(context),
                             ),
                           ),
                         )
@@ -265,7 +265,7 @@ class _SortButton extends StatelessWidget {
   Widget build(BuildContext context) => MenuAnchor(
     builder: (context, controller, child) => PressScale(
       child: Material(
-        color: AppDesignTokens.fieldFill,
+        color: AppDesignTokens.fieldFillOf(context),
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -277,17 +277,17 @@ class _SortButton extends StatelessWidget {
               children: [
                 Text(
                   _label(context, value),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppDesignTokens.inkSubtle,
+                    color: AppDesignTokens.inkSubtleOf(context),
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(
+                Icon(
                   Symbols.expand_more_rounded,
                   size: 16,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ],
             ),
@@ -361,7 +361,7 @@ class _CommentComposerState extends State<CommentComposer> {
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
@@ -369,9 +369,9 @@ class _CommentComposerState extends State<CommentComposer> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 16,
-                backgroundColor: AppDesignTokens.fieldFill,
+                backgroundColor: AppDesignTokens.fieldFillOf(context),
                 child: Icon(
                   Symbols.edit_note_rounded,
                   size: 18,
@@ -382,7 +382,7 @@ class _CommentComposerState extends State<CommentComposer> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppDesignTokens.fieldFill,
+                    color: AppDesignTokens.fieldFillOf(context),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: TextField(
@@ -391,9 +391,9 @@ class _CommentComposerState extends State<CommentComposer> {
                     minLines: 1,
                     maxLines: 4,
                     textInputAction: TextInputAction.newline,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: _bodySize,
-                      color: AppDesignTokens.ink,
+                      color: AppDesignTokens.inkOf(context),
                     ),
                     decoration: InputDecoration(
                       isDense: true,
@@ -405,9 +405,9 @@ class _CommentComposerState extends State<CommentComposer> {
                       hintText: widget.enabled
                           ? l10n.commentHint
                           : l10n.commentsDisabled,
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         fontSize: _bodySize,
-                        color: AppDesignTokens.inkMuted,
+                        color: AppDesignTokens.inkMutedOf(context),
                       ),
                     ),
                   ),
@@ -418,7 +418,7 @@ class _CommentComposerState extends State<CommentComposer> {
                 child: Material(
                   color: widget.enabled
                       ? AppDesignTokens.accent
-                      : AppDesignTokens.fieldFill,
+                      : AppDesignTokens.fieldFillOf(context),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -435,7 +435,7 @@ class _CommentComposerState extends State<CommentComposer> {
                           fontWeight: FontWeight.w600,
                           color: widget.enabled
                               ? Colors.white
-                              : AppDesignTokens.inkMuted,
+                              : AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                     ),
@@ -482,7 +482,7 @@ class CommentCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
       decoration: BoxDecoration(
-        color: AppDesignTokens.surface,
+        color: AppDesignTokens.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
@@ -499,7 +499,7 @@ class CommentCard extends ConsumerWidget {
                       seed: comment.id,
                     )
                   : CircleAvatar(
-                      backgroundColor: AppDesignTokens.fieldFill,
+                      backgroundColor: AppDesignTokens.fieldFillOf(context),
                       backgroundImage: hasAvatar
                           ? appNetworkImage(comment.avatarUrl!)
                           : null,
@@ -507,10 +507,10 @@ class CommentCard extends ConsumerWidget {
                           ? null
                           : Text(
                               initial,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AppDesignTokens.inkSubtle,
+                                color: AppDesignTokens.inkSubtleOf(context),
                               ),
                             ),
                     ),
@@ -529,10 +529,10 @@ class CommentCard extends ConsumerWidget {
                         comment.username,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: _nameSize,
                           fontWeight: FontWeight.w700,
-                          color: AppDesignTokens.ink,
+                          color: AppDesignTokens.inkOf(context),
                         ),
                       ),
                     ),
@@ -540,9 +540,9 @@ class CommentCard extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         comment.timeAgo!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: _timeSize,
-                          color: AppDesignTokens.inkMuted,
+                          color: AppDesignTokens.inkMutedOf(context),
                         ),
                       ),
                     ],
@@ -551,10 +551,10 @@ class CommentCard extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text(
                   comment.content,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: _bodySize,
                     height: 1.45,
-                    color: AppDesignTokens.ink,
+                    color: AppDesignTokens.inkOf(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -592,10 +592,10 @@ class CommentCard extends ConsumerWidget {
               child: IconButton(
                 tooltip: l10n.more,
                 onPressed: controller.open,
-                icon: const Icon(
+                icon: Icon(
                   Symbols.more_vert_rounded,
                   size: 18,
-                  color: AppDesignTokens.inkMuted,
+                  color: AppDesignTokens.inkMutedOf(context),
                 ),
                 visualDensity: VisualDensity.compact,
               ),
@@ -649,7 +649,7 @@ class CommentCard extends ConsumerWidget {
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppDesignTokens.pageBackground,
+      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
       barrierColor: Colors.transparent,
       showDragHandle: true,
       builder: (context) => SafeArea(
@@ -781,13 +781,13 @@ class _CommentFrameAvatar extends StatelessWidget {
           fadeInDuration: Duration.zero,
           fadeOutDuration: Duration.zero,
           placeholder: (context, url) =>
-              const ColoredBox(color: AppDesignTokens.fieldFill),
-          errorWidget: (context, url, error) => const ColoredBox(
-            color: AppDesignTokens.fieldFill,
+              ColoredBox(color: AppDesignTokens.fieldFillOf(context)),
+          errorWidget: (context, url, error) => ColoredBox(
+            color: AppDesignTokens.fieldFillOf(context),
             child: Icon(
               Symbols.movie_rounded,
               size: 16,
-              color: AppDesignTokens.inkMuted,
+              color: AppDesignTokens.inkMutedOf(context),
             ),
           ),
         ),
@@ -818,9 +818,9 @@ class _ActionText extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: _actionSize,
-              color: AppDesignTokens.inkSubtle,
+              color: AppDesignTokens.inkSubtleOf(context),
             ),
           ),
         ),
@@ -845,7 +845,7 @@ class _VotePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PressScale(
     child: Material(
-      color: AppDesignTokens.fieldFill,
+      color: AppDesignTokens.fieldFillOf(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -864,10 +864,10 @@ class _VotePill extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.inkSubtle,
+                  color: AppDesignTokens.inkSubtleOf(context),
                 ),
               ),
             ],
