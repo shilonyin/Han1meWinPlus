@@ -1433,7 +1433,11 @@ class _SearchResultsGrid extends ConsumerWidget {
         // 免得被当成搜索结果的兜底。
         if (isRecommendations)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: EdgeInsets.fromLTRB(
+                AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                12,
+                AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                0),
             child: Text(
               l10n.recommendedVideos,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -1444,7 +1448,11 @@ class _SearchResultsGrid extends ConsumerWidget {
           ),
         if (showTitle)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: EdgeInsets.fromLTRB(
+                AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                12,
+                AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                8),
             child: Row(
               children: [
                 Text(
