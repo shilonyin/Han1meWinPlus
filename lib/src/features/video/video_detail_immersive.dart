@@ -286,7 +286,12 @@ class _EpisodeSectionState extends State<_EpisodeSection> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadius.sm),
-                        borderSide: BorderSide.none),
+                        borderSide:
+                            BorderSide(color: AppDesignTokens.dividerOf(context))),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        borderSide:
+                            BorderSide(color: AppDesignTokens.dividerOf(context))),
                   ),
                 ),
               ),

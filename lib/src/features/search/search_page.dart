@@ -29,9 +29,6 @@ import 'search_suggestions.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_dialog.dart';
 
-/// 搜索结果的默认列数（除下面两类竖版海报分区之外都用它）。
-const _searchColumns = 4;
-
 /// 里番、泡麵番的列表封面是竖版海报（新番预告实测 268x394，这两类同源），
 /// 塞进 16:9 的槽位会把海报按宽度放大再上下裁掉，只剩中间一条 —— 看上去就是放大的
 /// 身体特写，海报全貌没了。这两类改按海报比例排版，并像 B 站「追番」页那样一排六个。
@@ -39,7 +36,6 @@ const _searchColumns = 4;
 /// 判据是分类的**站点键**（`search_key`），不是界面文案：不同语言下这里显示的是
 /// 「里番 / 裏番 / Hentai」，写死文案会在换语言或换站点时失效。调用方先用
 /// `SearchOptionGroup.canonical` 归一，再和这里比。
-const _posterColumns = 6;
 const _posterAspectRatio = 3 / 4;
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -1414,6 +1410,7 @@ class _SearchResultsGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final screenW = MediaQuery.sizeOf(context).width;
     final isRecommendations = query.text.trim().isEmpty && query.genre.isEmpty;
     final appended = more.valueOrNull;
     final videos = isRecommendations
@@ -1469,7 +1466,11 @@ class _SearchResultsGrid extends ConsumerWidget {
         Expanded(
           child: VideoCardGrid(
             videos: videos,
-            cardsPerRow: posterLayout ? _posterColumns : _searchColumns,
+            cardsPerRow: posterLayout
+                ? (screenW >= 1600
+                    ? 8
+                    : (screenW >= 1200 ? 7 : (screenW >= 900 ? 6 : 4)))
+                : (screenW >= 1200 ? 5 : (screenW >= 900 ? 4 : 3)),
             horizontal: true,
             // 这页右下角浮着刷新 / 回到顶部，末尾得把高度让出来，
             // 否则滚到底时最后一行右侧那张卡被按钮压住点不到。
