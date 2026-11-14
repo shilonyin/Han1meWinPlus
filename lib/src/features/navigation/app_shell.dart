@@ -237,7 +237,7 @@ class AppTopNavBar extends ConsumerWidget {
               color: AppDesignTokens.surfaceOf(context),
               border: Border(bottom: BorderSide(color: AppDesignTokens.dividerOf(context))),
             ),
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.only(left: 18, right: 150),
       child: Row(
         children: [
           SizedBox(
@@ -278,7 +278,7 @@ class AppTopNavBar extends ConsumerWidget {
               onTap: () => context.go('/search'),
               borderRadius: BorderRadius.circular(AppRadius.md),
               child: Container(
-                width: 240,
+                width: 120,
                 height: 34,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
