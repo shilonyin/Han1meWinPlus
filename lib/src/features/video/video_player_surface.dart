@@ -683,24 +683,53 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                     ValueListenableBuilder<VideoPlayerValue>(
                       valueListenable: controller,
                       builder: (context, value, _) {
-                        // 滚轮调音量时的 HUD 也在画面正中，两者同时出现会叠成一团；
-                        // 音量提示是临时反馈，让它优先，暂停标记先退场。
                         final paused =
                             !value.isPlaying &&
                             !value.isCompleted &&
                             value.duration > Duration.zero &&
                             _volumeHud == null &&
                             _adjustment == null;
-                        return Center(
+                        final subtitle = _playerTopSubtitle(widget.video);
+                        return Positioned(
+                          left: 48,
+                          right: 48,
+                          bottom: 96,
                           child: IgnorePointer(
-                            child: AnimatedScale(
+                            child: AnimatedOpacity(
                               duration: AppMotion.brief,
-                              curve: AppMotion.settle,
-                              scale: paused ? 1 : .82,
-                              child: AnimatedOpacity(
-                                duration: AppMotion.brief,
-                                opacity: paused ? 1 : 0,
-                                child: const _PausedBadge(),
+                              opacity: paused ? 1 : 0,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('已暂停',
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 6),
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 760),
+                                    child: Text(
+                                      widget.video.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.15),
+                                    ),
+                                  ),
+                                  if (subtitle.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(subtitle,
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 13)),
+                                  ],
+                                ],
                               ),
                             ),
                           ),
@@ -1221,6 +1250,7 @@ class _VolumeHud extends StatelessWidget {
 ///
 /// 它只是「已暂停」的提示，不是按钮 —— 点击穿透由外层的 [IgnorePointer] 负责，
 /// 真正的播放/暂停仍然交给控制条与双击画面。
+// ignore: unused_element
 class _PausedBadge extends StatelessWidget {
   const _PausedBadge();
 
