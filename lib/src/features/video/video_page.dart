@@ -19,6 +19,7 @@ import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_page_layout.dart';
+import 'video_detail_immersive.dart' show videoPagePlaying;
 import '../navigation/app_shell.dart';
 
 VideoCard? nextEpisode(VideoDetail video) {
@@ -242,17 +243,23 @@ class _VideoPageState extends ConsumerState<VideoPage> {
             : AppDesignTokens.pageBackgroundOf(context),
         body: widget.inPlayWindow
             ? content
-            // 详情页：内容全屏、顶部导航半透明浮在背景图上（和首页一致）。
-            : Stack(
-                children: [
-                  Positioned.fill(child: content),
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: AppTopNavBar(overlay: true),
-                  ),
-                ],
+            : ValueListenableBuilder<bool>(
+                valueListenable: videoPagePlaying,
+                builder: (context, playing, _) {
+                  // 播放中：隐藏主站顶部导航，进入沉浸播放（和 Weebox 一致）。
+                  if (playing) return content;
+                  return Stack(
+                    children: [
+                      Positioned.fill(child: content),
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AppTopNavBar(overlay: true),
+                      ),
+                    ],
+                  );
+                },
               ),
       ),
     );

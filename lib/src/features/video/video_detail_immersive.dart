@@ -25,6 +25,9 @@ import 'video_player_panel.dart';
 /// 版式参照 FigCraft 的 `page/videoDetail-redesign`（Baka 番剧详情页风格）：
 /// 不把评论区直接摊在页面上，信息都收进 Tab 里。
 /// 旧的 [VideoDetailSplitView] 仍保留在 video_detail_content.dart，需要时可以一行切回去。
+/// 视频页是否正处于“播放中”。为 true 时 video_page 隐藏主站顶部导航，进入沉浸播放。
+final ValueNotifier<bool> videoPagePlaying = ValueNotifier<bool>(false);
+
 class VideoDetailImmersiveView extends ConsumerStatefulWidget {
   const VideoDetailImmersiveView({
     super.key,
@@ -69,6 +72,7 @@ class _VideoDetailImmersiveViewState
     if (opened) return;
     if (!mounted) return;
     setState(() => _playing = true);
+    videoPagePlaying.value = true;
   }
 
   @override
@@ -235,6 +239,7 @@ class _EpisodeSectionState extends State<_EpisodeSection> {
 
   @override
   void dispose() {
+    videoPagePlaying.value = false;
     _searchCtl.dispose();
     super.dispose();
   }
