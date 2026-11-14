@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +19,6 @@ import '../../core/configured_media_kit_video_player.dart';
 import '../../core/playback_speed_policy.dart';
 import '../../core/platform_service.dart';
 import '../../core/player_hotkey_registry.dart';
-import '../../core/progressive_fade.dart';
 import '../../core/settings.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../domain/models/video.dart';
@@ -600,6 +600,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                               onSuperResolutionSelected:
                                   widget.onSuperResolutionSelected,
                               onNext: widget.onNext,
+                              onPrevious: widget.onPrevious,
                               onEpisodeSelected: widget.onEpisodeSelected,
                               onFloat: widget.onFloat,
                             )
@@ -693,7 +694,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                         return Positioned(
                           left: 48,
                           right: 48,
-                          bottom: 96,
+                          bottom: 220,
                           child: IgnorePointer(
                             child: AnimatedOpacity(
                               duration: AppMotion.brief,
@@ -705,8 +706,11 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                                   const Text('已暂停',
                                       style: TextStyle(
                                           color: Colors.white70,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500)),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          shadows: [
+                                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                                          ])),
                                   const SizedBox(height: 6),
                                   ConstrainedBox(
                                     constraints:
@@ -717,9 +721,12 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w800,
-                                          height: 1.15),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.15,
+                                          shadows: [
+                                            Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 1)),
+                                          ]),
                                     ),
                                   ),
                                   if (subtitle.isNotEmpty) ...[
@@ -727,7 +734,10 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
                                     Text(subtitle,
                                         style: const TextStyle(
                                             color: Colors.white70,
-                                            fontSize: 13)),
+                                            fontSize: 11.5,
+                                            shadows: [
+                                              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                                            ])),
                                   ],
                                 ],
                               ),
@@ -789,15 +799,24 @@ class _PlayerTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
-      // 顶部栏底衬：与底部控制栏同一套非线性停靠点，避免两阶线性的中段硬边。
-      decoration: BoxDecoration(
-        gradient: ProgressiveFade.topSolid(Colors.black87),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black54, Colors.transparent],
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (onBack != null)
+            SvgPicture.asset('assets/logo_lockup.svg', height: 18),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                if (onBack != null)
               PressScale(
                 child: IconButton(
                   color: Colors.white,
@@ -832,7 +851,11 @@ class _PlayerTopBar extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 11.5),
+                            color: Colors.white70,
+                            fontSize: 11.5,
+                            shadows: [
+                              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                            ]),
                       ),
                     ),
                 ],
@@ -850,7 +873,11 @@ class _PlayerTopBar extends StatelessWidget {
                   return Text(
                     '${hhmm(now)}  ${hhmm(end)} 结束',
                     style: const TextStyle(
-                        color: Colors.white70, fontSize: 12),
+                        color: Colors.white70,
+                        fontSize: 12,
+                        shadows: [
+                          Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                        ]),
                   );
                 },
               ),
@@ -897,6 +924,8 @@ class _PlayerTopBar extends StatelessWidget {
                 onQualitySelected: onQualitySelected,
                 onSuperResolutionSelected: onSuperResolutionSelected,
               ),
+              ],
+            ),
           ],
         ),
       ),
@@ -1082,7 +1111,11 @@ class _MarqueeTitleState extends State<_MarqueeTitle>
       // 量宽度时必须用环境里的文本样式（字体族/字重）和当前的文字缩放，
       // 否则量出来的宽度和实际渲染不一致，跑马灯的位移会算错（标题被截断或滚过头）。
       final style = DefaultTextStyle.of(context).style.merge(
-        const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          shadows: [Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1))],
+        ),
       );
       final painter = TextPainter(
         text: TextSpan(text: widget.title, style: style),

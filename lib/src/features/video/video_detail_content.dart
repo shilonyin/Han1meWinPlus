@@ -1054,7 +1054,7 @@ class _VideoDetailSplitViewState extends ConsumerState<VideoDetailSplitView> {
                         onPrevious: widget.onPrevious,
                         onNext: widget.onNext,
                         onEpisodeSelected: widget.onEpisodeSelected,
-                        hideTopBar: true,
+                        hideTopBar: false,
                       ),
                     )
                   : _CoverStage(

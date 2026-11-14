@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -88,6 +89,7 @@ class VideoPlayerControls extends StatelessWidget {
     required this.onQualitySelected,
     required this.onSuperResolutionSelected,
     this.onNext,
+    this.onPrevious,
     this.onEpisodeSelected,
     this.onFloat,
     super.key,
@@ -101,6 +103,7 @@ class VideoPlayerControls extends StatelessWidget {
   final ValueChanged<VideoSource> onQualitySelected;
   final ValueChanged<SuperResolutionMode> onSuperResolutionSelected;
   final VoidCallback? onNext;
+  final VoidCallback? onPrevious;
   final ValueChanged<VideoCard>? onEpisodeSelected;
 
   /// 弹出系统级悬浮窗（独立窗口）。非桌面端不传。
@@ -121,15 +124,15 @@ class VideoPlayerControls extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black87],
+          colors: [Colors.transparent, Colors.black54],
         ),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           kPlayerControlsInset,
-          20,
+          14,
           kPlayerControlsInset,
-          MediaQuery.paddingOf(context).bottom + 8,
+          6,
         ),
         child: ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
@@ -209,6 +212,16 @@ class VideoPlayerControls extends StatelessWidget {
                           final tight = constraints.maxWidth < 420;
                           final row = Row(
                             children: [
+                              if (onPrevious != null)
+                                PressScale(
+                                  child: IconButton(
+                                    color: Colors.white,
+                                    tooltip: '上一集',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: onPrevious,
+                                    icon: const Icon(Symbols.skip_previous_rounded),
+                                  ),
+                                ),
                               PressScale(
                                 child: IconButton(
                                   color: Colors.white,
@@ -234,7 +247,7 @@ class VideoPlayerControls extends StatelessWidget {
                                 controller: controller,
                                 onInteraction: onInteraction,
                               ),
-                              VideoPlayerVolumeButton(
+                              _InlineVolumeSlider(
                                 controller: controller,
                                 onInteraction: onInteraction,
                               ),
@@ -258,6 +271,9 @@ class VideoPlayerControls extends StatelessWidget {
                                     color: Colors.white,
                                     fontFeatures: [
                                       FontFeature.tabularFigures(),
+                                    ],
+                                    shadows: [
+                                      Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
                                     ],
                                   ),
                                 ),
@@ -316,6 +332,7 @@ class VideoPlayerControls extends StatelessWidget {
                                               icon: const Icon(Symbols.subtitles_rounded),
                                             ),
                                           ),
+                                          _LoopButton(),
                                           _AspectMenu(),
                                           if (onEpisodeSelected != null &&
                                               video.playlist.isNotEmpty)
@@ -351,6 +368,15 @@ class VideoPlayerControls extends StatelessWidget {
                                             onSuperResolutionSelected:
                                                 onSuperResolutionSelected,
                                           ),
+                                        PressScale(
+                                          child: IconButton(
+                                            color: Colors.white,
+                                            tooltip: '设置',
+                                            visualDensity: VisualDensity.compact,
+                                            onPressed: () => context.push('/settings'),
+                                            icon: const Icon(Symbols.settings_rounded),
+                                          ),
+                                        ),
                                         PressScale(
                                           child: IconButton(
                                             color: Colors.white,
@@ -724,6 +750,66 @@ class _AspectMenu extends ConsumerWidget {
   }
 }
 
+class _LoopButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(settingsProvider).valueOrNull?.loopPlayback ?? false;
+    return PressScale(
+      child: IconButton(
+        color: on ? const Color(0xFFFF2D2D) : Colors.white,
+        tooltip: '循环播放',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => ref
+            .read(settingsProvider.notifier)
+            .saveChanges((s) => s.copyWith(loopPlayback: !on)),
+        icon: const Icon(Symbols.repeat_rounded),
+      ),
+    );
+  }
+}
+
+class _InlineVolumeSlider extends StatelessWidget {
+  const _InlineVolumeSlider({required this.controller, required this.onInteraction});
+  final VideoPlayerController controller;
+  final VoidCallback onInteraction;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
+    valueListenable: controller,
+    builder: (context, v, _) {
+      final vol = v.volume.clamp(0.0, 100.0);
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Symbols.volume_up_rounded, color: Colors.white, size: 20),
+          SizedBox(
+            width: 88,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: SliderComponentShape.noOverlay,
+                activeTrackColor: const Color(0xFFFF2D2D),
+                inactiveTrackColor: Colors.white30,
+                thumbColor: const Color(0xFFFF2D2D),
+              ),
+              child: Slider(
+                value: vol,
+                min: 0,
+                max: 100,
+                onChanged: (x) {
+                  controller.setVolume(x);
+                  onInteraction();
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 class _EpisodeMenu extends StatelessWidget {
   const _EpisodeMenu({required this.video, required this.onSelected});
   final VideoDetail video;
@@ -1009,11 +1095,28 @@ class _QualityMenu extends StatelessWidget {
     builder: (context, current, _) => MenuAnchor(
       style: playerMenuPanelStyle(),
       builder: (context, menu, child) => PressScale(
-        child: IconButton(
-          color: Colors.white,
-          tooltip: AppLocalizations.of(context)!.quality,
-          onPressed: menu.open,
-          icon: const Icon(Symbols.high_quality_rounded),
+        child: InkWell(
+          onTap: menu.open,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Symbols.high_quality_rounded,
+                    color: Colors.white, size: 18),
+                const SizedBox(width: 4),
+                Text(current ?? '自动',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        shadows: [
+                          Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                        ])),
+              ],
+            ),
+          ),
         ),
       ),
       menuChildren: playerMenuPanel(

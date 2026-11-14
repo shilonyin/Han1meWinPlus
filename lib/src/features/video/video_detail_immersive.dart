@@ -83,12 +83,16 @@ class _VideoDetailImmersiveViewState
         color: Colors.black,
         child: VideoPlayerPanel(
           video: video,
-          onBack: widget.onBack,
+          onBack: () {
+            if (!mounted) return;
+            setState(() => _playing = false);
+            videoPagePlaying.value = false;
+          },
           onHome: widget.onHome,
           onPrevious: widget.onPrevious,
           onNext: widget.onNext,
           onEpisodeSelected: widget.onEpisodeSelected,
-          hideTopBar: true,
+          hideTopBar: false,
         ),
       );
     }
@@ -239,7 +243,6 @@ class _EpisodeSectionState extends State<_EpisodeSection> {
 
   @override
   void dispose() {
-    videoPagePlaying.value = false;
     _searchCtl.dispose();
     super.dispose();
   }

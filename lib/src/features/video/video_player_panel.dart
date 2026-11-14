@@ -670,8 +670,10 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
       ]);
       if (mounted) {
         await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => _FullscreenPlayer(
+          PageRouteBuilder<void>(
+            transitionDuration: const Duration(milliseconds: 240),
+            reverseTransitionDuration: const Duration(milliseconds: 200),
+            pageBuilder: (context, animation, secondary) => _FullscreenPlayer(
               controller: _controllerNotifier,
               quality: _qualityNotifier,
               video: widget.video,
@@ -686,6 +688,20 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
               onPrevious: widget.onPrevious,
               onNext: widget.onNext,
             ),
+            transitionsBuilder: (context, animation, secondary, child) {
+              final curved = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              );
+              return FadeTransition(
+                opacity: curved,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+                  child: child,
+                ),
+              );
+            },
           ),
         );
       }
@@ -906,13 +922,12 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
 class _PlayerFrame extends StatelessWidget {
   const _PlayerFrame({required this.aspectRatio, required this.child});
 
+  // ignore: unused_field
   final double aspectRatio;
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: AspectRatio(aspectRatio: aspectRatio, child: child),
-  );
+  Widget build(BuildContext context) => SizedBox.expand(child: child);
 }
 
 class _NoVideoSource {
