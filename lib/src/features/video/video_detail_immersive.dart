@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/window_chrome.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -74,7 +73,6 @@ class _VideoDetailImmersiveViewState
     if (!mounted) return;
     setState(() => _playing = true);
     videoPagePlaying.value = true;
-    WindowChrome.visible.value = false;
   }
 
   @override
@@ -89,7 +87,6 @@ class _VideoDetailImmersiveViewState
             if (!mounted) return;
             setState(() => _playing = false);
             videoPagePlaying.value = false;
-            WindowChrome.visible.value = true;
           },
           onHome: widget.onHome,
           onPrevious: widget.onPrevious,
@@ -246,7 +243,6 @@ class _EpisodeSectionState extends State<_EpisodeSection> {
 
   @override
   void dispose() {
-    WindowChrome.visible.value = true;
     _searchCtl.dispose();
     super.dispose();
   }

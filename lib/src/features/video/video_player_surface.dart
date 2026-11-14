@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../../core/window_chrome.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -91,6 +92,12 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   /// 点进评论 / 搜索等文本框后事件不再路过这里，天然不误触。
   final FocusNode _focusNode = FocusNode(debugLabel: 'video-player-surface');
   bool _showControls = true;
+
+  void _setControlsVisible(bool v) {
+    if (_showControls == v) return;
+    setState(() => _showControls = v);
+    WindowChrome.visible.value = v;
+  }
   bool _locked = false;
 
   /// 静音前的音量，取消静音时还原。
@@ -153,7 +160,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   void _applyGuardState() {
     if (PlayerWheelGuard.instance.hasRegions) {
       _hideTimer?.cancel();
-      if (!_showControls && !_locked) setState(() => _showControls = true);
+      if (!_showControls && !_locked) _setControlsVisible(true);
       return;
     }
     _restartTimer();
@@ -169,7 +176,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
         ref.read(settingsProvider).valueOrNull?.playerControlsTimeoutSeconds ??
         4;
     _hideTimer = Timer(Duration(seconds: seconds), () {
-      if (mounted) setState(() => _showControls = false);
+      if (mounted) _setControlsVisible(false);
     });
   }
 
@@ -187,7 +194,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   /// 鼠标在画面上移动（或停在控制按钮附近）时保持控制条显示，已隐藏则重新显示。
   void _holdControls() {
     _hideTimer?.cancel();
-    if (!_showControls && !_locked) setState(() => _showControls = true);
+    if (!_showControls && !_locked) _setControlsVisible(true);
   }
 
   /// 鼠标滚轮调音量：滚轮直接改播放器音量，并在画面中央弹一个白底提示。
@@ -231,7 +238,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
     if (_locked) return;
     // 点画面同时也是把焦点拿回播放器（否则方向键会去滚列表而不是快进快退）。
     if (!_focusNode.hasFocus) _focusNode.requestFocus();
-    setState(() => _showControls = !_showControls);
+    _setControlsVisible(!_showControls);
     _restartTimer();
   }
 

@@ -101,6 +101,7 @@ class _VideoPageState extends ConsumerState<VideoPage> {
 
   @override
   void dispose() {
+    WindowChrome.visible.value = true;
     videoPagePlaying.value = false;
     if (widget.inPlayWindow) PlayWindowTitleTarget.clear(this);
     WindowChrome.leaveImmersivePage();
