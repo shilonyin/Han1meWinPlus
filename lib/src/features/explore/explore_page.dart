@@ -430,7 +430,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                                   // 只给 1 的上边偏移：搜索框和「换一批」都是 34 高，居中摆在
                                   // 内容带里会落在 55.7~89.0，顶边比设计稿的 56 差半像素；
                                   // 上边收 1 之后实际渲染到 56.2~89.5，就是设计稿的 56~89。
-                                  top: -38,
+                                  top: -75,
                                   bottom: 0,
                                   // 左右都要给：只给 right 时 Positioned 的宽度是「由子级决定」，
                                   // 子级（AnimatedAlign）收缩到 Row 的自然宽度再被右对齐，
