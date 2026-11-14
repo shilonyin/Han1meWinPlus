@@ -233,8 +233,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     // 设计稿的静止搜索框是 316；窗口再宽也不跟着拉长 —— 一条 500 宽的胶囊摆在
     // 60 高的 bar 里会显得头重脚轻，多出来的空间留给快捷分类。
     final idleSearchWidth = screenWidth >= 1180
-        ? AppDesignTokens.searchBoxWidth
-        : (screenWidth >= 940 ? 280.0 : 172.0);
+        ? 240.0
+        : (screenWidth >= 940 ? 210.0 : 172.0);
     final showDrawerButton = !permanentNavigationDrawer(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
@@ -488,7 +488,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                                         // widthFactor 归零后这一格宽度为 0，搜索框才真正落在屏幕中间。
                                         Align(
                                           alignment: Alignment.centerRight,
-                                          widthFactor: _searchFocused ? 0 : 1,
+                                          widthFactor: 0,
                                           child: AnimatedOpacity(
                                             duration: AppMotion.brief,
                                             opacity: _searchFocused ? 0 : 1,
