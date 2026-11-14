@@ -32,6 +32,25 @@ class GetchuPreviewPage extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
+            padding: EdgeInsets.fromLTRB(
+              PreviewGridMetrics.horizontalPadding,
+              6,
+              PreviewGridMetrics.horizontalPadding,
+              2,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.getchuPreviews,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  color: AppDesignTokens.inkOf(context),
+                ),
+              ),
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.fromLTRB(
               PreviewGridMetrics.horizontalPadding,
               4,
@@ -114,21 +133,13 @@ class GetchuPreviewPage extends ConsumerWidget {
     BuildContext context,
     AppLocalizations l10n,
   ) {
+    // 影院沉浸式：顶栏透明（只留返回），标题下放到内容区做大标题。
     return AppBar(
-      backgroundColor: AppDesignTokens.pageBackgroundOf(context),
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       titleSpacing: PreviewGridMetrics.horizontalPadding,
-      title: Text(
-        l10n.getchuPreviews,
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: AppDesignTokens.inkOf(context),
-          height: 1.2,
-        ),
-      ),
     );
   }
 

@@ -28,7 +28,6 @@ import 'search_controller.dart';
 import 'search_suggestions.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_dialog.dart';
-import '../navigation/app_shell.dart';
 
 /// 搜索结果的默认列数（除下面两类竖版海报分区之外都用它）。
 const _searchColumns = 4;
@@ -40,7 +39,6 @@ const _searchColumns = 4;
 /// 判据是分类的**站点键**（`search_key`），不是界面文案：不同语言下这里显示的是
 /// 「里番 / 裏番 / Hentai」，写死文案会在换语言或换站点时失效。调用方先用
 /// `SearchOptionGroup.canonical` 归一，再和这里比。
-const _posterGenres = {'裏番', '泡麵番'};
 const _posterColumns = 6;
 const _posterAspectRatio = 3 / 4;
 
@@ -374,11 +372,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               more: more,
                               query: query,
                               scrollController: _scrollController,
-                              // 分类先归一到站点键再比（界面文案随语言变，不能拿来当判据）。
-                              posterLayout: _posterGenres.contains(
-                                options?.genres.canonical(query.genre) ??
-                                    query.genre,
-                              ),
+                              // B 方案重画：搜索结果统一走竖版海报网格。
+                              posterLayout: true,
                               // 设计稿的分类页没有「搜索结果」这一行，统计行下面直接是卡片。
                               showTitle: !browseMode,
                               // 首屏算第 1 页，所以「已接上的页数」= 当前页码 - 1。
@@ -434,20 +429,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     // `base_category_hentai.png` 两张都画了 logo+导航+账号卡），但 `/search` 挂在
     // 根导航器上（它会被视频页这类全屏页 push），拿不到 StatefulNavigationShell，
     // 所以这里直接复用公开的侧栏组件，桌面宽度下把它摆在左侧。
-    if (MediaQuery.sizeOf(context).width >= 900) {
-      // 必须包一层 Material：侧栏里的 InkWell / Card 都要求有 Material 祖先，
-      // 直接把它们塞进裸 Row 时那个祖先不存在 —— release 下不会红屏，但点击
-      // 直接失效，表现就是「点里番进去以后，侧栏其他项都点不动了」。
-      return Material(
-        color: AppDesignTokens.pageBackgroundOf(context),
-        child: Row(
-          children: [
-            const AppDesktopSidebar(),
-            Expanded(child: pageWidget),
-          ],
-        ),
-      );
-    }
+    // 顶部导航框架下，搜索页是 push 的全屏页，不再自绘左侧栏（原宽屏左栏已移除）。
     return pageWidget;
   }
 

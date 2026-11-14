@@ -20,6 +20,7 @@ import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
+import '../shared/video_card.dart';
 import '../shared/bouncy_toggle_icon.dart';
 import '../shared/app_image_cache.dart';
 import 'play_window.dart';
@@ -677,134 +678,101 @@ class _SeriesVideos extends StatefulWidget {
 }
 
 class _SeriesVideosState extends State<_SeriesVideos> {
-  var _reversed = false;
+  final _controller = ScrollController();
+  /// 鼠标是否在这一排上（决定左右翻页箭头显示）
+  var _hovered = false;
+  var _canBack = false;
+  var _canForward = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_syncArrows);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncArrows());
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_syncArrows);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _syncArrows() {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final canBack = position.pixels > 1;
+    final canForward = position.pixels < position.maxScrollExtent - 1;
+    if (canBack != _canBack || canForward != _canForward) {
+      setState(() {
+        _canBack = canBack;
+        _canForward = canForward;
+      });
+    }
+  }
+
+  /// 整页翻动（按可视宽度滚动）
+  void _page(int direction) {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final target = (position.pixels + direction * position.viewportDimension).clamp(0.0, position.maxScrollExtent);
+    _controller.animateTo(target, duration: AppMotion.emphasis, curve: Curves.easeOut);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 设计稿「选集」：标题 14 SemiBold + `共 N 集` 11 灰，下面是 4 列按钮网格
-    // （74×36 圆角8、浅灰底，当前集粉色底白字）。不再是旧的横排缩略图小卡。
+    final l10n = AppLocalizations.of(context)!;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '选集',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppDesignTokens.inkOf(context),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '共 ${widget.videos.length} 集',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppDesignTokens.inkMutedOf(context),
-                ),
-              ),
-              const Spacer(),
-              // 设计稿这里是「倒序 ⇅」，不是「查看更多」。
-              PressScale(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
-                  onTap: () => setState(() => _reversed = !_reversed),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _reversed ? '正序' : '倒序',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppDesignTokens.inkMutedOf(context),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Symbols.swap_vert_rounded,
-                          size: 14,
-                          color: AppDesignTokens.inkMutedOf(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            const cols = 4;
-            const gap = 8.0;
-            final w = (constraints.maxWidth - gap * (cols - 1)) / cols;
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
+        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 8, 8), child: Row(children: [Expanded(child: Text(l10n.seriesVideos, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))), PressScale(child: TextButton(onPressed: () => _showAll(context), child: Text(l10n.more)))])),
+        MouseRegion(
+          // 鼠标移进这一排（图片附近）才显示翻页箭头，移开自动淡出
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: SizedBox(
+            height: 120,
+            child: Stack(
               children: [
-                for (var i = 0; i < _ordered.length; i++)
-                  Builder(
-                    builder: (context) {
-                      final v = _ordered[i];
-                      final selected = v.id == widget.currentVideoId;
-                      return PressScale(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          onTap: () => context.push('/video/${v.id}'),
-                          child: Container(
-                            width: w,
-                            height: 38,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? AppDesignTokens.accentDeep
-                                  : AppDesignTokens.fieldFillOf(context),
-                              borderRadius: BorderRadius.circular(AppRadius.sm),
-                            ),
-                            child: Text(
-                              // 设计稿「选集」格子里是**编号**（01/02/03…），
-                              // 不是视频标题：标题长度不一，塞进 74×36 的格子里
-                              // 全被省略号吃掉，一排看过去分不出哪一集。
-                              '${i + 1}'.padLeft(2, '0'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                // 设计稿 epText：13 号居中。
-                                fontSize: 13,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: selected
-                                    ? Colors.white
-                                    : AppDesignTokens.inkSubtleOf(context),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                ListView.separated(controller: _controller, padding: const EdgeInsets.symmetric(horizontal: 16), scrollDirection: Axis.horizontal, itemCount: widget.videos.length, separatorBuilder: (context, index) => const SizedBox(width: 8), itemBuilder: (context, index) => SizedBox(width: 90, child: VideoCardTile(video: widget.videos[index], horizontal: true, dense: true, selected: widget.videos[index].id == widget.currentVideoId))),
+                if (_canBack) Positioned(left: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Symbols.chevron_left_rounded, tooltip: l10n.previousPage, visible: _hovered, onPressed: () => _page(-1)))),
+                if (_canForward) Positioned(right: 4, top: 0, bottom: 0, child: Center(child: _SeriesPageArrow(icon: Symbols.chevron_right_rounded, tooltip: l10n.nextPage, visible: _hovered, onPressed: () => _page(1)))),
               ],
-            );
-          },
+            ),
+          ),
         ),
       ],
     );
   }
 
-  List<VideoCard> get _ordered => _reversed
-      ? widget.videos.reversed.toList(growable: false)
-      : widget.videos;
+  Future<void> _showAll(BuildContext context) => showModalBottomSheet<void>(context: context, barrierColor: Colors.transparent, showDragHandle: true, isScrollControlled: true, builder: (context) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height * .78, child: Column(children: [Padding(padding: const EdgeInsets.fromLTRB(24, 8, 24, 12), child: Align(alignment: Alignment.centerLeft, child: Text(AppLocalizations.of(context)!.seriesVideos, style: Theme.of(context).textTheme.titleLarge))), Expanded(child: VideoCardGrid(videos: widget.videos, itemBuilder: (context, index, video, horizontal) => VideoCardTile(video: video, horizontal: horizontal, selected: video.id == widget.currentVideoId)))]))));
+}
+
+/// 系列影片左右翻页箭头：半透明圆角，鼠标移开自动隐藏（参考侧栏手把）
+class _SeriesPageArrow extends StatelessWidget {
+  const _SeriesPageArrow({required this.icon, required this.tooltip, required this.visible, required this.onPressed});
+
+  final IconData icon;
+  final String tooltip;
+  final bool visible;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 180),
+        child: Tooltip(
+          message: tooltip,
+          child: Material(
+            color: const Color(0x73000000),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            clipBehavior: Clip.antiAlias,
+            child: PressScale(child: InkWell(
+              onTap: onPressed,
+              child: SizedBox(width: 32, height: 56, child: Icon(icon, size: 22, color: Colors.white)),
+            )),
+          ),
+        ),
+      );
 }
 
 class _RelatedVideoTile extends StatelessWidget {
@@ -1516,7 +1484,7 @@ class _SideAuthor extends ConsumerWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: const Color(0xFFFBE9EF),
+              color: AppDesignTokens.fieldFillOf(context),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             clipBehavior: Clip.antiAlias,

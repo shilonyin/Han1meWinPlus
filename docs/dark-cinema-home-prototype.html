@@ -1,0 +1,178 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Han1meWinPlus · 影院首页原型 v0.3</title>
+<style>
+:root{--bg:#0a0a0d;--surf:#15151b;--line:#242430;--text:#f4f4f7;--muted:#9aa0aa;--accent:#ff3b47;--gold:#f5c451;--silver:#cfd6e0;--bronze:#d08b52}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:"HarmonyOS Sans SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+/* header over hero */
+header{position:fixed;top:0;left:0;right:0;z-index:30;height:64px;display:flex;align-items:center;gap:26px;padding:0 40px;transition:background .3s;background:linear-gradient(180deg,rgba(6,6,9,.9),rgba(6,6,9,0))}
+.brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:20px;letter-spacing:.3px;color:#fff;white-space:nowrap;flex-shrink:0}
+.mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#c1121f);display:grid;place-items:center;font-weight:900;color:#fff;font-size:14px}
+nav{display:flex;gap:2px;font-size:14.5px;flex-shrink:0}
+nav a{padding:8px 13px;border-radius:8px;color:#c9ccd6;white-space:nowrap;transition:.16s}
+nav a:hover{color:#fff}
+nav a.on{color:#fff;font-weight:700;position:relative}
+nav a.on::after{content:"";position:absolute;left:13px;right:13px;bottom:-2px;height:2.5px;background:var(--accent);border-radius:2px}
+.grow{flex:1}
+.search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:0 13px;height:38px;width:230px;min-width:0;flex-shrink:1;color:#cfd2db;font-size:13.5px}
+.search input{background:none;border:none;outline:none;color:#fff;width:100%;font-size:13.5px}
+.icons{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.ic{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;color:#c9ccd6;font-size:16px;transition:.16s;cursor:pointer}
+.ic:hover{color:#fff;background:rgba(255,255,255,.09)}
+.avatar{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#ff8a5c,#e22d5a);border:1px solid rgba(255,255,255,.25)}
+/* HERO */
+.hero{position:relative;height:min(70vh,620px);min-height:470px;overflow:hidden}
+.hero .bg{position:absolute;inset:0;background:
+  radial-gradient(60% 55% at 76% 18%, rgba(255,196,140,.55), transparent 62%),
+  radial-gradient(90% 80% at 60% 0%, rgba(120,150,190,.45), transparent 60%),
+  linear-gradient(180deg,#4a5a70 0%,#2b3648 42%,#141a24 74%,#0a0a0d 100%)}
+.hero .hood{position:absolute;inset:0;background:
+  linear-gradient(90deg,rgba(8,8,11,.94) 0%,rgba(8,8,11,.62) 38%,transparent 72%),
+  linear-gradient(180deg,rgba(8,8,11,.35) 0%,transparent 22%,transparent 55%,var(--bg) 100%)}
+.hero .in{position:absolute;left:48px;bottom:64px;max-width:640px;z-index:2}
+.rank-tag{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-weight:800;font-size:13px;letter-spacing:1px;margin-bottom:14px}
+.rank-tag::before{content:"▲";font-size:11px}
+h1{font-size:clamp(42px,5vw,74px);line-height:1.02;font-weight:900;letter-spacing:-1px;color:#fff;margin-bottom:16px;text-shadow:0 4px 30px rgba(0,0,0,.5)}
+.hmeta{display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:14.5px;color:#d4d7df;margin-bottom:16px}
+.hmeta .score{color:#5ee37a;font-weight:800}
+.hmeta .sep{margin:0 10px;color:#6b7280}
+.hdesc{color:#c4c8d2;font-size:14.5px;line-height:1.72;max-width:560px;margin-bottom:24px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cta{display:flex;gap:12px}
+.btn{height:50px;padding:0 26px;border-radius:10px;font-size:15px;font-weight:800;display:inline-flex;align-items:center;gap:9px;cursor:pointer;transition:.18s}
+.btn.w{background:#fff;color:#111;box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.btn.w:hover{background:#e9e9ee}
+.btn.g{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(6px)}
+.btn.g:hover{background:rgba(255,255,255,.24)}
+.nav-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;display:grid;place-items:center;font-size:20px;cursor:pointer;z-index:3;transition:.18s}
+.nav-arrow:hover{background:rgba(0,0,0,.78)}
+.nav-arrow.l{left:22px}.nav-arrow.r{right:22px}
+.dots{position:absolute;right:60px;bottom:74px;display:flex;gap:9px;z-index:3;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4)}
+.dot.on{width:26px;border-radius:5px;background:var(--accent)}
+/* rails */
+main{padding:6px 0 80px}
+.rail{position:relative;margin-top:34px;padding:0 48px}
+.rail-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.rail-head h2{font-size:21px;font-weight:800;letter-spacing:.2px}
+.rail-head .all{margin-left:auto;color:#b7bcc8;font-size:13.5px;cursor:pointer;transition:.15s}
+.rail-head .all:hover{color:#fff}
+.rail-arrows{position:absolute;right:48px;top:44px;display:none;gap:8px;z-index:5}
+.rail:hover .rail-arrows{display:flex}
+.ra{width:34px;height:34px;border-radius:50%;background:rgba(20,20,26,.9);border:1px solid var(--line);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:15px}
+.ra:hover{background:#2a2a36}
+.scroller{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 0 10px;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.pcard{flex:0 0 176px;scroll-snap-align:start;cursor:pointer;transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.pcard:hover{transform:translateY(-6px) scale(1.03)}
+.poster{position:relative;width:176px;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:#1a1a22;box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.poster .art{position:absolute;inset:0;background-size:cover;background-position:center}
+.poster::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.5));opacity:0;transition:.25s}
+.pcard:hover .poster::after{opacity:1}
+.rbadge{position:absolute;top:-8px;left:-8px;z-index:3;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:15px;color:#fff;border:2px solid rgba(255,255,255,.85);box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.rbadge.g{background:linear-gradient(135deg,#ffd76e,#e0a326);color:#3a2a00}
+.rbadge.s{background:linear-gradient(135deg,#e6ecf5,#a9b4c4);color:#2a2f38}
+.rbadge.b{background:linear-gradient(135deg,#e6a978,#b9702f);color:#3a1e05}
+.rbadge.n{background:linear-gradient(135deg,#ff5661,#c1121f)}
+.poster .peek{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;opacity:0;transition:.25s;z-index:2}
+.pcard:hover .peek{opacity:1}
+.poster .peek .pt{font-size:13.5px;font-weight:800;line-height:1.3}
+.poster .peek .ps{font-size:11.5px;color:#5ee37a;font-weight:700;margin-top:4px}
+.cap{margin-top:9px;padding:0 2px}
+.cap .t{font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap .m{font-size:12px;color:var(--muted);margin-top:5px}
+footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 48px;color:#6f7480;font-size:13px;display:flex;gap:14px;align-items:center}
+.proto{position:fixed;right:16px;bottom:14px;z-index:50;font-size:11.5px;color:#8b8fa0;background:rgba(0,0,0,.62);border:1px solid var(--line);padding:6px 11px;border-radius:8px}
+</style></head>
+<body>
+<header>
+  <div class="brand"><div class="mark">H</div>Han1meWinPlus</div>
+  <nav><a class="on">首页</a><a>发现</a><a>新番</a><a>里番</a><a>泡面番</a><a>他们在看</a><a>Cosplay</a><a>片库</a></nav>
+  <div class="grow"></div>
+  <div class="search">搜索视频、作者、标签…</div>
+  <div class="icons"><div class="ic">⤓</div><div class="ic">🔔</div><div class="ic">？</div><div class="ic">⚙</div><div class="avatar"></div></div>
+</header>
+
+<section class="hero">
+  <div class="bg"></div><div class="hood"></div>
+  <div class="nav-arrow l">‹</div><div class="nav-arrow r">›</div>
+  <div class="in">
+    <div class="rank-tag">热门第 1 名</div>
+    <h1>星海彼端<br>第二季</h1>
+    <div class="hmeta"><span class="score">评分 92%</span><span class="sep">·</span><span>TV 动画</span><span class="sep">·</span><span>2026 年秋季</span><span class="sep">·</span><span>12 集</span><span class="sep">·</span><span>剧情 · 悬疑</span></div>
+    <p class="hdesc">星海彼端第二季：故事接续第一季的尾声，主角在失落的海港重新集结伙伴，追寻那段被潮汐掩埋的真相。4K 超分、HDR 与中文字幕同步上线。</p>
+    <div class="cta"><div class="btn w">▶ 观看第 1 集</div><div class="btn g">ⓘ 更多信息</div></div>
+  </div>
+  <div class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+</section>
+
+<main>
+  <section class="rail">
+    <div class="rail-head"><h2>热门前十</h2><span class="all">查看全部 ›</span></div>
+    <div class="rail-arrows"><div class="ra">‹</div><div class="ra">›</div></div>
+    <div class="scroller" id="top10"></div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head"><h2>历年来最受欢迎</h2><span class="all">查看全部 ›</span></div>
+    <div class="rail-arrows"><div class="ra">‹</div><div class="ra">›</div></div>
+    <div class="scroller" id="popular"></div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head"><h2>继续观看</h2><span class="all">查看全部 ›</span></div>
+    <div class="rail-arrows"><div class="ra">‹</div><div class="ra">›</div></div>
+    <div class="scroller" id="continue"></div>
+  </section>
+
+  <footer><div class="brand" style="font-size:15px"><div class="mark" style="width:22px;height:22px;font-size:12px;border-radius:6px">H</div>Han1meWinPlus</div><span>原型 v0.3 · 全宽 hero 轮播 + 排名海报横排 · 仅演示布局与视觉</span></footer>
+</main>
+<div class="proto">HAN1MEWINPLUS · 影院首页原型 v0.3</div>
+
+<script>
+const P=[
+ ["星海彼端","2026","剧情·悬疑","92%","linear-gradient(160deg,#2b1b4d,#7b2ff7 55%,#f107a3)"],
+ ["夏日回声","2026","青春·治愈","88%","linear-gradient(160deg,#0f2a4a,#2e8bc0 60%,#7ad0ff)"],
+ ["夜行灯","2025","悬疑·惊悚","90%","linear-gradient(160deg,#1a1a24,#3d2b56 55%,#c026d3)"],
+ ["白昼之庭","2026","治愈·日常","85%","linear-gradient(160deg,#123524,#3fa34d 55%,#c7f27a)"],
+ ["赤色回廊","2026","动作·热血","91%","linear-gradient(160deg,#3a0d13,#b3122b 55%,#ff6b6b)"],
+ ["浮光记","2025","奇幻·冒险","87%","linear-gradient(160deg,#241a05,#a16207 55%,#fbbf24)"],
+ ["潮汐之间","2026","恋爱·青春","89%","linear-gradient(160deg,#0b2b3a,#0891b2 55%,#67e8f9)"],
+ ["镜中她","2026","Cosplay","93%","linear-gradient(160deg,#2a0a2e,#a21caf 55%,#f0abfc)"],
+ ["绯色边缘","2025","悬疑·犯罪","86%","linear-gradient(160deg,#2b0d0d,#7f1d1d 55%,#ef4444)"],
+ ["云端信笺","2026","日常·治愈","84%","linear-gradient(160deg,#102a43,#3b82f6 55%,#93c5fd)"],
+ ["暗潮","2026","惊悚","88%","linear-gradient(160deg,#0a0a0f,#334155 55%,#94a3b8)"],
+ ["花火之约","2025","恋爱","85%","linear-gradient(160deg,#3b0a2a,#db2777 55%,#fbcfe8)"],
+ ["龙脊","2026","冒险·热血","90%","linear-gradient(160deg,#2a1205,#ea580c 55%,#fdba74)"],
+ ["静默频率","2026","科幻","83%","linear-gradient(160deg,#0c1b2a,#0284c7 55%,#7dd3fc)"],
+ ["黄昏列车","2025","治愈","82%","linear-gradient(160deg,#2b1b05,#ca8a04 55%,#fde68a)"]
+];
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function rankCard(i,d){
+  const c=el("div","pcard");
+  const p=el("div","poster");
+  const art=el("div","art"); art.style.backgroundImage=d[4]; p.appendChild(art);
+  const rank=i+1; const cls= rank===1?"g":rank===2?"s":rank===3?"b":"n";
+  const b=el("div","rbadge "+cls, String(rank)); p.appendChild(b);
+  const peek=el("div","peek"); peek.appendChild(el("div","pt",d[0])); peek.appendChild(el("div","ps",d[3])); p.appendChild(peek);
+  c.appendChild(p);
+  return c;
+}
+function captionCard(d){
+  const c=el("div","pcard");
+  const p=el("div","poster"); const art=el("div","art"); art.style.backgroundImage=d[4]; p.appendChild(art);
+  const peek=el("div","peek"); peek.appendChild(el("div","pt",d[0])); peek.appendChild(el("div","ps",d[3])); p.appendChild(peek);
+  c.appendChild(p);
+  const cap=el("div","cap"); cap.appendChild(el("div","t",d[0])); cap.appendChild(el("div","m",d[1]+" · "+d[2])); c.appendChild(cap);
+  return c;
+}
+const t10=document.getElementById("top10"); P.slice(0,10).forEach((d,i)=>t10.appendChild(rankCard(i,d)));
+const pop=document.getElementById("popular"); P.slice(4,15).forEach(d=>pop.appendChild(captionCard(d)));
+const cont=document.getElementById("continue"); P.slice(6,15).forEach(d=>cont.appendChild(captionCard(d)));
+// rail arrows scroll
+document.querySelectorAll(".rail").forEach(r=>{
+  const sc=r.querySelector(".scroller"); const [l,rr]=r.querySelectorAll(".ra");
+  if(sc&&l){l.onclick=()=>sc.scrollBy({left:-Math.max(sc.clientWidth-176,176),behavior:"smooth"});rr.onclick=()=>sc.scrollBy({left:Math.max(sc.clientWidth-176,176),behavior:"smooth"});}
+});
+</script>
+</body></html>

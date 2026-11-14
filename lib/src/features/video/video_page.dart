@@ -15,11 +15,11 @@ import '../../data/remote/han1me_api.dart';
 import '../../domain/models/video.dart';
 import '../account/account_controller.dart';
 import '../settings/settings_controller.dart';
-import '../navigation/app_shell.dart';
 import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_page_layout.dart';
+import '../navigation/app_shell.dart';
 
 VideoCard? nextEpisode(VideoDetail video) {
   final episodes = video.playlist;
@@ -212,11 +212,15 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     // 原来这里写死 `Brightness.dark`，整个详情页（左侧播放器 + 底部简介/评论 +
     // 右侧作者/标签/选集/相关推荐）全是深色面，而设计稿 `base_videodetail.png`
     // 是**白底**：页面底浅、信息栏白、只有播放器舞台本身是黑的。
-    final brightness =
-        settings?.effectiveBrightness(
-          MediaQuery.platformBrightnessOf(context),
-        ) ??
-        Brightness.light;
+    // 独立播放窗口固定深色：设计稿 page/playerAbout-v6 的播放页就是深色
+    // （页面底 #0B0C10、面板 #101219）。之前跟随应用主题，浅色应用下右栏整片发白，
+    // 顶部「简介/评论」Tab 也是白底白字看不见。主窗口详情页仍跟随应用主题。
+    final brightness = widget.inPlayWindow
+        ? Brightness.dark
+        : (settings?.effectiveBrightness(
+              MediaQuery.platformBrightnessOf(context),
+            ) ??
+            Brightness.light);
     final detailTheme = appTheme(
       null,
       settings?.themeColor.seedColor(settings.customThemeColor) ??
@@ -232,23 +236,31 @@ class _VideoPageState extends ConsumerState<VideoPage> {
     final page = Theme(
       data: detailTheme,
       child: Scaffold(
-        backgroundColor: AppDesignTokens.pageBackgroundOf(context),
-        body: content,
+        // 播放窗口：设计稿页面底 #0B0C10（深色）；主窗口详情页保持浅色 #F4F4F7。
+        backgroundColor: widget.inPlayWindow
+            ? const Color(0xFF0B0C10)
+            : AppDesignTokens.pageBackgroundOf(context),
+        body: widget.inPlayWindow
+            ? content
+            // 详情页：内容全屏、顶部导航半透明浮在背景图上（和首页一致）。
+            : Stack(
+                children: [
+                  Positioned.fill(child: content),
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: AppTopNavBar(overlay: true),
+                  ),
+                ],
+              ),
       ),
     );
     // 主窗口里的详情页**要带左侧常驻导航栏**（设计稿 `base_videodetail.png`
     // 左侧就是 logo + 主页/新番/里番/泡面番/… + 账号卡那一整条）。
     // 之前详情页是根导航器上的全屏路由，整条侧栏都没有。
     // 独立播放窗口（inPlayWindow）本来就是纯播放器，不加。
-    if (!widget.inPlayWindow &&
-        MediaQuery.sizeOf(context).width >= 900) {
-      return Material(
-        color: AppDesignTokens.pageBackgroundOf(context),
-        child: Row(
-          children: [const AppDesktopSidebar(), Expanded(child: page)],
-        ),
-      );
-    }
+    // 顶部导航框架下，详情页是 push 的全屏页，不再自绘左侧栏（全宽沉浸）。
     return page;
   }
 }

@@ -45,6 +45,8 @@ jobs:
           || inputs.signing_policy
           || 'none'
         }}
+      # 自签方案（Weebox 式）：把 pfx 以 base64 放 Secret；非空即启用自签，见 docs/code-signing.md
+      WINDOWS_SIGNING_PFX_B64: ${{ secrets.WINDOWS_SIGNING_PFX_B64 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -116,6 +118,22 @@ jobs:
           "installer_version=$pubspecFull" >> $env:GITHUB_OUTPUT
           Write-Host "安装包版本资源: $pubspecFull"
 
+      - name: Self-sign - decode cert
+        if: env.WINDOWS_SIGNING_PFX_B64 != ''
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path signing | Out-Null
+          [IO.File]::WriteAllBytes("$pwd\signing\ci-cert.pfx", [Convert]::FromBase64String($env:WINDOWS_SIGNING_PFX_B64))
+          Write-Host '已从 Secret 解码自签证书 signing\ci-cert.pfx'
+
+      - name: Self-sign - app exe (before ISCC)
+        if: env.WINDOWS_SIGNING_PFX_B64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          ./tools/signing/sign-release.ps1 -Target "build\windows\x64\runner\Release\han1me_win_plus.exe" -Pfx "signing\ci-cert.pfx" -PfxPassword $env:WINDOWS_SIGNING_PFX_PASSWORD
+
       - name: Build Windows installer
         shell: pwsh
         env:
@@ -135,6 +153,33 @@ jobs:
           if (-not (Test-Path 'build\Han1meWinPlus-Setup.exe')) { throw '安装包未生成' }
           Get-Item 'build\Han1meWinPlus-Setup.exe' | Select-Object Name, Length
 
+      - name: Self-sign - Setup.exe (after ISCC)
+        if: env.WINDOWS_SIGNING_PFX_B64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          ./tools/signing/sign-release.ps1 -Target "build\Han1meWinPlus-Setup.exe" -Pfx "signing\ci-cert.pfx" -PfxPassword $env:WINDOWS_SIGNING_PFX_PASSWORD
+
+      - name: Export self-signed cert + install script
+        if: env.WINDOWS_SIGNING_PFX_B64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          $c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("signing\ci-cert.pfx", $env:WINDOWS_SIGNING_PFX_PASSWORD)
+          [IO.File]::WriteAllBytes("build\Han1meWinPlus.cer", $c.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+          $lines = @(
+            '@echo off',
+            'chcp 65001 >nul',
+            'echo 正在安装 Han1meWinPlus.pfx 的发布者证书（当前用户）...',
+            'certutil -addstore -user -f "Root" "%~dp0Han1meWinPlus.cer"',
+            'if %errorlevel%==0 (echo 完成：之后安装会显示发布者为 Han1meWinPlus.pfx。) else (echo 失败：可右键以管理员身份运行重试。)',
+            'pause'
+          )
+          [IO.File]::WriteAllText("build\安装证书.cmd", (($lines -join [Environment]::NewLine) + [Environment]::NewLine), (New-Object System.Text.UTF8Encoding($false)))
+          Write-Host '已导出 build\Han1meWinPlus.cer 与 build\安装证书.cmd'
+
       - name: Package portable zip
         shell: pwsh
         run: |
@@ -149,6 +194,9 @@ jobs:
             'build\Han1meWinPlus-Setup.exe',
             'build\Han1meWinPlus-windows-x64.zip'
           )
+          foreach ($extra in @('build\Han1meWinPlus.cer','build\安装证书.cmd')) {
+            if (Test-Path $extra) { $files += $extra }
+          }
           $lines = foreach ($f in $files) {
             $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  " + (Split-Path $f -Leaf)
@@ -370,7 +418,7 @@ jobs:
           ## 安装
 
           1. 下载 ``Han1meWinPlus-Setup.exe``（单文件），双击安装
-          2. 首次运行 Windows 可能提示「未知发布者」或被 SmartScreen 拦下：点「更多信息」→「仍要运行」即可（安装包尚未做代码签名，见 docs/code-signing.md）
+          2. 若本次 Release 附带「安装证书.cmd」（自签证书）：先运行它装发布者证书（无需管理员），再装 Setup，安装即显示发布者名、不再是「未知发布者」；未附带则首次运行点「更多信息 → 仍要运行」
           3. 安装默认需要管理员权限（装到 ``Program Files``）。如果你的账户是纯标准用户（不在
              Administrators 组里），可以用 ``Han1meWinPlus-Setup.exe /CURRENTUSER`` 免管理员安装到用户目录。
           4. 不想安装就用 ``Han1meWinPlus-windows-x64.zip``，解压后直接运行 ``han1me_win_plus.exe``
@@ -387,7 +435,7 @@ jobs:
 
           ## 已知问题
 
-          - 安装包尚未做代码签名，SmartScreen 或杀毒软件可能误报
+          - 安装包为自签证书签名：自签无公共 CA 声誉，SmartScreen 仍可能提示「仍要运行」（先运行随包的「安装证书.cmd」可消除「未知发布者」）
           - 部分站点图片 CDN 响应较慢，首屏封面可能需要等待，之后会走本地缓存
           - 仅维护 Windows，其他平台不在本项目范围内
 
@@ -408,3 +456,18 @@ jobs:
             --title "Han1meWinPlus $env:TAG" `
             --notes-file $notesPath `
             --verify-tag
+
+      - name: Upload cert + install script to release
+        if: startsWith(github.ref, 'refs/tags/') && env.WINDOWS_SIGNING_PFX_B64 != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $assets = @('build\Han1meWinPlus.cer','build\安装证书.cmd') | Where-Object { Test-Path $_ }
+          if ($assets.Count -gt 0) {
+            gh release upload $env:TAG @assets --clobber
+            Write-Host ("已上传到 Release: " + ($assets -join ', '))
+          } else {
+            Write-Host '没有证书/安装脚本可上传（未启用自签）'
+          }

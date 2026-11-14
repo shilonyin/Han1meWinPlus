@@ -7,7 +7,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_radius.dart';
-import '../../core/app_design_tokens.dart';
 import '../../core/video_player_shutdown.dart';
 import '../../data/han1me_repository.dart';
 import '../../data/local/cached_video_lookup.dart';
@@ -22,7 +21,6 @@ import '../account/account_controller.dart';
 import '../library/remote_library_controller.dart';
 import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
-import '../shared/bouncy_toggle_icon.dart';
 import 'download_picker_sheet.dart';
 import 'download_queue.dart';
 import 'play_window.dart';
@@ -47,71 +45,51 @@ class VideoActionRow extends ConsumerWidget {
 
   final VideoDetail video;
 
+  // 恢复 v1.1.28（上个发布版本）的播放页侧栏操作排：**图标在上、文字在下的等宽平铺**，
+  // 收藏 / 下载 / 分享等各占一等分。d4acbed 之后被改成了「加入清单大按钮 + 3 方块」的
+  // v6 稿样式，和上个发布版本不一致。
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 设计稿 v6 详情页右栏的操作行：左侧一个大「立即播放」按钮（200×40 圆角12 粉色
-    // 白字），右侧紧跟三个 40×40 圆角8 的浅灰方块（收藏 / 下载 / 更多）。
-    // 不再是「图标+文字竖排平铺」，那与设计稿不是一回事。
+    final theme = Theme.of(context);
     final actions = videoActionsFor(context, ref, video);
-    final play = actions.isNotEmpty ? actions.first : null;
-    // actions 里通常还含收藏/下载/分享等；取后三个做小方块。
-    final smalls = actions.length > 1 ? actions.sublist(1).take(3).toList() : const <VideoAction>[];
     return Padding(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       child: Row(
         children: [
-          // 设计稿 bigPlayBtn：200×40、圆角 12。**定宽**，不随容器拉伸——
-          // 之前用 Expanded 把按钮撑满整行，和右侧三枚 40 方块之间的距离忽大忽小。
-          if (play != null)
-            PressScale(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                onTap: play.onPressed,
-                child: Container(
-                  width: 200,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppDesignTokens.accentDeep,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Symbols.play_arrow_rounded, size: 16, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(play.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          for (final action in smalls) ...[
-            // 设计稿 collect/download/more：40×40、圆角 8 的浅灰方块；
-            // 与主按钮、以及彼此之间统一留 8 的间隙（之前是 4，贴着按钮）。
-            const SizedBox(width: 8),
-            PressScale(
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: action.onPressed,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppDesignTokens.fieldFillOf(context),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Center(
-                    child: BouncyToggleIcon(
-                      icon: action.icon,
-                      size: 20,
-                      filled: action.filled,
-                      color: action.onPressed == null ? AppDesignTokens.inkMutedOf(context) : AppDesignTokens.inkSubtleOf(context),
+          for (final action in actions)
+            Expanded(
+              child: PressScale(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  onTap: action.onPressed,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          action.icon,
+                          size: 18,
+                          color: action.onPressed == null
+                              ? theme.colorScheme.outline
+                              : theme.colorScheme.onSurface,
+                          fill: action.filled ? 1 : 0,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          action.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ],
         ],
       ),
     );

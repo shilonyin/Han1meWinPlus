@@ -347,3 +347,34 @@ Get-AuthenticodeSignature .\Han1meWinPlus-Setup.exe |
 - 申请表逐字段填写清单：[`signpath-apply-checklist.md`](signpath-apply-checklist.md)
 - 申请正文成文版：[`signpath-application.md`](signpath-application.md)
 - 通过后的控制台配置步骤：[`signpath-setup.md`](signpath-setup.md)
+
+
+---
+
+## 自签方案（Weebox 式，立即可用，不依赖 SignPath）
+
+SignPath 需知名度审核（本项目已被拒）。在拿到 Foundation 证书前，用**自签代码签名证书**
+消除「未知发布者」：发布包附一个 `安装证书.cmd`，用户装一次发布者证书后，安装/运行就显示
+发布者名字，不再是「未知发布者」。
+
+工具（无需 signtool、无需购买证书，全部用 PowerShell 内置）：
+
+- `tools/signing/create-selfsigned.ps1`：生成自签代码签名证书，导出到 `signing/`
+  （`Han1meWinPlus.pfx` 含私钥，务必保密；`Han1meWinPlus.cer` 为公钥，随包分发）。
+- `tools/signing/sign-release.ps1`：用 pfx 给 `build\windows\x64\runner\Release\han1me_win_plus.exe`
+  和 `build\Han1meWinPlus-Setup.exe`（若存在）签 Authenticode + 时间戳，并打印 `Get-AuthenticodeSignature` 状态。
+- `signing/安装证书.cmd`：把 `Han1meWinPlus.cer` 装入当前用户「受信任的根证书颁发机构」（无需管理员）。
+
+### 使用步骤
+1. 首次：`powershell -File tools/signing/create-selfsigned.ps1`（生成 pfx/cer）
+2. 每次发布：先 `flutter build windows --release`，再 `powershell -File tools/signing/sign-release.ps1`
+   （Setup 由 ISCC 生成后再签一次）
+3. 分发：把 `signing/Han1meWinPlus.cer` 与 `signing/安装证书.cmd` 一起发布，用户先运行
+   `安装证书.cmd` 再装软件。
+
+### 局限（如实说明）
+- 自签证书无公共 CA 背书、无声誉累积，**SmartScreen 仍可能提示「仍要运行」**；它消除的是
+  「未知发布者」，不是信誉拦截。这与 Weebox 的自签做法一致。
+- `signing/` 已写入 `.gitignore`，**pfx 私钥不要提交仓库**。CI 若要签，把 pfx 以 base64
+  放进 Secret（如 `WINDOWS_SIGNING_PFX_B64` + 密码），在 ISCC 前后各调用一次 sign-release。
+

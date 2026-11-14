@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../shared/app_image_cache.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
@@ -68,8 +69,15 @@ class ComicExplorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final home = ref.watch(comicHomeProvider);
+    final mq = MediaQuery.sizeOf(context);
+    final gutter = AppResponsive.gutterFor(mq.width);
+    final gridCols = mq.width >= 1200 ? 6 : (mq.width >= 900 ? 5 : (mq.width >= 600 ? 4 : 3));
     return Scaffold(
       appBar: AppTopBar(
+        // 影院沉浸式：顶栏透明，标题下放到内容区做成大标题。
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: permanentNavigationDrawer(context)
             ? null
             : PressScale(
@@ -79,7 +87,6 @@ class ComicExplorePage extends ConsumerWidget {
                   icon: const Icon(Symbols.menu_rounded),
                 ),
               ),
-        title: const Text('Hanime1.me'),
         actions: [
           PressScale(
             child: IconButton(
@@ -110,13 +117,26 @@ class ComicExplorePage extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 2),
+                  child: Text(
+                    '漫画',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
               SliverToBoxAdapter(child: _Heading(title: l10n.trendingComics)),
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 246,
                   child: CarouselView(
                     itemExtent: 160,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
                     children: feed.trending
                         .map((comic) => ComicTile(comic: comic))
                         .toList(),
@@ -130,10 +150,10 @@ class ComicExplorePage extends ConsumerWidget {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 16),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: gridCols,
                     childAspectRatio: .52,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 10,
@@ -344,6 +364,7 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
   Widget build(BuildContext context) {
     final comic = widget.comic;
     final l10n = AppLocalizations.of(context)!;
+    final gutter = AppResponsive.gutterFor(MediaQuery.sizeOf(context).width);
     final card = ComicCard(
       id: comic.id,
       title: comic.title,
@@ -360,17 +381,17 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
         label: Text(l10n.read),
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16, barExtent(bar) + 16, 16, 16),
+        padding: EdgeInsets.fromLTRB(gutter, barExtent(bar) + 16, gutter, 16),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 child: AppCachedNetworkImage(
                   imageUrl: comic.coverUrl,
-                  width: 118,
-                  height: 172,
+                  width: 120,
+                  height: 180,
                   fit: BoxFit.cover,
                   faceFocus: true,
                 ),
@@ -382,15 +403,30 @@ class _ComicDetailState extends ConsumerState<_ComicDetail> {
                   children: [
                     Text(
                       comic.title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text('#${comic.id}'),
-                    if (comic.artist != null) Text(comic.artist!),
+                    Text('#${comic.id}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    if (comic.artist != null)
+                      Text(comic.artist!,
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     Text(
                       '${l10n.pageCount(comic.pageCount)}  ${comic.uploadTime ?? ''}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -713,13 +749,46 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: AppBar(
-                  title: Text('${_page + 1}/${comic.pageCount}'),
-                  leading: PressScale(
-                    child: IconButton(
-                      onPressed: () => context.pop(),
-                      icon: const Icon(Symbols.arrow_back_rounded),
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(
+                      12, MediaQuery.paddingOf(context).top + 8, 12, 22),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: .66),
+                        Colors.transparent,
+                      ],
                     ),
+                  ),
+                  child: Row(
+                    children: [
+                      PressScale(
+                        child: IconButton(
+                          onPressed: () => context.pop(),
+                          icon: const Icon(Symbols.arrow_back_rounded,
+                              color: Colors.white),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .5),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Text(
+                          '${_page + 1} / ${comic.pageCount}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                   ),
                 ),
               ),
@@ -728,7 +797,19 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: BottomAppBar(
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(
+                      8, 26, 8, MediaQuery.paddingOf(context).bottom + 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: .74),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                   child: Row(
                     children: [
                       PressScale(
@@ -736,22 +817,25 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                           onPressed: long || _page == 0
                               ? null
                               : () => _change(-1),
-                          icon: const Icon(Symbols.chevron_left_rounded),
+                          icon: Icon(Symbols.chevron_left_rounded,
+                              color: (long || _page == 0)
+                                  ? Colors.white38
+                                  : Colors.white),
                         ),
                       ),
                       const Spacer(),
                       PressScale(
                         child: IconButton(
                           onPressed: _selectPage,
-                          icon: const Icon(
-                            Symbols.format_list_numbered_rounded,
-                          ),
+                          icon: const Icon(Symbols.format_list_numbered_rounded,
+                              color: Colors.white),
                         ),
                       ),
                       PressScale(
                         child: IconButton(
                           onPressed: _settings,
-                          icon: const Icon(Symbols.tune_rounded),
+                          icon: const Icon(Symbols.tune_rounded,
+                              color: Colors.white),
                         ),
                       ),
                       const Spacer(),
@@ -760,7 +844,10 @@ class _ComicReaderPageState extends State<ComicReaderPage> {
                           onPressed: long || _page == comic.pageCount - 1
                               ? null
                               : () => _change(1),
-                          icon: const Icon(Symbols.chevron_right_rounded),
+                          icon: Icon(Symbols.chevron_right_rounded,
+                              color: (long || _page == comic.pageCount - 1)
+                                  ? Colors.white38
+                                  : Colors.white),
                         ),
                       ),
                     ],
@@ -1289,7 +1376,7 @@ class ComicTile extends StatelessWidget {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   child: AppCachedNetworkImage(
                     imageUrl: comic.coverUrl,
                     fit: BoxFit.cover,
@@ -1299,7 +1386,13 @@ class ComicTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(comic.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text(comic.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface)),
             ],
           ),
         ),
@@ -1314,19 +1407,24 @@ class _ComicGrid extends StatelessWidget {
   final List<ComicCard> comics;
 
   @override
-  Widget build(BuildContext context) => comics.isEmpty
-      ? Center(child: Text(AppLocalizations.of(context)!.noComics))
-      : GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: .52,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 10,
-          ),
-          itemCount: comics.length,
-          itemBuilder: (_, index) => ComicTile(comic: comics[index]),
-        );
+  Widget build(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final gutter = AppResponsive.gutterFor(w);
+    final cols = w >= 1200 ? 6 : (w >= 900 ? 5 : (w >= 600 ? 4 : 3));
+    return comics.isEmpty
+        ? Center(child: Text(AppLocalizations.of(context)!.noComics))
+        : GridView.builder(
+            padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              childAspectRatio: .52,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 10,
+            ),
+            itemCount: comics.length,
+            itemBuilder: (_, index) => ComicTile(comic: comics[index]),
+          );
+  }
 }
 
 class _Heading extends StatelessWidget {

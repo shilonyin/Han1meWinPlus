@@ -583,7 +583,7 @@ class _SettingsCategoryList extends ConsumerWidget {
     );
     final sections = _settingsSections(l10n);
     return Scaffold(
-      appBar: AppTopBar(
+      appBar: permanentNavigationDrawer(context) ? null : AppTopBar(
         leading: permanentNavigationDrawer(context)
             ? null
             : PressScale(

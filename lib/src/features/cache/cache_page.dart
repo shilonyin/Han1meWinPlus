@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../core/app_design_tokens.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_shell.dart';
 import '../../data/local/download_repository.dart';
 import '../../data/local/local_media_repository.dart';
@@ -104,7 +105,7 @@ class _CachePageState extends ConsumerState<CachePage>
         return Scaffold(
           // 设计稿页面底是 #F4F4F7（比纯白暗一点），白卡片/存储条压在上面才立得住。
           backgroundColor: AppDesignTokens.pageBackgroundOf(context),
-          appBar: AppTopBar(
+          appBar: permanentNavigationDrawer(context) ? null : AppTopBar(
             backgroundColor: Colors.transparent,
             leading: _selecting
                 ? PressScale(
@@ -476,9 +477,9 @@ class _CachedTab extends StatelessWidget {
               // 不是窄格子里的封面网格。行高固定，封面 84×48、文字两行足够放下。
               return GridView.builder(
                 padding: EdgeInsets.fromLTRB(
-                  12,
+                  AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
                   4,
-                  12,
+                  AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
                   24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -775,9 +776,9 @@ class _ActiveTab extends ConsumerWidget {
     // 与「已缓存」页签同一套竖排行卡版式，切页签时版式不跳。
     return GridView.builder(
       padding: EdgeInsets.fromLTRB(
+        AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
         12,
-        12,
-        12,
+        AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
         24 + MediaQuery.paddingOf(context).bottom,
       ),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1123,12 +1124,13 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color bg;
     final Color fg;
-    if (update) {
-      bg = const Color(0xFFFCE8EE);
-      fg = AppDesignTokens.accentDeep;
-    } else if (filled) {
-      bg = const Color(0xFFFCE8EE);
-      fg = AppDesignTokens.accentDeep;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    if (update || filled) {
+      // 淡粉底在深色主题里是一块亮斑；深色下换成强调色的低透明底。
+      bg = dark
+          ? AppDesignTokens.accentOf(context).withValues(alpha: .18)
+          : const Color(0xFFFCE8EE);
+      fg = dark ? AppDesignTokens.accentOf(context) : AppDesignTokens.accentDeep;
     } else {
       bg = AppDesignTokens.fieldFillOf(context);
       fg = AppDesignTokens.inkSubtleOf(context);

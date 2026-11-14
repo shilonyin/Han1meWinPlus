@@ -122,12 +122,28 @@ class _AppShellState extends ConsumerState<AppShell>
             ? null
             : _AppDrawer(navigationShell: widget.navigationShell),
         body: largeScreen
-            ? Row(
-                children: [
-                  AppDesktopSidebar(navigationShell: widget.navigationShell),
-                  Expanded(child: animatedContent),
-                ],
-              )
+            ? (widget.navigationShell.currentIndex == 0 && !comicMode
+                // 首页：内容顶到窗口最上，导航半透明浮在背景图(hero)上。
+                ? Stack(
+                    children: [
+                      Positioned.fill(child: animatedContent),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AppTopNavBar(
+                          navigationShell: widget.navigationShell,
+                          overlay: true,
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      AppTopNavBar(navigationShell: widget.navigationShell),
+                      Expanded(child: animatedContent),
+                    ],
+                  ))
             : MediaQuery(data: mediaQuery, child: animatedContent),
       ),
     );
@@ -163,6 +179,165 @@ int _libraryTab(String? tab) => switch (tab) {
 };
 
 /// 抽屉里的一个分组：标题为空表示顶部的「主项」区（不显示标题）。
+
+/// Weebox 式顶部主导航：logo + 横向分栏 + 设置。这是「顶部导航 + 全宽内容」框架的顶栏，
+/// 取代原来的常驻左侧栏（[AppDesktopSidebar] 保留以便随时切回）。
+class AppTopNavBar extends ConsumerWidget {
+  const AppTopNavBar({super.key, this.navigationShell, this.overlay = false});
+
+  /// 可选：在 shell 内时有 navigationShell（走 goBranch）；push 全屏页里为 null（走 context.go）。
+  final StatefulNavigationShell? navigationShell;
+
+  /// 首页把导航浮在背景图上时置 true：背景透明 + 顶部压暗渐变，不要实心条。
+  final bool overlay;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final uri = GoRouter.maybeOf(context)?.routerDelegate.currentConfiguration.uri;
+    final now = DateTime.now();
+    final month = now.year.toString().padLeft(4, '0') + now.month.toString().padLeft(2, '0');
+    final settingsVal = ref.watch(settingsProvider).valueOrNull;
+    final comicMode = settingsVal?.comicMode ?? false;
+    final previewSource = settingsVal?.previewSource ?? 'auto';
+    final previewsLocation = previewSource == 'getchu' ? '/previews/getchu/$month' : '/previews/$month';
+    final items = <({String label, IconData icon, String location})>[
+      // 漫画模式下四个分栏是漫画页，导航也要跟着换成漫画的那套，别再用动漫导航。
+      if (comicMode) ...[
+        (label: '漫画主页', icon: Symbols.home_rounded, location: '/'),
+        (label: '漫画库', icon: Symbols.favorite_rounded, location: '/library'),
+        (label: '漫画缓存', icon: Symbols.download_for_offline_rounded, location: '/cache'),
+      ] else ...[
+        (label: l10n.home, icon: Symbols.home_rounded, location: '/'),
+        (label: '新番', icon: Symbols.calendar_month_rounded, location: previewsLocation),
+        (label: '里番', icon: Symbols.movie_rounded, location: '/search?genre=里番'),
+        (label: '泡面番', icon: Symbols.ramen_dining_rounded, location: '/search?genre=泡面番'),
+        (label: '关注', icon: Symbols.favorite_rounded, location: '/library/subscriptions'),
+        (label: l10n.watchHistory, icon: Symbols.history_rounded, location: '/library/history'),
+        (label: '缓存', icon: Symbols.download_for_offline_rounded, location: '/cache'),
+        (label: '签到', icon: Symbols.thumb_up_rounded, location: '/check-in'),
+      ],
+    ];
+    bool selected(String loc) {
+      if (uri == null) return false;
+      if (loc == '/') return uri.path == '/';
+      return uri.path == loc.split('?').first;
+    }
+    return Container(
+      height: 64,
+      decoration: overlay
+          ? const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xB3000000), Color(0x00000000)],
+              ),
+            )
+          : BoxDecoration(
+              color: AppDesignTokens.surfaceOf(context),
+              border: Border(bottom: BorderSide(color: AppDesignTokens.dividerOf(context))),
+            ),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Row(
+        children: [
+          SizedBox(
+            height: 26,
+            child: SvgPicture.asset(
+              'assets/logo_lockup.svg',
+              width: 132,
+              fit: BoxFit.contain,
+              semanticsLabel: AppLocalizations.of(context)!.appTitle,
+            ),
+          ),
+          const SizedBox(width: 22),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final it in items)
+                    _TopNavItem(
+                      label: it.label,
+                      selected: selected(it.location),
+                      onTap: () {
+                        final ns = navigationShell;
+                        if (ns != null) {
+                          openShellDestination(context, ns, it.location);
+                        } else {
+                          context.go(it.location);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              final ns = navigationShell;
+              if (ns != null) {
+                openShellDestination(context, ns, '/settings');
+              } else {
+                context.go('/settings');
+              }
+            },
+            icon: Icon(
+              Symbols.settings_rounded,
+              color: selected('/settings') ? AppDesignTokens.accentOf(context) : AppDesignTokens.inkSubtleOf(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Weebox 式纯文字导航项：无图标、无块底；选中项文字提亮 + 底部一条强调色下划线。
+class _TopNavItem extends StatelessWidget {
+  const _TopNavItem({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? AppDesignTokens.inkOf(context)
+        : AppDesignTokens.inkSubtleOf(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 5),
+            AnimatedContainer(
+              duration: AppMotion.brief,
+              height: 2,
+              width: selected ? 22 : 0,
+              decoration: BoxDecoration(
+                color: AppDesignTokens.accentOf(context),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DrawerSection {
   const _DrawerSection({this.title, required this.items});
 

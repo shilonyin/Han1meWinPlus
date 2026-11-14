@@ -22,6 +22,7 @@ import '../../domain/models/search_query.dart';
 import '../../domain/models/video.dart';
 import '../../domain/video_metrics.dart';
 import '../../data/local/library_repository.dart';
+import '../../data/local/watch_repository.dart';
 import '../../core/settings.dart';
 import '../settings/settings_controller.dart';
 import '../search/search_suggestions.dart';
@@ -38,6 +39,27 @@ import '../../core/app_motion.dart';
 
 const _gridPadding = 28.0;
 const _gridSpacing = 24.0;
+
+/// 首页「影院版」的深色底。
+const _cinemaBg = Color(0xFF0A0A0D);
+
+/// 首页「影院版」深色外壳：只包住滚动内容，顶部导航仍在浅色骨架里。
+///
+/// 用 [ThemeData.dark] 而不是对浅色主题 copyWith(brightness:)。[VideoCardTile] 的
+/// 标题色取自 [ThemeData.textTheme]，只翻 brightness 不换 textTheme，标题在深底上
+/// 仍是深字，等于没生效。这里给一整套深色主题，卡片自带的 brightness==dark 分支
+/// 才会把作者/评分换成浅灰。
+Widget _cinemaShell(BuildContext context, Widget child) => Theme(
+  data: ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppDesignTokens.accent,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: _cinemaBg,
+  ),
+  child: ColoredBox(color: _cinemaBg, child: child),
+);
 
 /// 网格的行距。设计稿的卡片是「封面 238×152 + 标题 + 作者行」，一张卡占 218 高，
 /// 相邻两行封面之间留 30 的空白 —— 比列距（10）宽得多，正是为了让上一行的
@@ -100,6 +122,9 @@ class ExplorePage extends ConsumerStatefulWidget {
 
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   var _sectionIndex = 0;
+
+  /// Weebox 式：首页隐藏分类下拉 / 快捷页签（分类改由多行 rail 承担）。
+  final bool _hideCategoryBar = true;
   var _searchPanelOpen = false;
   var _searchFocused = false;
   final _searchController = TextEditingController();
@@ -177,7 +202,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     final index = sections.isEmpty
         ? 0
         : _sectionIndex.clamp(0, sections.length - 1).toInt();
-    final showPicker = sections.isNotEmpty;
+    // Weebox 式：首页不再显示分类下拉 / 快捷页签（分类由下面的多行 rail 承担）。
+    final showPicker = sections.isNotEmpty && !_hideCategoryBar;
     // 顶栏右侧的快捷分类 —— 按设计稿写死这 5 个（视觉优先）。
     // 设计稿 homePage·redesign v5 的页签就是：最新上传 / Motion Anime / 3D动画 / 2.5D / 2D动画。
     // 站点真实分区可能没有这些名字，点开可能空页，但视觉与设计稿一致；
@@ -263,10 +289,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               // 超透的清澈）只有在这种「玻璃下面有细节」的地方才看得出来；反过来，
               // 跟着内容一起滚的卡片会在滚动瞬间露出上一帧，所以那边不铺玻璃。
               child: Material(
-                // 顶栏落在设计稿的页面底（#F4F4F7）上，白色从下方的卡片开始。
-                // 原来铺的是 appBarTheme 的不透明面 —— 那一层跟着主题色种子走，
-                // 换成粉色/蓝色主题时顶栏会泛色，和下面那片中性灰接不上。
-                color: AppDesignTokens.pageBackgroundOf(context),
+                // 影院沉浸：顶栏透明，hero 从最上方开始，只有搜索框浮在图上。
+                color: Colors.transparent,
                 child: SizedBox(
                   height: _homeBarHeight,
                   child: Padding(
@@ -694,11 +718,13 @@ class _HomeFeedBody extends ConsumerWidget {
               unawaited(ref.read(homeSectionsProvider.notifier).refresh()),
         ),
         // 收起式分类：只画当前分类（分区标题由顶栏的下拉菜单承担）。
-        child: _HomeScroll(
-          featured: featured,
-          sections: sections.isEmpty
-              ? const <HomeSection>[]
-              : [sections[index]],
+        child: _cinemaShell(
+          context,
+          _HomeScroll(
+            featured: featured,
+            // Weebox 式：把所有分区都交给首页，每个分区渲染成一行横向 rail。
+            sections: sections,
+          ),
         ),
       );
 }
@@ -1047,29 +1073,53 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
         physics: const AlwaysScrollableScrollPhysics(),
         scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
         slivers: [
-          // 顶栏的占位。放在 sliver 里而不是给滚动视图套 Padding：这样它是
-          // 内容的一部分，往上滚就跟着走，后面的内容才会真的滚到顶栏后面 ——
-          // 顶栏底下那条 scroll edge 要的就是这个。
-          const SliverToBoxAdapter(child: SizedBox(height: _homeBarHeight)),
           if (widget
               .featured
               .isNotEmpty) // banner 的左右边距跟网格同一条线（`_gridPadding`），上下留白全部交给
             // _FeaturedCarousel 自己的 Padding 管：这里再叠一层 4/12 会让 banner
             // 离顶栏、离「影片」标题各多出一小截，整片内容被往下推。
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  _gridPadding,
-                  0,
-                  _gridPadding,
-                  0,
-                ),
-                child: RepaintBoundary(
-                  child: _FeaturedCarousel(videos: widget.featured),
-                ),
+              child: RepaintBoundary(child: _CinemaHero(videos: widget.featured)),
+            ),
+          if ((ref.watch(watchProvider).valueOrNull?.continueItems ?? const [])
+              .isNotEmpty)
+            SliverToBoxAdapter(
+              child: _CinemaRail(
+                title: '继续观看',
+                items: [
+                  for (final item
+                      in ref.watch(watchProvider).valueOrNull!.continueItems)
+                    _RailItem(
+                      id: item.videoCode,
+                      title: item.title,
+                      coverUrl: item.coverUrl,
+                      progress: item.durationMs > 0
+                          ? (item.positionMs / item.durationMs).clamp(0.0, 1.0)
+                          : null,
+                    ),
+                ],
               ),
             ),
-          for (final section in widget.sections) _HomeSection(section: section),
+          // Weebox 式：每个分区一行横向海报 rail（取代原来的纵向无限网格）；
+          // 第一行带排名徽章（对应「热门前十」）。
+          for (var i = 0; i < widget.sections.length; i++)
+            if (widget.sections[i].videos.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _CinemaRail(
+                  ranked: i == 0,
+                  title: widget.sections[i].title.isEmpty
+                      ? '影片'
+                      : widget.sections[i].title,
+                  items: [
+                    for (final video in widget.sections[i].videos)
+                      _RailItem(
+                        id: video.id,
+                        title: video.title,
+                        coverUrl: video.coverUrl,
+                      ),
+                  ],
+                ),
+              ),
           // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
           // （见 `floatingActionsClearance`），再叠加系统安全区。
           SliverToBoxAdapter(
@@ -1579,7 +1629,7 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                   // 现在用 `videoCardMetaHeight` 统一给出文字区高度，和 `VideoCardTile`
                   // 里的排版保持一致，两边不会再各算一套。
                   mainAxisExtent:
-                      cardWidth * 9 / 16 +
+                      cardWidth / 0.68 +
                       videoCardMetaHeight(videos, assumeMeta: true),
                 ),
                 delegate: SliverChildBuilderDelegate(
@@ -1589,12 +1639,14 @@ class _HomeSectionState extends ConsumerState<_HomeSection> {
                           child: VideoCardTile(
                             video: videos[index],
                             horizontal: true,
+                            coverAspectRatio: 0.68,
                             autoFetchMeta: true,
                           ),
                         )
                       : VideoCardTile(
                           video: videos[index],
                           horizontal: true,
+                          coverAspectRatio: 0.68,
                           autoFetchMeta: true,
                         ),
                   childCount: videos.length,
@@ -1678,6 +1730,7 @@ class _LoadMoreProbeState extends State<_LoadMoreProbe> {
 /// 整块压黑 + 常规字号 —— 整块压黑会把封面盖掉大半，只有底部渐变压暗时
 /// 图看得清、字又压得住。
 /// 首屏推荐位。只有一条时不带轮播控件，多条时给出自动轮播、左右按钮与下方指示点。
+// ignore: unused_element
 class _FeaturedCarousel extends StatelessWidget {
   const _FeaturedCarousel({required this.videos});
 
@@ -1688,7 +1741,7 @@ class _FeaturedCarousel extends StatelessWidget {
   /// 关键是**铺满内容区**，左右只留常规边距，不再设宽度上限居中 ——
   /// 两侧留白一多，整块就变成居中一块窄卡片，跟下面一列列卡片对不齐。
   /// 宽度随窗口走，高度按比例跟出来，只留一道「别把首屏吃掉」的视口高度保险。
-  static const double _ratio = 200 / 1048;
+  static const double _ratio = 0.36; // 影院版把 5.25:1 的扁 banner 放大到约 2.8:1；再高会触发视口高度上限、hero 反而缩窄，和网格对不齐。
   static const double _minHeight = 120;
   static const double _maxViewportShare = 0.55;
 
@@ -2241,6 +2294,493 @@ const _coverFetchConcurrency = 8;
 ///
 /// [enter] 在额度用完时挂起，[leave] 唤醒最早一个等待者（FIFO，避免饿死）。
 /// 只服务封面预热这一处，所以不追求通用性（不做超时、不做取消）。
+
+/// 首页影院版一行横向海报的数据项。
+class _RailItem {
+  const _RailItem({
+    required this.id,
+    required this.title,
+    required this.coverUrl,
+    this.progress,
+  });
+
+  final String id;
+  final String title;
+  final String? coverUrl;
+
+  /// 0..1，仅「继续观看」有进度。
+  final double? progress;
+}
+
+/// 一行横向海报：热门行带 1..N 排名徽章，继续观看行带进度条。
+class _CinemaRail extends StatelessWidget {
+  const _CinemaRail({
+    required this.title,
+    required this.items,
+    this.ranked = false,
+  });
+
+  final String title;
+  final List<_RailItem> items;
+  final bool ranked;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppDesignTokens.inkOf(context),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 300,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              itemBuilder: (context, index) => _RailCard(
+                item: items[index],
+                rank: ranked ? index + 1 : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailCard extends StatelessWidget {
+  const _RailCard({required this.item, this.rank});
+
+  final _RailItem item;
+  final int? rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.md);
+    return SizedBox(
+      width: 176,
+      child: PressScale(
+        child: InkWell(
+          borderRadius: radius,
+          onTap: item.id.isEmpty ? null : () => context.push('/video/${item.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: radius,
+                    child: AspectRatio(
+                      aspectRatio: 2 / 3,
+                      child: AppCachedNetworkImage(
+                        imageUrl: item.coverUrl ?? '',
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => ColoredBox(
+                          color: AppDesignTokens.surfaceRaisedOf(context),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (rank != null)
+                    Positioned(top: 6, left: 6, child: _RankBadge(rank!)),
+                  if (item.progress != null)
+                    Positioned(
+                      left: 6,
+                      right: 6,
+                      bottom: 6,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
+                        child: LinearProgressIndicator(
+                          value: item.progress,
+                          minHeight: 4,
+                          backgroundColor: Colors.black.withValues(alpha: .45),
+                          valueColor:
+                              const AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppDesignTokens.inkOf(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 排名徽章：前三名金/银/铜，其余红。
+class _RankBadge extends StatelessWidget {
+  const _RankBadge(this.rank);
+
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final gradient = switch (rank) {
+      1 => const LinearGradient(colors: [Color(0xFFFFD76E), Color(0xFFE0A326)]),
+      2 => const LinearGradient(colors: [Color(0xFFE6ECF5), Color(0xFFA9B4C4)]),
+      3 => const LinearGradient(colors: [Color(0xFFE6A978), Color(0xFFB9702F)]),
+      _ => const LinearGradient(colors: [Color(0xFFFF5661), Color(0xFFC1121F)]),
+    };
+    final fg = rank <= 3 ? const Color(0xFF231A00) : Colors.white;
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white70, width: 1.5),
+      ),
+      child: Text(
+        '$rank',
+        style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+}
+
+
+/// 影院式 Hero（照 HTML 原型 v0.3）：封面强模糊做氛围底 + 深色渐变，
+/// 上面只叠 大标题 / 元信息 / CTA / 左右箭头 / 分页点，不把真实大图直接铺满。
+class _CinemaHero extends ConsumerStatefulWidget {
+  const _CinemaHero({required this.videos});
+  final List<VideoCard> videos;
+  @override
+  ConsumerState<_CinemaHero> createState() => _CinemaHeroState();
+}
+
+class _CinemaHeroState extends ConsumerState<_CinemaHero> {
+  final PageController _controller = PageController();
+  Timer? _timer;
+  int _index = 0;
+
+  int get _count => widget.videos.length;
+
+  @override
+  void initState() {
+    super.initState();
+    _restart();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _restart() {
+    _timer?.cancel();
+    if (_count < 2) return;
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) {
+      if (!mounted || !_controller.hasClients) return;
+      _controller.animateToPage((_index + 1) % _count,
+          duration: AppMotion.page, curve: AppMotion.standardCurve);
+    });
+  }
+
+  void _go(int delta) {
+    if (!_controller.hasClients || _count < 2) return;
+    final next = (_index + delta) % _count;
+    _controller.animateToPage(next < 0 ? next + _count : next,
+        duration: AppMotion.page, curve: AppMotion.standardCurve);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.videos.isEmpty) return const SizedBox.shrink();
+    final height = (MediaQuery.sizeOf(context).height * 0.62).clamp(420.0, 620.0);
+    return SizedBox(
+      height: height,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: _count,
+              onPageChanged: (i) {
+                setState(() => _index = i);
+                _restart();
+              },
+              itemBuilder: (context, i) => _HeroPage(video: widget.videos[i]),
+            ),
+          ),
+          if (_count > 1) ...[
+            Positioned(
+              left: 18,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _HeroArrow(
+                    icon: Symbols.chevron_left_rounded, onTap: () => _go(-1)),
+              ),
+            ),
+            Positioned(
+              right: 18,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _HeroArrow(
+                    icon: Symbols.chevron_right_rounded, onTap: () => _go(1)),
+              ),
+            ),
+            Positioned(
+              right: 44,
+              bottom: 26,
+              child: Row(
+                children: [
+                  for (var i = 0; i < _count; i++)
+                    AnimatedContainer(
+                      duration: AppMotion.brief,
+                      margin: const EdgeInsets.only(left: 6),
+                      height: 6,
+                      width: i == _index ? 22 : 6,
+                      decoration: BoxDecoration(
+                        color: i == _index
+                            ? AppDesignTokens.accentOf(context)
+                            : Colors.white.withValues(alpha: .35),
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPage extends ConsumerWidget {
+  const _HeroPage({required this.video});
+  final VideoCard video;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final meta = [
+      if ((video.rating ?? '').isNotEmpty) '评分 ${video.rating}',
+      if ((video.artist ?? '').isNotEmpty) video.artist!,
+      if ((video.views ?? '').isNotEmpty) video.views!,
+    ].join('   ·   ');
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (video.coverUrl.isNotEmpty)
+          AppCachedNetworkImage(
+            imageUrl: video.coverUrl,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            memCacheWidth: 1280,
+            errorWidget: (c, u, e) => const ColoredBox(color: Color(0xFF14141A)),
+          )
+        else
+          const ColoredBox(color: Color(0xFF14141A)),
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xF20A0A0D), Color(0xA60A0A0D), Color(0x140A0A0D)],
+              ),
+            ),
+          ),
+        ),
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Color(0xFF0A0A0D)],
+                stops: [0.5, 1.0],
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.6, -0.45),
+                  radius: 1.1,
+                  colors: [
+                    AppDesignTokens.accentOf(context).withValues(alpha: .20),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 48,
+          right: 48,
+          bottom: 54,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Symbols.local_fire_department_rounded,
+                      size: 15, color: Color(0xFFFF3B47)),
+                  const SizedBox(width: 5),
+                  Text('热门推荐',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          color: AppDesignTokens.accentOf(context))),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Text(
+                  video.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 34,
+                    height: 1.12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                    color: Colors.white,
+                    shadows: [Shadow(color: Colors.black54, blurRadius: 24)],
+                  ),
+                ),
+              ),
+              if (meta.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(meta,
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        color: Colors.white.withValues(alpha: .82))),
+              ],
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _HeroCta(
+                    primary: true,
+                    icon: Symbols.play_arrow_rounded,
+                    label: '观看',
+                    onTap: video.id.isEmpty
+                        ? null
+                        : () => openVideo(context, ref, video.id),
+                  ),
+                  const SizedBox(width: 12),
+                  _HeroCta(
+                    primary: false,
+                    icon: Symbols.info_rounded,
+                    label: '更多信息',
+                    onTap: video.id.isEmpty
+                        ? null
+                        : () => context.push('/video/${video.id}'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroArrow extends StatelessWidget {
+  const _HeroArrow({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => PressScale(
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .42),
+                shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
+        ),
+      );
+}
+
+class _HeroCta extends StatelessWidget {
+  const _HeroCta(
+      {required this.primary,
+      required this.icon,
+      required this.label,
+      required this.onTap});
+  final bool primary;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => PressScale(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Container(
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            decoration: BoxDecoration(
+              color: primary ? Colors.white : Colors.white.withValues(alpha: .18),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon,
+                    size: 20,
+                    color: primary ? const Color(0xFF111111) : Colors.white),
+                const SizedBox(width: 8),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color:
+                            primary ? const Color(0xFF111111) : Colors.white)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 class _AsyncGate {
   _AsyncGate(this.maxConcurrent);
 

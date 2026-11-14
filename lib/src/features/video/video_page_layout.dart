@@ -124,7 +124,12 @@ class _VideoPageBodyState extends ConsumerState<VideoPageBody> {
   @override
   Widget build(BuildContext context) {
     final video = widget.video;
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    // 独立播放窗口（hidePlayerTopBar）**始终**走 _TabletVideoLayout 的左右两栏布局，
+    // 不按窗口尺寸切到 _CompactVideoLayout —— 后者是「播放器在上、Tab 在下」的竖排，
+    // 小窗播放时右栏会被挤到底部、顶部「简介/评论」也看不到。主窗口仍按尺寸切。
+    final isTablet =
+        widget.hidePlayerTopBar ||
+        MediaQuery.sizeOf(context).shortestSide >= 600;
     final sidebarCollapsed =
         widget.showSidebarToggle &&
         ref.watch(videoSidebarCollapsedProvider(video.id));
@@ -264,6 +269,62 @@ class _TabletVideoLayout extends StatelessWidget {
         kSidebarWidth,
       );
       final effectiveSidebar = sidebarCollapsed ? 0.0 : sidebarWidth;
+
+      // 独立播放窗口：恢复 v1.1.28（上个发布版本）的「左播放器 + 右信息栏」原版布局 ——
+      // 左列整高纯黑舞台 + 竖分隔线 + 右列 _VideoTabsView(showPlayer:false) 的简介/评论栏。
+      // d4acbed 把这里整体换成了沉浸式详情页，播放窗口就跟着变了；这里按 hidePlayerTopBar
+      // 把播放窗口单独改回原样，主窗口详情页仍是沉浸式。
+      if (hidePlayerTopBar) {
+        // 独立播放窗口：极简左右两栏，**不要** OverflowBox / AnimatedContainer 那套
+        // 折叠动画容器 —— 那套会把右栏的高度约束搞丢，导致顶部「简介/评论」页签
+        // 被挤成 0 高、看不见。播放窗口不需要侧栏折叠，直接 Row 铺满即可，
+        // 高度由 Row 的 stretch 传给右栏，页签头就能正常显示。
+        return Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: stageWidth,
+            height: constraints.maxHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: MouseRegion(
+                    onEnter: (_) => onPlayerHover(true),
+                    onExit: (_) => onPlayerHover(false),
+                    child: ColoredBox(
+                      color: Colors.black,
+                      child: VideoPlayerPanel(
+                        video: video,
+                        onBack: onBack,
+                        onHome: onHome,
+                        onPrevious: onPrevious,
+                        onNext: onNext,
+                        onEpisodeSelected: onEpisodeSelected,
+                        hideTopBar: hidePlayerTopBar,
+                      ),
+                    ),
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                SizedBox(
+                  width: sidebarWidth,
+                  child: _VideoTabsView(
+                    video: video,
+                    scrollBehavior: scrollBehavior,
+                    showPlayer: false,
+                    onBack: onBack,
+                    onHome: onHome,
+                    onPrevious: onPrevious,
+                    onNext: onNext,
+                    onEpisodeSelected: onEpisodeSelected,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Align(
         alignment: Alignment.topLeft,
         child: SizedBox(
@@ -461,6 +522,42 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
       _controller.index = selected.clamp(0, _tabCount - 1);
     }
     final l10n = AppLocalizations.of(context)!;
+    // 播放窗口右栏（showPlayer=false）：最朴素的文本页签 + 条件渲染内容，
+    // 完全不用 TabBar / TabBarView —— 它们在这套深色面板里会塌成一条 indicator，
+    // 导致「简介 / 评论」标题看不见。这里用 Container 固定 48 高 + Row + Text，
+    // 高度和颜色都确定，标题一定显示；点击 setState 切换内容。
+    if (!widget.showPlayer) {
+      final tab = _controller.index;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 48,
+            color: Theme.of(context).colorScheme.surface,
+            child: Row(
+              children: [
+                _playTab(context, l10n.description, 0, tab == 0),
+                const SizedBox(width: 4),
+                _playTab(
+                  context,
+                  widget.video.commentCount != null
+                      ? '${l10n.comments} ${widget.video.commentCount}'
+                      : l10n.comments,
+                  1,
+                  tab == 1,
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+          Expanded(
+            child: tab == 0
+                ? VideoDescriptionView(video: widget.video)
+                : VideoCommentsView(video: widget.video),
+          ),
+        ],
+      );
+    }
     return Column(
       children: [
         if (widget.showPlayer)
@@ -505,10 +602,19 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
           ),
         Padding(
           padding: EdgeInsets.fromLTRB(16, widget.showPlayer ? 12 : 8, 16, 4),
-          child: TabBar(
+          // 显式给 TabBar 定高 + 明确的标签颜色：默认色在深色播放面板上会和底色接近，
+          // 「简介 / 评论」两个字看起来像消失。这里用主题的 onSurface / primary 保证对比度。
+          child: SizedBox(
+            height: 44,
+            child: TabBar(
             controller: _controller,
             isScrollable: !widget.showPlayer,
             tabAlignment: !widget.showPlayer ? TabAlignment.start : null,
+            labelColor: Theme.of(context).colorScheme.onSurface,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 14),
             tabs: [
               Tab(text: l10n.description),
               Tab(
@@ -524,6 +630,7 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
                 ),
               ),
             ],
+            ),
           ),
         ),
         Expanded(
@@ -545,6 +652,43 @@ class _VideoTabsViewState extends ConsumerState<_VideoTabsView>
           ),
         ),
       ],
+    );
+  }
+
+  /// 播放窗口右栏的页签头（普通文本，避免 TabBar 在深色面板下塌陷看不到标题）。
+  Widget _playTab(BuildContext context, String label, int index, bool selected) {
+    final scheme = Theme.of(context).colorScheme;
+    return PressScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: () => setState(() => _controller.index = index),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: Colors.yellow,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                height: 2,
+                width: 24,
+                decoration: BoxDecoration(
+                  color: selected ? scheme.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

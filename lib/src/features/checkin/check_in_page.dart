@@ -100,10 +100,9 @@ class CheckInPage extends ConsumerWidget {
                   child: _TodayCard(state: state),
                 ),
                 const SizedBox(height: 16),
-                FadeSlideIn(
-                  order: 1,
-                  child: _MonthCalendar(state: state),
-                ),
+                // 月历自身返回 Expanded（在 Column 里吃剩余高度）；不能再包一层
+                // 普通 widget，否则 Expanded 找不到 flex 父级、整块塌成灰。
+                _MonthCalendar(state: state),
               ],
             );
             if (constraints.maxWidth < 900) {
@@ -118,21 +117,27 @@ class CheckInPage extends ConsumerWidget {
                 ),
               );
             }
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: main),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: statsWidth,
-                    child: FadeSlideIn(
-                      order: 2,
-                      child: _StatsColumn(state: state),
-                    ),
+            // 影院式大屏：内容限宽居中，不把两栏铺满整块超宽窗口。
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1180),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: main),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: statsWidth,
+                        child: FadeSlideIn(
+                          order: 2,
+                          child: _StatsColumn(state: state),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },

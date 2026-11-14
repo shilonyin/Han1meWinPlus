@@ -23,6 +23,8 @@ void openShellDestination(
       navigationShell.goBranch(3, initialLocation: true);
     case '/cache':
       navigationShell.goBranch(2, initialLocation: true);
+    case '/library':
+      navigationShell.goBranch(1, initialLocation: true);
     default:
       context.go(location);
   }

@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:material_symbols_icons/symbols.dart';
 import '../../core/app_radius.dart';
+import '../../core/app_responsive.dart';
 import '../../core/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -61,7 +62,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       return _RemoteLibrary(initialTab: widget.initialTab);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppTopBar(
+      appBar: permanentNavigationDrawer(context) ? null : AppTopBar(
         leading:
             Navigator.of(context).canPop() || permanentNavigationDrawer(context)
             ? null
@@ -190,7 +191,7 @@ class _RemoteLibrary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppTopBar(
+      appBar: permanentNavigationDrawer(context) ? null : AppTopBar(
         leading: permanentNavigationDrawer(context)
             ? null
             : PressScale(
@@ -831,9 +832,15 @@ class _SubscriptionsLayoutState extends State<_SubscriptionsLayout> {
                   ),
                 )
               : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
+                  padding: EdgeInsets.fromLTRB(
+                      AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                      4,
+                      AppResponsive.gutterFor(MediaQuery.sizeOf(context).width),
+                      24),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.sizeOf(context).width >= 1400
+                        ? 6
+                        : (MediaQuery.sizeOf(context).width >= 1100 ? 5 : 4),
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
                     mainAxisExtent: 196,
@@ -1627,7 +1634,7 @@ class _PlaylistItemsPageState extends ConsumerState<_PlaylistItemsPage> {
     final l10n = AppLocalizations.of(context)!;
     final account = ref.watch(accountProvider).valueOrNull;
     return Scaffold(
-      appBar: AppTopBar(title: Text(widget.playlist.title)),
+      appBar: permanentNavigationDrawer(context) ? null : AppTopBar(title: Text(widget.playlist.title)),
       body: FutureBuilder<PlaylistDetail>(
         future: _playlist,
         builder: (context, snapshot) {

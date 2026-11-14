@@ -116,14 +116,10 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
         'auto';
     return Scaffold(
       appBar: AppTopBar(
-        title: Text(
-          l10n.previews,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppDesignTokens.inkOf(context),
-          ),
-        ),
+        // 影院沉浸式：顶栏透明，标题下放到内容区做大标题。
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         actions: [
           PressScale(
             child: IconButton(
@@ -146,6 +142,20 @@ class _PreviewsPageState extends ConsumerState<PreviewsPage> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.previews,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  color: AppDesignTokens.inkOf(context),
+                ),
+              ),
+            ),
+          ),
           _MonthNavigation(
             month: selectedMonth,
             onPrevious: () => _replaceMonth(context, selectedMonth.previous),
@@ -565,104 +575,69 @@ class _PreviewCard extends ConsumerWidget {
     return CardHover(
       builder: (context, hovered) => PressScale(
         child: Material(
-          color: AppDesignTokens.surfaceOf(context),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            // 统一入口：Windows 上按设置弹出独立播放窗口，其余平台窗口内跳转。
             onTap: () => openVideo(context, ref, item.id),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppDesignTokens.strokeOf(context)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: SizedBox(
-                      width: 84,
-                      height: 84,
-                      child: ZoomOnHover(
-                        hovered: hovered,
-                        child: AppCachedNetworkImage(
-                          imageUrl: item.coverUrl,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 240,
-                          faceFocus: true,
-                          fadeInDuration: Duration.zero,
-                          errorWidget: (context, url, error) =>
-                              ColoredBox(
-                                color: AppDesignTokens.fieldFillOf(context),
-                                child: Icon(
-                                  Symbols.image_rounded,
-                                  size: 24,
-                                  color: AppDesignTokens.inkMutedOf(context),
-                                ),
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppDesignTokens.inkOf(context),
-                            height: 1.3,
-                          ),
-                        ),
-                        if (author.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            author,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppDesignTokens.inkSubtleOf(context),
-                              height: 1.3,
+                        ZoomOnHover(
+                          hovered: hovered,
+                          child: AppCachedNetworkImage(
+                            imageUrl: item.coverUrl,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 360,
+                            faceFocus: true,
+                            fadeInDuration: Duration.zero,
+                            errorWidget: (context, url, error) => ColoredBox(
+                              color: AppDesignTokens.fieldFillOf(context),
+                              child: Icon(Symbols.image_rounded,
+                                  size: 28,
+                                  color: AppDesignTokens.inkMutedOf(context)),
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const _PreviewBadge(text: '预订中'),
-                            if (item.releaseDate != null &&
-                                item.releaseDate!.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  item.releaseDate!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppDesignTokens.inkMutedOf(context),
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        ),
+                        const Positioned(
+                          left: 8,
+                          top: 8,
+                          child: _PreviewBadge(text: '预订中'),
                         ),
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppDesignTokens.inkOf(context),
+                    height: 1.25,
+                  ),
+                ),
+                if (author.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppDesignTokens.inkSubtleOf(context),
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
@@ -702,20 +677,15 @@ class _PreviewBadge extends StatelessWidget {
 SliverGridDelegate _previewGridDelegate(BoxConstraints constraints) {
   const padding = PreviewGridMetrics.horizontalPadding;
   const spacing = PreviewGridMetrics.spacing;
-  const minCardWidth = 260.0;
-  final usable = (constraints.maxWidth - padding * 2).clamp(
-    minCardWidth,
-    double.infinity,
-  );
-  final columns = ((usable + spacing) / (minCardWidth + spacing)).floor().clamp(
-    1,
-    4,
-  );
+  const minCardWidth = 180.0;
+  final usable = (constraints.maxWidth - padding * 2).clamp(0.0, double.infinity);
+  final rawColumns = ((usable + spacing) / (minCardWidth + spacing)).floor();
+  final columns = rawColumns < 1 ? 1 : (rawColumns > 6 ? 6 : rawColumns);
   return SliverGridDelegateWithFixedCrossAxisCount(
     crossAxisCount: columns,
-    mainAxisSpacing: spacing,
-    crossAxisSpacing: spacing,
-    mainAxisExtent: 108,
+    mainAxisSpacing: 18,
+    crossAxisSpacing: 14,
+    childAspectRatio: 0.56,
   );
 }
 
