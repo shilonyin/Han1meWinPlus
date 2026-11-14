@@ -272,6 +272,44 @@ class AppTopNavBar extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(width: 12),
+          PressScale(
+            child: InkWell(
+              onTap: () => context.go('/search'),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: Container(
+                width: 240,
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: overlay
+                      ? Colors.white.withValues(alpha: .10)
+                      : AppDesignTokens.fieldFillOf(context),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Symbols.search_rounded,
+                        size: 18,
+                        color: overlay
+                            ? Colors.white70
+                            : AppDesignTokens.inkSubtleOf(context)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('搜索视频、作者、标签…',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: overlay
+                                  ? Colors.white60
+                                  : AppDesignTokens.inkSubtleOf(context))),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             tooltip: '下载',
             onPressed: () {

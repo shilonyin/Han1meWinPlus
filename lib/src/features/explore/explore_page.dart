@@ -127,6 +127,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   final bool _hideCategoryBar = true;
   var _searchPanelOpen = false;
   var _searchFocused = false;
+  /// 首页搜索框已并入顶部导航层，这里隐藏旧的浮层搜索框。
+  final bool _hideHomeSearch = true;
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   final _searchFieldKey = GlobalKey();
@@ -426,7 +428,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                                 // Positioned(right: …) 就按这 416 来算让位，页签区被算得极窄 → 溢出，
                                 // 搜索框也因为只是靠 416 的右缘而飘走看不见。给它一个铺满的约束，
                                 // Stack 才有整个顶栏的宽度。
-                                Positioned(
+                                if (!_hideHomeSearch)
+                                  Positioned(
                                   // 只给 1 的上边偏移：搜索框和「换一批」都是 34 高，居中摆在
                                   // 内容带里会落在 55.7~89.0，顶边比设计稿的 56 差半像素；
                                   // 上边收 1 之后实际渲染到 56.2~89.5，就是设计稿的 56~89。
