@@ -93,6 +93,25 @@ String imageCacheKey(String url) {
   return '$withoutQuery?$query';
 }
 
+const String _kImageUserAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+/// hanime 图床（hembed / vdownload 等）有防盗链：缺 Referer/UA 会 403。
+/// 统一给这类图片补上请求头，避免封面大面积加载失败。
+Map<String, String>? _defaultImageHeaders(String url) {
+  final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+  if (host.contains('hembed') ||
+      host.contains('hanime') ||
+      host.contains('hani1') ||
+      host.contains('vdownload')) {
+    return {
+      'Referer': 'https://hanime1.me/',
+      'User-Agent': _kImageUserAgent,
+    };
+  }
+  return null;
+}
+
 /// 头像这类网络图片也走同一个缓存，避免每次启动都重新下载一遍。
 ///
 /// [cacheKey] 显式指定，不走默认的「整个 URL」：见 [imageCacheKey] 的说明。
@@ -104,7 +123,7 @@ ImageProvider appNetworkImage(String url, {Map<String, String>? httpHeaders}) {
   return CachedNetworkImageProvider(
     url,
     cacheKey: imageCacheKey(url),
-    headers: httpHeaders,
+    headers: httpHeaders ?? _defaultImageHeaders(url),
     cacheManager: appImageCacheManager,
   );
 }
@@ -140,7 +159,7 @@ ImageProvider appCachedImage(
     cacheKey: cacheKeySuffix == null ? baseKey : '$baseKey$cacheKeySuffix',
     maxWidth: maxWidth,
     maxHeight: maxHeight,
-    headers: httpHeaders,
+    headers: httpHeaders ?? _defaultImageHeaders(url),
     cacheManager: appImageCacheManager,
   );
 }
@@ -236,7 +255,7 @@ class AppCachedNetworkImage extends StatelessWidget {
     height: height,
     memCacheWidth: memCacheWidth,
     alignment: resolved,
-    httpHeaders: httpHeaders,
+    httpHeaders: httpHeaders ?? _defaultImageHeaders(imageUrl),
     placeholder: placeholder,
     errorWidget: errorWidget,
     imageBuilder: _resolvedImageBuilder(resolved),
