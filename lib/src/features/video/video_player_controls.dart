@@ -303,6 +303,19 @@ class VideoPlayerControls extends StatelessWidget {
                                                 ),
                                               ),
                                             ),
+                                          PressScale(
+                                            child: IconButton(
+                                              color: Colors.white,
+                                              tooltip: '字幕',
+                                              visualDensity: VisualDensity.compact,
+                                              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                    content: Text('暂无字幕'),
+                                                    duration: Duration(seconds: 2)),
+                                              ),
+                                              icon: const Icon(Symbols.subtitles_rounded),
+                                            ),
+                                          ),
                                           _AspectMenu(),
                                           if (onEpisodeSelected != null &&
                                               video.playlist.isNotEmpty)
