@@ -791,7 +791,7 @@ class _InlineVolumeSliderState extends State<_InlineVolumeSlider> {
         child: ValueListenableBuilder<VideoPlayerValue>(
           valueListenable: widget.controller,
           builder: (context, v, _) {
-            final vol = (_dragging ? (_local ?? v.volume) : v.volume).clamp(0.0, 100.0);
+            final vol = (_dragging ? (_local ?? v.volume) : v.volume).clamp(0.0, 1.0);
             return SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 trackHeight: 3,
@@ -804,7 +804,7 @@ class _InlineVolumeSliderState extends State<_InlineVolumeSlider> {
               child: Slider(
                 value: vol,
                 min: 0,
-                max: 100,
+                max: 1,
                 onChangeStart: (_) {
                   setState(() => _dragging = true);
                   widget.onInteraction();
