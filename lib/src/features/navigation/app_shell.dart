@@ -273,6 +273,44 @@ class AppTopNavBar extends ConsumerWidget {
             ),
           ),
           IconButton(
+            tooltip: '下载',
+            onPressed: () {
+              final ns = navigationShell;
+              if (ns != null) {
+                openShellDestination(context, ns, '/cache');
+              } else {
+                context.go('/cache');
+              }
+            },
+            icon: Icon(
+              Symbols.download_rounded,
+              color: overlay
+                  ? Colors.white70
+                  : AppDesignTokens.inkSubtleOf(context),
+            ),
+          ),
+          PressScale(
+            child: InkWell(
+              onTap: () => context.go('/mine'),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 30,
+                height: 30,
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppDesignTokens.accent, AppDesignTokens.accentDeep],
+                  ),
+                ),
+                child: const Icon(Symbols.person_rounded,
+                    size: 18, color: Colors.white),
+              ),
+            ),
+          ),
+          IconButton(
             onPressed: () {
               final ns = navigationShell;
               if (ns != null) {
