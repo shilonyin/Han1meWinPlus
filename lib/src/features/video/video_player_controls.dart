@@ -319,19 +319,6 @@ class VideoPlayerControls extends StatelessWidget {
                                                 ),
                                               ),
                                             ),
-                                          PressScale(
-                                            child: IconButton(
-                                              color: Colors.white,
-                                              tooltip: '字幕',
-                                              visualDensity: VisualDensity.compact,
-                                              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                    content: Text('暂无字幕'),
-                                                    duration: Duration(seconds: 2)),
-                                              ),
-                                              icon: const Icon(Symbols.subtitles_rounded),
-                                            ),
-                                          ),
                                           _LoopButton(),
                                           _AspectMenu(),
                                           if (onEpisodeSelected != null &&
@@ -368,6 +355,19 @@ class VideoPlayerControls extends StatelessWidget {
                                             onSuperResolutionSelected:
                                                 onSuperResolutionSelected,
                                           ),
+                                        PressScale(
+                                          child: IconButton(
+                                            color: Colors.white,
+                                            tooltip: '投屏',
+                                            visualDensity: VisualDensity.compact,
+                                            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                  content: Text('投屏暂不支持'),
+                                                  duration: Duration(seconds: 2)),
+                                            ),
+                                            icon: const Icon(Symbols.cast_rounded),
+                                          ),
+                                        ),
                                         PressScale(
                                           child: IconButton(
                                             color: Colors.white,

@@ -758,10 +758,10 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
 }
 
 String _playerTopSubtitle(VideoDetail v) {
-  final parts = <String>[
-    if ((v.genre ?? '').isNotEmpty) v.genre!,
-    if ((v.artist ?? '').isNotEmpty) v.artist!,
-  ];
+  final parts = <String>{
+    if ((v.genre ?? '').isNotEmpty) v.genre!.trim(),
+    if ((v.artist ?? '').isNotEmpty) v.artist!.trim(),
+  }.toList();
   return parts.join(' · ');
 }
 
