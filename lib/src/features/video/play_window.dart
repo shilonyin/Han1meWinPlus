@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/video_player_shutdown.dart';
-import '../settings/settings_controller.dart';
 
 /// 独立播放窗口（多进程多窗口方案）的启动参数与进程启动器。
 ///
@@ -142,14 +141,6 @@ Future<bool> openVideoInPlayWindow(
   WidgetRef ref,
   String videoId,
 ) async {
-  final settings = ref.read(settingsProvider).valueOrNull;
-  // 默认**不**弹独立播放窗口：点封面先进详情页（设计稿 `base_videodetail.png`
-  // 那一页：左边播放器占位 + 简介 + 评论，右边标题/作者/统计/立即播放/标签/选集/
-  // 相关推荐），在详情页里点「立即播放」才真正开窗播。
-  // 之前默认 true，点一张卡就直接弹出一个暗色播放窗口，详情页根本没出现过。
-  // 想恢复「点了就播」可以在设置里把 openVideoInWindow 打开。
-  if (!Platform.isWindows || !(settings?.openVideoInWindow ?? false)) return false;
-  // 拉起成功就直接返回；拉不起来（exe 被移动 / 删除等）回退窗口内播放，
-  // 别让用户点不开视频。
-  return launchPlayWindow(videoId);
+  // 按需求关闭独立播放窗口：所有播放入口统一在应用内播放，不再弹独立窗口。
+  return false;
 }
