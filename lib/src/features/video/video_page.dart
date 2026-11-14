@@ -19,6 +19,7 @@ import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
 import 'video_page_layout.dart';
+import 'video_detail_immersive.dart' show videoPagePlaying;
 import '../navigation/app_shell.dart';
 
 VideoCard? nextEpisode(VideoDetail video) {
@@ -242,14 +243,25 @@ class _VideoPageState extends ConsumerState<VideoPage> {
             : AppDesignTokens.pageBackgroundOf(context),
         body: widget.inPlayWindow
             ? content
+            // content 固定在原位；播放时只把顶部导航淡出并禁用点击，避免重建/移动。
             : Stack(
                 children: [
                   Positioned.fill(child: content),
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: AppTopNavBar(overlay: true),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: videoPagePlaying,
+                    builder: (context, playing, _) => Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        ignoring: playing,
+                        child: AnimatedOpacity(
+                          duration: AppMotion.brief,
+                          opacity: playing ? 0 : 1,
+                          child: const AppTopNavBar(overlay: true),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
