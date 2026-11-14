@@ -718,6 +718,14 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   }
 }
 
+String _playerTopSubtitle(VideoDetail v) {
+  final parts = <String>[
+    if ((v.genre ?? '').isNotEmpty) v.genre!,
+    if ((v.artist ?? '').isNotEmpty) v.artist!,
+  ];
+  return parts.join(' · ');
+}
+
 /// 播放器顶部操作条：返回 / 回主页、标题跑马灯，以及跳转、画中画、更多等次要入口。
 class _PlayerTopBar extends StatelessWidget {
   const _PlayerTopBar({
@@ -781,7 +789,43 @@ class _PlayerTopBar extends StatelessWidget {
                 ),
               ),
             const SizedBox(width: 6),
-            Expanded(child: _MarqueeTitle(title: video.title)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MarqueeTitle(title: video.title),
+                  if (_playerTopSubtitle(video).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _playerTopSubtitle(video),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 11.5),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: controller,
+                builder: (context, v, _) {
+                  String hhmm(DateTime d) =>
+                      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+                  final now = DateTime.now();
+                  final end = now.add(v.duration - v.position);
+                  return Text(
+                    '${hhmm(now)}  ${hhmm(end)} 结束',
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 12),
+                  );
+                },
+              ),
+            ),
             if (Platform.isAndroid)
               PressScale(
                 child: IconButton(
