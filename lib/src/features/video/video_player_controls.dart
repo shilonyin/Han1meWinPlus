@@ -229,16 +229,6 @@ class VideoPlayerControls extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (onNext != null)
-                                PressScale(
-                                  child: IconButton(
-                                    color: Colors.white,
-                                    tooltip: l10n.autoPlayNext,
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: onNext,
-                                    icon: const Icon(Symbols.skip_next_rounded),
-                                  ),
-                                ),
                               // 快进按钮：从顶部条移到左下角控制行
                               VideoPlayerSkipButton(
                                 controller: controller,
@@ -288,6 +278,31 @@ class VideoPlayerControls extends StatelessWidget {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (roomy) ...[
+                                          if (onNext != null)
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              child: PressScale(
+                                                child: Material(
+                                                  color: const Color(0xFFFF2D2D),
+                                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                                  child: InkWell(
+                                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                                    onTap: onNext,
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: const [
+                                                          Text('下一集', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                                          SizedBox(width: 4),
+                                                          Icon(Symbols.skip_next_rounded, color: Colors.white, size: 18),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           _AspectMenu(),
                                           if (onEpisodeSelected != null &&
                                               video.playlist.isNotEmpty)
