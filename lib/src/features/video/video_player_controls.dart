@@ -16,7 +16,6 @@ import '../shared/press_scale.dart';
 import 'android_cast_button.dart';
 import '../../core/app_dialog.dart';
 import '../shared/motion_icon.dart';
-import 'player_overlay_surface.dart';
 import 'player_menu_style.dart';
 
 /// 进度条（带内边距的 Slider）在控制条里的占位高度，音量面板据此把弹层放到进度条上方。
@@ -111,19 +110,28 @@ class VideoPlayerControls extends StatelessWidget {
   Widget build(BuildContext context) => Positioned(
     left: 0,
     right: 0,
-    bottom: kPlayerControlsInset,
+    bottom: 0,
     // 悬浮圆角条：半透明黑底 + 背景模糊，压在视频画面上而不遮满底部。
     //
     // 不再用贴底通栏的渐隐底衬（[ProgressiveFade.bottomSolid]）：那条把画面
     // 下半截整体压暗，和「浮起来的一枚控制条」是两种观感。
     // 居中并限宽：宽窗口下它是一枚居中的条，窄窗口下仍占满可用宽度。
-    child: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kPlayerControlsMaxWidth),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kPlayerControlsInset),
-          child: PlayerOverlaySurface(
-            child: ValueListenableBuilder<VideoPlayerValue>(
+    child: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black87],
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          kPlayerControlsInset,
+          20,
+          kPlayerControlsInset,
+          MediaQuery.paddingOf(context).bottom + 8,
+        ),
+        child: ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
               builder: (context, value, _) {
                 final l10n = AppLocalizations.of(context)!;
@@ -382,9 +390,7 @@ class VideoPlayerControls extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 /// 在原本的进度条轨道下面先画一段「已缓冲」的亮色。
