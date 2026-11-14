@@ -689,17 +689,13 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
               onNext: widget.onNext,
             ),
             transitionsBuilder: (context, animation, secondary, child) {
-              final curved = CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-                reverseCurve: Curves.easeInCubic,
-              );
               return FadeTransition(
-                opacity: curved,
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
-                  child: child,
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeInOut,
+                  reverseCurve: Curves.easeInOut,
                 ),
+                child: child,
               );
             },
           ),

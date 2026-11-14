@@ -768,23 +768,31 @@ class _LoopButton extends ConsumerWidget {
   }
 }
 
-class _InlineVolumeSlider extends StatelessWidget {
+class _InlineVolumeSlider extends StatefulWidget {
   const _InlineVolumeSlider({required this.controller, required this.onInteraction});
   final VideoPlayerController controller;
   final VoidCallback onInteraction;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<VideoPlayerValue>(
-    valueListenable: controller,
-    builder: (context, v, _) {
-      final vol = v.volume.clamp(0.0, 100.0);
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Symbols.volume_up_rounded, color: Colors.white, size: 20),
-          SizedBox(
-            width: 88,
-            child: SliderTheme(
+  State<_InlineVolumeSlider> createState() => _InlineVolumeSliderState();
+}
+
+class _InlineVolumeSliderState extends State<_InlineVolumeSlider> {
+  bool _dragging = false;
+  double? _local;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Icon(Symbols.volume_up_rounded, color: Colors.white, size: 20),
+      SizedBox(
+        width: 96,
+        child: ValueListenableBuilder<VideoPlayerValue>(
+          valueListenable: widget.controller,
+          builder: (context, v, _) {
+            final vol = (_dragging ? (_local ?? v.volume) : v.volume).clamp(0.0, 100.0);
+            return SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 trackHeight: 3,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
@@ -797,16 +805,24 @@ class _InlineVolumeSlider extends StatelessWidget {
                 value: vol,
                 min: 0,
                 max: 100,
+                onChangeStart: (_) {
+                  setState(() => _dragging = true);
+                  widget.onInteraction();
+                },
                 onChanged: (x) {
-                  controller.setVolume(x);
-                  onInteraction();
+                  setState(() => _local = x);
+                  widget.controller.setVolume(x);
+                },
+                onChangeEnd: (_) {
+                  setState(() => _dragging = false);
+                  widget.onInteraction();
                 },
               ),
-            ),
-          ),
-        ],
-      );
-    },
+            );
+          },
+        ),
+      ),
+    ],
   );
 }
 
