@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'video_detail_immersive.dart' show videoPagePlaying;
 import 'package:m3e_core/m3e_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,6 +137,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
   @override
   void initState() {
     super.initState();
+    videoPagePlaying.value = true;
     _watchController = ref.read(watchProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
     _controllerNotifier.addListener(_handleControllerChanged);
@@ -717,6 +719,7 @@ class _VideoPlayerPanelState extends ConsumerState<VideoPlayerPanel>
 
   @override
   void dispose() {
+    videoPagePlaying.value = false;
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     PlaybackHotkeyTarget.clear();
