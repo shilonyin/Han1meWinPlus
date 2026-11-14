@@ -312,6 +312,10 @@ class AppTopNavBar extends ConsumerWidget {
           ),
           IconButton(
             tooltip: '下载',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               final ns = navigationShell;
               if (ns != null) {
@@ -332,9 +336,9 @@ class AppTopNavBar extends ConsumerWidget {
               onTap: () => context.go('/mine'),
               customBorder: const CircleBorder(),
               child: Container(
-                width: 30,
-                height: 30,
-                margin: const EdgeInsets.symmetric(horizontal: 6),
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -349,6 +353,10 @@ class AppTopNavBar extends ConsumerWidget {
             ),
           ),
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               final ns = navigationShell;
               if (ns != null) {

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/video_player_shutdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -85,6 +86,7 @@ class _VideoDetailImmersiveViewState
           video: video,
           onBack: () {
             if (!mounted) return;
+            VideoPlayerShutdown.pauseAll();
             setState(() => _playing = false);
             videoPagePlaying.value = false;
           },
@@ -806,7 +808,7 @@ class _Hero extends ConsumerWidget {
                         Color(0x330A0A0D),
                         Color(0x000A0A0D),
                       ],
-                      stops: [0.0, 0.32, 0.60],
+                      stops: [0.0, 0.26, 0.50],
                     ),
                   ),
                 ),
@@ -823,7 +825,7 @@ class _Hero extends ConsumerWidget {
                       Color(0xE00A0A0D),
                       Color(0xFF0A0A0D),
                     ],
-                    stops: const [0.0, 0.55, 1.0],
+                    stops: const [0.52, 0.86, 1.0],
                   ),
                 ),
               ),

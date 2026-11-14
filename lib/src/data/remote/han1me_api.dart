@@ -354,7 +354,18 @@ class Han1meApi {
     final uploadDate = _extractDate(viewsLine);
     final commentCountText = document.querySelector('#tab-comments-count')?.text.replaceAll(RegExp(r'\D'), '') ?? '';
     final commentCount = int.tryParse(commentCountText);
-    final playlist = document.querySelectorAll('#playlist-scroll .playlist-hover-wrap').map(_card).where((video) => video.id.isNotEmpty).fold<List<VideoCard>>([], _addUniqueCard);
+    final playlistRaw = document.querySelectorAll('#playlist-scroll .playlist-hover-wrap').map(_card).where((video) => video.id.isNotEmpty).fold<List<VideoCard>>([], _addUniqueCard);
+    // 站内集数命名不规范、列表顺序常常是倒的；用标题里的真实集数（「第N話/集」或末尾数字）升序，
+    // 让位置编号 01/02… 与真实集数对齐。
+    int epOrder(String t) {
+      final cn = RegExp(r'第\s*(\d+)\s*[话話集回]').firstMatch(t);
+      if (cn != null) return int.parse(cn.group(1)!);
+      final tail = RegExp(r'(\d+)\s*$').firstMatch(t.trim());
+      if (tail != null) return int.parse(tail.group(1)!);
+      return 1 << 30;
+    }
+    final playlist = List<VideoCard>.of(playlistRaw)
+      ..sort((a, b) => epOrder(a.title).compareTo(epOrder(b.title)));
     final rating = playlist.where((video) => video.id == id).firstOrNull?.rating;
     return VideoDetail(
       id: id,

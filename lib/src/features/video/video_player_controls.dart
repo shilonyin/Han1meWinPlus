@@ -292,6 +292,7 @@ class VideoPlayerControls extends StatelessWidget {
                                     reverse: true,
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
+                                      spacing: 8,
                                       children: [
                                         if (roomy) ...[
                                           if (onNext != null)

@@ -119,6 +119,7 @@ class _VideoPlayerSurfaceState extends ConsumerState<VideoPlayerSurface> {
   @override
   void initState() {
     super.initState();
+    WindowChrome.visible.value = true;
     unawaited(PlaybackSpeedPolicy.initialize());
     PlayerWheelGuard.instance.addListener(_onGuardChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _restartTimer());

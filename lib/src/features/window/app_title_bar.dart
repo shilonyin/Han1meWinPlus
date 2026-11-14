@@ -89,10 +89,10 @@ class AppWindowFrame extends ConsumerWidget {
                     onPanStart: (_) => WindowChrome.startDragging(),
                     onDoubleTap: WindowChrome.toggleMaximize,
                     child: SizedBox(
-                      height: appTitleBarHeight,
+                      height: 64,
                       child: const Align(
                         alignment: Alignment.centerRight,
-                        child: WindowTitleControls(),
+                        child: WindowTitleControls(height: 40),
                       ),
                     ),
                   )
@@ -236,15 +236,15 @@ class _WindowTitleControlsState extends State<WindowTitleControls> with WindowLi
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 16, height: widget.height),
+        _TitleBarButton(label: l10n.minimizeWindow, onPressed: WindowChrome.minimize, icon: Symbols.remove_rounded, iconSize: 18, height: widget.height),
         _TitleBarButton(
           label: _maximized ? l10n.restoreWindow : l10n.maximizeWindow,
           onPressed: WindowChrome.toggleMaximize,
           icon: _maximized ? Symbols.filter_none_rounded : Symbols.crop_square_rounded,
-          iconSize: _maximized ? 14 : 13,
+          iconSize: _maximized ? 16 : 15,
           height: widget.height,
         ),
-        _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Symbols.close_rounded, iconSize: 16, height: widget.height, danger: true),
+        _TitleBarButton(label: l10n.close, onPressed: WindowChrome.close, icon: Symbols.close_rounded, iconSize: 18, height: widget.height, danger: true),
       ],
     );
   }

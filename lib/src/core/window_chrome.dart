@@ -150,6 +150,25 @@ class WindowChrome {
     }
   }
 
+  /// 全屏（非 OS 级）：最大化窗口、保留标题栏随 [visible] 与控件一起显隐。
+  static Future<void> enterMaximizedFullscreen() async {
+    if (!isSupported) return;
+    await bind();
+    try {
+      await windowManager.setFullScreen(false);
+      if (!await windowManager.isMaximized()) await windowManager.maximize();
+    } catch (error) {
+      debugPrint('[window] maximize failed: $error');
+    }
+  }
+
+  static Future<void> exitMaximizedFullscreen() async {
+    if (!isSupported) return;
+    try {
+      if (await windowManager.isMaximized()) await windowManager.unmaximize();
+    } catch (_) {}
+  }
+
   /// 当前窗口矩形是否已经（近似）是 [expected]；容差 2 逻辑像素。
   static Future<bool> _matchesBounds(Rect expected) async {
     try {

@@ -1024,6 +1024,7 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
             SliverToBoxAdapter(
               child: _CinemaRail(
                 title: '继续观看',
+                landscape: true,
                 items: [
                   for (final item
                       in ref.watch(watchProvider).valueOrNull!.continueItems)
@@ -1043,20 +1044,29 @@ class _HomeScrollState extends ConsumerState<_HomeScroll> {
           for (var i = 0; i < widget.sections.length; i++)
             if (widget.sections[i].videos.isNotEmpty)
               SliverToBoxAdapter(
-                child: _CinemaRail(
-                  ranked: i == 0,
-                  title: widget.sections[i].title.isEmpty
-                      ? '影片'
-                      : widget.sections[i].title,
-                  items: [
-                    for (final video in widget.sections[i].videos)
-                      _RailItem(
-                        id: video.id,
-                        title: video.title,
-                        coverUrl: video.coverUrl,
-                      ),
-                  ],
-                ),
+                child: Builder(builder: (context) {
+                  final sec = widget.sections[i];
+                  final t = sec.title;
+                  final landscape = t.contains('最新上传') ||
+                      t.contains('最新上傳') ||
+                      t.contains('最新上市');
+                  final showRank = i == 0 && !t.contains('最新上市');
+                  return _CinemaRail(
+                    ranked: showRank,
+                    landscape: landscape,
+                    moreUrl: sec.moreUrl,
+                    title: t.isEmpty ? '影片' : t,
+                    items: [
+                      for (final video in sec.videos)
+                        _RailItem(
+                          id: video.id,
+                          title: video.title,
+                          coverUrl: video.coverUrl,
+                          duration: video.duration,
+                        ),
+                    ],
+                  );
+                }),
               ),
           // 末尾净空：右下角浮动的刷新 / 回到顶部不占列，得在这里把高度让出来
           // （见 `floatingActionsClearance`），再叠加系统安全区。
@@ -2240,31 +2250,86 @@ class _RailItem {
     required this.title,
     required this.coverUrl,
     this.progress,
+    this.duration,
   });
 
   final String id;
   final String title;
   final String? coverUrl;
+  final String? duration;
 
   /// 0..1，仅「继续观看」有进度。
   final double? progress;
 }
 
 /// 一行横向海报：热门行带 1..N 排名徽章，继续观看行带进度条。
-class _CinemaRail extends StatelessWidget {
+class _CinemaRail extends StatefulWidget {
   const _CinemaRail({
     required this.title,
     required this.items,
     this.ranked = false,
+    this.moreUrl,
+    this.landscape = false,
   });
 
   final String title;
   final List<_RailItem> items;
   final bool ranked;
+  final String? moreUrl;
+  final bool landscape;
+
+  @override
+  State<_CinemaRail> createState() => _CinemaRailState();
+}
+
+class _CinemaRailState extends State<_CinemaRail> {
+  final _c = ScrollController();
+  bool _back = false;
+  bool _fwd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _c.addListener(_sync);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
+  }
+
+  @override
+  void dispose() {
+    _c.removeListener(_sync);
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _sync() {
+    if (!_c.hasClients) return;
+    final back = _c.position.pixels > 1;
+    final fwd = _c.position.pixels < _c.position.maxScrollExtent - 1;
+    if (back != _back || fwd != _fwd) {
+      setState(() {
+        _back = back;
+        _fwd = fwd;
+      });
+    }
+  }
+
+  void _page(int direction) {
+    if (!_c.hasClients) return;
+    final p = _c.position;
+    final target = (p.pixels + direction * p.viewportDimension)
+        .clamp(0.0, p.maxScrollExtent);
+    _c.animateTo(target, duration: AppMotion.emphasis, curve: Curves.easeOut);
+  }
+
+  void _more(BuildContext context) {
+    final url = widget.moreUrl;
+    if (url == null) return;
+    context.push(url, extra: SearchRouteRequest(initialUrl: url));
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (widget.items.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 26),
       child: Column(
@@ -2272,26 +2337,48 @@ class _CinemaRail extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppDesignTokens.inkOf(context),
-              ),
+            child: Row(
+              children: [
+                Text(
+                  widget.title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppDesignTokens.inkOf(context),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: _back ? () => _page(-1) : null,
+                  tooltip: '上一页',
+                  icon: const Icon(Symbols.chevron_left_rounded),
+                ),
+                IconButton(
+                  onPressed: _fwd ? () => _page(1) : null,
+                  tooltip: '下一页',
+                  icon: const Icon(Symbols.chevron_right_rounded),
+                ),
+                if (widget.moreUrl != null)
+                  TextButton(
+                    onPressed: () => _more(context),
+                    child: const Text('查看更多'),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 300,
+            height: widget.landscape ? 196 : 300,
             child: ListView.separated(
+              controller: _c,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: _gridPadding),
-              itemCount: items.length,
+              itemCount: widget.items.length,
               separatorBuilder: (_, __) => const SizedBox(width: 14),
               itemBuilder: (context, index) => _RailCard(
-                item: items[index],
-                rank: ranked ? index + 1 : null,
+                item: widget.items[index],
+                rank: widget.ranked ? index + 1 : null,
+                landscape: widget.landscape,
               ),
             ),
           ),
@@ -2302,16 +2389,17 @@ class _CinemaRail extends StatelessWidget {
 }
 
 class _RailCard extends StatelessWidget {
-  const _RailCard({required this.item, this.rank});
+  const _RailCard({required this.item, this.rank, this.landscape = false});
 
   final _RailItem item;
   final int? rank;
+  final bool landscape;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.md);
     return SizedBox(
-      width: 176,
+      width: landscape ? 260 : 176,
       child: PressScale(
         child: InkWell(
           borderRadius: radius,
@@ -2324,7 +2412,7 @@ class _RailCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: radius,
                     child: AspectRatio(
-                      aspectRatio: 2 / 3,
+                      aspectRatio: landscape ? 16 / 9 : 2 / 3,
                       child: AppCachedNetworkImage(
                         imageUrl: item.coverUrl ?? '',
                         fit: BoxFit.cover,
@@ -2350,6 +2438,24 @@ class _RailCard extends StatelessWidget {
                           valueColor:
                               const AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
+                      ),
+                    ),
+                  if (item.duration != null && item.duration!.isNotEmpty)
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .6),
+                          borderRadius: BorderRadius.circular(AppRadius.xs),
+                        ),
+                        child: Text(item.duration!,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600)),
                       ),
                     ),
                 ],
@@ -2548,7 +2654,8 @@ class _HeroPage extends ConsumerWidget {
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [Color(0xF20A0A0D), Color(0xA60A0A0D), Color(0x140A0A0D)],
+                colors: [Color(0xB30A0A0D), Color(0x330A0A0D), Color(0x000A0A0D)],
+                stops: [0.0, 0.26, 0.50],
               ),
             ),
           ),
@@ -2559,8 +2666,8 @@ class _HeroPage extends ConsumerWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0xFF0A0A0D)],
-                stops: [0.5, 1.0],
+                colors: [Color(0x8C0A0A0D), Color(0xE00A0A0D), Color(0xFF0A0A0D)],
+                stops: [0.52, 0.86, 1.0],
               ),
             ),
           ),
