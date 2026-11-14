@@ -363,7 +363,7 @@ class _EpisodeSectionState extends State<_EpisodeSection> {
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: .55),
-                                  borderRadius: BorderRadius.circular(4)),
+                                  borderRadius: BorderRadius.circular(AppRadius.xs)),
                               child: Text('${i + 1}'.padLeft(2, '0'),
                                   style: const TextStyle(
                                       fontSize: 11,
