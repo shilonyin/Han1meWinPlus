@@ -394,20 +394,23 @@ class VideoPlayerControls extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        if (onFloat != null)
-                                          PressScale(
-                                            child: IconButton(
-                                              color: Colors.white,
-                                              tooltip: l10n.floatWindow,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              onPressed: onFloat,
-                                              icon: const Icon(
-                                                Symbols
-                                                    .picture_in_picture_rounded,
-                                              ),
+                                        PressScale(
+                                          child: IconButton(
+                                            color: Colors.white,
+                                            tooltip: l10n.floatWindow,
+                                            visualDensity: VisualDensity.compact,
+                                            onPressed: onFloat ??
+                                                () => ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                      content: Text('画中画暂不支持'),
+                                                      duration: Duration(seconds: 2)),
+                                                ),
+                                            icon: const Icon(
+                                              Symbols.picture_in_picture_rounded,
                                             ),
                                           ),
+                                        ),
                                       ],
                                     ),
                                   ),
