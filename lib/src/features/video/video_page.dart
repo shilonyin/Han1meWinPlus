@@ -18,6 +18,7 @@ import '../settings/settings_controller.dart';
 import '../shared/press_scale.dart';
 import 'video_comments.dart';
 import 'video_controller.dart';
+import '../../core/app_motion.dart';
 import 'video_page_layout.dart';
 import 'video_detail_immersive.dart' show videoPagePlaying;
 import '../navigation/app_shell.dart';
