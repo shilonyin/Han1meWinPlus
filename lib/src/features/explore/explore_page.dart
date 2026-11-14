@@ -430,7 +430,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                                   // 只给 1 的上边偏移：搜索框和「换一批」都是 34 高，居中摆在
                                   // 内容带里会落在 55.7~89.0，顶边比设计稿的 56 差半像素；
                                   // 上边收 1 之后实际渲染到 56.2~89.5，就是设计稿的 56~89。
-                                  top: -75,
+                                  top: -44,
                                   bottom: 0,
                                   // 左右都要给：只给 right 时 Positioned 的宽度是「由子级决定」，
                                   // 子级（AnimatedAlign）收缩到 Row 的自然宽度再被右对齐，
@@ -704,16 +704,16 @@ class _HomeSearchField extends StatelessWidget {
           focusNode: focusNode,
           textInputAction: TextInputAction.search,
           onSubmitted: onSubmitted,
-          style: TextStyle(fontSize: 13, color: AppDesignTokens.inkOf(context)),
+          style: const TextStyle(fontSize: 13, color: Colors.white),
           decoration: InputDecoration(
             isDense: true,
             hintText: l10n.searchHint,
             hintStyle: const TextStyle(
               fontSize: 13,
-              color: AppDesignTokens.fieldHint,
+              color: Colors.white60,
             ),
             filled: true,
-            fillColor: AppDesignTokens.fieldFillOf(context),
+            fillColor: Colors.white.withValues(alpha: .10),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
@@ -721,7 +721,7 @@ class _HomeSearchField extends StatelessWidget {
             prefixIcon: const Icon(
               Symbols.search_rounded,
               size: 18,
-              color: AppDesignTokens.fieldHint,
+              color: Colors.white70,
             ),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 34,
